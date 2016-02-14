@@ -1,0 +1,59 @@
+{
+	"camera" : {
+		"position" : [ 0.0, 2.0, -5.0 ],
+		"rotation" : [ -30.0, 0.0, 0.0 ]
+	},
+	"lights" : [
+		{
+			"type" : "directional",
+			"position" : [ 0.0, 0.0, 0.0 ],
+			"direction" : [1.0, -1.0, 1.0 ],
+			"color" : [1.0, 1.0, 1.0],
+			"intensity" : 1.0
+		},
+		{
+			"type" : "point",
+			"position" : [ 5.0, 5.0, -5.0 ],
+			"color" : [1.0, 0.0, 0.0],
+			"intensity" : 1.0,
+			"radius" : 10.0
+		}
+	],
+	"objects" : [
+		{
+			"position" : [ 0.0, 0.0, 0.0 ],
+			"rotation" : [ 0.0, 0.0, 0.0 ],
+			"scale" : [ 150.0, 150.0, 150.0 ],
+			"model" : "data/geo/plane.obj",
+			"vertexShader" : "data/shaders/v_model.hlsl",
+			"pixelShader" : "data/shaders/p_model.hlsl",
+			"textures" : [
+				"data/textures/c_white.dds",
+				"data/textures/n_flat.dds"
+			]
+		},
+		{
+			"position" : [ -15.0, 1.5, 0.0 ],
+			"rotation" : [ 0.0, 45.0, 0.0 ],
+			"scale" : [ 1.5, 1.5, 1.5 ],
+			"model" : "data/geo/sphere.obj",
+			"vertexShader" : "data/shaders/v_model.hlsl",
+			"pixelShader" : "data/shaders/p_model.hlsl",
+			"textures" : [
+				"data/textures/c_white.dds",
+				"data/textures/n_flat.dds"
+			]
+		},
+		{
+			"position" : [ 0.0, 1.0, 0.0 ],
+			"model" : "data/geo/box.obj",
+			"vertexShader" : "data/shaders/v_model.hlsl",
+			"pixelShader" : "data/shaders/p_model.hlsl",
+			"textures" : [
+				"data/textures/c_white.dds",
+				"data/textures/n_test.dds"
+			]
+		}
+	]
+
+}
