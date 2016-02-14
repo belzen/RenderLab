@@ -7,7 +7,7 @@ CameraInputController::CameraInputController()
 	: m_pCamera(nullptr)
 	, m_moveSpeed(0.0f)
 	, m_maxMoveSpeed(0.1f)
-	, m_accel(0.001f)
+	, m_accel(0.01f)
 {
 
 }
@@ -50,14 +50,15 @@ void CameraInputController::Update(float dt)
 		up = -1.f;
 
 	if (fabs(right) + fabs(up) + fabs(forward) != 0.f)
+	{
 		m_moveSpeed += m_accel * dt;
+		if (m_moveSpeed > m_maxMoveSpeed)
+			m_moveSpeed = m_maxMoveSpeed;
+	}
 	else
-		m_moveSpeed -= (m_accel * dt * 2.f);
-
-	if (m_moveSpeed < 0.f)
-		m_moveSpeed = 0.f;
-	else if (m_moveSpeed > m_maxMoveSpeed)
-		m_moveSpeed = m_maxMoveSpeed;
+	{
+		m_moveSpeed = 0.0f;
+	}
 
 	Vec3 pos = m_pCamera->GetPosition();
 	Vec3 dir = m_pCamera->GetDirection();
