@@ -14,4 +14,9 @@ RenderLab.sdf
 *.opendb
 /ipch/
 /obj/
-/bin/
+*.pdb
+*.ipdb
+*.iobj
+*.ilk
+*_debug.exe
+/bin/shaders/
