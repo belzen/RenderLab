@@ -73,12 +73,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 	wc.hInstance = hInstance;
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
-	wc.lpszClassName = L"GraphicsTest";
+	wc.lpszClassName = L"RenderLab";
 	
 	RegisterClassEx(&wc);
 
 	hWnd = CreateWindowEx(NULL,
-		L"GraphicsTest", L"Graphics Test",
+		wc.lpszClassName, L"Render Lab",
 		WS_OVERLAPPEDWINDOW,
 		10, 10,
 		wr.right - wr.left, wr.bottom - wr.top,
