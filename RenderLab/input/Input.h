@@ -1,9 +1,8 @@
 #pragma once
 
-class IInputController;
-
 enum Keys
 {
+	KEY_ENTER = 0x0D,
 	KEY_ESC = 0x1B,
 	KEY_A = 0x41,
 	KEY_B = 0x42,
@@ -31,14 +30,28 @@ enum Keys
 	KEY_X = 0x58,
 	KEY_Y = 0x59,
 	KEY_Z = 0x5A,
+	KEY_TILDE = 0xc0,
+};
+
+class IInputContext
+{
+public:
+	virtual void Update(float dt) = 0;
+
+	virtual void GainedFocus() = 0;
+	virtual void LostFocus() = 0;
+
+	virtual void HandleKeyDown(int key, bool down) = 0;
+	virtual void HandleMouseDown(int button, bool down, int x, int y) = 0;
+	virtual void HandleMouseMove(int x, int y, int dx, int dy) = 0;
 };
 
 namespace Input
 {
 	// Manage the input focus stack.
-	void PushController(IInputController* pController);
-	void PopController();
-	IInputController* GetActiveController();
+	void PushContext(IInputContext* pContext);
+	void PopContext();
+	IInputContext* GetActiveContext();
 
 	void Reset();
 

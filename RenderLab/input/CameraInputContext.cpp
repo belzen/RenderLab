@@ -1,9 +1,9 @@
 #include "Precompiled.h"
-#include "CameraInputController.h"
+#include "CameraInputContext.h"
 #include "Input.h"
 #include "render/Camera.h"
 
-CameraInputController::CameraInputController()
+CameraInputContext::CameraInputContext()
 	: m_pCamera(nullptr)
 	, m_moveSpeed(0.0f)
 	, m_maxMoveSpeed(0.1f)
@@ -12,7 +12,7 @@ CameraInputController::CameraInputController()
 
 }
 
-void CameraInputController::Update(float dt)
+void CameraInputContext::Update(float dt)
 {
 	float right = 0.f;
 	float up = 0.f;
@@ -69,4 +69,29 @@ void CameraInputController::Update(float dt)
 	moveVec = Vec3TransformNormal(moveVec, rotationMatrix);
 
 	m_pCamera->SetPosition(pos + moveVec);
+}
+
+void CameraInputContext::GainedFocus()
+{
+
+}
+
+void CameraInputContext::LostFocus()
+{
+
+}
+
+void CameraInputContext::HandleKeyDown(int key, bool down)
+{
+
+}
+
+void CameraInputContext::HandleMouseDown(int button, bool down, int x, int y)
+{
+
+}
+
+void CameraInputContext::HandleMouseMove(int x, int y, int dx, int dy)
+{
+
 }

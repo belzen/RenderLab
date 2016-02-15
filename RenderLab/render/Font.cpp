@@ -129,14 +129,14 @@ static void loadFontXml(const char* filename)
 
 void Font::Initialize(RdrContext* pRdrContext)
 {
-	const char* filename = "data/textures/consolas_regular_32.dds";
+	const char* filename = "consolas_regular_32.dds";
 	loadFontXml("data/textures/consolas_regular_32.xml");
 
 	g_text.texSize = 512;
 	g_text.hTexture = pRdrContext->LoadTexture(filename, false);
 
-	g_text.hVertexShader = pRdrContext->LoadVertexShader("data/shaders/v_text.hlsl", s_vertexDesc, ARRAYSIZE(s_vertexDesc));
-	g_text.hPixelShader = pRdrContext->LoadPixelShader("data/shaders/p_text.hlsl");
+	g_text.hVertexShader = pRdrContext->LoadVertexShader("v_text.hlsl", s_vertexDesc, ARRAYSIZE(s_vertexDesc));
+	g_text.hPixelShader = pRdrContext->LoadPixelShader("p_text.hlsl");
 }
 
 void Font::QueueDraw(Renderer* pRenderer, float drawx, float drawy, float depth, const char* text, Color color)

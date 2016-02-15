@@ -9,14 +9,18 @@
 
 #pragma comment (lib, "d3dcompiler.lib")
 
-static int s_debugShaders = 0;
+namespace
+{
+	int s_debugShaders = 0;
+	const char* s_shaderRootDir = "data/shaders/";
+}
 
 class IncludeHandler : public ID3DInclude
 {
 	HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes)
 	{
 		char filename[MAX_PATH];
-		sprintf_s(filename, "data/shaders/%s", pFileName);
+		sprintf_s(filename, "%s/%s", s_shaderRootDir, pFileName);
 
 		std::ifstream file(filename);
 		std::string text;
@@ -55,7 +59,10 @@ static ID3D10Blob* CompileShader(const char* filename, const char* entrypoint, c
 	ID3D10Blob* pCompiledData;
 	ID3D10Blob* pErrors = nullptr;
 
-	std::ifstream file(filename);
+	char fullFilename[MAX_PATH];
+	sprintf_s(fullFilename, "%s/%s", s_shaderRootDir, filename);
+
+	std::ifstream file(fullFilename);
 	std::string shaderText;
 	std::getline(file, shaderText, (char)EOF);
 

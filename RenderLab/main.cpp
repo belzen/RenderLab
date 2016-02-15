@@ -3,14 +3,18 @@
 #include "render/Renderer.h"
 #include "Scene.h"
 #include "input/Input.h"
-#include "input/CameraInputController.h"
+#include "input/CameraInputContext.h"
 #include "Timer.h"
+#include "debug/DebugConsole.h"
 
 Renderer g_renderer;
 Scene g_scene;
 
-static const int kClientWidth = 1440;
-static const int kClientHeight = 900;
+namespace
+{
+	const int kClientWidth = 1440;
+	const int kClientHeight = 900;
+}
 
 LRESULT CALLBACK WinProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
@@ -18,7 +22,7 @@ LRESULT CALLBACK WinProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	{
 	case WM_KEYDOWN:
 		Input::SetKeyDown(wParam, true);
-		if (wParam == 27) // ESC
+		if (wParam == KEY_ESC)
 			PostQuitMessage(0);
 		return 0;
 	case WM_KEYUP:
@@ -82,14 +86,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 	ShowWindow(hWnd, nCmdShow);
 	g_renderer.Init(hWnd, kClientWidth, kClientHeight);
-	g_scene.Load(g_renderer.GetContext(), "data/scenes/basic.scene");
+	DebugConsole::Initialize(g_renderer.GetContext());
+
+	g_scene.Load(g_renderer.GetContext(), "basic.scene");
 
 	MSG msg;
 	Timer::Handle hTimer = Timer::Create();
 
-	CameraInputController defaultInput;
+	CameraInputContext defaultInput;
 	defaultInput.SetCamera(&g_renderer.GetMainCamera());
-	Input::PushController(&defaultInput);
+	Input::PushContext(&defaultInput);
 
 	bool isQuitting = false;
 
@@ -110,7 +116,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 		float dt = Timer::GetElapsedSecondsAndReset(hTimer);
 
-		Input::GetActiveController()->Update(dt);
+		Input::GetActiveContext()->Update(dt);
 
 		g_scene.Update(dt);
 

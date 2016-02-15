@@ -576,7 +576,7 @@ void Renderer::DispatchLightCulling(Camera* pCamera)
 	// Depth min max
 	if (!m_hDepthMinMaxTex)
 	{
-		m_hDepthMinMaxShader = m_context.LoadComputeShader("data/shaders/c_tiled_depth_calc.hlsl");
+		m_hDepthMinMaxShader = m_context.LoadComputeShader("c_tiled_depth_calc.hlsl");
 		m_hDepthMinMaxTex = m_context.CreateTexture2D(tileCountX, tileCountY, DXGI_FORMAT_R16G16_FLOAT);
 	}
 
@@ -614,7 +614,7 @@ void Renderer::DispatchLightCulling(Camera* pCamera)
 	if (!m_hLightCullShader)
 	{
 		const uint kMaxLightsPerTile = 128; // Sync with MAX_LIGHTS_PER_TILE in "light_inc.hlsli"
-		m_hLightCullShader = m_context.LoadComputeShader("data/shaders/c_tiled_light_cull.hlsl");
+		m_hLightCullShader = m_context.LoadComputeShader("c_tiled_light_cull.hlsl");
 		m_context.m_hTileLightIndices = m_context.CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint));
 	}
 

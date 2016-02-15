@@ -1,8 +1,8 @@
 #include "Precompiled.h"
 #include "Input.h"
-#include "IInputController.h"
 #include <memory.h>
 #include <stack>
+#include "debug\DebugConsole.h"
 
 namespace
 {
@@ -10,25 +10,30 @@ namespace
 	bool s_mouseStates[5] = { 0 };
 	int s_mouseX, s_mouseY;
 	int s_mouseMoveX, s_mouseMoveY;
-	std::stack<IInputController*> s_inputFocusStack;
+	std::stack<IInputContext*> s_inputFocusStack;
 }
 
-void Input::PushController(IInputController* pController)
+void Input::PushContext(IInputContext* pController)
 {
+	if ( !s_inputFocusStack.empty() )
+		s_inputFocusStack.top()->LostFocus();
+
 	s_inputFocusStack.push(pController);
+	s_inputFocusStack.top()->GainedFocus();
 }
 
-void Input::PopController()
+void Input::PopContext()
 {
 	assert(s_inputFocusStack.size() > 1);
+	s_inputFocusStack.top()->LostFocus();
 	s_inputFocusStack.pop();
+	s_inputFocusStack.top()->GainedFocus();
 }
 
-IInputController* Input::GetActiveController()
+IInputContext* Input::GetActiveContext()
 {
 	return s_inputFocusStack.top();
 }
-
 
 void Input::Reset()
 {
@@ -44,6 +49,16 @@ bool Input::IsKeyDown(int key)
 void Input::SetKeyDown(int key, bool down)
 {
 	s_keyStates[key] = down;
+
+	if (down && key == KEY_TILDE)
+	{
+		// ~ reserved for debug console.
+		DebugConsole::ToggleActive();
+	}
+	else
+	{
+		s_inputFocusStack.top()->HandleKeyDown(key, down);
+	}
 }
 
 bool Input::IsMouseDown(int button)
@@ -58,6 +73,8 @@ void Input::SetMouseDown(int button, bool down, int x, int y)
 	s_mouseY = y;
 	s_mouseMoveX = 0;
 	s_mouseMoveY = 0;
+
+	s_inputFocusStack.top()->HandleMouseDown(button, down, x, y);
 }
 
 void Input::GetMouseMove(int& x, int& y)
@@ -78,4 +95,6 @@ void Input::SetMousePos(int x, int y)
 	s_mouseMoveY = y - s_mouseY;
 	s_mouseX = x;
 	s_mouseY = y;
+
+	s_inputFocusStack.top()->HandleMouseMove(x, y, s_mouseMoveX, s_mouseMoveY);
 }

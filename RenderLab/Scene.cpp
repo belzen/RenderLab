@@ -56,8 +56,11 @@ static inline Quaternion readRotation(Json::Value& val)
 
 void Scene::Load(RdrContext* pContext, const char* filename)
 {
+	char fullFilename[MAX_PATH];
+	sprintf_s(fullFilename, "data/scenes/%s", filename);
+
 	Json::Value root;
-	std::ifstream sceneFile(filename);
+	std::ifstream sceneFile(fullFilename);
 	Json::Reader jsonReader;
 	jsonReader.parse(sceneFile, root, false);
 

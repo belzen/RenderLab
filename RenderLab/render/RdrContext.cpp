@@ -155,7 +155,9 @@ RdrGeoHandle RdrContext::LoadGeo(const char* filename)
 	std::vector<Vec2> texcoords;
 	std::vector<uint16> tris;
 
-	std::ifstream file(filename);
+	char fullFilename[MAX_PATH];
+	sprintf_s(fullFilename, "data/geo/%s", filename);
+	std::ifstream file(fullFilename);
 
 	char line[1024];
 
@@ -290,8 +292,11 @@ RdrTextureHandle RdrContext::LoadTexture(const char* filename, bool bPointSample
 	desc.Usage = D3D11_USAGE_IMMUTABLE;
 	desc.SampleDesc.Count = 1;
 
+	char fullFilename[MAX_PATH];
+	sprintf_s(fullFilename, "data/textures/%s", filename);
+
 	FILE* file;
-	fopen_s(&file, filename, "rb");
+	fopen_s(&file, fullFilename, "rb");
 
 	fseek(file, 0, SEEK_END);
 	int fileSize = ftell(file);
