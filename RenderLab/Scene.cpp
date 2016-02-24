@@ -203,14 +203,8 @@ void Scene::Update(float dt)
 
 void Scene::QueueDraw(Renderer* pRenderer)
 {
-	pRenderer->BeginAction(&pRenderer->GetMainCamera(), nullptr);
-
 	for (uint i = 0; i < m_objects.size(); ++i)
 	{
 		m_objects[i]->QueueDraw(pRenderer);
 	}
-
-	// Debug
-	Font::QueueDraw(pRenderer, 0.f, 0.f, 1.f, "test", Color::kWhite);
-	pRenderer->EndAction();
 }

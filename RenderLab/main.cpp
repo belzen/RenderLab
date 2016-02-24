@@ -1,6 +1,7 @@
 #include "Precompiled.h"
 #include <windowsx.h>
 #include "render/Renderer.h"
+#include "render/Font.h"
 #include "Scene.h"
 #include "input/Input.h"
 #include "input/CameraInputContext.h"
@@ -86,7 +87,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 	ShowWindow(hWnd, nCmdShow);
 	g_renderer.Init(hWnd, kClientWidth, kClientHeight);
-	DebugConsole::Initialize(g_renderer.GetContext());
+	DebugConsole::Init(g_renderer.GetContext());
 
 	g_scene.Load(g_renderer.GetContext(), "basic.scene");
 
@@ -120,7 +121,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 		g_scene.Update(dt);
 
-		g_scene.QueueDraw(&g_renderer);
+		// Primary render action
+		{
+			g_renderer.BeginAction(&g_renderer.GetMainCamera(), nullptr);
+
+			g_scene.QueueDraw(&g_renderer);
+			DebugConsole::QueueDraw(&g_renderer);
+
+			// Debug
+			Font::QueueDraw(&g_renderer, Vec3::kZero, 20.f, "test", Color::kWhite);
+			g_renderer.EndAction();
+		}
+
 		g_renderer.DrawFrame();
 	}
 

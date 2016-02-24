@@ -39,6 +39,7 @@ public:
 	// todo: most uses of these will be wrong when using different render targets
 	int GetViewportWidth() const { return m_viewWidth; }
 	int GetViewportHeight() const { return m_viewHeight; }
+	Vec2 GetViewportSize() const { return Vec2((float)m_viewWidth, (float)m_viewHeight); }
 
 	RdrTextureHandle GetDepthTex() const { return m_hDepthTex; }
 

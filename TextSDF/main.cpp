@@ -108,7 +108,7 @@ int main(int argc, char** argv)
 	DirectX::ScratchImage sdfImage;
 	sdfImage.Initialize2D(DXGI_FORMAT_R8_UNORM, info.width, info.height, 1, 0, 0);
 	pixels = sdfImage.GetPixels();
-	int range = 3;
+	int range = 10;
 	for (int i = 0; i < numPixels; ++i)
 	{
 		double dist1 = sqrt((double)grid1[i].DistSqr());

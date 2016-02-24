@@ -3,7 +3,6 @@
 #include "RdrContext.h"
 #include "Math.h"
 
-struct RdrContext;
 class Renderer;
 
 class Model

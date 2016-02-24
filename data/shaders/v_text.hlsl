@@ -7,6 +7,7 @@ cbuffer PerFrame
 cbuffer PerObject
 {
 	float3 screen_pos;
+	float size;
 };
 
 struct VertexInput
@@ -27,7 +28,7 @@ VertexOutput main( VertexInput input )
 {
 	VertexOutput output;
 
-	float4 pos = float4(input.position + screen_pos.xy, screen_pos.z, 1.f);
+	float4 pos = float4(input.position * size + screen_pos.xy, screen_pos.z, 1.f);
 	output.position = mul(pos, proj_mat);
 
 	output.color = input.color;

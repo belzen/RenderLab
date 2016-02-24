@@ -342,6 +342,8 @@ RdrTextureHandle RdrContext::LoadTexture(const char* filename, bool bPointSample
 	pTex->pTexture = pTexture;
 	pTex->pResourceView = CreateShaderResourceView(m_pDevice, pTexture);
 	pTex->pSamplerState = CreateSamplerState(m_pDevice, bPointSample);
+	pTex->width = desc.Width;
+	pTex->height = desc.Height;
 
 	RdrTextureHandle hTex = m_textures.getId(pTex);
 	m_textureCache.insert(std::make_pair(filename, hTex));

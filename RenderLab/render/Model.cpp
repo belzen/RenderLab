@@ -33,12 +33,12 @@ void Model::QueueDraw(Renderer* pRenderer, const Matrix44& srcWorldMat) const
 	Matrix44 worldMat = Matrix44Transpose(srcWorldMat);
 	for (int i = 0; i < 4; ++i)
 	{
-		pDrawOp->constants[i * 4 + 0] = worldMat.m[i][0];
-		pDrawOp->constants[i * 4 + 1] = worldMat.m[i][1];
-		pDrawOp->constants[i * 4 + 2] = worldMat.m[i][2];
-		pDrawOp->constants[i * 4 + 3] = worldMat.m[i][3];
+		pDrawOp->constants[i].x = worldMat.m[i][0];
+		pDrawOp->constants[i].y = worldMat.m[i][1];
+		pDrawOp->constants[i].z = worldMat.m[i][2];
+		pDrawOp->constants[i].w = worldMat.m[i][3];
 	}
-	pDrawOp->constantsByteSize = sizeof(float) * 16;
+	pDrawOp->numConstants = 4;
 
 	for (int i = 0; i < m_numTextures; ++i)
 	{

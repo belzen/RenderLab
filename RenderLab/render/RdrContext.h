@@ -48,6 +48,9 @@ struct RdrTexture
 	ID3D11ShaderResourceView*	pResourceView;
 	ID3D11UnorderedAccessView*	pUnorderedAccessView;
 	ID3D11SamplerState*			pSamplerState;
+
+	int width;
+	int height;
 };
 
 struct RdrGeometry
@@ -142,8 +145,8 @@ struct RdrDrawOp
 	RdrTextureHandle hViews[8];
 	uint viewCount;
 
-	float constants[64];
-	uint constantsByteSize;
+	Vec4 constants[16];
+	uint numConstants;
 
 	ShaderHandle hVertexShader;
 	ShaderHandle hPixelShader;

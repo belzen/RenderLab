@@ -48,16 +48,18 @@ bool Input::IsKeyDown(int key)
 
 void Input::SetKeyDown(int key, bool down)
 {
+	bool changed = (s_keyStates[key] != down);
 	s_keyStates[key] = down;
 
-	if (down && key == KEY_TILDE)
+	IInputContext* pContext = s_inputFocusStack.top();
+	if (changed && down && key == KEY_TILDE)
 	{
 		// ~ reserved for debug console.
 		DebugConsole::ToggleActive();
 	}
-	else
+	else if ( changed || (down && pContext->WantsKeyDownRepeat()) )
 	{
-		s_inputFocusStack.top()->HandleKeyDown(key, down);
+		pContext->HandleKeyDown(key, down);
 	}
 }
 

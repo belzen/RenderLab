@@ -18,6 +18,8 @@ public:
 	void HandleMouseDown(int button, bool down, int x, int y);
 	void HandleMouseMove(int x, int y, int dx, int dy);
 
+	bool WantsKeyDownRepeat() { return false; }
+
 	void SetCamera(Camera* pCamera);
 private:
 	Camera* m_pCamera;

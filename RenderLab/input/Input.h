@@ -2,8 +2,27 @@
 
 enum Keys
 {
+	KEY_BACKSPACE = 0x08,
 	KEY_ENTER = 0x0D,
 	KEY_ESC = 0x1B,
+	KEY_SPACE = 0x20,
+
+	KEY_LEFT = 0x25,
+	KEY_UP = 0x26,
+	KEY_RIGHT = 0x27,
+	KEY_DOWN = 0x28,
+
+	KEY_0 = 0x30,
+	KEY_1 = 0x31,
+	KEY_2 = 0x32,
+	KEY_3 = 0x33,
+	KEY_4 = 0x34,
+	KEY_5 = 0x35,
+	KEY_6 = 0x36,
+	KEY_7 = 0x37,
+	KEY_8 = 0x38,
+	KEY_9 = 0x39,
+
 	KEY_A = 0x41,
 	KEY_B = 0x42,
 	KEY_C = 0x43,
@@ -44,6 +63,10 @@ public:
 	virtual void HandleKeyDown(int key, bool down) = 0;
 	virtual void HandleMouseDown(int button, bool down, int x, int y) = 0;
 	virtual void HandleMouseMove(int x, int y, int dx, int dy) = 0;
+
+	// Whether to send key down repeat events to this context.
+	// Mainly used by text input contexts.
+	virtual bool WantsKeyDownRepeat() = 0;
 };
 
 namespace Input

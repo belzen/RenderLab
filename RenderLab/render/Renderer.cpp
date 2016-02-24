@@ -8,12 +8,22 @@
 #include "WorldObject.h"
 #include "Font.h"
 #include <DXGIFormat.h>
+#include "debug\DebugConsole.h"
 
 #pragma comment (lib, "d3d11.lib")
 
-static bool s_debug = 1;
-static bool s_wireframe = 0;
-static int s_msaaLevel = 2;
+
+namespace
+{
+	static bool s_debug = 1;
+	static bool s_wireframe = 0;
+	static int s_msaaLevel = 2;
+
+	void setWireframeEnabled(DebugCommandArg *args, int numArgs)
+	{
+		s_wireframe = (args[0].val.num != 0.f);
+	}
+}
 
 enum RdrReservedPsResourceSlots
 {
@@ -216,12 +226,12 @@ namespace
 		ID3D11Buffer* pConstantsBuffer = nullptr;
 		HRESULT hr;
 
-		if (pDrawOp->constantsByteSize)
+		if (pDrawOp->numConstants)
 		{
 			D3D11_BUFFER_DESC desc = { 0 };
 			D3D11_SUBRESOURCE_DATA data = { 0 };
 
-			desc.ByteWidth = pDrawOp->constantsByteSize;
+			desc.ByteWidth = pDrawOp->numConstants * sizeof(Vec4);
 			desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 			desc.CPUAccessFlags = 0;
 			desc.Usage = D3D11_USAGE_IMMUTABLE;
@@ -295,12 +305,12 @@ namespace
 
 		pDevContext->CSSetShader(pComputeShader->pShader, nullptr, 0);
 
-		if (pDrawOp->constantsByteSize)
+		if (pDrawOp->numConstants)
 		{
 			D3D11_BUFFER_DESC desc = { 0 };
 			D3D11_SUBRESOURCE_DATA data = { 0 };
 
-			desc.ByteWidth = (pDrawOp->constantsByteSize + 15) & ~15; // Force multiple of 16.
+			desc.ByteWidth = pDrawOp->numConstants * sizeof(Vec4);
 			desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 			desc.CPUAccessFlags = 0;
 			desc.Usage = D3D11_USAGE_IMMUTABLE;
@@ -348,6 +358,8 @@ namespace
 
 bool Renderer::Init(HWND hWnd, int width, int height)
 {
+	DebugConsole::RegisterCommand("wireframe", setWireframeEnabled, kDebugCommandArgType_Number);
+
 	HRESULT hr;
 
 	DXGI_SWAP_CHAIN_DESC swapChainDesc = { 0 };
@@ -510,7 +522,7 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 		assert(hr == S_OK);
 	}
 
-	Font::Initialize(&m_context);
+	Font::Init(&m_context);
 
 	return true;
 }
@@ -598,12 +610,12 @@ void Renderer::DispatchLightCulling(Camera* pCamera)
 
 	for (int i = 0; i < 4; ++i)
 	{
-		pDepthOp->constants[i * 4 + 0] = invProjMtx.m[i][0];
-		pDepthOp->constants[i * 4 + 1] = invProjMtx.m[i][1];
-		pDepthOp->constants[i * 4 + 2] = invProjMtx.m[i][2];
-		pDepthOp->constants[i * 4 + 3] = invProjMtx.m[i][3];
+		pDepthOp->constants[i].x = invProjMtx.m[i][0];
+		pDepthOp->constants[i].y = invProjMtx.m[i][1];
+		pDepthOp->constants[i].z = invProjMtx.m[i][2];
+		pDepthOp->constants[i].w = invProjMtx.m[i][3];
 	}
-	pDepthOp->constantsByteSize = sizeof(float) * 16;
+	pDepthOp->numConstants = 4;
 
 	// Dispatch 
 	DispatchCompute(pDepthOp, &m_context);
@@ -657,7 +669,7 @@ void Renderer::DispatchLightCulling(Camera* pCamera)
 	pParams->tileCountX = tileCountX;
 	pParams->tileCountY = tileCountY;
 
-	pCullOp->constantsByteSize = sizeof(CullingParams);
+	pCullOp->numConstants = (sizeof(CullingParams) / sizeof(Vec4)) + 1;
 
 	// Dispatch 
 	DispatchCompute(pCullOp, &m_context);
@@ -792,11 +804,12 @@ void Renderer::DrawFrame()
 	float clearColor[4] = { 0.0f, 0.f, 0.f, 1.f };
 	ID3D11DeviceContext* pContext = m_context.m_pContext;
 
-	pContext->RSSetState(s_wireframe ? m_pRasterStateWireframe: m_pRasterStateDefault);
 
 	for (uint iAction = 0; iAction < m_actions.size(); ++iAction)
 	{
 		RdrAction* pAction = m_actions[iAction];
+
+		pContext->RSSetState(s_wireframe ? m_pRasterStateWireframe : m_pRasterStateDefault);
 
 		pContext->ClearRenderTargetView(pAction->pRenderTarget, clearColor);
 		pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
@@ -809,6 +822,8 @@ void Renderer::DrawFrame()
 
 		DrawPass(pAction, RDRPASS_OPAQUE);
 		DrawPass(pAction, RDRPASS_ALPHA);
+
+		pContext->RSSetState(m_pRasterStateDefault); // UI should never be wireframe
 		DrawPass(pAction, RDRPASS_UI);
 
 		// Free draw ops.

@@ -9,137 +9,77 @@
 #pragma comment(lib, "xmllite.lib")
 #pragma comment(lib, "shlwapi.lib")
 
-static D3D11_INPUT_ELEMENT_DESC s_vertexDesc[] = {
-	{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-};
-
-struct FontChar
+namespace
 {
-	Rect rect;
-	Vec2 offset;
-	float width;
-};
+	static D3D11_INPUT_ELEMENT_DESC s_vertexDesc[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
 
-struct TextVertex
-{
-	Vec2 position;
-	Color color;
-	Vec2 uv;
-};
-
-struct
-{
-	FontChar characks[255];
-	int texSize;
-	int fontHeight;
-
-	RdrTextureHandle hTexture;
-
-	ShaderHandle hVertexShader;
-	ShaderHandle hPixelShader;
-	ID3D11InputLayout* pInputLayout;
-} g_text;
-
-
-static void loadFontXml(const char* filename)
-{
-	HRESULT hr;
-	IStream *pFileStream = NULL;
-	IXmlReader *pReader = NULL;
-	XmlNodeType nodeType;
-	const WCHAR* pwszLocalName;
-	const WCHAR* pwszValue;
-
-	//Open read-only input stream
-	hr = SHCreateStreamOnFileA(filename, STGM_READ, &pFileStream);
-	assert(hr == S_OK);
-
-	hr = CreateXmlReader(__uuidof(IXmlReader), (void**)&pReader, NULL);
-	assert(hr == S_OK);
-
-	hr = pReader->SetProperty(XmlReaderProperty_DtdProcessing, DtdProcessing_Prohibit);
-	assert(hr == S_OK);
-
-	hr = pReader->SetInput(pFileStream);
-	assert(hr == S_OK);
-
-	//read until there are no more nodes
-	while (S_OK == (hr = pReader->Read(&nodeType)))
+	struct TextVertex
 	{
-		switch (nodeType)
-		{
-		case XmlNodeType_Element:
-			pReader->GetLocalName(&pwszLocalName, NULL);
-		 
-			if (wcscmp(pwszLocalName, L"Font") == 0)
-			{
-				pReader->MoveToAttributeByName(L"height", NULL);
-				pReader->GetValue(&pwszValue, NULL);
-				g_text.fontHeight = StrToIntW(pwszValue);
-			}
-			else if (wcscmp(pwszLocalName, L"Char") == 0)
-			{
-				FontChar c = { 0 };
-				wchar_t text[255];
-				wchar_t* tok;
-				wchar_t *context = NULL;
+		Vec2 position;
+		Color color;
+		Vec2 uv;
+	};
 
-				pReader->MoveToAttributeByName(L"width", NULL);
-				pReader->GetValue(&pwszValue, NULL);
-				c.width = (float)StrToIntW(pwszValue);
+	struct
+	{
+		short glpyhWidths[256];
+		int glyphPixelSize;
 
-				pReader->MoveToAttributeByName(L"offset", nullptr);
-				pReader->GetValue(&pwszValue, NULL);
-				wcscpy_s(text, 255, pwszValue);
+		RdrTextureHandle hTexture;
 
-				tok = wcstok_s(text, L" ", &context);
-				c.offset[0] = (float)StrToIntW(tok);
-				tok = wcstok_s(NULL, L" ", &context);
-				c.offset[1] = (float)StrToIntW(tok);
+		ShaderHandle hVertexShader;
+		ShaderHandle hPixelShader;
+		ID3D11InputLayout* pInputLayout;
+	} g_text;
 
-				pReader->MoveToAttributeByName(L"rect", nullptr);
-				pReader->GetValue(&pwszValue, NULL);
-				wcscpy_s(text, 255, pwszValue);
+	static void loadFontData(const char* filename)
+	{
+		FILE* file;
+		fopen_s(&file, filename, "rb");
 
-				tok = wcstok_s(text, L" ", &context);
-				c.rect.left = (float)StrToIntW(tok);
-				tok = wcstok_s(NULL, L" ", &context);
-				c.rect.top = (float)StrToIntW(tok);
-				tok = wcstok_s(NULL, L" ", &context);
-				c.rect.width = (float)StrToIntW(tok);
-				tok = wcstok_s(NULL, L" ", &context);
-				c.rect.height = (float)StrToIntW(tok);
+		fread(g_text.glpyhWidths, sizeof(short), 256, file);
 
-				pReader->MoveToAttributeByName(L"code", nullptr);
-				pReader->GetValue(&pwszValue, NULL);
-
-				g_text.characks[pwszValue[0]] = c;
-			}
-			break;
-		}
+		fclose(file);
 	}
 
-	pReader->Release();
-	pFileStream->Release();
+	void queueDrawCommon(Renderer* pRenderer, const Vec3& pos, float size, RdrGeoHandle hTextGeo, bool bFreeGeo)
+	{
+		RdrContext* pRdrContext = pRenderer->GetContext();
+
+		RdrDrawOp* op = RdrDrawOp::Allocate();
+		op->hGeo = hTextGeo;
+		op->hVertexShader = g_text.hVertexShader;
+		op->hPixelShader = g_text.hPixelShader;
+		op->hTextures[0] = g_text.hTexture;
+		op->texCount = 1;
+		op->bFreeGeo = bFreeGeo;
+		op->constants[0] = Vec4(pos.x - pRenderer->GetViewportWidth() * 0.5f,
+								pos.y + pRenderer->GetViewportHeight() * 0.5f,
+								pos.z + 1.f, 
+								size);
+		op->numConstants = 1;
+
+		pRenderer->AddToBucket(op, RBT_UI);
+	}
 }
 
-
-
-void Font::Initialize(RdrContext* pRdrContext)
+void Font::Init(RdrContext* pRdrContext)
 {
-	const char* filename = "consolas_regular_32.dds";
-	loadFontXml("data/textures/consolas_regular_32.xml");
+	const char* filename = "fonts/verdana.dds";
+	loadFontData("data/textures/fonts/verdana.dat");
 
-	g_text.texSize = 512;
 	g_text.hTexture = pRdrContext->LoadTexture(filename, false);
+	g_text.glyphPixelSize = pRdrContext->m_textures.get(g_text.hTexture)->width / 16;
 
 	g_text.hVertexShader = pRdrContext->LoadVertexShader("v_text.hlsl", s_vertexDesc, ARRAYSIZE(s_vertexDesc));
 	g_text.hPixelShader = pRdrContext->LoadPixelShader("p_text.hlsl");
 }
 
-void Font::QueueDraw(Renderer* pRenderer, float drawx, float drawy, float depth, const char* text, Color color)
+RdrGeoHandle Font::CreateTextGeo(Renderer* pRenderer, const char* text, Color color)
 {
 	static const int kMaxLen = 1024;
 	static TextVertex verts[kMaxLen * 4];
@@ -151,46 +91,46 @@ void Font::QueueDraw(Renderer* pRenderer, float drawx, float drawy, float depth,
 
 	float x = 0.0f;
 	float y = 0.0f;
-	float scale = 0.5f;
+
+	const float uw = 1.f / 16.f;
+	const float vh = 1.f / 16.f;
+	const float w = 1.f;
+	const float h = 1.f;
+
+	const float padding = 5.f / g_text.glyphPixelSize;
 
 	for (int i = 0; i < textLen; ++i)
 	{
 		if (text[i] == '\n')
 		{
-			y += g_text.fontHeight;
+			y -= 1.f;
 			x = 0.f;
 		}
 		else
 		{
-			FontChar* charack = &g_text.characks[text[i]];
+			int row = text[i] / 16;
+			int col = text[i] % 16;
 
-			float u = charack->rect.left / (float)g_text.texSize;
-			float v = charack->rect.top / (float)g_text.texSize;
-			float uw = charack->rect.width / (float)g_text.texSize;
-			float vh = charack->rect.height / (float)g_text.texSize;
-
-			float px = x + charack->offset[0] * scale;
-			float py = y - charack->offset[1] * scale;
-			float pw = charack->rect.width * scale;
-			float ph = charack->rect.height * scale;
+			float u = col / 16.f;
+			float v = row / 16.f;
 
 			// Top left
-			verts[numQuads * 4 + 0].position = Vec2(px, py);
+			verts[numQuads * 4 + 0].position = Vec2(x, y);
 			verts[numQuads * 4 + 0].uv = Vec2(u, v);
 			verts[numQuads * 4 + 0].color = color;
 
 			// Bottom left
-			verts[numQuads * 4 + 1].position = Vec2(px, py - ph);
+			verts[numQuads * 4 + 1].position = Vec2(x, y - h);
 			verts[numQuads * 4 + 1].uv = Vec2(u, v + vh);
 			verts[numQuads * 4 + 1].color = color;
 
 			// Top right
-			verts[numQuads * 4 + 2].position = Vec2(px + pw, py);
+			verts[numQuads * 4 + 2].position = Vec2(x + w, y);
 			verts[numQuads * 4 + 2].uv = Vec2(u + uw, v);
 			verts[numQuads * 4 + 2].color = color;
 
 			// Bottom right
-			verts[numQuads * 4 + 3].position = Vec2(px + pw, py - ph);
+			verts[numQuads * 4 + 3].position = Vec2(x + w, y - h);
 			verts[numQuads * 4 + 3].uv = Vec2(u + uw, v + vh);
 			verts[numQuads * 4 + 3].color = color;
 
@@ -202,24 +142,26 @@ void Font::QueueDraw(Renderer* pRenderer, float drawx, float drawy, float depth,
 			indices[numQuads * 6 + 5] = numQuads * 4 + 1;
 
 			++numQuads;
-			x += charack->width * scale;
+
+			float curGlyphHalfWidth = (g_text.glpyhWidths[text[i]] / (float)g_text.glyphPixelSize) * 0.5f;
+			float nextGlyphHalfWidth = 0.f;
+			if ( i < textLen - 1 )
+				nextGlyphHalfWidth = (g_text.glpyhWidths[text[i+1]] / (float)g_text.glyphPixelSize) * 0.5f;
+			x += curGlyphHalfWidth + nextGlyphHalfWidth + padding;
 		}
 
 	}
 
-	RdrContext* pRdrContext = pRenderer->GetContext();
+	return pRenderer->GetContext()->CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6);
+}
 
-	RdrDrawOp* op = RdrDrawOp::Allocate();
-	op->hGeo = pRdrContext->CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6);
-	op->hVertexShader = g_text.hVertexShader;
-	op->hPixelShader = g_text.hPixelShader;
-	op->hTextures[0] = g_text.hTexture;
-	op->texCount = 1;
-	op->bFreeGeo = true;
-	op->constants[0] = drawx - pRenderer->GetViewportWidth() * 0.5f;
-	op->constants[1] = drawy + pRenderer->GetViewportHeight() * 0.5f;
-	op->constants[2] = depth;
-	op->constantsByteSize = sizeof(float) * 4;
+void Font::QueueDraw(Renderer* pRenderer, const Vec3& pos, float size, const char* text, Color color)
+{
+	RdrGeoHandle hGeo = CreateTextGeo(pRenderer, text, color);
+	queueDrawCommon(pRenderer, pos, size, hGeo, true);
+}
 
-	pRenderer->AddToBucket(op, RBT_UI);
+void Font::QueueDraw(Renderer* pRenderer, const Vec3& pos, float size, const RdrGeoHandle hTextGeo)
+{
+	queueDrawCommon(pRenderer, pos, size, hTextGeo, false);
 }
