@@ -21,7 +21,7 @@ public:
 
 	inline const Matrix44 GetTransform() const;
 
-	void QueueDraw(Renderer* pRenderer) const;
+	void QueueDraw(Renderer& rRenderer) const;
 
 private:
 	Model* m_pModel;

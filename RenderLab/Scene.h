@@ -17,7 +17,7 @@ public:
 	void Load(RdrContext* pContext, const char* filename);
 
 	void Update(float dt);
-	void QueueDraw(Renderer* pRenderer);
+	void QueueDraw(Renderer& rRenderer);
 
 private:
 	std::vector<WorldObject*> m_objects;

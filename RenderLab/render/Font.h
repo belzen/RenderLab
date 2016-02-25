@@ -10,12 +10,17 @@ struct ID3D11ShaderResourceView;
 struct ID3D11InputLayout;
 class Renderer;
 
+namespace UI
+{
+	struct Position;
+}
+
 namespace Font
 {
 	void Init(RdrContext* pRdrContext);
 
-	RdrGeoHandle CreateTextGeo(Renderer* pRenderer, const char* text, Color color);
+	RdrGeoHandle CreateTextGeo(Renderer& rRenderer, const char* text);
 
-	void QueueDraw(Renderer* pRenderer, const Vec3& pos, float size, const char* text, Color color);
-	void QueueDraw(Renderer* pRenderer, const Vec3& pos, float size, const RdrGeoHandle hTextGeo);
+	void QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const char* text, Color color);
+	void QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const RdrGeoHandle hTextGeo, Color color);
 }

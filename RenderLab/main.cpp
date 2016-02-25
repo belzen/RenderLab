@@ -6,7 +6,9 @@
 #include "input/Input.h"
 #include "input/CameraInputContext.h"
 #include "Timer.h"
+#include "FrameTimer.h"
 #include "debug/DebugConsole.h"
+#include "debug/Debug.h"
 
 Renderer g_renderer;
 Scene g_scene;
@@ -99,9 +101,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 	Input::PushContext(&defaultInput);
 
 	bool isQuitting = false;
-	char fpsStr[32];
-	float fpsTime = 0.f;
-	int frameCount = 0;
+	FrameTimer frameTimer;
 
 	while (!isQuitting)
 	{
@@ -120,18 +120,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 		float dt = Timer::GetElapsedSecondsAndReset(hTimer);
 
-		// Update fps
-		++frameCount;
-		fpsTime += dt;
-		if (fpsTime > 1.f)
-		{
-			float ms = (fpsTime * 1000.f) / frameCount;
-			float fps = frameCount / fpsTime;
-			sprintf_s(fpsStr, "%.2f (%.2f ms)", fps, ms);
-			fpsTime = 0.f;
-			frameCount = 0;
-		}
-
 		Input::GetActiveContext()->Update(dt);
 
 		g_scene.Update(dt);
@@ -140,16 +128,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 		{
 			g_renderer.BeginAction(&g_renderer.GetMainCamera(), nullptr);
 
-			g_scene.QueueDraw(&g_renderer);
-			DebugConsole::QueueDraw(&g_renderer);
+			g_scene.QueueDraw(g_renderer);
+			DebugConsole::QueueDraw(g_renderer);
 
 			// Debug
-			Font::QueueDraw(&g_renderer, Vec3(g_renderer.GetViewportWidth() - 150.f, 0.f, 0.f), 20.f, fpsStr, Color::kWhite);
+			Debug::QueueDebugDisplay(g_renderer, frameTimer);
 
 			g_renderer.EndAction();
 		}
 
 		g_renderer.DrawFrame();
+
+
+		frameTimer.Update(dt);
 	}
 
 	g_renderer.Cleanup();

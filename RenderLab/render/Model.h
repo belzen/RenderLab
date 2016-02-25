@@ -16,7 +16,7 @@ public:
 
 	~Model();
 
-	void QueueDraw(Renderer* pRenderer, const Matrix44& worldMat) const;
+	void QueueDraw(Renderer& rRenderer, const Matrix44& worldMat) const;
 
 	RdrGeoHandle GetGeoHandle() const { return m_hGeo; }
 private:

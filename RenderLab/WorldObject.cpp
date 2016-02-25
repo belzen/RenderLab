@@ -13,15 +13,15 @@ WorldObject::WorldObject(Model* pModel, Vec3 pos, Quaternion orientation, Vec3 s
 }
 
 
-void WorldObject::QueueDraw(Renderer* pRenderer) const
+void WorldObject::QueueDraw(Renderer& rRenderer) const
 {
 	if (m_pModel)
 	{
 		RdrGeoHandle hGeo = m_pModel->GetGeoHandle();
-		float radius = pRenderer->GetContext()->m_geo.get(hGeo)->radius * Vec3MaxComponent(m_scale);
-		if (!pRenderer->GetCurrentCamera()->CanSee(m_position, radius))
+		float radius = rRenderer.GetContext()->m_geo.get(hGeo)->radius * Vec3MaxComponent(m_scale);
+		if (!rRenderer.GetCurrentCamera()->CanSee(m_position, radius))
 			return;
 
-		m_pModel->QueueDraw(pRenderer, GetTransform());
+		m_pModel->QueueDraw(rRenderer, GetTransform());
 	}
 }

@@ -257,14 +257,15 @@ RdrGeoHandle RdrContext::LoadGeo(const char* filename)
 		vMin.z = min(verts[i].position.z, vMin.z);
 		vMax.z = max(verts[i].position.z, vMax.z);
 	}
-	pGeo->radius = Vec3Length(vMax - vMin);
+	pGeo->size = vMax - vMin;
+	pGeo->radius = Vec3Length(pGeo->size);
 
 	RdrGeoHandle hGeo = m_geo.getId(pGeo);
 	m_geoCache.insert(std::make_pair(filename, hGeo));
 	return hGeo;
 }
 
-RdrGeoHandle RdrContext::CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices)
+RdrGeoHandle RdrContext::CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& size)
 {
 	RdrGeometry* pGeo = m_geo.alloc();
 
@@ -273,6 +274,8 @@ RdrGeoHandle RdrContext::CreateGeo(const void* pVertData, int vertStride, int nu
 	pGeo->pVertexBuffer = CreateVertexBuffer(pVertData, vertStride * pGeo->numVerts);
 	pGeo->pIndexBuffer = CreateIndexBuffer(pIndexData, sizeof(uint16) * pGeo->numIndices);
 	pGeo->vertStride = vertStride;
+	pGeo->size = size;
+	pGeo->radius = Vec3Length(size);
 
 	return m_geo.getId(pGeo);
 }

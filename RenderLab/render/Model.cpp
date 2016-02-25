@@ -26,7 +26,7 @@ Model::~Model()
 {
 }
 
-void Model::QueueDraw(Renderer* pRenderer, const Matrix44& srcWorldMat) const
+void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat) const
 {
 	RdrDrawOp* pDrawOp = RdrDrawOp::Allocate();
 
@@ -51,5 +51,5 @@ void Model::QueueDraw(Renderer* pRenderer, const Matrix44& srcWorldMat) const
 	pDrawOp->hGeo = m_hGeo;
 	pDrawOp->needsLighting = true;
 
-	pRenderer->AddToBucket(pDrawOp, RBT_OPAQUE);
+	rRenderer.AddToBucket(pDrawOp, RBT_OPAQUE);
 }

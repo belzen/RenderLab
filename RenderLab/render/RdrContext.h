@@ -60,6 +60,7 @@ struct RdrGeometry
 	int numVerts;
 	int numIndices;
 	uint vertStride;
+	Vec3 size;
 	float radius;
 };
 
@@ -100,7 +101,7 @@ struct RdrContext
 	RdrTextureHandle m_hTileLightIndices;
 
 	RdrGeoHandle LoadGeo(const char* filename);
-	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices);
+	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& size);
 
 	RdrTextureHandle LoadTexture(const char* filename, bool bPointSample);
 

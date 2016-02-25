@@ -201,10 +201,10 @@ void Scene::Update(float dt)
 {
 }
 
-void Scene::QueueDraw(Renderer* pRenderer)
+void Scene::QueueDraw(Renderer& rRenderer)
 {
 	for (uint i = 0; i < m_objects.size(); ++i)
 	{
-		m_objects[i]->QueueDraw(pRenderer);
+		m_objects[i]->QueueDraw(rRenderer);
 	}
 }

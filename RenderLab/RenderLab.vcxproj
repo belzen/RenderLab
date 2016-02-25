@@ -157,8 +157,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="debug\Debug.cpp" />
     <ClCompile Include="debug\DebugConsole.cpp" />
     <ClCompile Include="FileWatcher.cpp" />
+    <ClCompile Include="FrameTimer.cpp" />
     <ClCompile Include="input\CameraInputContext.cpp" />
     <ClCompile Include="input\Input.cpp" />
     <ClCompile Include="json\jsoncpp.cpp" />
@@ -179,11 +181,14 @@
     <ClCompile Include="render\Sprite.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Timer.cpp" />
+    <ClCompile Include="UI.cpp" />
     <ClCompile Include="WorldObject.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="debug\Debug.h" />
     <ClInclude Include="debug\DebugConsole.h" />
     <ClInclude Include="FileWatcher.h" />
+    <ClInclude Include="FrameTimer.h" />
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="IDSet.h" />
     <ClInclude Include="input\CameraInputContext.h" />
@@ -213,6 +218,7 @@
     <ClInclude Include="shapes\Plane.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Types.h" />
+    <ClInclude Include="UI.h" />
     <ClInclude Include="WorldObject.h" />
   </ItemGroup>
   <ItemGroup>

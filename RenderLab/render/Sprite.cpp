@@ -36,12 +36,12 @@ void Sprite::Init(RdrContext* pRdrContext, const Vec2 aTexcoords[4], const char*
 	verts[3].uv = aTexcoords[3];
 
 	uint16 indices[6] = { 0, 1, 2, 1, 3, 2 };
-	m_hGeo = pRdrContext->CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6);
+	m_hGeo = pRdrContext->CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, Vec3(1.f, 1.f, 0.0f));
 }
 
-void Sprite::QueueDraw(Renderer* pRenderer, const Vec3& pos, const Vec2& scale, float alpha)
+void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha)
 {
-	RdrContext* pRdrContext = pRenderer->GetContext();
+	RdrContext* pRdrContext = rRenderer.GetContext();
 
 	RdrDrawOp* op = RdrDrawOp::Allocate();
 	op->hGeo = m_hGeo;
@@ -50,9 +50,9 @@ void Sprite::QueueDraw(Renderer* pRenderer, const Vec3& pos, const Vec2& scale, 
 	op->hTextures[0] = m_hTexture;
 	op->texCount = 1;
 	op->bFreeGeo = false;
-	op->constants[0] = Vec4(pos.x - pRenderer->GetViewportWidth() * 0.5f, pos.y + pRenderer->GetViewportHeight() * 0.5f, pos.z + 1.f, 0.f);
+	op->constants[0] = Vec4(pos.x - rRenderer.GetViewportWidth() * 0.5f, pos.y + rRenderer.GetViewportHeight() * 0.5f, pos.z + 1.f, 0.f);
 	op->constants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
 	op->numConstants = 2;
 
-	pRenderer->AddToBucket(op, RBT_UI);
+	rRenderer.AddToBucket(op, RBT_UI);
 }
