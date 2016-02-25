@@ -46,6 +46,8 @@ public:
 	Camera& GetMainCamera() { return m_context.m_mainCamera; }
 
 private:
+	void CreatePrimaryTargets(int width, int height);
+
 	void DrawPass(RdrAction* pAction, RdrPassEnum ePass);
 	void SetPerFrameConstants(Camera* pCamera);
 	void DispatchLightCulling(Camera* pCamera);
@@ -79,4 +81,6 @@ private:
 	ShaderHandle		m_hDepthMinMaxShader;
 	ShaderHandle		m_hLightCullShader;
 	RdrTextureHandle	m_hDepthMinMaxTex;
+	int					m_tileCountX;
+	int					m_tileCountY;
 };

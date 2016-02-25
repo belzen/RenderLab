@@ -50,6 +50,6 @@ private:
 inline void Camera::SetPitchYawRoll(const Vec3& pitchYawRoll)
 {
 	m_pitchYawRoll = pitchYawRoll;
-	Matrix44 rotation = Matrix44RotationYawPitchRoll(pitchYawRoll.y, pitchYawRoll.x, pitchYawRoll.z);
+	Matrix44 rotation = Matrix44RotationPitchYawRoll(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z);
 	m_direction = Vec3TransformNormal(Vec3::kUnitZ, rotation);
 }

@@ -353,6 +353,21 @@ RdrTextureHandle RdrContext::LoadTexture(const char* filename, bool bPointSample
 	return hTex;
 }
 
+void RdrContext::ReleaseTexture(RdrTextureHandle hTex)
+{
+	RdrTexture* pTex = m_textures.get(hTex);
+	if (pTex->pResource)
+		pTex->pResource->Release();
+	if (pTex->pResourceView)
+		pTex->pResourceView->Release();
+	if (pTex->pUnorderedAccessView)
+		pTex->pUnorderedAccessView->Release();
+	if (pTex->pSamplerState)
+		pTex->pSamplerState->Release();
+
+	m_textures.releaseId(hTex);
+}
+
 RdrTextureHandle RdrContext::CreateTexture2D(uint width, uint height, DXGI_FORMAT format)
 {
 	D3D11_TEXTURE2D_DESC desc = { 0 };

@@ -15,7 +15,7 @@ struct Light
 #if !LIGHT_DATA_ONLY
 
 StructuredBuffer<Light> g_lights : register(t16);
-StructuredBuffer<uint> g_tileLightIndices : register(t17); // todo: 32-bit int is mega wasteful
+StructuredBuffer<uint> g_tileLightIndices : register(t17);
 
 int getTileId(in float2 screenPos, in uint screenWidth)
 {

@@ -355,7 +355,6 @@ namespace
 	}
 }
 
-
 bool Renderer::Init(HWND hWnd, int width, int height)
 {
 	DebugConsole::RegisterCommand("wireframe", setWireframeEnabled, kDebugCommandArgType_Number);
@@ -399,21 +398,7 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 	// Annotator
 	m_context.m_pContext->QueryInterface(__uuidof(m_pAnnotator), (void**)&m_pAnnotator);
 
-	// Render target
-	ID3D11Texture2D* pBackBuffer;
-	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
-
-	D3D11_TEXTURE2D_DESC bbDesc;
-	pBackBuffer->GetDesc(&bbDesc);
-
-	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
-	rtvDesc.Format = bbDesc.Format;
-	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
-	rtvDesc.Texture2D.MipSlice = 0;
-
-	hr = m_context.m_pDevice->CreateRenderTargetView(pBackBuffer, &rtvDesc, &m_pPrimaryRenderTarget);
-	assert(hr == S_OK);
-	pBackBuffer->Release();
+	CreatePrimaryTargets(width, height);
 
 	// Depth stencil state
 	D3D11_DEPTH_STENCIL_DESC dsDesc;
@@ -435,46 +420,6 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 
 	hr = m_context.m_pDevice->CreateDepthStencilState(&dsDesc, &m_pDepthStencilState);
 	assert(hr == S_OK);
-
-	// Depth Buffer
-	D3D11_TEXTURE2D_DESC depthTexDesc;
-	depthTexDesc.ArraySize = 1;
-	depthTexDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-	depthTexDesc.CPUAccessFlags = 0;
-	depthTexDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-	depthTexDesc.Height = height;
-	depthTexDesc.Width = width;
-	depthTexDesc.MipLevels = 1;
-	depthTexDesc.MiscFlags = 0;
-	depthTexDesc.SampleDesc.Count = s_msaaLevel;
-	depthTexDesc.SampleDesc.Quality = 0;
-	depthTexDesc.Usage = D3D11_USAGE_DEFAULT;
-
-	hr = m_context.m_pDevice->CreateTexture2D(&depthTexDesc, nullptr, &m_pDepthBuffer);
-	assert(hr == S_OK);
-
-	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
-	dsvDesc.Flags = 0;
-	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
-	dsvDesc.Texture2D.MipSlice = 0;
-
-	hr = m_context.m_pDevice->CreateDepthStencilView(m_pDepthBuffer, &dsvDesc, &m_pDepthStencilView);
-	assert(hr == S_OK);
-
-	{
-		D3D11_SHADER_RESOURCE_VIEW_DESC resDesc;
-		resDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-		resDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
-
-		hr = m_context.m_pDevice->CreateShaderResourceView(m_pDepthBuffer, &resDesc, &m_pDepthResourceView);
-		assert(hr == S_OK);
-
-		RdrTexture* pTex = m_context.m_textures.alloc();
-		pTex->pTexture = m_pDepthBuffer;
-		pTex->pResourceView = m_pDepthResourceView;
-		m_hDepthTex = m_context.m_textures.getId(pTex);
-	}
 
 	// Rasterizer states
 	{
@@ -524,6 +469,9 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 
 	Font::Init(&m_context);
 
+	m_hDepthMinMaxShader = m_context.LoadComputeShader("c_tiled_depth_calc.hlsl");
+	m_hLightCullShader = m_context.LoadComputeShader("c_tiled_light_cull.hlsl");
+
 	return true;
 }
 
@@ -544,7 +492,7 @@ void Renderer::Cleanup()
 
 void Renderer::Resize(int width, int height)
 {
-	if (!m_context.m_pContext)
+	if (!m_context.m_pContext || width == 0 || height == 0)
 		return;
 
 	D3D11_VIEWPORT viewport;
@@ -561,6 +509,75 @@ void Renderer::Resize(int width, int height)
 	m_viewHeight = height;
 
 	m_context.m_mainCamera.SetAspectRatio(width / (float)height);
+
+	m_pPrimaryRenderTarget->Release();
+	m_pSwapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
+
+	// Recreate targets.
+	CreatePrimaryTargets(width, height);
+}
+
+void Renderer::CreatePrimaryTargets(int width, int height)
+{
+	// Release existing resources
+	if (m_pDepthStencilView)
+		m_pDepthStencilView->Release();
+	if (m_hDepthTex)
+		m_context.ReleaseTexture(m_hDepthTex); // Handles freeing of m_pDepthBuffer & m_pDepthResourceView
+
+	// Render target
+	ID3D11Texture2D* pBackBuffer;
+	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
+
+	D3D11_TEXTURE2D_DESC bbDesc;
+	pBackBuffer->GetDesc(&bbDesc);
+
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+	rtvDesc.Format = bbDesc.Format;
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
+	rtvDesc.Texture2D.MipSlice = 0;
+
+	HRESULT hr = m_context.m_pDevice->CreateRenderTargetView(pBackBuffer, &rtvDesc, &m_pPrimaryRenderTarget);
+	assert(hr == S_OK);
+	pBackBuffer->Release();
+
+	// Depth Buffer
+	D3D11_TEXTURE2D_DESC depthTexDesc;
+	depthTexDesc.ArraySize = 1;
+	depthTexDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	depthTexDesc.CPUAccessFlags = 0;
+	depthTexDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+	depthTexDesc.Height = height;
+	depthTexDesc.Width = width;
+	depthTexDesc.MipLevels = 1;
+	depthTexDesc.MiscFlags = 0;
+	depthTexDesc.SampleDesc.Count = s_msaaLevel;
+	depthTexDesc.SampleDesc.Quality = 0;
+	depthTexDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	hr = m_context.m_pDevice->CreateTexture2D(&depthTexDesc, nullptr, &m_pDepthBuffer);
+	assert(hr == S_OK);
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+	dsvDesc.Flags = 0;
+	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+	dsvDesc.Texture2D.MipSlice = 0;
+
+	hr = m_context.m_pDevice->CreateDepthStencilView(m_pDepthBuffer, &dsvDesc, &m_pDepthStencilView);
+	assert(hr == S_OK);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC resDesc;
+	resDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	resDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
+
+	hr = m_context.m_pDevice->CreateShaderResourceView(m_pDepthBuffer, &resDesc, &m_pDepthResourceView);
+	assert(hr == S_OK);
+
+	RdrTexture* pTex = m_context.m_textures.alloc();
+	pTex->pTexture = m_pDepthBuffer;
+	pTex->pResourceView = m_pDepthResourceView;
+	m_hDepthTex = m_context.m_textures.getId(pTex);
 }
 
 const Camera* Renderer::GetCurrentCamera(void) const
@@ -579,16 +596,24 @@ void Renderer::DispatchLightCulling(Camera* pCamera)
 	pDevContext->OMSetDepthStencilState(getDepthStencilState(m_context.m_pDevice, kDepthTestMode_None), 1);
 	pDevContext->OMSetBlendState(getBlendState(m_context.m_pDevice, false), nullptr, 0xffffffff);
 
-	// todo: handle screen resizing
 	const int kTilePixelSize = 16;
 	int tileCountX = (m_viewWidth + (kTilePixelSize-1)) / kTilePixelSize;
 	int tileCountY = (m_viewHeight + (kTilePixelSize - 1)) / kTilePixelSize;
+	bool tileCountChanged = false;
+
+	if (m_tileCountX != tileCountX || m_tileCountY != tileCountY)
+	{
+		m_tileCountX = tileCountX;
+		m_tileCountY = tileCountY;
+		tileCountChanged = true;
+	}
 
 	//////////////////////////////////////
 	// Depth min max
-	if (!m_hDepthMinMaxTex)
+	if ( tileCountChanged )
 	{
-		m_hDepthMinMaxShader = m_context.LoadComputeShader("c_tiled_depth_calc.hlsl");
+		if (m_hDepthMinMaxTex)
+			m_context.ReleaseTexture(m_hDepthMinMaxTex);
 		m_hDepthMinMaxTex = m_context.CreateTexture2D(tileCountX, tileCountY, DXGI_FORMAT_R16G16_FLOAT);
 	}
 
@@ -623,10 +648,11 @@ void Renderer::DispatchLightCulling(Camera* pCamera)
 
 	//////////////////////////////////////
 	// Light culling
-	if (!m_hLightCullShader)
+	if ( tileCountChanged )
 	{
 		const uint kMaxLightsPerTile = 128; // Sync with MAX_LIGHTS_PER_TILE in "light_inc.hlsli"
-		m_hLightCullShader = m_context.LoadComputeShader("c_tiled_light_cull.hlsl");
+		if (m_context.m_hTileLightIndices)
+			m_context.ReleaseTexture(m_context.m_hTileLightIndices);
 		m_context.m_hTileLightIndices = m_context.CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint));
 	}
 

@@ -89,7 +89,7 @@ inline Matrix44 Matrix44PerspectiveFovLH(float fovY, float aspectRatio, float ne
 	return DirectX::XMMatrixPerspectiveFovLH(fovY, aspectRatio, nearZ, farZ);
 }
 
-inline Matrix44 Matrix44RotationYawPitchRoll(float yaw, float pitch, float roll)
+inline Matrix44 Matrix44RotationPitchYawRoll(float pitch, float yaw, float roll)
 {
 	return DirectX::XMMatrixRotationRollPitchYaw(pitch, yaw, roll);
 }

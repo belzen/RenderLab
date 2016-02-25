@@ -53,6 +53,14 @@ static inline Quaternion readRotation(Json::Value& val)
 		Maths::DegToRad(pitchYawRoll.z));
 }
 
+static inline Vec3 readPitchYawRoll(Json::Value& val)
+{
+	Vec3 pitchYawRoll;
+	pitchYawRoll.x = Maths::DegToRad(val.get((uint)0, Json::Value(0.f)).asFloat());
+	pitchYawRoll.y = Maths::DegToRad(val.get((uint)1, Json::Value(0.f)).asFloat());
+	pitchYawRoll.z = Maths::DegToRad(val.get((uint)2, Json::Value(0.f)).asFloat());
+	return pitchYawRoll;
+}
 
 void Scene::Load(RdrContext* pContext, const char* filename)
 {
@@ -72,7 +80,7 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 		pContext->m_mainCamera.SetPosition(readVec3(jPos));
 
 		Json::Value jRot = jCamera.get("rotation", Json::Value::null);
-		// todo
+		pContext->m_mainCamera.SetPitchYawRoll(readPitchYawRoll(jRot));
 	}
 
 	// Lights

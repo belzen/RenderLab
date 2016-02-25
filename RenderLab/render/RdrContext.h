@@ -104,6 +104,7 @@ struct RdrContext
 	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& size);
 
 	RdrTextureHandle LoadTexture(const char* filename, bool bPointSample);
+	void ReleaseTexture(RdrTextureHandle hTex);
 
 	RdrTextureHandle CreateTexture2D(uint width, uint height, DXGI_FORMAT format);
 
