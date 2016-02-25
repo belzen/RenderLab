@@ -99,6 +99,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 	Input::PushContext(&defaultInput);
 
 	bool isQuitting = false;
+	char fpsStr[32];
+	float fpsTime = 0.f;
+	int frameCount = 0;
 
 	while (!isQuitting)
 	{
@@ -117,6 +120,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 		float dt = Timer::GetElapsedSecondsAndReset(hTimer);
 
+		// Update fps
+		++frameCount;
+		fpsTime += dt;
+		if (fpsTime > 1.f)
+		{
+			float ms = (fpsTime * 1000.f) / frameCount;
+			float fps = frameCount / fpsTime;
+			sprintf_s(fpsStr, "%.2f (%.2f ms)", fps, ms);
+			fpsTime = 0.f;
+			frameCount = 0;
+		}
+
 		Input::GetActiveContext()->Update(dt);
 
 		g_scene.Update(dt);
@@ -129,7 +144,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 			DebugConsole::QueueDraw(&g_renderer);
 
 			// Debug
-			Font::QueueDraw(&g_renderer, Vec3::kZero, 20.f, "test", Color::kWhite);
+			Font::QueueDraw(&g_renderer, Vec3(g_renderer.GetViewportWidth() - 150.f, 0.f, 0.f), 20.f, fpsStr, Color::kWhite);
+
 			g_renderer.EndAction();
 		}
 
