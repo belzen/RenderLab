@@ -11,6 +11,7 @@ struct Light
 };
 
 #define MAX_LIGHTS_PER_TILE 128
+#define TILE_SIZE 16.f
 
 #if !LIGHT_DATA_ONLY
 
@@ -19,10 +20,9 @@ StructuredBuffer<uint> g_tileLightIndices : register(t17);
 
 int getTileId(in float2 screenPos, in uint screenWidth)
 {
-	const int kTileSize = 16;
-	int tileX = screenPos.x / kTileSize;
-	int tileY = screenPos.y / kTileSize;
-	int numTileX = screenWidth / kTileSize;
+	float tileX = floor(screenPos.x / TILE_SIZE);
+	float tileY = floor(screenPos.y / TILE_SIZE);
+	float numTileX = ceil(screenWidth / TILE_SIZE);
 	return tileX + tileY * numTileX;
 }
 

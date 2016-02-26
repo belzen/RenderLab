@@ -678,6 +678,7 @@ void Renderer::DispatchLightCulling(Camera* pCamera)
 
 		float cameraNearDist;
 		float cameraFarDist;
+		Vec2 screenSize;
 
 		uint lightCount;
 		uint tileCountX;
@@ -689,6 +690,7 @@ void Renderer::DispatchLightCulling(Camera* pCamera)
 	pParams->cameraDir = pCamera->GetDirection();
 	pParams->cameraNearDist = pCamera->GetNearDist();
 	pParams->cameraFarDist = pCamera->GetFarDist();
+	pParams->screenSize = GetViewportSize();
 	pParams->fovY = pCamera->GetFieldOfViewY();
 	pParams->aspectRatio = pCamera->GetAspectRatio();
 	pParams->lightCount = m_context.m_lights.lightCount;

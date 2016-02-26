@@ -11,7 +11,7 @@
 
 namespace
 {
-	int s_debugShaders = 0;
+	int s_debugShaders = 1;
 	const char* s_shaderRootDir = "data/shaders/";
 }
 

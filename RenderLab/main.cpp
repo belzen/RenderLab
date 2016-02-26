@@ -16,7 +16,7 @@ Scene g_scene;
 namespace
 {
 	const int kClientWidth = 1440;
-	const int kClientHeight = 900;
+	const int kClientHeight = 960;
 }
 
 LRESULT CALLBACK WinProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
