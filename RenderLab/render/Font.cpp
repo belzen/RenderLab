@@ -66,7 +66,7 @@ namespace
 								size);
 		op->numConstants = 2;
 
-		rRenderer.AddToBucket(op, RBT_UI);
+		rRenderer.AddToBucket(op, kRdrBucketType_UI);
 	}
 }
 

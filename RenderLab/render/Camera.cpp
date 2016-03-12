@@ -19,7 +19,7 @@ void Camera::SetAspectRatio(float aspectRatio)
 	m_projMatrix = Matrix44PerspectiveFovLH(m_fovY, m_aspectRatio, m_nearDist, m_farDist);
 }
 
-void Camera::GetMatrices(Matrix44& view, Matrix44& proj)
+void Camera::GetMatrices(Matrix44& view, Matrix44& proj) const
 {
 	view = Matrix44LookToLH(m_position, m_direction, Vec3::kUnitY);
 	proj = m_projMatrix;

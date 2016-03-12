@@ -11,7 +11,32 @@
 
 #pragma comment (lib, "DirectXTex.lib")
 
-static ID3D11Buffer* CreateBuffer(ID3D11Device* pDevice, const void* pSrcData, int size, uint bindFlags)
+static bool resourceFormatIsDepth(RdrResourceFormat format)
+{
+	return format == kResourceFormat_D16;
+}
+
+static DXGI_FORMAT getD3DFormat(RdrResourceFormat format)
+{
+	static const DXGI_FORMAT s_d3dFormats[] = {
+		DXGI_FORMAT_R16_UNORM,		// kResourceFormat_D16
+		DXGI_FORMAT_R16G16_FLOAT,	// kResourceFormat_RG_F16
+	};
+	static_assert(ARRAYSIZE(s_d3dFormats) == kResourceFormat_Count, "Missing typeless formats!");
+	return s_d3dFormats[format];
+}
+
+static DXGI_FORMAT getD3DTypelessFormat(RdrResourceFormat format)
+{
+	static const DXGI_FORMAT s_d3dTypelessFormats[] = {
+		DXGI_FORMAT_R16_TYPELESS,		// kResourceFormat_D16
+		DXGI_FORMAT_R16G16_TYPELESS,	// kResourceFormat_RG_F16
+	};
+	static_assert(ARRAYSIZE(s_d3dTypelessFormats) == kResourceFormat_Count, "Missing typeless formats!");
+	return s_d3dTypelessFormats[format];
+}
+
+static ID3D11Buffer* createBuffer(ID3D11Device* pDevice, const void* pSrcData, int size, uint bindFlags)
 {
 	D3D11_BUFFER_DESC desc = { 0 };
 	D3D11_SUBRESOURCE_DATA data = { 0 };
@@ -62,12 +87,12 @@ RdrTextureHandle RdrContext::CreateStructuredBuffer(const void* pSrcData, int nu
 
 ID3D11Buffer* RdrContext::CreateVertexBuffer(const void* vertices, int size)
 {
-	return CreateBuffer(m_pDevice, vertices, size, D3D11_BIND_VERTEX_BUFFER);
+	return createBuffer(m_pDevice, vertices, size, D3D11_BIND_VERTEX_BUFFER);
 }
 
 ID3D11Buffer* RdrContext::CreateIndexBuffer(const void* indices, int size)
 {
-	return CreateBuffer(m_pDevice, indices, size, D3D11_BIND_INDEX_BUFFER);
+	return createBuffer(m_pDevice, indices, size, D3D11_BIND_INDEX_BUFFER);
 }
 
 static int GetTexturePitch(int width, DXGI_FORMAT format)
@@ -101,23 +126,23 @@ static int GetTextureRows(int height, DXGI_FORMAT format)
 	}
 }
 
-static ID3D11ShaderResourceView* CreateShaderResourceView(ID3D11Device* pDevice, ID3D11Resource* pResource)
+static D3D11_COMPARISON_FUNC getComparisonFuncD3d(RdrComparisonFunc cmpFunc)
 {
-	ID3D11ShaderResourceView* pResourceView;
-	HRESULT hr = pDevice->CreateShaderResourceView(pResource, NULL, &pResourceView);
-	assert(hr == S_OK);
-	return pResourceView;
-}
+	D3D11_COMPARISON_FUNC cmpFuncD3d[] = {
+		D3D11_COMPARISON_NEVER,
+		D3D11_COMPARISON_LESS,
+		D3D11_COMPARISON_EQUAL,
+		D3D11_COMPARISON_LESS_EQUAL,
+		D3D11_COMPARISON_GREATER,
+		D3D11_COMPARISON_NOT_EQUAL,
+		D3D11_COMPARISON_GREATER_EQUAL,
+		D3D11_COMPARISON_ALWAYS
+	};
+	static_assert(ARRAYSIZE(cmpFuncD3d) == kComparisonFunc_Count, "Missing comparison func");
+	return cmpFuncD3d[cmpFunc];
+};
 
-static ID3D11UnorderedAccessView* CreateUnorderedAccessView(ID3D11Device* pDevice, ID3D11Resource* pResource)
-{
-	ID3D11UnorderedAccessView* pView;
-	HRESULT hr = pDevice->CreateUnorderedAccessView(pResource, NULL, &pView);
-	assert(hr == S_OK);
-	return pView;
-}
-
-ID3D11SamplerState* CreateSamplerState(ID3D11Device* pDevice, bool bPointSample)
+ID3D11SamplerState* CreateSamplerState(ID3D11Device* pDevice, bool bPointSample, RdrComparisonFunc cmpFunc)
 {
 	D3D11_SAMPLER_DESC desc;
 	ID3D11SamplerState* pSampler;
@@ -125,8 +150,15 @@ ID3D11SamplerState* CreateSamplerState(ID3D11Device* pDevice, bool bPointSample)
 	desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 	desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	desc.Filter = bPointSample ? D3D11_FILTER_MIN_MAG_MIP_POINT : D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	if (cmpFunc != kComparisonFunc_Never)
+	{
+		desc.Filter = bPointSample ? D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT : D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+	}
+	else
+	{
+		desc.Filter = bPointSample ? D3D11_FILTER_MIN_MAG_MIP_POINT : D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	}
+	desc.ComparisonFunc = getComparisonFuncD3d(cmpFunc);
 	desc.MaxAnisotropy = 1;
 	desc.MaxLOD = FLT_MAX;
 	desc.MinLOD = -FLT_MIN;
@@ -343,10 +375,19 @@ RdrTextureHandle RdrContext::LoadTexture(const char* filename, bool bPointSample
 	RdrTexture* pTex = m_textures.alloc();
 
 	pTex->pTexture = pTexture;
-	pTex->pResourceView = CreateShaderResourceView(m_pDevice, pTexture);
-	pTex->pSamplerState = CreateSamplerState(m_pDevice, bPointSample);
+	pTex->pSamplerState = CreateSamplerState(m_pDevice, bPointSample, kComparisonFunc_Never);
 	pTex->width = desc.Width;
 	pTex->height = desc.Height;
+
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+		viewDesc.Format = desc.Format;
+		viewDesc.Texture2D.MipLevels = desc.MipLevels;
+		viewDesc.Texture2D.MostDetailedMip = 0;
+		viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		hr = m_pDevice->CreateShaderResourceView(pTexture, &viewDesc, &pTex->pResourceView);
+		assert(hr == S_OK);
+	}
 
 	RdrTextureHandle hTex = m_textures.getId(pTex);
 	m_textureCache.insert(std::make_pair(filename, hTex));
@@ -368,16 +409,21 @@ void RdrContext::ReleaseTexture(RdrTextureHandle hTex)
 	m_textures.releaseId(hTex);
 }
 
-RdrTextureHandle RdrContext::CreateTexture2D(uint width, uint height, DXGI_FORMAT format)
+RdrTextureHandle RdrContext::CreateTexture2D(uint width, uint height, RdrResourceFormat format)
 {
 	D3D11_TEXTURE2D_DESC desc = { 0 };
 
 	desc.ArraySize = 1;
 	desc.CPUAccessFlags = 0;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	if (resourceFormatIsDepth(format))
+		desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+	else
+		desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.SampleDesc.Count = 1;
-	desc.Format = format;
+	desc.Format = getD3DTypelessFormat(format);
 	desc.Width = width;
 	desc.Height = height;
 	desc.MipLevels = 1;
@@ -388,8 +434,73 @@ RdrTextureHandle RdrContext::CreateTexture2D(uint width, uint height, DXGI_FORMA
 
 	RdrTexture* pTex = m_textures.alloc();
 	pTex->pTexture = pTexture;
-	pTex->pResourceView = CreateShaderResourceView(m_pDevice, pTexture);
-	pTex->pUnorderedAccessView = CreateUnorderedAccessView(m_pDevice, pTexture);
+
+	//if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+		viewDesc.Format = getD3DFormat(format);
+		viewDesc.Texture2D.MipLevels = 1;
+		viewDesc.Texture2D.MostDetailedMip = 0;
+		viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+
+		hr = m_pDevice->CreateShaderResourceView(pTexture, &viewDesc, &pTex->pResourceView);
+		assert(hr == S_OK);
+	}
+
+	if (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
+	{
+		D3D11_UNORDERED_ACCESS_VIEW_DESC viewDesc;
+		viewDesc.Format = getD3DFormat(format);
+		viewDesc.Texture2D.MipSlice = 0;
+		viewDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+
+		hr = m_pDevice->CreateUnorderedAccessView(pTexture, &viewDesc, &pTex->pUnorderedAccessView);
+		assert(hr == S_OK);
+	}
+
+	return m_textures.getId(pTex);
+}
+
+RdrTextureHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format, RdrComparisonFunc cmpFunc)
+{
+	D3D11_TEXTURE2D_DESC desc = { 0 };
+
+	desc.ArraySize = arraySize;
+	desc.CPUAccessFlags = 0;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	if (resourceFormatIsDepth(format))
+		desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.SampleDesc.Count = 1;
+	desc.Format = getD3DTypelessFormat(format);
+	desc.Width = width;
+	desc.Height = height;
+	desc.MipLevels = 1;
+
+	ID3D11Texture2D* pTexture;
+	HRESULT hr = m_pDevice->CreateTexture2D(&desc, nullptr, &pTexture);
+	assert(hr == S_OK);
+
+	RdrTexture* pTex = m_textures.alloc();
+	pTex->pTexture = pTexture;
+
+	//if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+		viewDesc.Format = getD3DFormat(format);
+		viewDesc.Texture2DArray.ArraySize = arraySize;
+		viewDesc.Texture2DArray.FirstArraySlice = 0;
+		viewDesc.Texture2DArray.MipLevels = 1;
+		viewDesc.Texture2DArray.MostDetailedMip = 0;
+		viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+
+		hr = m_pDevice->CreateShaderResourceView(pTexture, &viewDesc, &pTex->pResourceView);
+		assert(hr == S_OK);
+	}
+
+	pTex->pSamplerState = CreateSamplerState(m_pDevice, false, cmpFunc);
+
 	return m_textures.getId(pTex);
 }
 

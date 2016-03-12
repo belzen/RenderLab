@@ -4,7 +4,8 @@
 
 struct ID3D11Buffer;
 struct ID3D11UnorderedAccessView;
-struct RdrContext;
+class RdrContext;
+class Renderer;
 
 typedef uint RdrTextureHandle;
 
@@ -26,16 +27,32 @@ struct Light
 	Vec3 color;
 
 	// Spot light only
-	float innerConeAngle; // Angle where light begins to fall off
-	float outerConeAngle; // No more light
+	float innerConeAngleCos; // Cosine of angle where light begins to fall off
+	float outerConeAngleCos; // No more light
 
 	uint castsShadows;
+	uint shadowMapIndex;
 };
 
-struct LightList
+class LightList
 {
-	RdrTextureHandle hResource;
-	uint lightCount;
+public:
+	LightList();
 
-	static LightList Create(RdrContext* pContext, const Light* aLights, int numLights);
+	void AddLight(Light& light);
+
+	void PrepareDraw(Renderer& rRenderer);
+
+	RdrTextureHandle GetShadowMapDataRes() const { return m_hShadowMapDataRes; }
+	RdrTextureHandle GetShadowMapTexArray() const { return m_hShadowMapTexArray; }
+	RdrTextureHandle GetLightListRes() const { return m_hLightListRes; }
+	uint GetLightCount() const { return m_lightCount; }
+private:
+	Light m_lights[1024];
+	uint m_lightCount;
+	bool m_changed;
+
+	RdrTextureHandle m_hLightListRes;
+	RdrTextureHandle m_hShadowMapDataRes;
+	RdrTextureHandle m_hShadowMapTexArray;
 };

@@ -7,7 +7,7 @@
 class Camera;
 class Renderer;
 class WorldObject;
-struct RdrContext;
+class RdrContext;
 
 class Scene
 {
@@ -19,8 +19,9 @@ public:
 	void Update(float dt);
 	void QueueDraw(Renderer& rRenderer);
 
+	const LightList* GetLightList() const { return &m_lights; }
+
 private:
 	std::vector<WorldObject*> m_objects;
-	std::vector<Light> m_lights;
-	LightList m_lightList;
+	LightList m_lights;
 };

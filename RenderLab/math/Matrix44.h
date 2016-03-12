@@ -84,6 +84,13 @@ inline Matrix44 Matrix44Inverse(const Matrix44& src)
 	return DirectX::XMMatrixInverse(nullptr, mtx);
 }
 
+inline Matrix44 Matrix44Multiply(const Matrix44& lhs, const Matrix44& rhs)
+{
+	DirectX::XMMATRIX mtx1 = DirectX::XMLoadFloat4x4(&lhs);
+	DirectX::XMMATRIX mtx2 = DirectX::XMLoadFloat4x4(&rhs);
+	return DirectX::XMMatrixMultiply(mtx1, mtx2);
+}
+
 inline Matrix44 Matrix44PerspectiveFovLH(float fovY, float aspectRatio, float nearZ, float farZ)
 {
 	return DirectX::XMMatrixPerspectiveFovLH(fovY, aspectRatio, nearZ, farZ);

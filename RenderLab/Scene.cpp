@@ -130,15 +130,15 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 				light.radius = FLT_MAX;
 			}
 
-			light.innerConeAngle = jLight.get("innerConeAngle", 90.f).asFloat();
-			light.innerConeAngle = (light.innerConeAngle / 180.f) * 3.14f;
+			float innerConeAngle = jLight.get("innerConeAngle", 0.f).asFloat();
+			light.innerConeAngleCos = cosf((innerConeAngle / 180.f) * Maths::kPi);
 
-			light.outerConeAngle = jLight.get("outerConeAngle", 90.f).asFloat();
-			light.outerConeAngle = (light.outerConeAngle / 180.f) * 3.14f;
+			float outerConeAngle = jLight.get("outerConeAngle", 0.f).asFloat();
+			light.outerConeAngleCos = cosf((outerConeAngle / 180.f) * Maths::kPi);
 
-			light.castsShadows = jLight.get("castsShaders", false).asBool();
+			light.castsShadows = jLight.get("castsShadows", false).asBool();
 
-			m_lights.push_back(light);
+			m_lights.AddLight(light);
 		}
 	}
 
@@ -181,6 +181,7 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 
 
 	// Spawn a bunch of lights to test forward+
+	/*
 	for (int x = -150; x < 150; x += 30)
 	{
 		for (int y = -150; y < 150; y += 30)
@@ -198,11 +199,9 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 			light.color.y = (rand() / (float)RAND_MAX);
 			light.color.z = (rand() / (float)RAND_MAX);
 
-			m_lights.push_back(light);
+			m_lights.AddLight(light);
 		}
-	}
-
-	pContext->m_lights = LightList::Create(pContext, m_lights.data(), m_lights.size());
+	}*/
 }
 
 void Scene::Update(float dt)
@@ -211,6 +210,8 @@ void Scene::Update(float dt)
 
 void Scene::QueueDraw(Renderer& rRenderer)
 {
+	m_lights.PrepareDraw(rRenderer);
+
 	for (uint i = 0; i < m_objects.size(); ++i)
 	{
 		m_objects[i]->QueueDraw(rRenderer);

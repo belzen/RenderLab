@@ -3,7 +3,7 @@
 cbuffer PerFrame
 {
 	float4x4 invProjMat;
-	float3 cameraPosition;
+	float3 viewPosition;
 	uint screenWidth;
 };
 
@@ -39,7 +39,7 @@ float4 main(PixelInput input) : SV_TARGET
 	normal = (normal.x * input.tangent) + (normal.y * input.bitangent) + (normal.z * input.normal);
 	normal = normalize(normal);
 
-	float3 cameraViewDir = normalize(cameraPosition - input.position_ws.xyz);
+	float3 cameraViewDir = normalize(viewPosition - input.position_ws.xyz);
 
 	float4 litColor = doLighting(input.position_ws, color, normal, cameraViewDir, input.position.xy, screenWidth);
 	return saturate(ambient + litColor);

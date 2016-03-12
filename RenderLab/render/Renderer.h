@@ -16,6 +16,7 @@ struct ID3DUserDefinedAnnotation;
 class Camera;
 class WorldObject;
 struct RdrAction;
+struct RdrPass;
 struct Light;
 
 class Renderer
@@ -26,9 +27,10 @@ public:
 
 	void Resize(int width, int height);
 
-	void BeginAction(Camera* pCamera, ID3D11RenderTargetView* pRenderTarget);
+	void BeginAction(const Camera* pMainCamera, const LightList* pLights, ID3D11RenderTargetView* pRenderTarget);
 	void EndAction();
 
+	void QueueShadowMap(Light* pLight, RdrTextureHandle hShadowMapTexArray, int destArrayIndex, Rect& viewport);
 	void AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);
 
 	void DrawFrame();
@@ -49,8 +51,8 @@ private:
 	void CreatePrimaryTargets(int width, int height);
 
 	void DrawPass(RdrAction* pAction, RdrPassEnum ePass);
-	void SetPerFrameConstants(Camera* pCamera);
-	void DispatchLightCulling(Camera* pCamera);
+	void SetPerFrameConstants(const RdrPass* pPass);
+	void DispatchLightCulling(RdrAction* pAction);
 
 	RdrContext m_context;
 

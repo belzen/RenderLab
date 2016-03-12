@@ -51,5 +51,5 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat) const
 	pDrawOp->hGeo = m_hGeo;
 	pDrawOp->needsLighting = true;
 
-	rRenderer.AddToBucket(pDrawOp, RBT_OPAQUE);
+	rRenderer.AddToBucket(pDrawOp, kRdrBucketType_Opaque);
 }

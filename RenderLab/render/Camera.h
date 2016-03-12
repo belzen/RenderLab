@@ -7,15 +7,15 @@ class Camera
 public:
 	Camera();
 
-	void GetMatrices(Matrix44& view, Matrix44& proj);
+	void GetMatrices(Matrix44& view, Matrix44& proj) const;
 
-	float GetAspectRatio() { return m_aspectRatio; }
+	float GetAspectRatio() const { return m_aspectRatio; }
 	void SetAspectRatio(float aspectRatio);
 
-	float GetFieldOfViewY() { return m_fovY; }
+	float GetFieldOfViewY() const { return m_fovY; }
 
-	float GetNearDist() { return m_nearDist; }
-	float GetFarDist() { return m_farDist; }
+	float GetNearDist() const { return m_nearDist; }
+	float GetFarDist() const { return m_farDist; }
 
 	void SetPosition(Vec3 pos) { m_position = pos; }
 	const Vec3& Camera::GetPosition(void) const { return m_position; }

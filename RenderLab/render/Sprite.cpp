@@ -54,5 +54,5 @@ void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, 
 	op->constants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
 	op->numConstants = 2;
 
-	rRenderer.AddToBucket(op, RBT_UI);
+	rRenderer.AddToBucket(op, kRdrBucketType_UI);
 }

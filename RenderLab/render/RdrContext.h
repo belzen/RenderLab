@@ -36,6 +36,27 @@ struct Vertex
 	Vec3 bitangent;
 };
 
+enum RdrResourceFormat
+{
+	kResourceFormat_D16,
+	kResourceFormat_RG_F16,
+	kResourceFormat_Count,
+};
+
+enum RdrComparisonFunc
+{
+	kComparisonFunc_Never,
+	kComparisonFunc_Less,
+	kComparisonFunc_Equal,
+	kComparisonFunc_LessEqual,
+	kComparisonFunc_Greater,
+	kComparisonFunc_NotEqual,
+	kComparisonFunc_GreaterEqual,
+	kComparisonFunc_Always,
+
+	kComparisonFunc_Count
+};
+
 struct RdrTexture
 {
 	union
@@ -76,8 +97,9 @@ typedef std::map<std::string, RdrTextureHandle> TextureMap;
 typedef std::map<std::string, ShaderHandle> ShaderMap;
 typedef std::map<std::string, RdrGeoHandle> GeoMap;
 
-struct RdrContext
+class RdrContext
 {
+public:
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pContext;
 
@@ -97,7 +119,6 @@ struct RdrContext
 	GeoMap m_geoCache;
 	RdrGeoList m_geo;
 
-	LightList m_lights;
 	RdrTextureHandle m_hTileLightIndices;
 
 	RdrGeoHandle LoadGeo(const char* filename);
@@ -106,7 +127,8 @@ struct RdrContext
 	RdrTextureHandle LoadTexture(const char* filename, bool bPointSample);
 	void ReleaseTexture(RdrTextureHandle hTex);
 
-	RdrTextureHandle CreateTexture2D(uint width, uint height, DXGI_FORMAT format);
+	RdrTextureHandle CreateTexture2D(uint width, uint height, RdrResourceFormat format);
+	RdrTextureHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format, RdrComparisonFunc cmpFunc);
 
 	ShaderHandle LoadVertexShader(const char* filename, D3D11_INPUT_ELEMENT_DESC* aDesc, int numElements);
 	ShaderHandle LoadPixelShader(const char* filename);
@@ -120,19 +142,30 @@ struct RdrContext
 
 enum RdrPassEnum
 {
-	RDRPASS_ZPREPASS,
-	RDRPASS_OPAQUE,
-	RDRPASS_ALPHA,
-	RDRPASS_UI,
-	RDRPASS_COUNT
+	kRdrPass_ShadowMap_First,
+	kRdrPass_ShadowMap0 = kRdrPass_ShadowMap_First,
+	kRdrPass_ShadowMap1,
+	kRdrPass_ShadowMap2,
+	kRdrPass_ShadowMap3,
+	kRdrPass_ShadowMap4,
+	kRdrPass_ShadowMap5,
+	kRdrPass_ShadowMap6,
+	kRdrPass_ShadowMap7,
+	kRdrPass_ShadowMap_Last = kRdrPass_ShadowMap7,
+
+	kRdrPass_ZPrepass,
+	kRdrPass_Opaque,
+	kRdrPass_Alpha,
+	kRdrPass_UI,
+	kRdrPass_Count
 };
 
 enum RdrBucketType
 {
-	RBT_OPAQUE,
-	RBT_ALPHA,
-	RBT_UI,
-	RBT_COUNT
+	kRdrBucketType_Opaque,
+	kRdrBucketType_Alpha,
+	kRdrBucketType_UI,
+	kRdrBucketType_Count
 };
 
 struct RdrDrawOp
