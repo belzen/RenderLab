@@ -56,6 +56,7 @@ namespace
 		op->hGeo = hTextGeo;
 		op->hVertexShader = g_text.hVertexShader;
 		op->hPixelShader = g_text.hPixelShader;
+		op->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 		op->hTextures[0] = g_text.hTexture;
 		op->texCount = 1;
 		op->bFreeGeo = bFreeGeo;
@@ -75,7 +76,7 @@ void Font::Init(RdrContext* pRdrContext)
 	const char* filename = "fonts/verdana.dds";
 	loadFontData("data/textures/fonts/verdana.dat");
 
-	g_text.hTexture = pRdrContext->LoadTexture(filename, false);
+	g_text.hTexture = pRdrContext->LoadTexture(filename);
 	g_text.glyphPixelSize = pRdrContext->m_textures.get(g_text.hTexture)->width / 16;
 
 	g_text.hVertexShader = pRdrContext->LoadVertexShader("v_text.hlsl", s_vertexDesc, ARRAYSIZE(s_vertexDesc));

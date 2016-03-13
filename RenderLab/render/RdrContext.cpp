@@ -126,7 +126,7 @@ static int GetTextureRows(int height, DXGI_FORMAT format)
 	}
 }
 
-static D3D11_COMPARISON_FUNC getComparisonFuncD3d(RdrComparisonFunc cmpFunc)
+static D3D11_COMPARISON_FUNC getComparisonFuncD3d(const RdrComparisonFunc cmpFunc)
 {
 	D3D11_COMPARISON_FUNC cmpFuncD3d[] = {
 		D3D11_COMPARISON_NEVER,
@@ -140,25 +140,42 @@ static D3D11_COMPARISON_FUNC getComparisonFuncD3d(RdrComparisonFunc cmpFunc)
 	};
 	static_assert(ARRAYSIZE(cmpFuncD3d) == kComparisonFunc_Count, "Missing comparison func");
 	return cmpFuncD3d[cmpFunc];
-};
+}
 
-ID3D11SamplerState* CreateSamplerState(ID3D11Device* pDevice, bool bPointSample, RdrComparisonFunc cmpFunc)
+static D3D11_TEXTURE_ADDRESS_MODE getTexCoordModeD3d(const RdrTexCoordMode uvMode)
 {
-	D3D11_SAMPLER_DESC desc;
-	ID3D11SamplerState* pSampler;
+	D3D11_TEXTURE_ADDRESS_MODE uvModeD3d[] = {
+		D3D11_TEXTURE_ADDRESS_WRAP,
+		D3D11_TEXTURE_ADDRESS_CLAMP,
+		D3D11_TEXTURE_ADDRESS_MIRROR
+	};
+	static_assert(ARRAYSIZE(uvModeD3d) == kRdrTexCoordMode_Count, "Missing tex coord mode");
+	return uvModeD3d[uvMode];
+}
 
-	desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+static D3D11_FILTER getFilterD3d(const RdrComparisonFunc cmpFunc, const bool bPointSample)
+{
 	if (cmpFunc != kComparisonFunc_Never)
 	{
-		desc.Filter = bPointSample ? D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT : D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+		return bPointSample ? D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT : D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
 	}
 	else
 	{
-		desc.Filter = bPointSample ? D3D11_FILTER_MIN_MAG_MIP_POINT : D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		return bPointSample ? D3D11_FILTER_MIN_MAG_MIP_POINT : D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	}
-	desc.ComparisonFunc = getComparisonFuncD3d(cmpFunc);
+}
+
+static int getSamplerIndex(const RdrSamplerState& state)
+{
+	return state.cmpFunc * state.texcoordMode * state.bPointSample;
+}
+
+void RdrContext::InitSamplers()
+{
+	HRESULT hr;
+	RdrSamplerState state;
+	D3D11_SAMPLER_DESC desc;
+
 	desc.MaxAnisotropy = 1;
 	desc.MaxLOD = FLT_MAX;
 	desc.MinLOD = -FLT_MIN;
@@ -168,9 +185,30 @@ ID3D11SamplerState* CreateSamplerState(ID3D11Device* pDevice, bool bPointSample,
 	desc.BorderColor[2] = 1.f;
 	desc.BorderColor[3] = 1.f;
 
-	HRESULT hr = pDevice->CreateSamplerState(&desc, &pSampler);
-	assert(hr == S_OK);
-	return pSampler;
+	for (int iPointSample = 0; iPointSample < 2; ++iPointSample)
+	{
+		for (int iCmpFunc = 0; iCmpFunc < kComparisonFunc_Count; ++iCmpFunc)
+		{
+			for (int iTexMode = 0; iTexMode < kRdrTexCoordMode_Count; ++iTexMode)
+			{
+				state.texcoordMode = iTexMode;
+				state.cmpFunc = iCmpFunc;
+				state.bPointSample = iPointSample;
+
+				desc.AddressU = desc.AddressV = desc.AddressW = getTexCoordModeD3d((RdrTexCoordMode)state.texcoordMode);
+				desc.Filter = getFilterD3d((RdrComparisonFunc)state.cmpFunc, state.bPointSample);
+				desc.ComparisonFunc = getComparisonFuncD3d((RdrComparisonFunc)state.cmpFunc);
+
+				hr = m_pDevice->CreateSamplerState(&desc, &m_samplers[getSamplerIndex(state)].pSampler);
+				assert(hr == S_OK);
+			}
+		}
+	}
+}
+
+RdrSampler RdrContext::GetSampler(const RdrSamplerState& state)
+{
+	return m_samplers[getSamplerIndex(state)];
 }
 
 RdrGeoHandle RdrContext::LoadGeo(const char* filename)
@@ -312,11 +350,11 @@ RdrGeoHandle RdrContext::CreateGeo(const void* pVertData, int vertStride, int nu
 	return m_geo.getId(pGeo);
 }
 
-RdrTextureHandle RdrContext::LoadTexture(const char* filename, bool bPointSample)
+RdrTextureHandle RdrContext::LoadTexture(const char* filename)
 {
 	TextureMap::iterator iter = m_textureCache.find(filename);
 	if (iter != m_textureCache.end())
-		return iter->second; // todo: check sample state
+		return iter->second;
 
 	D3D11_TEXTURE2D_DESC desc = { 0 };
 	D3D11_SUBRESOURCE_DATA data[16] = { 0 };
@@ -375,7 +413,6 @@ RdrTextureHandle RdrContext::LoadTexture(const char* filename, bool bPointSample
 	RdrTexture* pTex = m_textures.alloc();
 
 	pTex->pTexture = pTexture;
-	pTex->pSamplerState = CreateSamplerState(m_pDevice, bPointSample, kComparisonFunc_Never);
 	pTex->width = desc.Width;
 	pTex->height = desc.Height;
 
@@ -403,8 +440,6 @@ void RdrContext::ReleaseTexture(RdrTextureHandle hTex)
 		pTex->pResourceView->Release();
 	if (pTex->pUnorderedAccessView)
 		pTex->pUnorderedAccessView->Release();
-	if (pTex->pSamplerState)
-		pTex->pSamplerState->Release();
 
 	m_textures.releaseId(hTex);
 }
@@ -461,7 +496,7 @@ RdrTextureHandle RdrContext::CreateTexture2D(uint width, uint height, RdrResourc
 	return m_textures.getId(pTex);
 }
 
-RdrTextureHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format, RdrComparisonFunc cmpFunc)
+RdrTextureHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format)
 {
 	D3D11_TEXTURE2D_DESC desc = { 0 };
 
@@ -498,8 +533,6 @@ RdrTextureHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint 
 		hr = m_pDevice->CreateShaderResourceView(pTexture, &viewDesc, &pTex->pResourceView);
 		assert(hr == S_OK);
 	}
-
-	pTex->pSamplerState = CreateSamplerState(m_pDevice, false, cmpFunc);
 
 	return m_textures.getId(pTex);
 }

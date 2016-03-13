@@ -69,7 +69,6 @@ private:
 	ID3D11ShaderResourceView*	m_pDepthResourceView;
 	RdrTextureHandle			m_hDepthTex;
 
-
 	ID3D11Buffer* m_pPerFrameBufferVS;
 	ID3D11Buffer* m_pPerFrameBufferPS;
 

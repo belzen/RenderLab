@@ -23,7 +23,7 @@ void Sprite::Init(RdrContext* pRdrContext, const Vec2 aTexcoords[4], const char*
 {
 	m_hVertexShader = pRdrContext->LoadVertexShader("v_sprite.hlsl", s_vertexDesc, ARRAYSIZE(s_vertexDesc));
 	m_hPixelShader = pRdrContext->LoadPixelShader("p_sprite.hlsl");
-	m_hTexture = pRdrContext->LoadTexture(textureName, false);
+	m_hTexture = pRdrContext->LoadTexture(textureName);
 
 	SpriteVertex verts[4];
 	verts[0].position = Vec2(0.f, 0.f);
@@ -47,6 +47,7 @@ void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, 
 	op->hGeo = m_hGeo;
 	op->hVertexShader = m_hVertexShader;
 	op->hPixelShader = m_hPixelShader;
+	op->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 	op->hTextures[0] = m_hTexture;
 	op->texCount = 1;
 	op->bFreeGeo = false;

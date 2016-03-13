@@ -30,7 +30,7 @@ void LightList::PrepareDraw(Renderer& rRenderer)
 	RdrContext* pContext = rRenderer.GetContext();
 	if (!m_hShadowMapTexArray)
 	{
-		m_hShadowMapTexArray = pContext->CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOWMAPS_PER_FRAME, kResourceFormat_D16, kComparisonFunc_LessEqual);
+		m_hShadowMapTexArray = pContext->CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOWMAPS_PER_FRAME, kResourceFormat_D16);
 	}
 
 	int shadowLights[MAX_SHADOWMAPS_PER_FRAME];

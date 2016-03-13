@@ -8,6 +8,7 @@
 Model::Model(RdrGeoHandle hGeo,
 	ShaderHandle hVertexShader,
 	ShaderHandle hPixelShader,
+	RdrSamplerState* aSamplers,
 	RdrTextureHandle* ahTextures,
 	int numTextures)
 	: m_hVertexShader(hVertexShader)
@@ -17,6 +18,7 @@ Model::Model(RdrGeoHandle hGeo,
 {
 	for (int i = 0; i < numTextures; ++i)
 	{
+		m_samplers[i] = aSamplers[i];
 		m_hTextures[i] = ahTextures[i];
 	}
 }
@@ -42,6 +44,7 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat) const
 
 	for (int i = 0; i < m_numTextures; ++i)
 	{
+		pDrawOp->samplers[i] = m_samplers[i];
 		pDrawOp->hTextures[i] = m_hTextures[i];
 	}
 	pDrawOp->texCount = m_numTextures;

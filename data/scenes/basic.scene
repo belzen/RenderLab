@@ -20,7 +20,7 @@
 			"intensity" : 1.0,
 			"radius" : 10.0,
 			"innerConeAngle" : 30.0,
-			"outerConeAngle" : 55.0
+			"outerConeAngle" : 45.0
 		}
 	],
 	"objects" : [

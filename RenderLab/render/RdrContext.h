@@ -68,7 +68,6 @@ struct RdrTexture
 	// All optional.
 	ID3D11ShaderResourceView*	pResourceView;
 	ID3D11UnorderedAccessView*	pUnorderedAccessView;
-	ID3D11SamplerState*			pSamplerState;
 
 	int width;
 	int height;
@@ -84,6 +83,34 @@ struct RdrGeometry
 	Vec3 size;
 	float radius;
 };
+
+enum RdrTexCoordMode
+{
+	kRdrTexCoordMode_Wrap,
+	kRdrTexCoordMode_Clamp,
+	kRdrTexCoordMode_Mirror,
+
+	kRdrTexCoordMode_Count
+};
+
+struct RdrSamplerState
+{
+	RdrSamplerState() 
+		: cmpFunc(kComparisonFunc_Never), texcoordMode(kRdrTexCoordMode_Wrap), bPointSample(false) {}
+	RdrSamplerState(const RdrComparisonFunc cmpFunc, const RdrTexCoordMode texcoordMode, const bool bPointSample)
+		: cmpFunc(cmpFunc), texcoordMode(texcoordMode), bPointSample(bPointSample) {}
+
+	uint cmpFunc : 4;
+	uint texcoordMode : 2;
+	uint bPointSample : 1;
+};
+
+union RdrSampler
+{
+	ID3D11SamplerState* pSampler;
+};
+
+#define SAMPLER_TYPES_COUNT kComparisonFunc_Count * kRdrTexCoordMode_Count * 2
 
 typedef FreeList<RdrTexture, MAX_TEXTURES> RdrTextureList;
 typedef FreeList<VertexShader, MAX_SHADERS> VertexShaderList;
@@ -105,6 +132,8 @@ public:
 
 	Camera m_mainCamera;
 
+	RdrSampler m_samplers[SAMPLER_TYPES_COUNT];
+
 	TextureMap m_textureCache;
 	RdrTextureList m_textures;
 
@@ -121,14 +150,17 @@ public:
 
 	RdrTextureHandle m_hTileLightIndices;
 
+	void InitSamplers();
+	RdrSampler GetSampler(const RdrSamplerState& state);
+
 	RdrGeoHandle LoadGeo(const char* filename);
 	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& size);
 
-	RdrTextureHandle LoadTexture(const char* filename, bool bPointSample);
+	RdrTextureHandle LoadTexture(const char* filename);
 	void ReleaseTexture(RdrTextureHandle hTex);
 
 	RdrTextureHandle CreateTexture2D(uint width, uint height, RdrResourceFormat format);
-	RdrTextureHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format, RdrComparisonFunc cmpFunc);
+	RdrTextureHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format);
 
 	ShaderHandle LoadVertexShader(const char* filename, D3D11_INPUT_ELEMENT_DESC* aDesc, int numElements);
 	ShaderHandle LoadPixelShader(const char* filename);
@@ -173,6 +205,7 @@ struct RdrDrawOp
 	static RdrDrawOp* Allocate();
 	static void Release(RdrDrawOp* pDrawOp);
 
+	RdrSamplerState samplers[MAX_TEXTURES_PER_DRAW];
 	RdrTextureHandle hTextures[MAX_TEXTURES_PER_DRAW];
 	uint texCount;
 

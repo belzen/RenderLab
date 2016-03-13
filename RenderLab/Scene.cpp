@@ -166,15 +166,17 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 
 			Json::Value jTextures = jObj.get("textures", Json::Value::null);
 			int numTextures = jTextures.size();
+			RdrSamplerState samplers[16];
 			RdrTextureHandle hTextures[16];
 			for (int n = 0; n < numTextures; ++n)
 			{
 				std::string texName = jTextures.get(n, Json::Value::null).asString();
-				hTextures[n] = pContext->LoadTexture(texName.c_str(), false);
+				hTextures[n] = pContext->LoadTexture(texName.c_str());
+				samplers[n] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 			}
 
 			// todo: freelists
-			Model* pModel = new Model(hGeo, hVertexShader, hPixelShader, hTextures, numTextures);
+			Model* pModel = new Model(hGeo, hVertexShader, hPixelShader, samplers, hTextures, numTextures);
 			m_objects.push_back(new WorldObject(pModel, pos, orientation, scale));
 		}
 	}

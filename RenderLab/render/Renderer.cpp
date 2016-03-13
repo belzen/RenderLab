@@ -291,8 +291,9 @@ namespace
 			for (uint i = 0; i < pDrawOp->texCount; ++i)
 			{
 				RdrTexture* pTex = pContext->m_textures.get(pDrawOp->hTextures[i]);
+				RdrSampler sampler = pContext->GetSampler(pDrawOp->samplers[i]);
 				pDevContext->PSSetShaderResources(i, 1, &pTex->pResourceView);
-				pDevContext->PSSetSamplers(i, 1, &pTex->pSamplerState);
+				pDevContext->PSSetSamplers(i, 1, &sampler.pSampler);
 			}
 
 			if (pDrawOp->needsLighting && !bDepthOnly)
@@ -305,7 +306,10 @@ namespace
 
 				pTex = pContext->m_textures.get(pAction->pLights->GetShadowMapTexArray());
 				pDevContext->PSSetShaderResources(kPsResource_ShadowMaps, 1, &pTex->pResourceView);
-				pDevContext->PSSetSamplers(kPsResource_ShadowMaps, 1, &pTex->pSamplerState);
+
+				RdrSamplerState shadowSamplerState(kComparisonFunc_LessEqual, kRdrTexCoordMode_Clamp, false);
+				RdrSampler sampler = pContext->GetSampler(shadowSamplerState);
+				pDevContext->PSSetSamplers(kPsResource_ShadowMaps, 1, &sampler.pSampler);
 
 				pTex = pContext->m_textures.get(pAction->pLights->GetShadowMapDataRes());
 				pDevContext->PSSetShaderResources(kPsResource_ShadowMapData, 1, &pTex->pResourceView);
@@ -510,6 +514,8 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 
 	m_hDepthMinMaxShader = m_context.LoadComputeShader("c_tiled_depth_calc.hlsl");
 	m_hLightCullShader = m_context.LoadComputeShader("c_tiled_light_cull.hlsl");
+
+	m_context.InitSamplers();
 
 	return true;
 }
