@@ -55,6 +55,7 @@ private:
 	Light m_lights[1024];
 	uint m_lightCount;
 	bool m_changed;
+	bool m_needsRecreate;
 
 	RdrResourceHandle m_hLightListRes;
 	RdrResourceHandle m_hShadowMapDataRes;

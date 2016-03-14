@@ -112,7 +112,7 @@ union RdrSampler
 
 #define SAMPLER_TYPES_COUNT kComparisonFunc_Count * kRdrTexCoordMode_Count * 2
 
-typedef FreeList<RdrResource, MAX_TEXTURES> RdrTextureList;
+typedef FreeList<RdrResource, MAX_TEXTURES> RdrResourceList;
 typedef FreeList<VertexShader, MAX_SHADERS> VertexShaderList;
 typedef FreeList<PixelShader, MAX_SHADERS> PixelShaderList;
 typedef FreeList<ComputeShader, MAX_SHADERS> ComputeShaderList;
@@ -135,7 +135,7 @@ public:
 	RdrSampler m_samplers[SAMPLER_TYPES_COUNT];
 
 	TextureMap m_textureCache;
-	RdrTextureList m_textures;
+	RdrResourceList m_resources;
 
 	ShaderMap m_vertexShaderCache;
 	VertexShaderList m_vertexShaders;
@@ -166,7 +166,8 @@ public:
 	ShaderHandle LoadPixelShader(const char* filename);
 	ShaderHandle LoadComputeShader(const char* filename);
 
-	RdrResourceHandle CreateStructuredBuffer(const void* data, int dataSize, int elementSize);
+	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize);
+	void UpdateStructuredBuffer(RdrResourceHandle hBuffer, const void* pSrcData, int numElements, int elementSize);
 
 	ID3D11Buffer* CreateVertexBuffer(const void* vertices, int size);
 	ID3D11Buffer* CreateIndexBuffer(const void* indices, int size);

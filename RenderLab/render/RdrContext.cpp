@@ -73,7 +73,7 @@ RdrResourceHandle RdrContext::CreateStructuredBuffer(const void* pSrcData, int n
 	data.SysMemPitch = 0;
 	data.SysMemSlicePitch = 0;
 
-	RdrResource* pRes = m_textures.alloc();
+	RdrResource* pRes = m_resources.alloc();
 
 	HRESULT hr = m_pDevice->CreateBuffer(&desc, (pSrcData ? &data : nullptr), (ID3D11Buffer**)&pRes->pResource);
 	assert(hr == S_OK);
@@ -82,7 +82,16 @@ RdrResourceHandle RdrContext::CreateStructuredBuffer(const void* pSrcData, int n
 	hr = m_pDevice->CreateShaderResourceView(pRes->pResource, nullptr, &pRes->pResourceView);
 	assert(hr == S_OK);
 
-	return m_textures.getId(pRes);
+	return m_resources.getId(pRes);
+}
+
+void RdrContext::UpdateStructuredBuffer(RdrResourceHandle hBuffer, const void* pSrcData, int numElements, int elementSize)
+{
+	RdrResource* pRes = m_resources.get(hBuffer);
+	D3D11_MAPPED_SUBRESOURCE mappedResource;
+	m_pContext->Map(pRes->pResource, 0, D3D11_MAP_WRITE, 0, &mappedResource);
+	memcpy(mappedResource.pData, pSrcData, numElements * elementSize);
+	m_pContext->Unmap(pRes->pResource, 0);
 }
 
 ID3D11Buffer* RdrContext::CreateVertexBuffer(const void* vertices, int size)
@@ -412,7 +421,7 @@ RdrResourceHandle RdrContext::LoadTexture(const char* filename)
 
 	delete pTexData;
 
-	RdrResource* pTex = m_textures.alloc();
+	RdrResource* pTex = m_resources.alloc();
 
 	pTex->pTexture = pTexture;
 	pTex->width = desc.Width;
@@ -428,14 +437,14 @@ RdrResourceHandle RdrContext::LoadTexture(const char* filename)
 		assert(hr == S_OK);
 	}
 
-	RdrResourceHandle hTex = m_textures.getId(pTex);
+	RdrResourceHandle hTex = m_resources.getId(pTex);
 	m_textureCache.insert(std::make_pair(filename, hTex));
 	return hTex;
 }
 
 void RdrContext::ReleaseResource(RdrResourceHandle hTex)
 {
-	RdrResource* pRes = m_textures.get(hTex);
+	RdrResource* pRes = m_resources.get(hTex);
 	if (pRes->pResource)
 		pRes->pResource->Release();
 	if (pRes->pResourceView)
@@ -443,7 +452,7 @@ void RdrContext::ReleaseResource(RdrResourceHandle hTex)
 	if (pRes->pUnorderedAccessView)
 		pRes->pUnorderedAccessView->Release();
 
-	m_textures.releaseId(hTex);
+	m_resources.releaseId(hTex);
 }
 
 RdrResourceHandle RdrContext::CreateTexture2D(uint width, uint height, RdrResourceFormat format)
@@ -469,7 +478,7 @@ RdrResourceHandle RdrContext::CreateTexture2D(uint width, uint height, RdrResour
 	HRESULT hr = m_pDevice->CreateTexture2D(&desc, nullptr, &pTexture);
 	assert(hr == S_OK);
 
-	RdrResource* pTex = m_textures.alloc();
+	RdrResource* pTex = m_resources.alloc();
 	pTex->pTexture = pTexture;
 
 	//if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
@@ -495,7 +504,7 @@ RdrResourceHandle RdrContext::CreateTexture2D(uint width, uint height, RdrResour
 		assert(hr == S_OK);
 	}
 
-	return m_textures.getId(pTex);
+	return m_resources.getId(pTex);
 }
 
 RdrResourceHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format)
@@ -519,7 +528,7 @@ RdrResourceHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint
 	HRESULT hr = m_pDevice->CreateTexture2D(&desc, nullptr, &pTexture);
 	assert(hr == S_OK);
 
-	RdrResource* pTex = m_textures.alloc();
+	RdrResource* pTex = m_resources.alloc();
 	pTex->pTexture = pTexture;
 
 	//if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
@@ -536,7 +545,7 @@ RdrResourceHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint
 		assert(hr == S_OK);
 	}
 
-	return m_textures.getId(pTex);
+	return m_resources.getId(pTex);
 }
 
 ShaderHandle RdrContext::LoadVertexShader(const char* filename, D3D11_INPUT_ELEMENT_DESC* aDesc, int numElements)

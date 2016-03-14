@@ -289,7 +289,7 @@ namespace
 
 			for (uint i = 0; i < pDrawOp->texCount; ++i)
 			{
-				RdrResource* pTex = pContext->m_textures.get(pDrawOp->hTextures[i]);
+				RdrResource* pTex = pContext->m_resources.get(pDrawOp->hTextures[i]);
 				RdrSampler sampler = pContext->GetSampler(pDrawOp->samplers[i]);
 				pDevContext->PSSetShaderResources(i, 1, &pTex->pResourceView);
 				pDevContext->PSSetSamplers(i, 1, &sampler.pSampler);
@@ -297,20 +297,20 @@ namespace
 
 			if (pDrawOp->needsLighting && !bDepthOnly)
 			{
-				RdrResource* pTex = pContext->m_textures.get(pAction->pLights->GetLightListRes());
+				RdrResource* pTex = pContext->m_resources.get(pAction->pLights->GetLightListRes());
 				pDevContext->PSSetShaderResources(kPsResource_LightList, 1, &pTex->pResourceView);
 
-				pTex = pContext->m_textures.get(pContext->m_hTileLightIndices);
+				pTex = pContext->m_resources.get(pContext->m_hTileLightIndices);
 				pDevContext->PSSetShaderResources(kPsResource_TileLightIds, 1, &pTex->pResourceView);
 
-				pTex = pContext->m_textures.get(pAction->pLights->GetShadowMapTexArray());
+				pTex = pContext->m_resources.get(pAction->pLights->GetShadowMapTexArray());
 				pDevContext->PSSetShaderResources(kPsResource_ShadowMaps, 1, &pTex->pResourceView);
 
 				RdrSamplerState shadowSamplerState(kComparisonFunc_LessEqual, kRdrTexCoordMode_Clamp, false);
 				RdrSampler sampler = pContext->GetSampler(shadowSamplerState);
 				pDevContext->PSSetSamplers(kPsResource_ShadowMaps, 1, &sampler.pSampler);
 
-				pTex = pContext->m_textures.get(pAction->pLights->GetShadowMapDataRes());
+				pTex = pContext->m_resources.get(pAction->pLights->GetShadowMapDataRes());
 				pDevContext->PSSetShaderResources(kPsResource_ShadowMapData, 1, &pTex->pResourceView);
 			}
 		}
@@ -367,13 +367,13 @@ namespace
 
 		for (uint i = 0; i < pDrawOp->texCount; ++i)
 		{
-			RdrResource* pTex = pContext->m_textures.get(pDrawOp->hTextures[i]);
+			RdrResource* pTex = pContext->m_resources.get(pDrawOp->hTextures[i]);
 			pDevContext->CSSetShaderResources(i, 1, &pTex->pResourceView);
 		}
 
 		for (uint i = 0; i < pDrawOp->viewCount; ++i)
 		{
-			RdrResource* pTex = pContext->m_textures.get(pDrawOp->hViews[i]);
+			RdrResource* pTex = pContext->m_resources.get(pDrawOp->hViews[i]);
 			pDevContext->CSSetUnorderedAccessViews(i, 1, &pTex->pUnorderedAccessView, nullptr);
 		}
 
@@ -608,10 +608,10 @@ void Renderer::CreatePrimaryTargets(int width, int height)
 	hr = m_context.m_pDevice->CreateShaderResourceView(m_pDepthBuffer, &resDesc, &m_pDepthResourceView);
 	assert(hr == S_OK);
 
-	RdrResource* pTex = m_context.m_textures.alloc();
+	RdrResource* pTex = m_context.m_resources.alloc();
 	pTex->pTexture = m_pDepthBuffer;
 	pTex->pResourceView = m_pDepthResourceView;
-	m_hDepthTex = m_context.m_textures.getId(pTex);
+	m_hDepthTex = m_context.m_resources.getId(pTex);
 }
 
 const Camera* Renderer::GetCurrentCamera(void) const
@@ -812,7 +812,7 @@ void Renderer::QueueShadowMap(Light* pLight, RdrResourceHandle hShadowMapTexArra
 	dsvDesc.Texture2DArray.FirstArraySlice = destArrayIndex;
 	dsvDesc.Texture2DArray.ArraySize = 1;
 
-	RdrResource* pShadowTex = m_context.m_textures.get(hShadowMapTexArray);
+	RdrResource* pShadowTex = m_context.m_resources.get(hShadowMapTexArray);
 	HRESULT hr = m_context.m_pDevice->CreateDepthStencilView(pShadowTex->pTexture, &dsvDesc, &rPass.pDepthTarget);
 	assert(hr == S_OK);
 

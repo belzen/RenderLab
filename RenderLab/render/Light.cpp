@@ -70,6 +70,7 @@ void LightList::AddLight(Light& light)
 	m_lights[m_lightCount] = light;
 	++m_lightCount;
 	m_changed = true;
+	m_needsRecreate = true;
 }
 
 void LightList::PrepareDraw(Renderer& rRenderer)
@@ -121,15 +122,18 @@ void LightList::PrepareDraw(Renderer& rRenderer)
 		}
 	}
 
-	if (m_changed)
+	if (m_changed || m_needsRecreate)
 	{
-		// todo: update instead of re-create
-		if (m_hLightListRes)
-			pContext->ReleaseResource(m_hLightListRes);
-		m_hLightListRes = pContext->CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light));
-
-		if (m_hShadowMapDataRes)
-			pContext->ReleaseResource(m_hShadowMapDataRes);
+		if (m_needsRecreate || !m_hLightListRes)
+		{
+			if (m_hLightListRes)
+				pContext->ReleaseResource(m_hLightListRes);
+			m_hLightListRes = pContext->CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light));
+		}
+		else if (m_changed)
+		{
+			pContext->UpdateStructuredBuffer(m_hLightListRes, m_lights, m_lightCount, sizeof(Light));
+		}
 
 		ShadowMapData shadowData[MAX_SHADOWMAPS_PER_FRAME];
 		for (int i = 0; i < curShadowMapIndex; ++i)
@@ -145,6 +149,12 @@ void LightList::PrepareDraw(Renderer& rRenderer)
 			shadowData[i].mtxViewProj = Matrix44Transpose(shadowData[i].mtxViewProj);
 		}
 
-		m_hShadowMapDataRes = pContext->CreateStructuredBuffer(shadowData, MAX_SHADOWMAPS_PER_FRAME, sizeof(ShadowMapData));
+		if (!m_hShadowMapDataRes)
+			m_hShadowMapDataRes = pContext->CreateStructuredBuffer(shadowData, MAX_SHADOWMAPS_PER_FRAME, sizeof(ShadowMapData));
+		else
+			pContext->UpdateStructuredBuffer(m_hShadowMapDataRes, shadowData, MAX_SHADOWMAPS_PER_FRAME, sizeof(ShadowMapData));
+
+		m_changed = false;
+		m_needsRecreate = false;
 	}
 }

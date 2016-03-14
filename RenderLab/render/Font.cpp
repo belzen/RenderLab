@@ -77,7 +77,7 @@ void Font::Init(RdrContext* pRdrContext)
 	loadFontData("data/textures/fonts/verdana.dat");
 
 	g_text.hTexture = pRdrContext->LoadTexture(filename);
-	g_text.glyphPixelSize = pRdrContext->m_textures.get(g_text.hTexture)->width / 16;
+	g_text.glyphPixelSize = pRdrContext->m_resources.get(g_text.hTexture)->width / 16;
 
 	g_text.hVertexShader = pRdrContext->LoadVertexShader("v_text.hlsl", s_vertexDesc, ARRAYSIZE(s_vertexDesc));
 	g_text.hPixelShader = pRdrContext->LoadPixelShader("p_text.hlsl");
