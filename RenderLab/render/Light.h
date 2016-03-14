@@ -7,7 +7,7 @@ struct ID3D11UnorderedAccessView;
 class RdrContext;
 class Renderer;
 
-typedef uint RdrTextureHandle;
+typedef uint RdrResourceHandle;
 
 enum LightType
 {
@@ -47,16 +47,16 @@ public:
 
 	void PrepareDraw(Renderer& rRenderer);
 
-	RdrTextureHandle GetShadowMapDataRes() const { return m_hShadowMapDataRes; }
-	RdrTextureHandle GetShadowMapTexArray() const { return m_hShadowMapTexArray; }
-	RdrTextureHandle GetLightListRes() const { return m_hLightListRes; }
+	RdrResourceHandle GetShadowMapDataRes() const { return m_hShadowMapDataRes; }
+	RdrResourceHandle GetShadowMapTexArray() const { return m_hShadowMapTexArray; }
+	RdrResourceHandle GetLightListRes() const { return m_hLightListRes; }
 	uint GetLightCount() const { return m_lightCount; }
 private:
 	Light m_lights[1024];
 	uint m_lightCount;
 	bool m_changed;
 
-	RdrTextureHandle m_hLightListRes;
-	RdrTextureHandle m_hShadowMapDataRes;
-	RdrTextureHandle m_hShadowMapTexArray;
+	RdrResourceHandle m_hLightListRes;
+	RdrResourceHandle m_hShadowMapDataRes;
+	RdrResourceHandle m_hShadowMapTexArray;
 };

@@ -289,7 +289,7 @@ namespace
 
 			for (uint i = 0; i < pDrawOp->texCount; ++i)
 			{
-				RdrTexture* pTex = pContext->m_textures.get(pDrawOp->hTextures[i]);
+				RdrResource* pTex = pContext->m_textures.get(pDrawOp->hTextures[i]);
 				RdrSampler sampler = pContext->GetSampler(pDrawOp->samplers[i]);
 				pDevContext->PSSetShaderResources(i, 1, &pTex->pResourceView);
 				pDevContext->PSSetSamplers(i, 1, &sampler.pSampler);
@@ -297,7 +297,7 @@ namespace
 
 			if (pDrawOp->needsLighting && !bDepthOnly)
 			{
-				RdrTexture* pTex = pContext->m_textures.get(pAction->pLights->GetLightListRes());
+				RdrResource* pTex = pContext->m_textures.get(pAction->pLights->GetLightListRes());
 				pDevContext->PSSetShaderResources(kPsResource_LightList, 1, &pTex->pResourceView);
 
 				pTex = pContext->m_textures.get(pContext->m_hTileLightIndices);
@@ -367,13 +367,13 @@ namespace
 
 		for (uint i = 0; i < pDrawOp->texCount; ++i)
 		{
-			RdrTexture* pTex = pContext->m_textures.get(pDrawOp->hTextures[i]);
+			RdrResource* pTex = pContext->m_textures.get(pDrawOp->hTextures[i]);
 			pDevContext->CSSetShaderResources(i, 1, &pTex->pResourceView);
 		}
 
 		for (uint i = 0; i < pDrawOp->viewCount; ++i)
 		{
-			RdrTexture* pTex = pContext->m_textures.get(pDrawOp->hViews[i]);
+			RdrResource* pTex = pContext->m_textures.get(pDrawOp->hViews[i]);
 			pDevContext->CSSetUnorderedAccessViews(i, 1, &pTex->pUnorderedAccessView, nullptr);
 		}
 
@@ -557,7 +557,7 @@ void Renderer::CreatePrimaryTargets(int width, int height)
 	if (m_pDepthStencilView)
 		m_pDepthStencilView->Release();
 	if (m_hDepthTex)
-		m_context.ReleaseTexture(m_hDepthTex); // Handles freeing of m_pDepthBuffer & m_pDepthResourceView
+		m_context.ReleaseResource(m_hDepthTex); // Handles freeing of m_pDepthBuffer & m_pDepthResourceView
 
 	// Render target
 	ID3D11Texture2D* pBackBuffer;
@@ -608,7 +608,7 @@ void Renderer::CreatePrimaryTargets(int width, int height)
 	hr = m_context.m_pDevice->CreateShaderResourceView(m_pDepthBuffer, &resDesc, &m_pDepthResourceView);
 	assert(hr == S_OK);
 
-	RdrTexture* pTex = m_context.m_textures.alloc();
+	RdrResource* pTex = m_context.m_textures.alloc();
 	pTex->pTexture = m_pDepthBuffer;
 	pTex->pResourceView = m_pDepthResourceView;
 	m_hDepthTex = m_context.m_textures.getId(pTex);
@@ -648,7 +648,7 @@ void Renderer::DispatchLightCulling(RdrAction* pAction)
 	if ( tileCountChanged )
 	{
 		if (m_hDepthMinMaxTex)
-			m_context.ReleaseTexture(m_hDepthMinMaxTex);
+			m_context.ReleaseResource(m_hDepthMinMaxTex);
 		m_hDepthMinMaxTex = m_context.CreateTexture2D(tileCountX, tileCountY, kResourceFormat_RG_F16);
 	}
 
@@ -687,7 +687,7 @@ void Renderer::DispatchLightCulling(RdrAction* pAction)
 	{
 		const uint kMaxLightsPerTile = 128; // Sync with MAX_LIGHTS_PER_TILE in "light_inc.hlsli"
 		if (m_context.m_hTileLightIndices)
-			m_context.ReleaseTexture(m_context.m_hTileLightIndices);
+			m_context.ReleaseResource(m_context.m_hTileLightIndices);
 		m_context.m_hTileLightIndices = m_context.CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint));
 	}
 
@@ -797,7 +797,7 @@ void Renderer::AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket)
 	m_pCurrentAction->buckets[bucket].push_back(pDrawOp);
 }
 
-void Renderer::QueueShadowMap(Light* pLight, RdrTextureHandle hShadowMapTexArray, int destArrayIndex, Rect& viewport)
+void Renderer::QueueShadowMap(Light* pLight, RdrResourceHandle hShadowMapTexArray, int destArrayIndex, Rect& viewport)
 {
 	assert(m_pCurrentAction->numShadowMapPasses < (kRdrPass_ShadowMap_Last - kRdrPass_ShadowMap_First));
 
@@ -812,7 +812,7 @@ void Renderer::QueueShadowMap(Light* pLight, RdrTextureHandle hShadowMapTexArray
 	dsvDesc.Texture2DArray.FirstArraySlice = destArrayIndex;
 	dsvDesc.Texture2DArray.ArraySize = 1;
 
-	RdrTexture* pShadowTex = m_context.m_textures.get(hShadowMapTexArray);
+	RdrResource* pShadowTex = m_context.m_textures.get(hShadowMapTexArray);
 	HRESULT hr = m_context.m_pDevice->CreateDepthStencilView(pShadowTex->pTexture, &dsvDesc, &rPass.pDepthTarget);
 	assert(hr == S_OK);
 

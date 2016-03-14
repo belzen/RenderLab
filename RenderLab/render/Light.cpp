@@ -84,7 +84,7 @@ void LightList::PrepareDraw(Renderer& rRenderer)
 	memset(shadowLights, -1, sizeof(shadowLights));
 
 	int curShadowMapIndex = 0;
-	// todo: Choose shadow lights
+	// todo: Choose shadow lights based on location and dynamic object movement
 	for (uint i = 0; i < m_lightCount; ++i)
 	{
 		Light& light = m_lights[i];
@@ -125,11 +125,11 @@ void LightList::PrepareDraw(Renderer& rRenderer)
 	{
 		// todo: update instead of re-create
 		if (m_hLightListRes)
-			pContext->ReleaseTexture(m_hLightListRes);
+			pContext->ReleaseResource(m_hLightListRes);
 		m_hLightListRes = pContext->CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light));
 
 		if (m_hShadowMapDataRes)
-			pContext->ReleaseTexture(m_hShadowMapDataRes);
+			pContext->ReleaseResource(m_hShadowMapDataRes);
 
 		ShadowMapData shadowData[MAX_SHADOWMAPS_PER_FRAME];
 		for (int i = 0; i < curShadowMapIndex; ++i)

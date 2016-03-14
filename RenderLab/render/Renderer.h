@@ -30,7 +30,7 @@ public:
 	void BeginAction(const Camera* pMainCamera, const LightList* pLights, ID3D11RenderTargetView* pRenderTarget);
 	void EndAction();
 
-	void QueueShadowMap(Light* pLight, RdrTextureHandle hShadowMapTexArray, int destArrayIndex, Rect& viewport);
+	void QueueShadowMap(Light* pLight, RdrResourceHandle hShadowMapTexArray, int destArrayIndex, Rect& viewport);
 	void AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);
 
 	void DrawFrame();
@@ -43,7 +43,7 @@ public:
 	int GetViewportHeight() const { return m_viewHeight; }
 	Vec2 GetViewportSize() const { return Vec2((float)m_viewWidth, (float)m_viewHeight); }
 
-	RdrTextureHandle GetDepthTex() const { return m_hDepthTex; }
+	RdrResourceHandle GetDepthTex() const { return m_hDepthTex; }
 
 	Camera& GetMainCamera() { return m_context.m_mainCamera; }
 
@@ -67,7 +67,7 @@ private:
 	ID3D11DepthStencilView*		m_pDepthStencilView;
 	ID3D11Texture2D*			m_pDepthBuffer;
 	ID3D11ShaderResourceView*	m_pDepthResourceView;
-	RdrTextureHandle			m_hDepthTex;
+	RdrResourceHandle			m_hDepthTex;
 
 	ID3D11Buffer* m_pPerFrameBufferVS;
 	ID3D11Buffer* m_pPerFrameBufferPS;
@@ -81,7 +81,7 @@ private:
 	// Forward+ lighting
 	ShaderHandle		m_hDepthMinMaxShader;
 	ShaderHandle		m_hLightCullShader;
-	RdrTextureHandle	m_hDepthMinMaxTex;
+	RdrResourceHandle	m_hDepthMinMaxTex;
 	int					m_tileCountX;
 	int					m_tileCountY;
 };

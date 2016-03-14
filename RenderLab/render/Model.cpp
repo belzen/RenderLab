@@ -9,7 +9,7 @@ Model::Model(RdrGeoHandle hGeo,
 	ShaderHandle hVertexShader,
 	ShaderHandle hPixelShader,
 	RdrSamplerState* aSamplers,
-	RdrTextureHandle* ahTextures,
+	RdrResourceHandle* ahTextures,
 	int numTextures)
 	: m_hVertexShader(hVertexShader)
 	, m_hPixelShader(hPixelShader)

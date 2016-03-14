@@ -57,7 +57,7 @@ enum RdrComparisonFunc
 	kComparisonFunc_Count
 };
 
-struct RdrTexture
+struct RdrResource
 {
 	union
 	{
@@ -112,15 +112,15 @@ union RdrSampler
 
 #define SAMPLER_TYPES_COUNT kComparisonFunc_Count * kRdrTexCoordMode_Count * 2
 
-typedef FreeList<RdrTexture, MAX_TEXTURES> RdrTextureList;
+typedef FreeList<RdrResource, MAX_TEXTURES> RdrTextureList;
 typedef FreeList<VertexShader, MAX_SHADERS> VertexShaderList;
 typedef FreeList<PixelShader, MAX_SHADERS> PixelShaderList;
 typedef FreeList<ComputeShader, MAX_SHADERS> ComputeShaderList;
 typedef FreeList<RdrGeometry, MAX_GEO> RdrGeoList;
 typedef uint RdrGeoHandle;
-typedef uint RdrTextureHandle;
+typedef uint RdrResourceHandle;
 typedef uint ShaderHandle;
-typedef std::map<std::string, RdrTextureHandle> TextureMap;
+typedef std::map<std::string, RdrResourceHandle> TextureMap;
 typedef std::map<std::string, ShaderHandle> ShaderMap;
 typedef std::map<std::string, RdrGeoHandle> GeoMap;
 
@@ -148,7 +148,7 @@ public:
 	GeoMap m_geoCache;
 	RdrGeoList m_geo;
 
-	RdrTextureHandle m_hTileLightIndices;
+	RdrResourceHandle m_hTileLightIndices;
 
 	void InitSamplers();
 	RdrSampler GetSampler(const RdrSamplerState& state);
@@ -156,17 +156,17 @@ public:
 	RdrGeoHandle LoadGeo(const char* filename);
 	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& size);
 
-	RdrTextureHandle LoadTexture(const char* filename);
-	void ReleaseTexture(RdrTextureHandle hTex);
+	RdrResourceHandle LoadTexture(const char* filename);
+	void ReleaseResource(RdrResourceHandle hTex);
 
-	RdrTextureHandle CreateTexture2D(uint width, uint height, RdrResourceFormat format);
-	RdrTextureHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format);
+	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat format);
+	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format);
 
 	ShaderHandle LoadVertexShader(const char* filename, D3D11_INPUT_ELEMENT_DESC* aDesc, int numElements);
 	ShaderHandle LoadPixelShader(const char* filename);
 	ShaderHandle LoadComputeShader(const char* filename);
 
-	RdrTextureHandle CreateStructuredBuffer(const void* data, int dataSize, int elementSize);
+	RdrResourceHandle CreateStructuredBuffer(const void* data, int dataSize, int elementSize);
 
 	ID3D11Buffer* CreateVertexBuffer(const void* vertices, int size);
 	ID3D11Buffer* CreateIndexBuffer(const void* indices, int size);
@@ -206,11 +206,11 @@ struct RdrDrawOp
 	static void Release(RdrDrawOp* pDrawOp);
 
 	RdrSamplerState samplers[MAX_TEXTURES_PER_DRAW];
-	RdrTextureHandle hTextures[MAX_TEXTURES_PER_DRAW];
+	RdrResourceHandle hTextures[MAX_TEXTURES_PER_DRAW];
 	uint texCount;
 
 	// UAVs
-	RdrTextureHandle hViews[8];
+	RdrResourceHandle hViews[8];
 	uint viewCount;
 
 	Vec4 constants[16];

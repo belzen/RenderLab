@@ -16,5 +16,5 @@ private:
 	ShaderHandle m_hVertexShader;
 	ShaderHandle m_hPixelShader;
 	RdrGeoHandle m_hGeo;
-	RdrTextureHandle m_hTexture;
+	RdrResourceHandle m_hTexture;
 };

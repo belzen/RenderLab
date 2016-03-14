@@ -57,7 +57,7 @@ static ID3D11Buffer* createBuffer(ID3D11Device* pDevice, const void* pSrcData, i
 	return pBuffer;
 }
 
-RdrTextureHandle RdrContext::CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize)
+RdrResourceHandle RdrContext::CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize)
 {
 	D3D11_BUFFER_DESC desc = { 0 };
 	D3D11_SUBRESOURCE_DATA data = { 0 };
@@ -73,16 +73,16 @@ RdrTextureHandle RdrContext::CreateStructuredBuffer(const void* pSrcData, int nu
 	data.SysMemPitch = 0;
 	data.SysMemSlicePitch = 0;
 
-	RdrTexture* pTex = m_textures.alloc();
+	RdrResource* pRes = m_textures.alloc();
 
-	HRESULT hr = m_pDevice->CreateBuffer(&desc, (pSrcData ? &data : nullptr), (ID3D11Buffer**)&pTex->pResource);
+	HRESULT hr = m_pDevice->CreateBuffer(&desc, (pSrcData ? &data : nullptr), (ID3D11Buffer**)&pRes->pResource);
 	assert(hr == S_OK);
-	hr = m_pDevice->CreateUnorderedAccessView(pTex->pResource, nullptr, &pTex->pUnorderedAccessView);
+	hr = m_pDevice->CreateUnorderedAccessView(pRes->pResource, nullptr, &pRes->pUnorderedAccessView);
 	assert(hr == S_OK);
-	hr = m_pDevice->CreateShaderResourceView(pTex->pResource, nullptr, &pTex->pResourceView);
+	hr = m_pDevice->CreateShaderResourceView(pRes->pResource, nullptr, &pRes->pResourceView);
 	assert(hr == S_OK);
 
-	return m_textures.getId(pTex);
+	return m_textures.getId(pRes);
 }
 
 ID3D11Buffer* RdrContext::CreateVertexBuffer(const void* vertices, int size)
@@ -352,7 +352,7 @@ RdrGeoHandle RdrContext::CreateGeo(const void* pVertData, int vertStride, int nu
 	return m_geo.getId(pGeo);
 }
 
-RdrTextureHandle RdrContext::LoadTexture(const char* filename)
+RdrResourceHandle RdrContext::LoadTexture(const char* filename)
 {
 	TextureMap::iterator iter = m_textureCache.find(filename);
 	if (iter != m_textureCache.end())
@@ -412,7 +412,7 @@ RdrTextureHandle RdrContext::LoadTexture(const char* filename)
 
 	delete pTexData;
 
-	RdrTexture* pTex = m_textures.alloc();
+	RdrResource* pTex = m_textures.alloc();
 
 	pTex->pTexture = pTexture;
 	pTex->width = desc.Width;
@@ -428,25 +428,25 @@ RdrTextureHandle RdrContext::LoadTexture(const char* filename)
 		assert(hr == S_OK);
 	}
 
-	RdrTextureHandle hTex = m_textures.getId(pTex);
+	RdrResourceHandle hTex = m_textures.getId(pTex);
 	m_textureCache.insert(std::make_pair(filename, hTex));
 	return hTex;
 }
 
-void RdrContext::ReleaseTexture(RdrTextureHandle hTex)
+void RdrContext::ReleaseResource(RdrResourceHandle hTex)
 {
-	RdrTexture* pTex = m_textures.get(hTex);
-	if (pTex->pResource)
-		pTex->pResource->Release();
-	if (pTex->pResourceView)
-		pTex->pResourceView->Release();
-	if (pTex->pUnorderedAccessView)
-		pTex->pUnorderedAccessView->Release();
+	RdrResource* pRes = m_textures.get(hTex);
+	if (pRes->pResource)
+		pRes->pResource->Release();
+	if (pRes->pResourceView)
+		pRes->pResourceView->Release();
+	if (pRes->pUnorderedAccessView)
+		pRes->pUnorderedAccessView->Release();
 
 	m_textures.releaseId(hTex);
 }
 
-RdrTextureHandle RdrContext::CreateTexture2D(uint width, uint height, RdrResourceFormat format)
+RdrResourceHandle RdrContext::CreateTexture2D(uint width, uint height, RdrResourceFormat format)
 {
 	D3D11_TEXTURE2D_DESC desc = { 0 };
 
@@ -469,7 +469,7 @@ RdrTextureHandle RdrContext::CreateTexture2D(uint width, uint height, RdrResourc
 	HRESULT hr = m_pDevice->CreateTexture2D(&desc, nullptr, &pTexture);
 	assert(hr == S_OK);
 
-	RdrTexture* pTex = m_textures.alloc();
+	RdrResource* pTex = m_textures.alloc();
 	pTex->pTexture = pTexture;
 
 	//if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
@@ -498,7 +498,7 @@ RdrTextureHandle RdrContext::CreateTexture2D(uint width, uint height, RdrResourc
 	return m_textures.getId(pTex);
 }
 
-RdrTextureHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format)
+RdrResourceHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format)
 {
 	D3D11_TEXTURE2D_DESC desc = { 0 };
 
@@ -519,7 +519,7 @@ RdrTextureHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint 
 	HRESULT hr = m_pDevice->CreateTexture2D(&desc, nullptr, &pTexture);
 	assert(hr == S_OK);
 
-	RdrTexture* pTex = m_textures.alloc();
+	RdrResource* pTex = m_textures.alloc();
 	pTex->pTexture = pTexture;
 
 	//if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)

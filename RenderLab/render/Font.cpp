@@ -28,7 +28,7 @@ namespace
 		short glpyhWidths[256];
 		int glyphPixelSize;
 
-		RdrTextureHandle hTexture;
+		RdrResourceHandle hTexture;
 
 		ShaderHandle hVertexShader;
 		ShaderHandle hPixelShader;

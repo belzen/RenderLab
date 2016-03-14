@@ -167,7 +167,7 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 			Json::Value jTextures = jObj.get("textures", Json::Value::null);
 			int numTextures = jTextures.size();
 			RdrSamplerState samplers[16];
-			RdrTextureHandle hTextures[16];
+			RdrResourceHandle hTextures[16];
 			for (int n = 0; n < numTextures; ++n)
 			{
 				std::string texName = jTextures.get(n, Json::Value::null).asString();
