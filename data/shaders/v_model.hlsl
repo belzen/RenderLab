@@ -1,7 +1,6 @@
 cbuffer PerFrame
 {
-	float4x4 view_mat;
-	float4x4 proj_mat;
+	float4x4 viewproj_mat;
 }; 
 
 cbuffer PerObject
@@ -35,8 +34,7 @@ VertexOutput main( VertexInput input )
 	VertexOutput output;
 
 	output.position_ws = mul(input.position, world_mat);
-	output.position = mul(output.position_ws, view_mat);
-	output.position = mul(output.position, proj_mat);
+	output.position = mul(output.position_ws, viewproj_mat);
 
 	output.normal = mul(input.normal, (float3x3)world_mat);
 	output.tangent = mul(input.tangent, (float3x3)world_mat);

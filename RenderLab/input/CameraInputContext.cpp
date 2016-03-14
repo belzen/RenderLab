@@ -21,8 +21,8 @@ void CameraInputContext::Update(float dt)
 	// Rotation
 	if (Input::IsMouseDown(1))
 	{
-		// todo: fix rotations at straight up/down
 		static const float kPixelToAngle = Maths::kPi / (180.f * 10.f);
+		static const float kMaxPitch = Maths::kPi * 0.5f - 0.001f;
 		int moveX, moveY;
 		Input::GetMouseMove(moveX, moveY);
 
@@ -30,6 +30,12 @@ void CameraInputContext::Update(float dt)
 
 		pitchYawRoll.x += moveY * kPixelToAngle;
 		pitchYawRoll.y += moveX * kPixelToAngle;
+
+		if (pitchYawRoll.x < -kMaxPitch)
+			pitchYawRoll.x = -kMaxPitch;
+		else if (pitchYawRoll.x > kMaxPitch)
+			pitchYawRoll.x = kMaxPitch;
+
 		m_pCamera->SetPitchYawRoll(pitchYawRoll);
 	}
 

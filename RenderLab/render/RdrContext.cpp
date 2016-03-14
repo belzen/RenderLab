@@ -167,7 +167,9 @@ static D3D11_FILTER getFilterD3d(const RdrComparisonFunc cmpFunc, const bool bPo
 
 static int getSamplerIndex(const RdrSamplerState& state)
 {
-	return state.cmpFunc * state.texcoordMode * state.bPointSample;
+	return state.cmpFunc * (kRdrTexCoordMode_Count * 2)
+		+ state.texcoordMode * 2
+		+ state.bPointSample;
 }
 
 void RdrContext::InitSamplers()

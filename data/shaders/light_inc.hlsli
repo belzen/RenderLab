@@ -54,7 +54,7 @@ float getShadowFactor(in float3 pos_ws, in uint shadowMapIndex)
 		
 		if ((saturate(uv.x) == uv.x) && (saturate(uv.y) == uv.y))
 		{
-			float bias = 0.001f;
+			float bias = 0.0004f;
 			float lightDepthValue = pos.z / pos.w - bias;
 
 #if POISSON_SHADOWS
@@ -88,45 +88,45 @@ float4 doLighting(in float3 pos_ws, in float4 color, in float3 normal, in float3
 	{
 		Light light = g_lights[ g_tileLightIndices[tileIdx + i + 1] ];
 
-		if (light.type == 0) // Directional
-		{
-			float ndl = saturate(dot(normal, -light.direction));
-			float4 diffuse = color * ndl * float4(light.color, 1);
+		float3 posToLight = light.position - pos_ws;
+		float lightDistSqr = dot(posToLight, posToLight);
+		float3 lightDir = normalize(posToLight); // Direction to light.
 
-			float3 reflect = normalize(2 * ndl * normal + light.direction);
-			float4 specular = pow(saturate(dot(reflect, viewDir)), 8);
+		// Choose light dir depending on light type.
+		lightDir = lerp(-light.direction, lightDir, (light.type > 0));
 
-			float shadow = saturate(4 * ndl) * getShadowFactor(pos_ws, light.shadowMapIndex);
-			litColor += shadow * (diffuse + specular);
-		}
-		else // Point & spot light
-		{
-			float3 lightPos = pos_ws - light.position;
-			float lightDistSqr = dot(lightPos, lightPos);
-			float falloff = saturate(((light.radius * light.radius) - lightDistSqr) / lightDistSqr);
+		// --- Lighting model
+#define PHONG 0
+#define BLINN_PHONG 1
+		const float kSpecExponent = 50.f;
+		const float kSpecIntensity = 0.5f;
+#if PHONG
+		float ndl = saturate(dot(normal, lightDir));
+		float4 diffuse = color * ndl * float4(light.color, 1);
 
-			float3 lightDir = normalize(lightPos);
-			float ndl = saturate(dot(normal, -lightDir)) * falloff;
+		float3 reflect = normalize(2 * ndl * normal - lightDir);
+		float4 specular = pow(saturate(dot(reflect, viewDir)), kSpecExponent) * kSpecIntensity;
+#elif BLINN_PHONG
+		float ndl = saturate(dot(normal, lightDir));
+		float4 diffuse = color * ndl * float4(light.color, 1);
 
-			float4 diffuse = color * ndl * float4(light.color, 1);
+		float3 halfVec = normalize(lightDir + viewDir);
+		float4 specular = pow(saturate(dot(halfVec, normal)), kSpecExponent) * kSpecIntensity;
+#endif
+		// ---
 
-			float3 reflect = normalize(2 * ndl * normal + lightDir);
-			float4 specular = pow(saturate(dot(reflect, viewDir)), 8);
+		// Point/Spot light distance falloff
+		float distFalloff = saturate(((light.radius * light.radius) - lightDistSqr) / lightDistSqr);
+		distFalloff = lerp(1.f, distFalloff, (light.type != 0));
 
-			float shadow = saturate(4 * ndl);
-			float intensity = 1.f;
+		// Spot light angular falloff
+		float spotEffect = dot(light.direction, -lightDir); //angle
+		float coneFalloffRange = max((light.innerConeAngleCos - light.outerConeAngleCos), 0.00001f);
+		float angularFalloff = saturate( (spotEffect - light.outerConeAngleCos) / coneFalloffRange );
+		angularFalloff = lerp(1.f, angularFalloff, (light.type == 2));
 
-			// todo: constant, linear, quadratic attenuation
-			if (light.type == 2) // Spot
-			{
-				float spotEffect = dot(light.direction, lightDir); //angle
-				float coneFalloffRange = max((light.innerConeAngleCos - light.outerConeAngleCos), 0.00001f);
-				intensity = saturate( (spotEffect - light.outerConeAngleCos) / coneFalloffRange );
-				//intensity = spotEffect > light.innerConeAngleCos;
-			}
-
-			litColor += intensity * (shadow * (diffuse + specular));
-		}
+		// todo: constant, linear, quadratic attenuation
+		litColor += (diffuse + specular) * distFalloff * angularFalloff * getShadowFactor(pos_ws, light.shadowMapIndex);
 	}
 
 	return litColor;

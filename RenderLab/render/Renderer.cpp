@@ -134,8 +134,7 @@ static_assert(sizeof(s_passNames) / sizeof(s_passNames[0]) == kRdrPass_Count, "M
 
 struct PerFrameConstantsVS
 {
-	Matrix44 view_mat;
-	Matrix44 proj_mat;
+	Matrix44 viewproj_mat;
 };
 
 struct PerObjectConstantsVS
@@ -801,7 +800,7 @@ void Renderer::AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket)
 void Renderer::QueueShadowMap(Light* pLight, RdrTextureHandle hShadowMapTexArray, int destArrayIndex, Rect& viewport)
 {
 	assert(m_pCurrentAction->numShadowMapPasses < (kRdrPass_ShadowMap_Last - kRdrPass_ShadowMap_First));
-	// todo:
+
 	RdrPassEnum ePass = (RdrPassEnum)(kRdrPass_ShadowMap_First + m_pCurrentAction->numShadowMapPasses);
 	RdrPass& rPass = m_pCurrentAction->passes[ePass];
 
@@ -837,34 +836,26 @@ void Renderer::SetPerFrameConstants(const RdrPass* pPass)
 	assert(hr == S_OK);
 	PerFrameConstantsVS* vsConstants = (PerFrameConstantsVS*)vsRes.pData;
 
+	Matrix44 mtxView;
+	Matrix44 mtxProj;
 	if (pPass->view.pCamera)
 	{
-		pPass->view.pCamera->GetMatrices(vsConstants->view_mat, vsConstants->proj_mat);
+		pPass->view.pCamera->GetMatrices(mtxView, mtxProj);
 	}
 	else if (pPass->view.pLight)
 	{
 		const Light* pLight = pPass->view.pLight;
-		//todo
-		if (pLight->type == kLightType_Directional)
-		{
-			vsConstants->view_mat = Matrix44LookToLH(Vec3::kOrigin, pLight->direction, Vec3::kUnitY);
-			vsConstants->proj_mat = DirectX::XMMatrixOrthographicLH(30, 30, -30, 30.f);
-		}
-		else
-		{
-			vsConstants->view_mat = Matrix44LookToLH(pLight->position, pLight->direction, Vec3::kUnitY);
-			//todo
-			//vsConstants->proj_mat = Matrix44PerspectiveFovLH(m_fovY, m_aspectRatio, m_nearDist, m_farDist);
-		}
+		mtxView = pLight->GetViewMatrix(0);
+		mtxProj = pLight->GetProjMatrix();
 	}
 	else
 	{
-		vsConstants->view_mat = Matrix44::kIdentity;
-		vsConstants->proj_mat = DirectX::XMMatrixOrthographicLH((float)m_viewWidth, (float)m_viewHeight, 0.01f, 1000.f);
+		mtxView = Matrix44::kIdentity;
+		mtxProj = DirectX::XMMatrixOrthographicLH((float)m_viewWidth, (float)m_viewHeight, 0.01f, 1000.f);
 	}
 
-	vsConstants->view_mat = Matrix44Transpose(vsConstants->view_mat);
-	vsConstants->proj_mat = Matrix44Transpose(vsConstants->proj_mat);
+	vsConstants->viewproj_mat = Matrix44Multiply(mtxView, mtxProj);
+	vsConstants->viewproj_mat = Matrix44Transpose(vsConstants->viewproj_mat);
 
 	pContext->Unmap(m_pPerFrameBufferVS, 0);
 	pContext->VSSetConstantBuffers(0, 1, &m_pPerFrameBufferVS);
@@ -889,7 +880,7 @@ void Renderer::SetPerFrameConstants(const RdrPass* pPass)
 	{
 		psConstants->view_position = Vec3::kOrigin;
 	}
-	psConstants->inv_proj_mat = Matrix44Inverse(vsConstants->proj_mat);
+	psConstants->inv_proj_mat = Matrix44Inverse(mtxProj);
 	psConstants->screenWidth = m_viewWidth;
 
 	pContext->Unmap(m_pPerFrameBufferPS, 0);

@@ -32,6 +32,10 @@ struct Light
 
 	uint castsShadows;
 	uint shadowMapIndex;
+
+	///
+	Matrix44 GetViewMatrix(int face) const;
+	Matrix44 GetProjMatrix() const;
 };
 
 class LightList

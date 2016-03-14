@@ -1,6 +1,6 @@
 {
 	"camera" : {
-		"position" : [ 0.0, 2.0, -5.0 ],
+		"position" : [ 0.0, 5.0, -3.0 ],
 		"rotation" : [ 15.0, 0.0, 0.0 ]
 	},
 	"lights" : [
@@ -14,13 +14,14 @@
 		},
 		{
 			"type" : "spot",
-			"position" : [ 2.0, 5.0, -2.0 ],
+			"position" : [ 0.0, 5.0, -3.0 ],
 			"direction" : [ 0.0, -1.0, 0.0 ],
 			"color" : [1.0, 0.0, 0.0],
 			"intensity" : 1.0,
 			"radius" : 10.0,
 			"innerConeAngle" : 30.0,
-			"outerConeAngle" : 45.0
+			"outerConeAngle" : 45.0,
+			"castsShadows" : true
 		}
 	],
 	"objects" : [
