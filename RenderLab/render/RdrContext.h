@@ -167,7 +167,6 @@ public:
 	ShaderHandle LoadComputeShader(const char* filename);
 
 	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize);
-	void UpdateStructuredBuffer(RdrResourceHandle hBuffer, const void* pSrcData, int numElements, int elementSize);
 
 	ID3D11Buffer* CreateVertexBuffer(const void* vertices, int size);
 	ID3D11Buffer* CreateIndexBuffer(const void* indices, int size);

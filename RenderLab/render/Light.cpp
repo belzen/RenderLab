@@ -10,7 +10,7 @@ struct ShadowMapData
 	Matrix44 mtxViewProj;
 };
 
-Matrix44 Light::GetViewMatrix(int face) const
+Matrix44 Light::GetViewMatrix(const Camera& rCamera, int face) const
 {
 	Matrix44 mtxView;
 
@@ -23,7 +23,7 @@ Matrix44 Light::GetViewMatrix(int face) const
 	switch (type)
 	{
 	case kLightType_Directional:
-		mtxView = Matrix44LookToLH(Vec3::kOrigin, direction, upDir);
+		mtxView = Matrix44LookToLH(rCamera.GetPosition(), direction, upDir);
 		break;
 	case kLightType_Spot:
 		mtxView = Matrix44LookToLH(position, direction, upDir);
@@ -32,12 +32,13 @@ Matrix44 Light::GetViewMatrix(int face) const
 	return mtxView;
 }
 
-Matrix44 Light::GetProjMatrix() const
+Matrix44 Light::GetProjMatrix(const Camera& rCamera) const
 {
 	Matrix44 mtxProj;
 	switch (type)
 	{
 	case kLightType_Directional:
+		// todo: ortho size relative to frustum
 		mtxProj = DirectX::XMMatrixOrthographicLH(30, 30, -30, 30.f);
 		break;
 	case kLightType_Spot:
@@ -70,10 +71,9 @@ void LightList::AddLight(Light& light)
 	m_lights[m_lightCount] = light;
 	++m_lightCount;
 	m_changed = true;
-	m_needsRecreate = true;
 }
 
-void LightList::PrepareDraw(Renderer& rRenderer)
+void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera)
 {
 	RdrContext* pContext = rRenderer.GetContext();
 	if (!m_hShadowMapTexArray)
@@ -94,6 +94,7 @@ void LightList::PrepareDraw(Renderer& rRenderer)
 
 		if (light.type == kLightType_Directional)
 		{
+			m_changed = true; // Directional lights always change.
 			if (curShadowMapIndex != light.shadowMapIndex)
 			{
 				light.shadowMapIndex = curShadowMapIndex;
@@ -122,18 +123,11 @@ void LightList::PrepareDraw(Renderer& rRenderer)
 		}
 	}
 
-	if (m_changed || m_needsRecreate)
+	if (m_changed)
 	{
-		if (m_needsRecreate || !m_hLightListRes)
-		{
-			if (m_hLightListRes)
-				pContext->ReleaseResource(m_hLightListRes);
-			m_hLightListRes = pContext->CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light));
-		}
-		else if (m_changed)
-		{
-			pContext->UpdateStructuredBuffer(m_hLightListRes, m_lights, m_lightCount, sizeof(Light));
-		}
+		if (m_hLightListRes)
+			pContext->ReleaseResource(m_hLightListRes);
+		m_hLightListRes = pContext->CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light));
 
 		ShadowMapData shadowData[MAX_SHADOWMAPS_PER_FRAME];
 		for (int i = 0; i < curShadowMapIndex; ++i)
@@ -142,19 +136,17 @@ void LightList::PrepareDraw(Renderer& rRenderer)
 			Matrix44 mtxView;
 			Matrix44 mtxProj;
 
-			mtxView = light.GetViewMatrix(0);
-			mtxProj = light.GetProjMatrix();
+			mtxView = light.GetViewMatrix(rCamera, 0);
+			mtxProj = light.GetProjMatrix(rCamera);
 
 			shadowData[i].mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 			shadowData[i].mtxViewProj = Matrix44Transpose(shadowData[i].mtxViewProj);
 		}
 
-		if (!m_hShadowMapDataRes)
-			m_hShadowMapDataRes = pContext->CreateStructuredBuffer(shadowData, MAX_SHADOWMAPS_PER_FRAME, sizeof(ShadowMapData));
-		else
-			pContext->UpdateStructuredBuffer(m_hShadowMapDataRes, shadowData, MAX_SHADOWMAPS_PER_FRAME, sizeof(ShadowMapData));
+		if (m_hShadowMapDataRes)
+			pContext->ReleaseResource(m_hShadowMapDataRes);
+		m_hShadowMapDataRes = pContext->CreateStructuredBuffer(shadowData, MAX_SHADOWMAPS_PER_FRAME, sizeof(ShadowMapData));
 
 		m_changed = false;
-		m_needsRecreate = false;
 	}
 }

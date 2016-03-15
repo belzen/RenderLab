@@ -826,7 +826,7 @@ void Renderer::QueueShadowMap(Light* pLight, RdrResourceHandle hShadowMapTexArra
 	++m_pCurrentAction->numShadowMapPasses;
 }
 
-void Renderer::SetPerFrameConstants(const RdrPass* pPass)
+void Renderer::SetPerFrameConstants(const RdrAction* pAction, const RdrPass* pPass)
 {
 	ID3D11DeviceContext* pContext = m_context.m_pContext;
 
@@ -845,8 +845,8 @@ void Renderer::SetPerFrameConstants(const RdrPass* pPass)
 	else if (pPass->view.pLight)
 	{
 		const Light* pLight = pPass->view.pLight;
-		mtxView = pLight->GetViewMatrix(0);
-		mtxProj = pLight->GetProjMatrix();
+		mtxView = pLight->GetViewMatrix(*pAction->pCamera, 0);
+		mtxProj = pLight->GetProjMatrix(*pAction->pCamera);
 	}
 	else
 	{
@@ -901,7 +901,7 @@ void Renderer::DrawPass(RdrAction* pAction, RdrPassEnum ePass)
 	pDevContext->OMSetDepthStencilState(pPass->pDepthStencilState, 1);
 	pDevContext->OMSetBlendState(pPass->pBlendState, nullptr, 0xffffffff);
 
-	SetPerFrameConstants(pPass);
+	SetPerFrameConstants(pAction, pPass);
 
 	D3D11_VIEWPORT viewport;
 	viewport.TopLeftX = pPass->view.rect.left;

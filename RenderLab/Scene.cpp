@@ -181,6 +181,7 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 		}
 	}
 
+	// TODO: quad/oct tree for scene
 
 	// Spawn a bunch of lights to test forward+
 	/*
@@ -212,7 +213,7 @@ void Scene::Update(float dt)
 
 void Scene::QueueDraw(Renderer& rRenderer)
 {
-	m_lights.PrepareDraw(rRenderer);
+	m_lights.PrepareDraw(rRenderer, rRenderer.GetMainCamera());
 
 	for (uint i = 0; i < m_objects.size(); ++i)
 	{

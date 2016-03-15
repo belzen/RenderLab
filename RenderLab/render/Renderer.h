@@ -51,7 +51,7 @@ private:
 	void CreatePrimaryTargets(int width, int height);
 
 	void DrawPass(RdrAction* pAction, RdrPassEnum ePass);
-	void SetPerFrameConstants(const RdrPass* pPass);
+	void SetPerFrameConstants(const RdrAction* pAction, const RdrPass* pPass);
 	void DispatchLightCulling(RdrAction* pAction);
 
 	RdrContext m_context;

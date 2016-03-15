@@ -6,6 +6,7 @@ struct ID3D11Buffer;
 struct ID3D11UnorderedAccessView;
 class RdrContext;
 class Renderer;
+class Camera;
 
 typedef uint RdrResourceHandle;
 
@@ -34,8 +35,8 @@ struct Light
 	uint shadowMapIndex;
 
 	///
-	Matrix44 GetViewMatrix(int face) const;
-	Matrix44 GetProjMatrix() const;
+	Matrix44 GetViewMatrix(const Camera& rCamera, int face) const;
+	Matrix44 GetProjMatrix(const Camera& rCamera) const;
 };
 
 class LightList
@@ -45,7 +46,7 @@ public:
 
 	void AddLight(Light& light);
 
-	void PrepareDraw(Renderer& rRenderer);
+	void PrepareDraw(Renderer& rRenderer, const Camera& rCamera);
 
 	RdrResourceHandle GetShadowMapDataRes() const { return m_hShadowMapDataRes; }
 	RdrResourceHandle GetShadowMapTexArray() const { return m_hShadowMapTexArray; }
@@ -55,7 +56,6 @@ private:
 	Light m_lights[1024];
 	uint m_lightCount;
 	bool m_changed;
-	bool m_needsRecreate;
 
 	RdrResourceHandle m_hLightListRes;
 	RdrResourceHandle m_hShadowMapDataRes;

@@ -85,15 +85,6 @@ RdrResourceHandle RdrContext::CreateStructuredBuffer(const void* pSrcData, int n
 	return m_resources.getId(pRes);
 }
 
-void RdrContext::UpdateStructuredBuffer(RdrResourceHandle hBuffer, const void* pSrcData, int numElements, int elementSize)
-{
-	RdrResource* pRes = m_resources.get(hBuffer);
-	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	m_pContext->Map(pRes->pResource, 0, D3D11_MAP_WRITE, 0, &mappedResource);
-	memcpy(mappedResource.pData, pSrcData, numElements * elementSize);
-	m_pContext->Unmap(pRes->pResource, 0);
-}
-
 ID3D11Buffer* RdrContext::CreateVertexBuffer(const void* vertices, int size)
 {
 	return createBuffer(m_pDevice, vertices, size, D3D11_BIND_VERTEX_BUFFER);
