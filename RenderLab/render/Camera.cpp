@@ -9,19 +9,64 @@ Camera::Camera()
 	, m_fovY(60.f / 180.f * Maths::kPi)
 	, m_nearDist(0.01f)
 	, m_farDist(1000.f)
+	, m_orthoSize(0,0)
+	, m_isOrtho(false)
 {
 	SetAspectRatio(1.f);
+}
+
+void Camera::SetAsPerspective(const Vec3& pos, const Vec3& dir, float fovY, float aspectRatio, float nearDist, float farDist)
+{
+	m_isOrtho = false;
+	m_position = pos;
+	m_direction = dir;
+	m_pitchYawRoll = Vec3::kZero;
+	m_fovY = fovY;
+	m_nearDist = nearDist;
+	m_farDist = farDist;
+	SetAspectRatio(aspectRatio);
+}
+
+void Camera::SetAsOrtho(const Vec3& pos, const Vec3& dir, float width, float height, float nearDist, float farDist)
+{
+	m_isOrtho = true;
+	m_position = pos;
+	m_direction = dir;
+	m_pitchYawRoll = Vec3::kZero;
+	m_orthoSize.x = width;
+	m_orthoSize.y = height;
+	m_nearDist = nearDist;
+	m_farDist = farDist;
+	UpdateProjection();
+}
+
+void Camera::UpdateProjection()
+{
+	if (m_isOrtho)
+	{
+		m_projMatrix = Matrix44OrthographicLH(m_orthoSize.x, m_orthoSize.y, m_nearDist, m_farDist);
+	}
+	else
+	{
+		m_projMatrix = Matrix44PerspectiveFovLH(m_fovY, m_aspectRatio, m_nearDist, m_farDist);
+	}
 }
 
 void Camera::SetAspectRatio(float aspectRatio)
 {
 	m_aspectRatio = aspectRatio;
-	m_projMatrix = Matrix44PerspectiveFovLH(m_fovY, m_aspectRatio, m_nearDist, m_farDist);
+	UpdateProjection();
 }
 
 void Camera::GetMatrices(Matrix44& view, Matrix44& proj) const
 {
-	view = Matrix44LookToLH(m_position, m_direction, Vec3::kUnitY);
+	Vec3 upDir = Vec3::kUnitY;
+	if (m_direction.y > 0.99f)
+		upDir = -Vec3::kUnitZ;
+	else if (m_direction.y < -0.99f)
+		upDir = Vec3::kUnitZ;
+
+	view = Matrix44LookToLH(m_position, m_direction, upDir);
 	proj = m_projMatrix;
 }
 

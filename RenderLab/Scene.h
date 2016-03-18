@@ -17,7 +17,8 @@ public:
 	void Load(RdrContext* pContext, const char* filename);
 
 	void Update(float dt);
-	void QueueDraw(Renderer& rRenderer);
+	void QueueShadowMaps(Renderer& rRenderer, const Camera* pCamera);
+	void QueueDraw(Renderer& rRenderer) const;
 
 	const LightList* GetLightList() const { return &m_lights; }
 

@@ -5,7 +5,6 @@
 #include "Math.h"
 #include "Shaders.h"
 #include "FreeList.h"
-#include "Light.h"
 #include "Camera.h"
 
 struct ID3D11Device;
@@ -14,6 +13,7 @@ struct ID3D11Buffer;
 struct ID3D11Texture2D;
 struct ID3D11ShaderResourceView;
 struct ID3D11UnorderedAccessView;
+struct ID3D11DepthStencilView;
 struct ID3D11View;
 struct ID3D11Resource;
 struct ID3D11InputLayout;
@@ -105,9 +105,14 @@ struct RdrSamplerState
 	uint bPointSample : 1;
 };
 
-union RdrSampler
+struct RdrSampler
 {
 	ID3D11SamplerState* pSampler;
+};
+
+struct RdrDepthStencilView
+{
+	ID3D11DepthStencilView* pView;
 };
 
 #define SAMPLER_TYPES_COUNT kComparisonFunc_Count * kRdrTexCoordMode_Count * 2
@@ -162,6 +167,8 @@ public:
 	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat format);
 	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format);
 
+	RdrDepthStencilView CreateDepthStencilView(RdrResourceHandle hTexArrayRes, int arrayIndex);
+
 	ShaderHandle LoadVertexShader(const char* filename, D3D11_INPUT_ELEMENT_DESC* aDesc, int numElements);
 	ShaderHandle LoadPixelShader(const char* filename);
 	ShaderHandle LoadComputeShader(const char* filename);
@@ -174,17 +181,6 @@ public:
 
 enum RdrPassEnum
 {
-	kRdrPass_ShadowMap_First,
-	kRdrPass_ShadowMap0 = kRdrPass_ShadowMap_First,
-	kRdrPass_ShadowMap1,
-	kRdrPass_ShadowMap2,
-	kRdrPass_ShadowMap3,
-	kRdrPass_ShadowMap4,
-	kRdrPass_ShadowMap5,
-	kRdrPass_ShadowMap6,
-	kRdrPass_ShadowMap7,
-	kRdrPass_ShadowMap_Last = kRdrPass_ShadowMap7,
-
 	kRdrPass_ZPrepass,
 	kRdrPass_Opaque,
 	kRdrPass_Alpha,
@@ -204,6 +200,8 @@ struct RdrDrawOp
 {
 	static RdrDrawOp* Allocate();
 	static void Release(RdrDrawOp* pDrawOp);
+
+	Vec3 position;
 
 	RdrSamplerState samplers[MAX_TEXTURES_PER_DRAW];
 	RdrResourceHandle hTextures[MAX_TEXTURES_PER_DRAW];

@@ -32,6 +32,8 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat) const
 {
 	RdrDrawOp* pDrawOp = RdrDrawOp::Allocate();
 
+	pDrawOp->position = srcWorldMat.GetTranslation();
+
 	Matrix44 worldMat = Matrix44Transpose(srcWorldMat);
 	for (int i = 0; i < 4; ++i)
 	{

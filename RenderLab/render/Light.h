@@ -1,12 +1,16 @@
 #pragma once
 
 #include "Math.h"
+#include "RdrContext.h"
 
 struct ID3D11Buffer;
 struct ID3D11UnorderedAccessView;
 class RdrContext;
 class Renderer;
 class Camera;
+class Scene;
+
+#define MAX_SHADOWMAPS 10
 
 typedef uint RdrResourceHandle;
 
@@ -35,8 +39,7 @@ struct Light
 	uint shadowMapIndex;
 
 	///
-	Matrix44 GetViewMatrix(const Camera& rCamera, int face) const;
-	Matrix44 GetProjMatrix(const Camera& rCamera) const;
+	Camera MakeCamera(uint face) const;
 };
 
 class LightList
@@ -46,7 +49,7 @@ public:
 
 	void AddLight(Light& light);
 
-	void PrepareDraw(Renderer& rRenderer, const Camera& rCamera);
+	void PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, const Scene& scene);
 
 	RdrResourceHandle GetShadowMapDataRes() const { return m_hShadowMapDataRes; }
 	RdrResourceHandle GetShadowMapTexArray() const { return m_hShadowMapTexArray; }
@@ -60,4 +63,5 @@ private:
 	RdrResourceHandle m_hLightListRes;
 	RdrResourceHandle m_hShadowMapDataRes;
 	RdrResourceHandle m_hShadowMapTexArray;
+	RdrDepthStencilView m_shadowMapDepthViews[MAX_SHADOWMAPS];
 };

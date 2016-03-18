@@ -539,6 +539,26 @@ RdrResourceHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint
 	return m_resources.getId(pTex);
 }
 
+RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResourceHandle hTexArrayRes, int arrayIndex)
+{
+	RdrDepthStencilView view;
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+	dsvDesc.Flags = 0;
+	dsvDesc.Format = DXGI_FORMAT_D16_UNORM;
+	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+	dsvDesc.Texture2DArray.MipSlice = 0;
+	dsvDesc.Texture2DArray.FirstArraySlice = arrayIndex;
+	dsvDesc.Texture2DArray.ArraySize = 1;
+	// todo: free depth target
+
+	RdrResource* pShadowTex = m_resources.get(hTexArrayRes);
+	HRESULT hr = m_pDevice->CreateDepthStencilView(pShadowTex->pTexture, &dsvDesc, &view.pView);
+	assert(hr == S_OK);
+
+	return view;
+}
+
 ShaderHandle RdrContext::LoadVertexShader(const char* filename, D3D11_INPUT_ELEMENT_DESC* aDesc, int numElements)
 {
 	ShaderMap::iterator iter = m_vertexShaderCache.find(filename);

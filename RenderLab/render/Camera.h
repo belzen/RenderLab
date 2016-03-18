@@ -7,6 +7,10 @@ class Camera
 public:
 	Camera();
 
+	void SetAsPerspective(const Vec3& pos, const Vec3& dir, float fovY, float aspectRatio, float nearDist, float farDist);
+	void SetAsOrtho(const Vec3& pos, const Vec3& dir, float width, float height, float nearDist, float farDist);
+
+	void UpdateProjection();
 	void GetMatrices(Matrix44& view, Matrix44& proj) const;
 
 	float GetAspectRatio() const { return m_aspectRatio; }
@@ -45,6 +49,9 @@ private:
 	float m_nearDist;
 	float m_farDist;
 	float m_aspectRatio;
+
+	Vec2 m_orthoSize;
+	bool m_isOrtho;
 };
 
 inline void Camera::SetPitchYawRoll(const Vec3& pitchYawRoll)

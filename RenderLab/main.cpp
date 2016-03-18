@@ -129,7 +129,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 			Camera* pCamera = &g_renderer.GetMainCamera();
 			pCamera->UpdateFrustum();
 
-			g_renderer.BeginAction(pCamera, g_scene.GetLightList(), nullptr);
+			g_scene.QueueShadowMaps(g_renderer, pCamera);
+
+			g_renderer.BeginPrimaryAction(pCamera, g_scene.GetLightList());
 
 			g_scene.QueueDraw(g_renderer);
 			DebugConsole::QueueDraw(g_renderer);

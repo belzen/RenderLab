@@ -91,6 +91,11 @@ inline Matrix44 Matrix44Multiply(const Matrix44& lhs, const Matrix44& rhs)
 	return DirectX::XMMatrixMultiply(mtx1, mtx2);
 }
 
+inline Matrix44 Matrix44OrthographicLH(float width, float height, float nearZ, float farZ)
+{
+	return DirectX::XMMatrixOrthographicLH(width, height, nearZ, farZ);
+}
+
 inline Matrix44 Matrix44PerspectiveFovLH(float fovY, float aspectRatio, float nearZ, float farZ)
 {
 	return DirectX::XMMatrixPerspectiveFovLH(fovY, aspectRatio, nearZ, farZ);

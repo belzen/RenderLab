@@ -18,6 +18,7 @@ class WorldObject;
 struct RdrAction;
 struct RdrPass;
 struct Light;
+class LightList;
 
 class Renderer
 {
@@ -27,16 +28,16 @@ public:
 
 	void Resize(int width, int height);
 
-	void BeginAction(const Camera* pMainCamera, const LightList* pLights, ID3D11RenderTargetView* pRenderTarget);
+	void BeginShadowMapAction(const Light* pLight, RdrDepthStencilView depthView, Rect& viewport);
+	void BeginPrimaryAction(const Camera* pCamera, const LightList* pLights);
 	void EndAction();
 
-	void QueueShadowMap(Light* pLight, RdrResourceHandle hShadowMapTexArray, int destArrayIndex, Rect& viewport);
 	void AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);
 
 	void DrawFrame();
 
 	RdrContext* GetContext() { return &m_context; }
-	const Camera* GetCurrentCamera(void) const;
+	const Camera& GetCurrentCamera(void) const;
 
 	// todo: most uses of these will be wrong when using different render targets
 	int GetViewportWidth() const { return m_viewWidth; }

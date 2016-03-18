@@ -6,6 +6,7 @@
 #include "Model.h"
 #include "Camera.h"
 #include "WorldObject.h"
+#include "Light.h"
 #include "Font.h"
 #include <DXGIFormat.h>
 #include "debug\DebugConsole.h"
@@ -41,14 +42,9 @@ struct RdrPass
 	ID3D11RenderTargetView* pRenderTarget;
 	ID3D11DepthStencilView* pDepthTarget;
 
-	// Viewpoint of the pass.  Only one of these pointers should be set.
-	// If none are set, an ortho projection is used.
-	struct
-	{
-		const Camera* pCamera;
-		const Light* pLight;
-		Rect rect;
-	} view;
+	// If no camera is set, an ortho projection is used.
+	const Camera* pCamera;
+	Rect viewport;
 
 	bool bEnabled;
 };
@@ -59,24 +55,29 @@ struct RdrAction
 	static void Release(RdrAction* pAction);
 
 	///
+	LPCWSTR name;
 	ID3D11RenderTargetView* pRenderTarget;
+	ID3D11DepthStencilView* pDepthTarget;
 
 	std::vector<RdrDrawOp*> buckets[kRdrBucketType_Count];
 	RdrPass passes[kRdrPass_Count];
+	bool bDoLightCulling;
 
-	const Camera* pCamera;
+	Camera camera;
 	const LightList* pLights;
-
-	uint numShadowMapPasses;
 };
 
-static RdrAction s_actionPool[16];
-static uint s_actionPoolSize = 16;
+static RdrAction s_actionRingBuffer[16];
+static uint s_nextAction = 0;
+static uint s_actionsInUse = 0;
 
 RdrAction* RdrAction::Allocate()
 {
-	assert(s_actionPoolSize > 0);
-	return &s_actionPool[--s_actionPoolSize];
+	RdrAction* pAction = &s_actionRingBuffer[s_nextAction];
+	s_nextAction = (s_nextAction + 1) % ARRAYSIZE(s_actionRingBuffer);
+	++s_actionsInUse;
+	assert(s_actionsInUse < ARRAYSIZE(s_actionRingBuffer));
+	return pAction;
 }
 
 void RdrAction::Release(RdrAction* pAction)
@@ -85,26 +86,15 @@ void RdrAction::Release(RdrAction* pAction)
 		pAction->buckets[i].clear();
 	memset(pAction->passes, 0, sizeof(pAction->passes));
 	pAction->pRenderTarget = nullptr;
-	pAction->pCamera = nullptr;
+	pAction->pDepthTarget = nullptr;
 	pAction->pLights = nullptr;
-	pAction->numShadowMapPasses = 0;
-
-	s_actionPool[s_actionPoolSize] = *pAction;
-	++s_actionPoolSize;
+	--s_actionsInUse;
 }
 
 //////////////////////////////////////////////////////
 
 // Pass to bucket mappings
 RdrBucketType s_passBuckets[] = {
-	kRdrBucketType_Opaque, // kRdrPass_ShadowMap0
-	kRdrBucketType_Opaque, // kRdrPass_ShadowMap1
-	kRdrBucketType_Opaque, // kRdrPass_ShadowMap2
-	kRdrBucketType_Opaque, // kRdrPass_ShadowMap3
-	kRdrBucketType_Opaque, // kRdrPass_ShadowMap4
-	kRdrBucketType_Opaque, // kRdrPass_ShadowMap5
-	kRdrBucketType_Opaque, // kRdrPass_ShadowMap6
-	kRdrBucketType_Opaque, // kRdrPass_ShadowMap7
 	kRdrBucketType_Opaque,	// kRdrPass_ZPrepass
 	kRdrBucketType_Opaque,	// kRdrPass_Opaque
 	kRdrBucketType_Alpha,	// kRdrPass_Alpha
@@ -115,14 +105,6 @@ static_assert(sizeof(s_passBuckets) / sizeof(s_passBuckets[0]) == kRdrPass_Count
 // Event names for passes
 static const wchar_t* s_passNames[] =
 {
-	L"Shadow Map 0",	// kRdrPass_ShadowMap0
-	L"Shadow Map 1",	// kRdrPass_ShadowMap1
-	L"Shadow Map 2",	// kRdrPass_ShadowMap2
-	L"Shadow Map 3",	// kRdrPass_ShadowMap3
-	L"Shadow Map 4",	// kRdrPass_ShadowMap4
-	L"Shadow Map 5",	// kRdrPass_ShadowMap5
-	L"Shadow Map 6",	// kRdrPass_ShadowMap6
-	L"Shadow Map 7",	// kRdrPass_ShadowMap7
 	L"Z-Prepass",		// kRdrPass_ZPrepass,
 	L"Opaque",			// kRdrPass_Opaque,
 	L"Alpha",			// kRdrPass_Alpha,
@@ -249,7 +231,7 @@ namespace
 {
 	void DrawGeo(RdrAction* pAction, RdrDrawOp* pDrawOp, RdrContext* pContext, RdrPassEnum ePass)
 	{
-		bool bDepthOnly = (ePass >= kRdrPass_ShadowMap_First && ePass <= kRdrPass_ShadowMap_Last) || ePass == kRdrPass_ZPrepass;
+		bool bDepthOnly = ePass == kRdrPass_ZPrepass;
 		ID3D11DeviceContext* pDevContext = pContext->m_pContext;
 		RdrGeometry* pGeo = pContext->m_geo.get(pDrawOp->hGeo);
 		UINT stride = pGeo->vertStride;
@@ -614,15 +596,15 @@ void Renderer::CreatePrimaryTargets(int width, int height)
 	m_hDepthTex = m_context.m_resources.getId(pTex);
 }
 
-const Camera* Renderer::GetCurrentCamera(void) const
+const Camera& Renderer::GetCurrentCamera(void) const
 {
-	return m_pCurrentAction->pCamera;
+	return m_pCurrentAction->camera;
 }
 
 void Renderer::DispatchLightCulling(RdrAction* pAction)
 {
 	ID3D11DeviceContext* pDevContext = m_context.m_pContext;
-	const Camera* pCamera = pAction->pCamera;
+	const Camera& rCamera = pAction->camera;
 
 	m_pAnnotator->BeginEvent(L"Light Culling");
 
@@ -664,7 +646,7 @@ void Renderer::DispatchLightCulling(RdrAction* pAction)
 
 	Matrix44 viewMtx;
 	Matrix44 invProjMtx;
-	pCamera->GetMatrices(viewMtx, invProjMtx);
+	rCamera.GetMatrices(viewMtx, invProjMtx);
 	invProjMtx = Matrix44Inverse(invProjMtx);
 	invProjMtx = Matrix44Transpose(invProjMtx);
 
@@ -721,13 +703,13 @@ void Renderer::DispatchLightCulling(RdrAction* pAction)
 	};
 
 	CullingParams* pParams = reinterpret_cast<CullingParams*>(pCullOp->constants);
-	pParams->cameraPos = pCamera->GetPosition();
-	pParams->cameraDir = pCamera->GetDirection();
-	pParams->cameraNearDist = pCamera->GetNearDist();
-	pParams->cameraFarDist = pCamera->GetFarDist();
+	pParams->cameraPos = rCamera.GetPosition();
+	pParams->cameraDir = rCamera.GetDirection();
+	pParams->cameraNearDist = rCamera.GetNearDist();
+	pParams->cameraFarDist = rCamera.GetFarDist();
 	pParams->screenSize = GetViewportSize();
-	pParams->fovY = pCamera->GetFieldOfViewY();
-	pParams->aspectRatio = pCamera->GetAspectRatio();
+	pParams->fovY = rCamera.GetFieldOfViewY();
+	pParams->aspectRatio = rCamera.GetAspectRatio();
 	pParams->lightCount = pAction->pLights->GetLightCount();
 	pParams->tileCountX = tileCountX;
 	pParams->tileCountY = tileCountY;
@@ -741,46 +723,67 @@ void Renderer::DispatchLightCulling(RdrAction* pAction)
 	m_pAnnotator->EndEvent();
 }
 
-void Renderer::BeginAction(const Camera* pMainCamera, const LightList* pLights, ID3D11RenderTargetView* pRenderTarget)
+void Renderer::BeginShadowMapAction(const Light* pLight, RdrDepthStencilView depthView, Rect& viewport)
 {
+	assert(m_pCurrentAction == nullptr);
+
 	m_pCurrentAction = RdrAction::Allocate();
-	m_pCurrentAction->pRenderTarget = pRenderTarget ? pRenderTarget : m_pPrimaryRenderTarget;
-	m_pCurrentAction->pCamera = pMainCamera;
-	m_pCurrentAction->pLights = pLights;
+	m_pCurrentAction->name = L"Shadow Map";
+	m_pCurrentAction->pRenderTarget = nullptr;
+	m_pCurrentAction->pDepthTarget = depthView.pView;
+	m_pCurrentAction->camera = pLight->MakeCamera(0);
+	m_pCurrentAction->bDoLightCulling = false;
 
 	// Setup action passes
-	for (int i = kRdrPass_ShadowMap_First; i < kRdrPass_ShadowMap_Last; ++i)
-	{
-		m_pCurrentAction->passes[i].bEnabled = false;
-	}
+	RdrPass& rPass = m_pCurrentAction->passes[kRdrPass_ZPrepass];
+	rPass.pBlendState = getBlendState(m_context.m_pDevice, false);
+	rPass.pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_Less);
+	rPass.pCamera = &m_pCurrentAction->camera;
+	rPass.viewport = viewport;
+	rPass.bEnabled = true;
+	rPass.pRenderTarget = nullptr;
+	rPass.pDepthTarget = m_pCurrentAction->pDepthTarget;
+}
+
+void Renderer::BeginPrimaryAction(const Camera* pMainCamera, const LightList* pLights)
+{
+	assert(m_pCurrentAction == nullptr);
+
+	m_pCurrentAction = RdrAction::Allocate();
+	m_pCurrentAction->name = L"Primary Action";
+	m_pCurrentAction->pRenderTarget = m_pPrimaryRenderTarget;
+	m_pCurrentAction->pDepthTarget = m_pDepthStencilView;
+	m_pCurrentAction->camera = *pMainCamera;
+	m_pCurrentAction->pLights = pLights;
+	m_pCurrentAction->bDoLightCulling = true;
 
 	m_pCurrentAction->passes[kRdrPass_ZPrepass].pBlendState = getBlendState(m_context.m_pDevice, false);
 	m_pCurrentAction->passes[kRdrPass_ZPrepass].pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_Less);
-	m_pCurrentAction->passes[kRdrPass_ZPrepass].view.pCamera = pMainCamera;
-	m_pCurrentAction->passes[kRdrPass_ZPrepass].view.rect = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+	m_pCurrentAction->passes[kRdrPass_ZPrepass].pCamera = &m_pCurrentAction->camera;
+	m_pCurrentAction->passes[kRdrPass_ZPrepass].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
 	m_pCurrentAction->passes[kRdrPass_ZPrepass].bEnabled = true;
 	m_pCurrentAction->passes[kRdrPass_ZPrepass].pDepthTarget = m_pDepthStencilView;
 	m_pCurrentAction->passes[kRdrPass_ZPrepass].pRenderTarget = m_pCurrentAction->pRenderTarget;
 
 	m_pCurrentAction->passes[kRdrPass_Opaque].pBlendState = getBlendState(m_context.m_pDevice, false);
 	m_pCurrentAction->passes[kRdrPass_Opaque].pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_Equal);
-	m_pCurrentAction->passes[kRdrPass_Opaque].view.pCamera = pMainCamera;
-	m_pCurrentAction->passes[kRdrPass_Opaque].view.rect = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+	m_pCurrentAction->passes[kRdrPass_Opaque].pCamera = &m_pCurrentAction->camera;
+	m_pCurrentAction->passes[kRdrPass_Opaque].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
 	m_pCurrentAction->passes[kRdrPass_Opaque].bEnabled = true;
 	m_pCurrentAction->passes[kRdrPass_Opaque].pDepthTarget = m_pDepthStencilView;
 	m_pCurrentAction->passes[kRdrPass_Opaque].pRenderTarget = m_pCurrentAction->pRenderTarget;
 
 	m_pCurrentAction->passes[kRdrPass_Alpha].pBlendState = getBlendState(m_context.m_pDevice, true);
 	m_pCurrentAction->passes[kRdrPass_Alpha].pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_None);
-	m_pCurrentAction->passes[kRdrPass_Alpha].view.pCamera = pMainCamera;
-	m_pCurrentAction->passes[kRdrPass_Alpha].view.rect = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+	m_pCurrentAction->passes[kRdrPass_Alpha].pCamera = &m_pCurrentAction->camera;
+	m_pCurrentAction->passes[kRdrPass_Alpha].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
 	m_pCurrentAction->passes[kRdrPass_Alpha].bEnabled = true;
 	m_pCurrentAction->passes[kRdrPass_Alpha].pDepthTarget = m_pDepthStencilView;
 	m_pCurrentAction->passes[kRdrPass_Alpha].pRenderTarget = m_pCurrentAction->pRenderTarget;
 
 	m_pCurrentAction->passes[kRdrPass_UI].pBlendState = getBlendState(m_context.m_pDevice, true);
 	m_pCurrentAction->passes[kRdrPass_UI].pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_None);
-	m_pCurrentAction->passes[kRdrPass_UI].view.rect = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+	m_pCurrentAction->passes[kRdrPass_UI].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
 	m_pCurrentAction->passes[kRdrPass_UI].bEnabled = true;
 	m_pCurrentAction->passes[kRdrPass_UI].pDepthTarget = m_pDepthStencilView;
 	m_pCurrentAction->passes[kRdrPass_UI].pRenderTarget = m_pCurrentAction->pRenderTarget;
@@ -797,35 +800,6 @@ void Renderer::AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket)
 	m_pCurrentAction->buckets[bucket].push_back(pDrawOp);
 }
 
-void Renderer::QueueShadowMap(Light* pLight, RdrResourceHandle hShadowMapTexArray, int destArrayIndex, Rect& viewport)
-{
-	assert(m_pCurrentAction->numShadowMapPasses < (kRdrPass_ShadowMap_Last - kRdrPass_ShadowMap_First));
-
-	RdrPassEnum ePass = (RdrPassEnum)(kRdrPass_ShadowMap_First + m_pCurrentAction->numShadowMapPasses);
-	RdrPass& rPass = m_pCurrentAction->passes[ePass];
-
-	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
-	dsvDesc.Flags = 0;
-	dsvDesc.Format = DXGI_FORMAT_D16_UNORM;
-	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
-	dsvDesc.Texture2DArray.MipSlice = 0;
-	dsvDesc.Texture2DArray.FirstArraySlice = destArrayIndex;
-	dsvDesc.Texture2DArray.ArraySize = 1;
-
-	RdrResource* pShadowTex = m_context.m_resources.get(hShadowMapTexArray);
-	HRESULT hr = m_context.m_pDevice->CreateDepthStencilView(pShadowTex->pTexture, &dsvDesc, &rPass.pDepthTarget);
-	assert(hr == S_OK);
-
-	rPass.pBlendState = getBlendState(m_context.m_pDevice, false);
-	rPass.pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_Less);
-	rPass.view.pLight = pLight;
-	rPass.view.rect = viewport;
-	rPass.bEnabled = true;
-	rPass.pRenderTarget = nullptr;
-
-	++m_pCurrentAction->numShadowMapPasses;
-}
-
 void Renderer::SetPerFrameConstants(const RdrAction* pAction, const RdrPass* pPass)
 {
 	ID3D11DeviceContext* pContext = m_context.m_pContext;
@@ -838,15 +812,9 @@ void Renderer::SetPerFrameConstants(const RdrAction* pAction, const RdrPass* pPa
 
 	Matrix44 mtxView;
 	Matrix44 mtxProj;
-	if (pPass->view.pCamera)
+	if (pPass->pCamera)
 	{
-		pPass->view.pCamera->GetMatrices(mtxView, mtxProj);
-	}
-	else if (pPass->view.pLight)
-	{
-		const Light* pLight = pPass->view.pLight;
-		mtxView = pLight->GetViewMatrix(*pAction->pCamera, 0);
-		mtxProj = pLight->GetProjMatrix(*pAction->pCamera);
+		pPass->pCamera->GetMatrices(mtxView, mtxProj);
 	}
 	else
 	{
@@ -867,14 +835,9 @@ void Renderer::SetPerFrameConstants(const RdrAction* pAction, const RdrPass* pPa
 	assert(hr == S_OK);
 	PerFrameConstantsPS* psConstants = (PerFrameConstantsPS*)psRes.pData;
 
-	if (pPass->view.pCamera)
+	if (pPass->pCamera)
 	{
-		psConstants->view_position = pPass->view.pCamera->GetPosition();
-	}
-	else if (pPass->view.pLight)
-	{
-		const Light* pLight = pPass->view.pLight;
-		psConstants->view_position = pPass->view.pLight->position;
+		psConstants->view_position = pPass->pCamera->GetPosition();
 	}
 	else
 	{
@@ -904,10 +867,10 @@ void Renderer::DrawPass(RdrAction* pAction, RdrPassEnum ePass)
 	SetPerFrameConstants(pAction, pPass);
 
 	D3D11_VIEWPORT viewport;
-	viewport.TopLeftX = pPass->view.rect.left;
-	viewport.TopLeftY = pPass->view.rect.top;
-	viewport.Width = pPass->view.rect.width;
-	viewport.Height = pPass->view.rect.height;
+	viewport.TopLeftX = pPass->viewport.left;
+	viewport.TopLeftY = pPass->viewport.top;
+	viewport.Width = pPass->viewport.width;
+	viewport.Height = pPass->viewport.height;
 	viewport.MinDepth = 0.f;
 	viewport.MaxDepth = 1.f;
 	pDevContext->RSSetViewports(1, &viewport);
@@ -939,29 +902,21 @@ void Renderer::DrawFrame()
 	for (uint iAction = 0; iAction < m_actions.size(); ++iAction)
 	{
 		RdrAction* pAction = m_actions[iAction];
+		m_pAnnotator->BeginEvent(pAction->name);
 
 		pContext->RSSetState(s_wireframe ? m_pRasterStateWireframe : m_pRasterStateDefault);
 
-		pContext->ClearRenderTargetView(pAction->pRenderTarget, clearColor);
-		pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
+		if (pAction->pRenderTarget)
+			pContext->ClearRenderTargetView(pAction->pRenderTarget, clearColor);
+		if (pAction->pDepthTarget)
+			pContext->ClearDepthStencilView(pAction->pDepthTarget, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 
 		// todo: sort buckets 
-		for (int iShadow = kRdrPass_ShadowMap_First; iShadow < kRdrPass_ShadowMap_Last; ++iShadow)
-		{
-			RdrPass& rPass = pAction->passes[iShadow];
-			if (rPass.bEnabled)
-			{
-				pContext->ClearDepthStencilView(rPass.pDepthTarget, D3D11_CLEAR_DEPTH, 1.f, 0);
-
-				DrawPass(pAction, (RdrPassEnum)iShadow);
-
-				rPass.pDepthTarget->Release();
-			}
-		}
 
 		DrawPass(pAction, kRdrPass_ZPrepass);
 
-		DispatchLightCulling(pAction);
+		if ( pAction->bDoLightCulling )
+			DispatchLightCulling(pAction);
 
 		DrawPass(pAction, kRdrPass_Opaque);
 		DrawPass(pAction, kRdrPass_Alpha);
@@ -991,6 +946,7 @@ void Renderer::DrawFrame()
 			pAction->buckets[iBucket].clear();
 		}
 
+		m_pAnnotator->EndEvent();
 		// Return action to the pool.
 		RdrAction::Release(pAction);
 	}

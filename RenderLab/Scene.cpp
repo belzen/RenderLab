@@ -211,10 +211,13 @@ void Scene::Update(float dt)
 {
 }
 
-void Scene::QueueDraw(Renderer& rRenderer)
+void Scene::QueueShadowMaps(Renderer& rRenderer, const Camera* pCamera)
 {
-	m_lights.PrepareDraw(rRenderer, rRenderer.GetMainCamera());
+	m_lights.PrepareDrawForScene(rRenderer, rRenderer.GetMainCamera(), *this);
+}
 
+void Scene::QueueDraw(Renderer& rRenderer) const
+{
 	for (uint i = 0; i < m_objects.size(); ++i)
 	{
 		m_objects[i]->QueueDraw(rRenderer);
