@@ -20,6 +20,7 @@ static DXGI_FORMAT getD3DFormat(RdrResourceFormat format)
 {
 	static const DXGI_FORMAT s_d3dFormats[] = {
 		DXGI_FORMAT_R16_UNORM,		// kResourceFormat_D16
+		DXGI_FORMAT_R16_UNORM,		// kResourceFormat_R16_UNORM
 		DXGI_FORMAT_R16G16_FLOAT,	// kResourceFormat_RG_F16
 	};
 	static_assert(ARRAYSIZE(s_d3dFormats) == kResourceFormat_Count, "Missing typeless formats!");
@@ -30,6 +31,7 @@ static DXGI_FORMAT getD3DTypelessFormat(RdrResourceFormat format)
 {
 	static const DXGI_FORMAT s_d3dTypelessFormats[] = {
 		DXGI_FORMAT_R16_TYPELESS,		// kResourceFormat_D16
+		DXGI_FORMAT_R16_TYPELESS,		// kResourceFormat_R16_UNORM
 		DXGI_FORMAT_R16G16_TYPELESS,	// kResourceFormat_RG_F16
 	};
 	static_assert(ARRAYSIZE(s_d3dTypelessFormats) == kResourceFormat_Count, "Missing typeless formats!");
@@ -539,6 +541,94 @@ RdrResourceHandle RdrContext::CreateTexture2DArray(uint width, uint height, uint
 	return m_resources.getId(pTex);
 }
 
+RdrResourceHandle RdrContext::CreateTextureCube(uint width, uint height, RdrResourceFormat format)
+{
+	static const uint kCubemapArraySize = 6;
+	D3D11_TEXTURE2D_DESC desc = { 0 };
+
+	desc.ArraySize = kCubemapArraySize;
+	desc.CPUAccessFlags = 0;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	if (resourceFormatIsDepth(format))
+		desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.SampleDesc.Count = 1;
+	desc.Format = getD3DTypelessFormat(format);
+	desc.Width = width;
+	desc.Height = height;
+	desc.MipLevels = 1;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+	ID3D11Texture2D* pTexture;
+	HRESULT hr = m_pDevice->CreateTexture2D(&desc, nullptr, &pTexture);
+	assert(hr == S_OK);
+
+	RdrResource* pTex = m_resources.alloc();
+	pTex->pTexture = pTexture;
+
+	//if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+		viewDesc.Format = getD3DFormat(format);
+		viewDesc.Texture2DArray.ArraySize = kCubemapArraySize;
+		viewDesc.Texture2DArray.FirstArraySlice = 0;
+		viewDesc.Texture2DArray.MipLevels = 1;
+		viewDesc.Texture2DArray.MostDetailedMip = 0;
+		viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+
+		hr = m_pDevice->CreateShaderResourceView(pTexture, &viewDesc, &pTex->pResourceView);
+		assert(hr == S_OK);
+	}
+
+	return m_resources.getId(pTex);
+}
+
+RdrResourceHandle RdrContext::CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat format)
+{
+	const uint cubemapArraySize = arraySize * 6;
+	D3D11_TEXTURE2D_DESC desc = { 0 };
+
+	desc.ArraySize = cubemapArraySize;
+	desc.CPUAccessFlags = 0;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	if (resourceFormatIsDepth(format))
+		desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+	else
+		desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.SampleDesc.Count = 1;
+	desc.Format = getD3DTypelessFormat(format);
+	desc.Width = width;
+	desc.Height = height;
+	desc.MipLevels = 1;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+	ID3D11Texture2D* pTexture;
+	HRESULT hr = m_pDevice->CreateTexture2D(&desc, nullptr, &pTexture);
+	assert(hr == S_OK);
+
+	RdrResource* pTex = m_resources.alloc();
+	pTex->pTexture = pTexture;
+
+	//if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+		viewDesc.Format = getD3DFormat(format);
+		viewDesc.TextureCubeArray.First2DArrayFace = 0;
+		viewDesc.TextureCubeArray.MipLevels = 1;
+		viewDesc.TextureCubeArray.MostDetailedMip = 0;
+		viewDesc.TextureCubeArray.NumCubes = arraySize;
+		viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
+
+		hr = m_pDevice->CreateShaderResourceView(pTexture, &viewDesc, &pTex->pResourceView);
+		assert(hr == S_OK);
+	}
+
+	return m_resources.getId(pTex);
+}
+
 RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResourceHandle hTexArrayRes, int arrayIndex)
 {
 	RdrDepthStencilView view;
@@ -550,10 +640,27 @@ RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResourceHandle hTexArr
 	dsvDesc.Texture2DArray.MipSlice = 0;
 	dsvDesc.Texture2DArray.FirstArraySlice = arrayIndex;
 	dsvDesc.Texture2DArray.ArraySize = 1;
-	// todo: free depth target
 
 	RdrResource* pShadowTex = m_resources.get(hTexArrayRes);
 	HRESULT hr = m_pDevice->CreateDepthStencilView(pShadowTex->pTexture, &dsvDesc, &view.pView);
+	assert(hr == S_OK);
+
+	return view;
+}
+
+RdrRenderTargetView RdrContext::CreateRenderTargetView(RdrResourceHandle hTexArrayRes, int arrayIndex, RdrResourceFormat format)
+{
+	RdrRenderTargetView view;
+
+	D3D11_RENDER_TARGET_VIEW_DESC desc;
+	desc.Format = getD3DFormat(format);
+	desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+	desc.Texture2DArray.MipSlice = 0;
+	desc.Texture2DArray.FirstArraySlice = arrayIndex;
+	desc.Texture2DArray.ArraySize = 1;
+
+	RdrResource* pTex = m_resources.get(hTexArrayRes);
+	HRESULT hr = m_pDevice->CreateRenderTargetView(pTex->pTexture, &desc, &view.pView);
 	assert(hr == S_OK);
 
 	return view;

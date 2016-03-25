@@ -13,6 +13,7 @@
 
 #pragma comment (lib, "d3d11.lib")
 
+#define MAX_RENDERTARGETS 6
 
 namespace
 {
@@ -28,10 +29,16 @@ namespace
 
 enum RdrReservedPsResourceSlots
 {
-	kPsResource_ShadowMaps = 15,
+	kPsResource_ShadowMaps = 14,
+	kPsResource_ShadowCubeMaps = 15,
 	kPsResource_LightList = 16,
 	kPsResource_TileLightIds = 17,
 	kPsResource_ShadowMapData = 18,
+};
+
+enum RdrReservedPsSamplerSlots
+{
+	kPsSampler_ShadowMap = 15,
 };
 
 struct RdrPass
@@ -39,7 +46,7 @@ struct RdrPass
 	ID3D11DepthStencilState* pDepthStencilState;
 	ID3D11BlendState* pBlendState;
 
-	ID3D11RenderTargetView* pRenderTarget;
+	ID3D11RenderTargetView* apRenderTargets[MAX_RENDERTARGETS];
 	ID3D11DepthStencilView* pDepthTarget;
 
 	// If no camera is set, an ortho projection is used.
@@ -57,7 +64,6 @@ struct RdrAction
 	///
 	LPCWSTR name;
 	ID3D11RenderTargetView* pRenderTarget;
-	ID3D11DepthStencilView* pDepthTarget;
 
 	std::vector<RdrDrawOp*> buckets[kRdrBucketType_Count];
 	RdrPass passes[kRdrPass_Count];
@@ -86,7 +92,6 @@ void RdrAction::Release(RdrAction* pAction)
 		pAction->buckets[i].clear();
 	memset(pAction->passes, 0, sizeof(pAction->passes));
 	pAction->pRenderTarget = nullptr;
-	pAction->pDepthTarget = nullptr;
 	pAction->pLights = nullptr;
 	--s_actionsInUse;
 }
@@ -288,9 +293,16 @@ namespace
 				pTex = pContext->m_resources.get(pAction->pLights->GetShadowMapTexArray());
 				pDevContext->PSSetShaderResources(kPsResource_ShadowMaps, 1, &pTex->pResourceView);
 
+				pTex = pContext->m_resources.get(pAction->pLights->GetShadowCubeMapTexArray());
+				pDevContext->PSSetShaderResources(kPsResource_ShadowCubeMaps, 1, &pTex->pResourceView);
+
+				RdrSamplerState shadowState2(kComparisonFunc_Never, kRdrTexCoordMode_Clamp, false);
+				RdrSampler sampler2 = pContext->GetSampler(shadowState2);
+				pDevContext->PSSetSamplers(14, 1, &sampler2.pSampler);
+
 				RdrSamplerState shadowSamplerState(kComparisonFunc_LessEqual, kRdrTexCoordMode_Clamp, false);
 				RdrSampler sampler = pContext->GetSampler(shadowSamplerState);
-				pDevContext->PSSetSamplers(kPsResource_ShadowMaps, 1, &sampler.pSampler);
+				pDevContext->PSSetSamplers(kPsSampler_ShadowMap, 1, &sampler.pSampler);
 
 				pTex = pContext->m_resources.get(pAction->pLights->GetShadowMapDataRes());
 				pDevContext->PSSetShaderResources(kPsResource_ShadowMapData, 1, &pTex->pResourceView);
@@ -723,15 +735,14 @@ void Renderer::DispatchLightCulling(RdrAction* pAction)
 	m_pAnnotator->EndEvent();
 }
 
-void Renderer::BeginShadowMapAction(const Light* pLight, RdrDepthStencilView depthView, Rect& viewport)
+void Renderer::BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilView depthView, Rect& viewport)
 {
 	assert(m_pCurrentAction == nullptr);
 
 	m_pCurrentAction = RdrAction::Allocate();
 	m_pCurrentAction->name = L"Shadow Map";
 	m_pCurrentAction->pRenderTarget = nullptr;
-	m_pCurrentAction->pDepthTarget = depthView.pView;
-	m_pCurrentAction->camera = pLight->MakeCamera(0);
+	m_pCurrentAction->camera = rCamera;
 	m_pCurrentAction->bDoLightCulling = false;
 
 	// Setup action passes
@@ -741,8 +752,31 @@ void Renderer::BeginShadowMapAction(const Light* pLight, RdrDepthStencilView dep
 	rPass.pCamera = &m_pCurrentAction->camera;
 	rPass.viewport = viewport;
 	rPass.bEnabled = true;
-	rPass.pRenderTarget = nullptr;
-	rPass.pDepthTarget = m_pCurrentAction->pDepthTarget;
+	rPass.pDepthTarget = depthView.pView;
+}
+
+void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrRenderTargetView* pTargetViews, Rect& viewport) // todo: finish
+{
+	assert(m_pCurrentAction == nullptr);
+
+	m_pCurrentAction = RdrAction::Allocate();
+	m_pCurrentAction->name = L"Shadow Cube Map";
+	m_pCurrentAction->pRenderTarget = nullptr;
+	m_pCurrentAction->camera = pLight->MakeCamera(kCubemapFace_PositiveX);
+	m_pCurrentAction->bDoLightCulling = false;
+
+	// Setup action passes
+	RdrPass& rPass = m_pCurrentAction->passes[kRdrPass_ZPrepass];
+	rPass.pBlendState = getBlendState(m_context.m_pDevice, false);
+	rPass.pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_Less);
+	rPass.pCamera = &m_pCurrentAction->camera;
+	rPass.viewport = viewport;
+	rPass.bEnabled = true;
+	rPass.pDepthTarget = nullptr;
+	for (int i = 0; i < 6; ++i)
+	{
+		rPass.apRenderTargets[i] = pTargetViews[i].pView;
+	}
 }
 
 void Renderer::BeginPrimaryAction(const Camera* pMainCamera, const LightList* pLights)
@@ -752,7 +786,6 @@ void Renderer::BeginPrimaryAction(const Camera* pMainCamera, const LightList* pL
 	m_pCurrentAction = RdrAction::Allocate();
 	m_pCurrentAction->name = L"Primary Action";
 	m_pCurrentAction->pRenderTarget = m_pPrimaryRenderTarget;
-	m_pCurrentAction->pDepthTarget = m_pDepthStencilView;
 	m_pCurrentAction->camera = *pMainCamera;
 	m_pCurrentAction->pLights = pLights;
 	m_pCurrentAction->bDoLightCulling = true;
@@ -763,7 +796,7 @@ void Renderer::BeginPrimaryAction(const Camera* pMainCamera, const LightList* pL
 	m_pCurrentAction->passes[kRdrPass_ZPrepass].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
 	m_pCurrentAction->passes[kRdrPass_ZPrepass].bEnabled = true;
 	m_pCurrentAction->passes[kRdrPass_ZPrepass].pDepthTarget = m_pDepthStencilView;
-	m_pCurrentAction->passes[kRdrPass_ZPrepass].pRenderTarget = m_pCurrentAction->pRenderTarget;
+	m_pCurrentAction->passes[kRdrPass_ZPrepass].apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
 
 	m_pCurrentAction->passes[kRdrPass_Opaque].pBlendState = getBlendState(m_context.m_pDevice, false);
 	m_pCurrentAction->passes[kRdrPass_Opaque].pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_Equal);
@@ -771,7 +804,7 @@ void Renderer::BeginPrimaryAction(const Camera* pMainCamera, const LightList* pL
 	m_pCurrentAction->passes[kRdrPass_Opaque].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
 	m_pCurrentAction->passes[kRdrPass_Opaque].bEnabled = true;
 	m_pCurrentAction->passes[kRdrPass_Opaque].pDepthTarget = m_pDepthStencilView;
-	m_pCurrentAction->passes[kRdrPass_Opaque].pRenderTarget = m_pCurrentAction->pRenderTarget;
+	m_pCurrentAction->passes[kRdrPass_Opaque].apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
 
 	m_pCurrentAction->passes[kRdrPass_Alpha].pBlendState = getBlendState(m_context.m_pDevice, true);
 	m_pCurrentAction->passes[kRdrPass_Alpha].pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_None);
@@ -779,14 +812,14 @@ void Renderer::BeginPrimaryAction(const Camera* pMainCamera, const LightList* pL
 	m_pCurrentAction->passes[kRdrPass_Alpha].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
 	m_pCurrentAction->passes[kRdrPass_Alpha].bEnabled = true;
 	m_pCurrentAction->passes[kRdrPass_Alpha].pDepthTarget = m_pDepthStencilView;
-	m_pCurrentAction->passes[kRdrPass_Alpha].pRenderTarget = m_pCurrentAction->pRenderTarget;
+	m_pCurrentAction->passes[kRdrPass_Alpha].apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
 
 	m_pCurrentAction->passes[kRdrPass_UI].pBlendState = getBlendState(m_context.m_pDevice, true);
 	m_pCurrentAction->passes[kRdrPass_UI].pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_None);
 	m_pCurrentAction->passes[kRdrPass_UI].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
 	m_pCurrentAction->passes[kRdrPass_UI].bEnabled = true;
 	m_pCurrentAction->passes[kRdrPass_UI].pDepthTarget = m_pDepthStencilView;
-	m_pCurrentAction->passes[kRdrPass_UI].pRenderTarget = m_pCurrentAction->pRenderTarget;
+	m_pCurrentAction->passes[kRdrPass_UI].apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
 }
 
 void Renderer::EndAction()
@@ -860,7 +893,13 @@ void Renderer::DrawPass(RdrAction* pAction, RdrPassEnum ePass)
 
 	m_pAnnotator->BeginEvent(s_passNames[ePass]);
 
-	pDevContext->OMSetRenderTargets(1, &pPass->pRenderTarget, pPass->pDepthTarget);
+	// Clear resource bindings to avoid input/output binding errors
+	{
+		ID3D11ShaderResourceView* resourceViews[16] = { 0 };
+		pDevContext->PSSetShaderResources(0, 16, resourceViews);
+	}
+
+	pDevContext->OMSetRenderTargets(MAX_RENDERTARGETS, pPass->apRenderTargets, pPass->pDepthTarget);
 	pDevContext->OMSetDepthStencilState(pPass->pDepthStencilState, 1);
 	pDevContext->OMSetBlendState(pPass->pBlendState, nullptr, 0xffffffff);
 
@@ -908,11 +947,10 @@ void Renderer::DrawFrame()
 
 		if (pAction->pRenderTarget)
 			pContext->ClearRenderTargetView(pAction->pRenderTarget, clearColor);
-		if (pAction->pDepthTarget)
-			pContext->ClearDepthStencilView(pAction->pDepthTarget, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 
 		// todo: sort buckets 
 
+		pContext->ClearDepthStencilView(pAction->passes[kRdrPass_ZPrepass].pDepthTarget, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 		DrawPass(pAction, kRdrPass_ZPrepass);
 
 		if ( pAction->bDoLightCulling )

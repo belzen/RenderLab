@@ -22,10 +22,10 @@ struct PixelInput
 };
 
 Texture2D diffuseTex : register(t0);
-SamplerState diffuseTexSampler;
+SamplerState diffuseTexSampler : register(s0);
 
 Texture2D normalsTex : register(t1);
-SamplerState normalsTexSampler;
+SamplerState normalsTexSampler : register(s1);
 
 float4 main(PixelInput input) : SV_TARGET
 {

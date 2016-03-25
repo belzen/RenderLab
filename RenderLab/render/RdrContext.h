@@ -14,6 +14,7 @@ struct ID3D11Texture2D;
 struct ID3D11ShaderResourceView;
 struct ID3D11UnorderedAccessView;
 struct ID3D11DepthStencilView;
+struct ID3D11RenderTargetView;
 struct ID3D11View;
 struct ID3D11Resource;
 struct ID3D11InputLayout;
@@ -39,6 +40,7 @@ struct Vertex
 enum RdrResourceFormat
 {
 	kResourceFormat_D16,
+	kResourceFormat_R16_UNORM,
 	kResourceFormat_RG_F16,
 	kResourceFormat_Count,
 };
@@ -115,6 +117,11 @@ struct RdrDepthStencilView
 	ID3D11DepthStencilView* pView;
 };
 
+struct RdrRenderTargetView
+{
+	ID3D11RenderTargetView* pView;
+};
+
 #define SAMPLER_TYPES_COUNT kComparisonFunc_Count * kRdrTexCoordMode_Count * 2
 
 typedef FreeList<RdrResource, MAX_TEXTURES> RdrResourceList;
@@ -167,7 +174,11 @@ public:
 	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat format);
 	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format);
 
+	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat format);
+	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat format);
+
 	RdrDepthStencilView CreateDepthStencilView(RdrResourceHandle hTexArrayRes, int arrayIndex);
+	RdrRenderTargetView CreateRenderTargetView(RdrResourceHandle hTexArrayRes, int arrayIndex, RdrResourceFormat format);
 
 	ShaderHandle LoadVertexShader(const char* filename, D3D11_INPUT_ELEMENT_DESC* aDesc, int numElements);
 	ShaderHandle LoadPixelShader(const char* filename);

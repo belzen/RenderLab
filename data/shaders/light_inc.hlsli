@@ -16,7 +16,8 @@ struct ShadowData
 	float4x4 mtxViewProj;
 };
 
-#define MAX_SHADOWMAPS 10
+#define MAX_SHADOW_MAPS 10
+#define MAX_SHADOW_CUBEMAPS 2
 #define MAX_LIGHTS_PER_TILE 128
 #define TILE_SIZE 16.f
 
@@ -26,7 +27,10 @@ StructuredBuffer<Light> g_lights : register(t16);
 StructuredBuffer<uint> g_tileLightIndices : register(t17);
 
 StructuredBuffer<ShadowData> g_shadowData : register(t18);
-Texture2DArray shadowMaps : register(t15);
+
+Texture2DArray shadowMaps : register(t14);
+TextureCubeArray shadowCubeMaps : register(t15);
+SamplerState shadowSampler : register(s14);
 SamplerComparisonState shadowMapsSampler : register(s15);
 
 int getTileId(in float2 screenPos, in uint screenWidth)
@@ -37,11 +41,25 @@ int getTileId(in float2 screenPos, in uint screenWidth)
 	return tileX + tileY * numTileX;
 }
 
-float getShadowFactor(in float3 pos_ws, in uint shadowMapIndex)
+float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float3 posToLight, in float lightRadius, in uint shadowMapIndex)
 {
-	if (shadowMapIndex >= MAX_SHADOWMAPS)
+	const float bias = 0.0004f;
+	if (shadowMapIndex >= MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS)
 	{
 		return 1.f;
+	}
+	else if (shadowMapIndex >= MAX_SHADOW_MAPS)
+	{
+		float3 absPosDiff = abs(posToLight);
+		float zDist = max(absPosDiff.x, max(absPosDiff.y, absPosDiff.z));
+
+		float zNear = 0.1f;
+		float zFar = lightRadius * 2.f;
+
+		float depthVal = (zFar + zNear) / (zFar - zNear) - (2 * zFar*zNear) / (zFar - zNear) / zDist;
+		depthVal = (depthVal + 1.0) * 0.5 - bias;
+
+		return shadowCubeMaps.SampleCmpLevelZero(shadowMapsSampler, float4(-light_dir, shadowMapIndex - MAX_SHADOW_MAPS), depthVal).x;
 	}
 	else
 	{
@@ -54,7 +72,6 @@ float getShadowFactor(in float3 pos_ws, in uint shadowMapIndex)
 		
 		if ((saturate(uv.x) == uv.x) && (saturate(uv.y) == uv.y))
 		{
-			float bias = 0.0004f;
 			float lightDepthValue = pos.z / pos.w - bias;
 
 #if POISSON_SHADOWS
@@ -126,7 +143,7 @@ float4 doLighting(in float3 pos_ws, in float4 color, in float3 normal, in float3
 		angularFalloff = lerp(1.f, angularFalloff, (light.type == 2));
 
 		// todo: constant, linear, quadratic attenuation
-		litColor += (diffuse + specular) * distFalloff * angularFalloff * getShadowFactor(pos_ws, light.shadowMapIndex);
+		litColor += (diffuse + specular) * distFalloff * angularFalloff * calcShadowFactor(pos_ws, lightDir, posToLight, light.radius, light.shadowMapIndex);
 	}
 
 	return litColor;

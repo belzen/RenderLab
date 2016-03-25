@@ -99,10 +99,22 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 			if (_stricmp(typeStr, "directional") == 0)
 			{
 				light.type = kLightType_Directional;
+
+				light.direction = readVec3(jLight.get("direction", Json::Value::null));
+				light.direction = Vec3Normalize(light.direction);
 			}
 			else if (_stricmp(typeStr, "spot") == 0)
 			{
 				light.type = kLightType_Spot;
+
+				light.direction = readVec3(jLight.get("direction", Json::Value::null));
+				light.direction = Vec3Normalize(light.direction);
+
+				float innerConeAngle = jLight.get("innerConeAngle", 0.f).asFloat();
+				light.innerConeAngleCos = cosf((innerConeAngle / 180.f) * Maths::kPi);
+
+				float outerConeAngle = jLight.get("outerConeAngle", 0.f).asFloat();
+				light.outerConeAngleCos = cosf((outerConeAngle / 180.f) * Maths::kPi);
 			}
 			else if (_stricmp(typeStr, "point") == 0)
 			{
@@ -115,9 +127,6 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 
 			light.position = readVec3(jLight.get("position", Json::Value::null));
 
-			light.direction = readVec3(jLight.get("direction", Json::Value::null));
-			light.direction = Vec3Normalize(light.direction);
-
 			light.color = readVec3(jLight.get("color", Json::Value::null));
 			float intensity = jLight.get("intensity", 1.f).asFloat();
 			light.color.x *= intensity;
@@ -129,12 +138,6 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 			{
 				light.radius = FLT_MAX;
 			}
-
-			float innerConeAngle = jLight.get("innerConeAngle", 0.f).asFloat();
-			light.innerConeAngleCos = cosf((innerConeAngle / 180.f) * Maths::kPi);
-
-			float outerConeAngle = jLight.get("outerConeAngle", 0.f).asFloat();
-			light.outerConeAngleCos = cosf((outerConeAngle / 180.f) * Maths::kPi);
 
 			light.castsShadows = jLight.get("castsShadows", false).asBool();
 
@@ -182,29 +185,6 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 	}
 
 	// TODO: quad/oct tree for scene
-
-	// Spawn a bunch of lights to test forward+
-	/*
-	for (int x = -150; x < 150; x += 30)
-	{
-		for (int y = -150; y < 150; y += 30)
-		{
-			Light light;
-			light.type = kLightType_Point;
-			light.position.x = (float)x;
-			light.position.y = (float)(rand() % 20);
-			light.position.z = (float)y;
-			light.direction.x = 0.f;
-			light.direction.y = -1.f;
-			light.direction.z = 0.f;
-			light.radius = light.position.y + 5;
-			light.color.x = (rand() / (float)RAND_MAX);
-			light.color.y = (rand() / (float)RAND_MAX);
-			light.color.z = (rand() / (float)RAND_MAX);
-
-			m_lights.AddLight(light);
-		}
-	}*/
 }
 
 void Scene::Update(float dt)

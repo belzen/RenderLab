@@ -22,6 +22,14 @@
 			"innerConeAngle" : 30.0,
 			"outerConeAngle" : 45.0,
 			"castsShadows" : true
+		},
+		{
+			"type" : "point",
+			"position" : [ -5.0, 5.0, -3.0 ],
+			"color" : [0.0, 0.0, 1.0],
+			"intensity" : 1.0,
+			"radius" : 10.0,
+			"castsShadows" : true
 		}
 	],
 	"objects" : [

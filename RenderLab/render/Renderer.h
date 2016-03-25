@@ -28,7 +28,8 @@ public:
 
 	void Resize(int width, int height);
 
-	void BeginShadowMapAction(const Light* pLight, RdrDepthStencilView depthView, Rect& viewport);
+	void BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilView depthView, Rect& viewport);
+	void BeginShadowCubeMapAction(const Light* pLight, RdrRenderTargetView* pTargetViews, Rect& viewport);
 	void BeginPrimaryAction(const Camera* pCamera, const LightList* pLights);
 	void EndAction();
 

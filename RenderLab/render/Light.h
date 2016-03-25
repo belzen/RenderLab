@@ -10,7 +10,9 @@ class Renderer;
 class Camera;
 class Scene;
 
-#define MAX_SHADOWMAPS 10
+#define MAX_SHADOW_MAPS 10
+#define MAX_SHADOW_CUBEMAPS 2
+#define USE_SINGLEPASS_SHADOW_CUBEMAP 0
 
 typedef uint RdrResourceHandle;
 
@@ -20,6 +22,17 @@ enum LightType
 	kLightType_Point,
 	kLightType_Spot,
 	kLightType_Environment,
+};
+
+enum CubemapFace
+{
+	kCubemapFace_Default,
+	kCubemapFace_PositiveX = kCubemapFace_Default,
+	kCubemapFace_NegativeX,
+	kCubemapFace_PositiveY,
+	kCubemapFace_NegativeY,
+	kCubemapFace_PositiveZ,
+	kCubemapFace_NegativeZ
 };
 
 // WARNING - Must match struct in light_inc.hlsli
@@ -39,7 +52,7 @@ struct Light
 	uint shadowMapIndex;
 
 	///
-	Camera MakeCamera(uint face) const;
+	Camera MakeCamera(CubemapFace face = kCubemapFace_Default) const;
 };
 
 class LightList
@@ -53,6 +66,7 @@ public:
 
 	RdrResourceHandle GetShadowMapDataRes() const { return m_hShadowMapDataRes; }
 	RdrResourceHandle GetShadowMapTexArray() const { return m_hShadowMapTexArray; }
+	RdrResourceHandle GetShadowCubeMapTexArray() const { return m_hShadowCubeMapTexArray; }
 	RdrResourceHandle GetLightListRes() const { return m_hLightListRes; }
 	uint GetLightCount() const { return m_lightCount; }
 private:
@@ -63,5 +77,11 @@ private:
 	RdrResourceHandle m_hLightListRes;
 	RdrResourceHandle m_hShadowMapDataRes;
 	RdrResourceHandle m_hShadowMapTexArray;
-	RdrDepthStencilView m_shadowMapDepthViews[MAX_SHADOWMAPS];
+	RdrResourceHandle m_hShadowCubeMapTexArray;
+	RdrDepthStencilView m_shadowMapDepthViews[MAX_SHADOW_MAPS];
+#if USE_SINGLEPASS_SHADOW_CUBEMAP
+	RdrRenderTargetView m_shadowCubeMapViews[MAX_SHADOW_CUBEMAPS * 6];
+#else
+	RdrDepthStencilView m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * 6];
+#endif
 };
