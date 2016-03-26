@@ -45,8 +45,8 @@ void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, 
 
 	RdrDrawOp* op = RdrDrawOp::Allocate();
 	op->hGeo = m_hGeo;
-	op->hVertexShader = m_hVertexShader;
-	op->hPixelShader = m_hPixelShader;
+	op->hVertexShaders[kRdrShaderMode_Normal] = m_hVertexShader;
+	op->hPixelShaders[kRdrShaderMode_Normal] = m_hPixelShader;
 	op->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 	op->hTextures[0] = m_hTexture;
 	op->texCount = 1;

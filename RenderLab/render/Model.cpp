@@ -51,8 +51,9 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat) const
 	}
 	pDrawOp->texCount = m_numTextures;
 
-	pDrawOp->hVertexShader = m_hVertexShader;
-	pDrawOp->hPixelShader = m_hPixelShader;
+	pDrawOp->hVertexShaders[kRdrShaderMode_Normal] = m_hVertexShader;
+	pDrawOp->hVertexShaders[kRdrShaderMode_DepthOnly] = m_hVertexShader;
+	pDrawOp->hPixelShaders[kRdrShaderMode_Normal] = m_hPixelShader;
 	pDrawOp->hGeo = m_hGeo;
 	pDrawOp->needsLighting = true;
 

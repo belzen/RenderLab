@@ -54,17 +54,14 @@ namespace
 
 		RdrDrawOp* op = RdrDrawOp::Allocate();
 		op->hGeo = hTextGeo;
-		op->hVertexShader = g_text.hVertexShader;
-		op->hPixelShader = g_text.hPixelShader;
+		op->hVertexShaders[kRdrShaderMode_Normal] = g_text.hVertexShader;
+		op->hPixelShaders[kRdrShaderMode_Normal] = g_text.hPixelShader;
 		op->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 		op->hTextures[0] = g_text.hTexture;
 		op->texCount = 1;
 		op->bFreeGeo = bFreeGeo;
 		op->constants[0] = Vec4(color.r, color.g, color.b, color.a);
-		op->constants[1] = Vec4(pos.x,
-								pos.y,
-								pos.z + 1.f, 
-								size);
+		op->constants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
 		op->numConstants = 2;
 
 		rRenderer.AddToBucket(op, kRdrBucketType_UI);

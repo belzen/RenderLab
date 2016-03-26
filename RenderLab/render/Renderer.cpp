@@ -53,6 +53,8 @@ struct RdrPass
 	const Camera* pCamera;
 	Rect viewport;
 
+	RdrShaderMode shaderMode;
+
 	bool bEnabled;
 };
 
@@ -234,9 +236,9 @@ static ID3D11DepthStencilState* getDepthStencilState(ID3D11Device* pDevice, Dept
 
 namespace
 {
-	void DrawGeo(RdrAction* pAction, RdrDrawOp* pDrawOp, RdrContext* pContext, RdrPassEnum ePass)
+	void DrawGeo(RdrAction* pAction, RdrDrawOp* pDrawOp, RdrContext* pContext, RdrShaderMode eShaderMode)
 	{
-		bool bDepthOnly = ePass == kRdrPass_ZPrepass;
+		bool bDepthOnly = (eShaderMode == kRdrShaderMode_DepthOnly || eShaderMode == kRdrShaderMode_CubeMapDepthOnly);
 		ID3D11DeviceContext* pDevContext = pContext->m_pContext;
 		RdrGeometry* pGeo = pContext->m_geo.get(pDrawOp->hGeo);
 		UINT stride = pGeo->vertStride;
@@ -262,51 +264,51 @@ namespace
 			pDevContext->VSSetConstantBuffers(1, 1, &pConstantsBuffer);
 		}
 
-		VertexShader* pVertexShader = pContext->m_vertexShaders.get(pDrawOp->hVertexShader);
-		PixelShader* pPixelShader = pContext->m_pixelShaders.get(pDrawOp->hPixelShader);
-
+		VertexShader* pVertexShader = pContext->m_vertexShaders.get(pDrawOp->hVertexShaders[eShaderMode]);
 		pDevContext->VSSetShader(pVertexShader->pShader, nullptr, 0);
-		if (ePass == kRdrPass_ZPrepass)
+
+		if (pDrawOp->hPixelShaders[eShaderMode])
 		{
-			pDevContext->PSSetShader(nullptr, nullptr, 0);
+			PixelShader* pPixelShader = pContext->m_pixelShaders.get(pDrawOp->hPixelShaders[eShaderMode]);
+			pDevContext->PSSetShader(pPixelShader->pShader, nullptr, 0);
 		}
 		else
 		{
-			pDevContext->PSSetShader(pPixelShader->pShader, nullptr, 0);
+			pDevContext->PSSetShader(nullptr, nullptr, 0);
+		}
 
-			for (uint i = 0; i < pDrawOp->texCount; ++i)
-			{
-				RdrResource* pTex = pContext->m_resources.get(pDrawOp->hTextures[i]);
-				RdrSampler sampler = pContext->GetSampler(pDrawOp->samplers[i]);
-				pDevContext->PSSetShaderResources(i, 1, &pTex->pResourceView);
-				pDevContext->PSSetSamplers(i, 1, &sampler.pSampler);
-			}
+		for (uint i = 0; i < pDrawOp->texCount; ++i)
+		{
+			RdrResource* pTex = pContext->m_resources.get(pDrawOp->hTextures[i]);
+			RdrSampler sampler = pContext->GetSampler(pDrawOp->samplers[i]);
+			pDevContext->PSSetShaderResources(i, 1, &pTex->pResourceView);
+			pDevContext->PSSetSamplers(i, 1, &sampler.pSampler);
+		}
 
-			if (pDrawOp->needsLighting && !bDepthOnly)
-			{
-				RdrResource* pTex = pContext->m_resources.get(pAction->pLights->GetLightListRes());
-				pDevContext->PSSetShaderResources(kPsResource_LightList, 1, &pTex->pResourceView);
+		if (pDrawOp->needsLighting && !bDepthOnly)
+		{
+			RdrResource* pTex = pContext->m_resources.get(pAction->pLights->GetLightListRes());
+			pDevContext->PSSetShaderResources(kPsResource_LightList, 1, &pTex->pResourceView);
 
-				pTex = pContext->m_resources.get(pContext->m_hTileLightIndices);
-				pDevContext->PSSetShaderResources(kPsResource_TileLightIds, 1, &pTex->pResourceView);
+			pTex = pContext->m_resources.get(pContext->m_hTileLightIndices);
+			pDevContext->PSSetShaderResources(kPsResource_TileLightIds, 1, &pTex->pResourceView);
 
-				pTex = pContext->m_resources.get(pAction->pLights->GetShadowMapTexArray());
-				pDevContext->PSSetShaderResources(kPsResource_ShadowMaps, 1, &pTex->pResourceView);
+			pTex = pContext->m_resources.get(pAction->pLights->GetShadowMapTexArray());
+			pDevContext->PSSetShaderResources(kPsResource_ShadowMaps, 1, &pTex->pResourceView);
 
-				pTex = pContext->m_resources.get(pAction->pLights->GetShadowCubeMapTexArray());
-				pDevContext->PSSetShaderResources(kPsResource_ShadowCubeMaps, 1, &pTex->pResourceView);
+			pTex = pContext->m_resources.get(pAction->pLights->GetShadowCubeMapTexArray());
+			pDevContext->PSSetShaderResources(kPsResource_ShadowCubeMaps, 1, &pTex->pResourceView);
 
-				RdrSamplerState shadowState2(kComparisonFunc_Never, kRdrTexCoordMode_Clamp, false);
-				RdrSampler sampler2 = pContext->GetSampler(shadowState2);
-				pDevContext->PSSetSamplers(14, 1, &sampler2.pSampler);
+			RdrSamplerState shadowState2(kComparisonFunc_Never, kRdrTexCoordMode_Clamp, false);
+			RdrSampler sampler2 = pContext->GetSampler(shadowState2);
+			pDevContext->PSSetSamplers(14, 1, &sampler2.pSampler);
 
-				RdrSamplerState shadowSamplerState(kComparisonFunc_LessEqual, kRdrTexCoordMode_Clamp, false);
-				RdrSampler sampler = pContext->GetSampler(shadowSamplerState);
-				pDevContext->PSSetSamplers(kPsSampler_ShadowMap, 1, &sampler.pSampler);
+			RdrSamplerState shadowSamplerState(kComparisonFunc_LessEqual, kRdrTexCoordMode_Clamp, false);
+			RdrSampler sampler = pContext->GetSampler(shadowSamplerState);
+			pDevContext->PSSetSamplers(kPsSampler_ShadowMap, 1, &sampler.pSampler);
 
-				pTex = pContext->m_resources.get(pAction->pLights->GetShadowMapDataRes());
-				pDevContext->PSSetShaderResources(kPsResource_ShadowMapData, 1, &pTex->pResourceView);
-			}
+			pTex = pContext->m_resources.get(pAction->pLights->GetShadowMapDataRes());
+			pDevContext->PSSetShaderResources(kPsResource_ShadowMapData, 1, &pTex->pResourceView);
 		}
 
 		pDevContext->IASetInputLayout(pVertexShader->pInputLayout);
@@ -753,6 +755,7 @@ void Renderer::BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilView d
 	rPass.viewport = viewport;
 	rPass.bEnabled = true;
 	rPass.pDepthTarget = depthView.pView;
+	rPass.shaderMode = kRdrShaderMode_DepthOnly;
 }
 
 void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrRenderTargetView* pTargetViews, Rect& viewport) // todo: finish
@@ -772,6 +775,7 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrRenderTargetView
 	rPass.pCamera = &m_pCurrentAction->camera;
 	rPass.viewport = viewport;
 	rPass.bEnabled = true;
+	rPass.shaderMode = kRdrShaderMode_CubeMapDepthOnly;
 	rPass.pDepthTarget = nullptr;
 	for (int i = 0; i < 6; ++i)
 	{
@@ -790,36 +794,47 @@ void Renderer::BeginPrimaryAction(const Camera* pMainCamera, const LightList* pL
 	m_pCurrentAction->pLights = pLights;
 	m_pCurrentAction->bDoLightCulling = true;
 
-	m_pCurrentAction->passes[kRdrPass_ZPrepass].pBlendState = getBlendState(m_context.m_pDevice, false);
-	m_pCurrentAction->passes[kRdrPass_ZPrepass].pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_Less);
-	m_pCurrentAction->passes[kRdrPass_ZPrepass].pCamera = &m_pCurrentAction->camera;
-	m_pCurrentAction->passes[kRdrPass_ZPrepass].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
-	m_pCurrentAction->passes[kRdrPass_ZPrepass].bEnabled = true;
-	m_pCurrentAction->passes[kRdrPass_ZPrepass].pDepthTarget = m_pDepthStencilView;
-	m_pCurrentAction->passes[kRdrPass_ZPrepass].apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
+	// Z Prepass
+	RdrPass* pPass = &m_pCurrentAction->passes[kRdrPass_ZPrepass];
+	pPass->pBlendState = getBlendState(m_context.m_pDevice, false);
+	pPass->pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_Less);
+	pPass->pCamera = &m_pCurrentAction->camera;
+	pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+	pPass->bEnabled = true;
+	pPass->pDepthTarget = m_pDepthStencilView;
+	pPass->apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
+	pPass->shaderMode = kRdrShaderMode_DepthOnly;
 
-	m_pCurrentAction->passes[kRdrPass_Opaque].pBlendState = getBlendState(m_context.m_pDevice, false);
-	m_pCurrentAction->passes[kRdrPass_Opaque].pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_Equal);
-	m_pCurrentAction->passes[kRdrPass_Opaque].pCamera = &m_pCurrentAction->camera;
-	m_pCurrentAction->passes[kRdrPass_Opaque].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
-	m_pCurrentAction->passes[kRdrPass_Opaque].bEnabled = true;
-	m_pCurrentAction->passes[kRdrPass_Opaque].pDepthTarget = m_pDepthStencilView;
-	m_pCurrentAction->passes[kRdrPass_Opaque].apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
+	// Opaque
+	pPass = &m_pCurrentAction->passes[kRdrPass_Opaque];
+	pPass->pBlendState = getBlendState(m_context.m_pDevice, false);
+	pPass->pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_Equal);
+	pPass->pCamera = &m_pCurrentAction->camera;
+	pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+	pPass->bEnabled = true;
+	pPass->pDepthTarget = m_pDepthStencilView;
+	pPass->apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
+	pPass->shaderMode = kRdrShaderMode_Normal;
 
-	m_pCurrentAction->passes[kRdrPass_Alpha].pBlendState = getBlendState(m_context.m_pDevice, true);
-	m_pCurrentAction->passes[kRdrPass_Alpha].pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_None);
-	m_pCurrentAction->passes[kRdrPass_Alpha].pCamera = &m_pCurrentAction->camera;
-	m_pCurrentAction->passes[kRdrPass_Alpha].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
-	m_pCurrentAction->passes[kRdrPass_Alpha].bEnabled = true;
-	m_pCurrentAction->passes[kRdrPass_Alpha].pDepthTarget = m_pDepthStencilView;
-	m_pCurrentAction->passes[kRdrPass_Alpha].apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
+	// Alpha
+	pPass = &m_pCurrentAction->passes[kRdrPass_Alpha];
+	pPass->pBlendState = getBlendState(m_context.m_pDevice, true);
+	pPass->pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_None);
+	pPass->pCamera = &m_pCurrentAction->camera;
+	pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+	pPass->bEnabled = true;
+	pPass->pDepthTarget = m_pDepthStencilView;
+	pPass->apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
+	pPass->shaderMode = kRdrShaderMode_Normal;
 
-	m_pCurrentAction->passes[kRdrPass_UI].pBlendState = getBlendState(m_context.m_pDevice, true);
-	m_pCurrentAction->passes[kRdrPass_UI].pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_None);
-	m_pCurrentAction->passes[kRdrPass_UI].viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
-	m_pCurrentAction->passes[kRdrPass_UI].bEnabled = true;
-	m_pCurrentAction->passes[kRdrPass_UI].pDepthTarget = m_pDepthStencilView;
-	m_pCurrentAction->passes[kRdrPass_UI].apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
+	// UI
+	pPass = &m_pCurrentAction->passes[kRdrPass_UI];
+	pPass->pBlendState = getBlendState(m_context.m_pDevice, true);
+	pPass->pDepthStencilState = getDepthStencilState(m_context.m_pDevice, kDepthTestMode_None);
+	pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+	pPass->bEnabled = true;
+	pPass->pDepthTarget = m_pDepthStencilView;
+	pPass->apRenderTargets[0] = m_pCurrentAction->pRenderTarget;
 }
 
 void Renderer::EndAction()
@@ -925,7 +940,7 @@ void Renderer::DrawPass(RdrAction* pAction, RdrPassEnum ePass)
 		}
 		else
 		{
-			DrawGeo(pAction, pDrawOp, &m_context, ePass);
+			DrawGeo(pAction, pDrawOp, &m_context, pPass->shaderMode);
 		}
 	}
 
@@ -949,6 +964,7 @@ void Renderer::DrawFrame()
 			pContext->ClearRenderTargetView(pAction->pRenderTarget, clearColor);
 
 		// todo: sort buckets 
+		//std::sort(pAction->buckets[kRdrBucketType_Opaque].begin(), pAction->buckets[kRdrBucketType_Opaque].end(), );
 
 		pContext->ClearDepthStencilView(pAction->passes[kRdrPass_ZPrepass].pDepthTarget, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 		DrawPass(pAction, kRdrPass_ZPrepass);

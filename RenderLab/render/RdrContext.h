@@ -207,6 +207,14 @@ enum RdrBucketType
 	kRdrBucketType_Count
 };
 
+enum RdrShaderMode
+{
+	kRdrShaderMode_Normal,
+	kRdrShaderMode_DepthOnly,
+	kRdrShaderMode_CubeMapDepthOnly,
+	kRdrShaderMode_Count
+};
+
 struct RdrDrawOp
 {
 	static RdrDrawOp* Allocate();
@@ -225,8 +233,8 @@ struct RdrDrawOp
 	Vec4 constants[16];
 	uint numConstants;
 
-	ShaderHandle hVertexShader;
-	ShaderHandle hPixelShader;
+	ShaderHandle hVertexShaders[kRdrShaderMode_Count];
+	ShaderHandle hPixelShaders[kRdrShaderMode_Count];
 
 	RdrGeoHandle hGeo;
 	bool bFreeGeo;
