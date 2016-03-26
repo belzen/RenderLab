@@ -236,7 +236,7 @@ static ID3D11DepthStencilState* getDepthStencilState(ID3D11Device* pDevice, Dept
 
 namespace
 {
-	void DrawGeo(RdrAction* pAction, RdrDrawOp* pDrawOp, RdrContext* pContext, RdrShaderMode eShaderMode)
+	void DrawGeo(RdrAction* pAction, RdrDrawOp* pDrawOp, RdrContext* pContext, RdrShaderMode eShaderMode, RdrResourceHandle hTileLightIndices)
 	{
 		bool bDepthOnly = (eShaderMode == kRdrShaderMode_DepthOnly || eShaderMode == kRdrShaderMode_CubeMapDepthOnly);
 		ID3D11DeviceContext* pDevContext = pContext->m_pContext;
@@ -290,7 +290,7 @@ namespace
 			RdrResource* pTex = pContext->m_resources.get(pAction->pLights->GetLightListRes());
 			pDevContext->PSSetShaderResources(kPsResource_LightList, 1, &pTex->pResourceView);
 
-			pTex = pContext->m_resources.get(pContext->m_hTileLightIndices);
+			pTex = pContext->m_resources.get(hTileLightIndices);
 			pDevContext->PSSetShaderResources(kPsResource_TileLightIds, 1, &pTex->pResourceView);
 
 			pTex = pContext->m_resources.get(pAction->pLights->GetShadowMapTexArray());
@@ -538,8 +538,6 @@ void Renderer::Resize(int width, int height)
 	m_viewWidth = width;
 	m_viewHeight = height;
 
-	m_context.m_mainCamera.SetAspectRatio(width / (float)height);
-
 	m_pPrimaryRenderTarget->Release();
 	m_pSwapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
 
@@ -682,9 +680,9 @@ void Renderer::DispatchLightCulling(RdrAction* pAction)
 	if ( tileCountChanged )
 	{
 		const uint kMaxLightsPerTile = 128; // Sync with MAX_LIGHTS_PER_TILE in "light_inc.hlsli"
-		if (m_context.m_hTileLightIndices)
-			m_context.ReleaseResource(m_context.m_hTileLightIndices);
-		m_context.m_hTileLightIndices = m_context.CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint));
+		if (m_hTileLightIndices)
+			m_context.ReleaseResource(m_hTileLightIndices);
+		m_hTileLightIndices = m_context.CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint));
 	}
 
 	RdrDrawOp* pCullOp = RdrDrawOp::Allocate();
@@ -695,7 +693,7 @@ void Renderer::DispatchLightCulling(RdrAction* pAction)
 	pCullOp->hTextures[0] = pAction->pLights->GetLightListRes();
 	pCullOp->hTextures[1] = m_hDepthMinMaxTex;
 	pCullOp->texCount = 2;
-	pCullOp->hViews[0] = m_context.m_hTileLightIndices;
+	pCullOp->hViews[0] = m_hTileLightIndices;
 	pCullOp->viewCount = 1;
 
 
@@ -783,16 +781,18 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrRenderTargetView
 	}
 }
 
-void Renderer::BeginPrimaryAction(const Camera* pMainCamera, const LightList* pLights)
+void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLights)
 {
 	assert(m_pCurrentAction == nullptr);
 
 	m_pCurrentAction = RdrAction::Allocate();
 	m_pCurrentAction->name = L"Primary Action";
 	m_pCurrentAction->pRenderTarget = m_pPrimaryRenderTarget;
-	m_pCurrentAction->camera = *pMainCamera;
 	m_pCurrentAction->pLights = pLights;
 	m_pCurrentAction->bDoLightCulling = true;
+
+	m_pCurrentAction->camera = rCamera;
+	m_pCurrentAction->camera.SetAspectRatio(m_viewWidth / (float)m_viewHeight);
 
 	// Z Prepass
 	RdrPass* pPass = &m_pCurrentAction->passes[kRdrPass_ZPrepass];
@@ -940,7 +940,7 @@ void Renderer::DrawPass(RdrAction* pAction, RdrPassEnum ePass)
 		}
 		else
 		{
-			DrawGeo(pAction, pDrawOp, &m_context, pPass->shaderMode);
+			DrawGeo(pAction, pDrawOp, &m_context, pPass->shaderMode, m_hTileLightIndices);
 		}
 	}
 

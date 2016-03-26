@@ -1,6 +1,7 @@
 #include "Precompiled.h"
 #include "Font.h"
 #include "Renderer.h"
+#include "RdrDrawOp.h"
 #include "Camera.h"
 #include "UI.h"
 #include <d3d11.h>

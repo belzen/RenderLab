@@ -97,7 +97,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 	Timer::Handle hTimer = Timer::Create();
 
 	CameraInputContext defaultInput;
-	defaultInput.SetCamera(&g_renderer.GetMainCamera());
+	defaultInput.SetCamera(&g_scene.GetMainCamera());
 	Input::PushContext(&defaultInput);
 
 	bool isQuitting = false;
@@ -126,18 +126,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 		// Primary render action
 		{
-			Camera* pCamera = &g_renderer.GetMainCamera();
-			pCamera->UpdateFrustum();
+			Camera& rCamera = g_scene.GetMainCamera();
+			rCamera.UpdateFrustum();
 
-			g_scene.QueueShadowMaps(g_renderer, pCamera);
+			g_scene.QueueShadowMaps(g_renderer, rCamera);
 
-			g_renderer.BeginPrimaryAction(pCamera, g_scene.GetLightList());
+			g_renderer.BeginPrimaryAction(rCamera, g_scene.GetLightList());
 
 			g_scene.QueueDraw(g_renderer);
 			DebugConsole::QueueDraw(g_renderer);
 
 			// Debug
-			Debug::QueueDebugDisplay(g_renderer, frameTimer);
+			Debug::QueueDebugDisplay(g_renderer, g_scene, frameTimer);
 
 			g_renderer.EndAction();
 		}

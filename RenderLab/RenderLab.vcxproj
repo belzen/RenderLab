@@ -176,8 +176,10 @@
     <ClCompile Include="render\Light.cpp" />
     <ClCompile Include="render\Model.cpp" />
     <ClCompile Include="render\RdrContext.cpp" />
+    <ClCompile Include="render\RdrContextD3D11.cpp" />
+    <ClCompile Include="render\RdrDrawOp.cpp" />
     <ClCompile Include="render\Renderer.cpp" />
-    <ClCompile Include="render\Shaders.cpp" />
+    <ClCompile Include="render\RdrShaders.cpp" />
     <ClCompile Include="render\Sprite.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Timer.cpp" />
@@ -211,8 +213,13 @@
     <ClInclude Include="render\Light.h" />
     <ClInclude Include="render\Model.h" />
     <ClInclude Include="render\RdrContext.h" />
+    <ClInclude Include="render\RdrContextD3D11.h" />
+    <ClInclude Include="render\RdrDeviceObjects.h" />
+    <ClInclude Include="render\RdrDrawOp.h" />
+    <ClInclude Include="render\RdrEnums.h" />
+    <ClInclude Include="render\RdrHandles.h" />
     <ClInclude Include="render\Renderer.h" />
-    <ClInclude Include="render\Shaders.h" />
+    <ClInclude Include="render\RdrShaders.h" />
     <ClInclude Include="render\Sprite.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="shapes\Plane.h" />

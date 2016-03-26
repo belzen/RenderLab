@@ -77,10 +77,10 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 		Json::Value jCamera = root.get("camera", Json::Value::null);
 
 		Json::Value jPos = jCamera.get("position", Json::Value::null);
-		pContext->m_mainCamera.SetPosition(readVec3(jPos));
+		m_mainCamera.SetPosition(readVec3(jPos));
 
 		Json::Value jRot = jCamera.get("rotation", Json::Value::null);
-		pContext->m_mainCamera.SetPitchYawRoll(readPitchYawRoll(jRot));
+		m_mainCamera.SetPitchYawRoll(readPitchYawRoll(jRot));
 	}
 
 	// Lights
@@ -191,9 +191,9 @@ void Scene::Update(float dt)
 {
 }
 
-void Scene::QueueShadowMaps(Renderer& rRenderer, const Camera* pCamera)
+void Scene::QueueShadowMaps(Renderer& rRenderer, const Camera& rCamera)
 {
-	m_lights.PrepareDrawForScene(rRenderer, rRenderer.GetMainCamera(), *this);
+	m_lights.PrepareDrawForScene(rRenderer, rCamera, *this);
 }
 
 void Scene::QueueDraw(Renderer& rRenderer) const

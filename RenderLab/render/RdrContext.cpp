@@ -706,20 +706,3 @@ ShaderHandle RdrContext::LoadComputeShader(const char* filename)
 	*pShader = ComputeShader::Create(m_pDevice, filename);
 	return m_computeShaders.getId(pShader);
 }
-
-/////////////////////////
-// RdrDrawOp
-typedef FreeList<RdrDrawOp, 16 * 1024> RdrDrawOpList;
-RdrDrawOpList g_drawOpList;
-
-RdrDrawOp* RdrDrawOp::Allocate()
-{
-	RdrDrawOp* pDrawOp = g_drawOpList.alloc();
-	memset(pDrawOp, 0, sizeof(RdrDrawOp));
-	return pDrawOp;
-}
-
-void RdrDrawOp::Release(RdrDrawOp* pDrawOp)
-{
-	g_drawOpList.release(pDrawOp);
-}

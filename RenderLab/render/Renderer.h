@@ -17,6 +17,7 @@ class Camera;
 class WorldObject;
 struct RdrAction;
 struct RdrPass;
+struct RdrDrawOp;
 struct Light;
 class LightList;
 
@@ -30,7 +31,7 @@ public:
 
 	void BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilView depthView, Rect& viewport);
 	void BeginShadowCubeMapAction(const Light* pLight, RdrRenderTargetView* pTargetViews, Rect& viewport);
-	void BeginPrimaryAction(const Camera* pCamera, const LightList* pLights);
+	void BeginPrimaryAction(const Camera& rCamera, const LightList* pLights);
 	void EndAction();
 
 	void AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);
@@ -46,8 +47,6 @@ public:
 	Vec2 GetViewportSize() const { return Vec2((float)m_viewWidth, (float)m_viewHeight); }
 
 	RdrResourceHandle GetDepthTex() const { return m_hDepthTex; }
-
-	Camera& GetMainCamera() { return m_context.m_mainCamera; }
 
 private:
 	void CreatePrimaryTargets(int width, int height);
@@ -76,6 +75,8 @@ private:
 
 	std::vector<RdrAction*> m_actions;
 	RdrAction*				m_pCurrentAction;
+
+	RdrResourceHandle m_hTileLightIndices;
 
 	int m_viewWidth;
 	int m_viewHeight;

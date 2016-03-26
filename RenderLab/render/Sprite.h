@@ -1,8 +1,9 @@
 #pragma once
 
-#include "RdrContext.h"
+#include "RdrDrawOp.h"
 
 class Renderer;
+class RdrContext;
 
 class Sprite
 {
