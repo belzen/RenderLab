@@ -18,7 +18,7 @@ void WorldObject::QueueDraw(Renderer& rRenderer) const
 	if (m_pModel)
 	{
 		RdrGeoHandle hGeo = m_pModel->GetGeoHandle();
-		float radius = rRenderer.GetContext()->m_geo.get(hGeo)->radius * Vec3MaxComponent(m_scale);
+		float radius = rRenderer.GetContext()->GetGeometry(hGeo)->radius * Vec3MaxComponent(m_scale);
 		if (!rRenderer.GetCurrentCamera().CanSee(m_position, radius))
 			return;
 

@@ -13,9 +13,9 @@
 
 namespace
 {
-	static D3D11_INPUT_ELEMENT_DESC s_vertexDesc[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	static RdrVertexInputElement s_vertexDesc[] = {
+		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RG_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
+		{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 8, kRdrVertexInputClass_PerVertex, 0 }
 	};
 
 	struct TextVertex
@@ -31,9 +31,8 @@ namespace
 
 		RdrResourceHandle hTexture;
 
-		ShaderHandle hVertexShader;
-		ShaderHandle hPixelShader;
-		ID3D11InputLayout* pInputLayout;
+		RdrShaderHandle hVertexShader;
+		RdrShaderHandle hPixelShader;
 	} g_text;
 
 	static void loadFontData(const char* filename)
@@ -48,8 +47,7 @@ namespace
 
 	void queueDrawCommon(Renderer& rRenderer, const UI::Position& uiPos, float size, RdrGeoHandle hTextGeo, bool bFreeGeo, Color color)
 	{
-		RdrContext* pRdrContext = rRenderer.GetContext();
-		RdrGeometry* pGeo = pRdrContext->m_geo.get(hTextGeo);
+		const RdrGeometry* pGeo = rRenderer.GetContext()->GetGeometry(hTextGeo);
 
 		Vec3 pos = UI::PosToScreenSpace(uiPos, Vec2(pGeo->size.x, pGeo->size.y) * size, rRenderer.GetViewportSize());
 
@@ -75,13 +73,13 @@ void Font::Init(RdrContext* pRdrContext)
 	loadFontData("data/textures/fonts/verdana.dat");
 
 	g_text.hTexture = pRdrContext->LoadTexture(filename);
-	g_text.glyphPixelSize = pRdrContext->m_resources.get(g_text.hTexture)->width / 16;
+	g_text.glyphPixelSize = pRdrContext->GetResource(g_text.hTexture)->width / 16;
 
 	g_text.hVertexShader = pRdrContext->LoadVertexShader("v_text.hlsl", s_vertexDesc, ARRAYSIZE(s_vertexDesc));
 	g_text.hPixelShader = pRdrContext->LoadPixelShader("p_text.hlsl");
 }
 
-RdrGeoHandle Font::CreateTextGeo(Renderer& rRenderer, const char* text)
+RdrGeoHandle Font::CreateTextGeo(RdrContext* pRdrContext, const char* text)
 {
 	static const int kMaxLen = 1024;
 	static TextVertex verts[kMaxLen * 4];
@@ -152,12 +150,12 @@ RdrGeoHandle Font::CreateTextGeo(Renderer& rRenderer, const char* text)
 	}
 
 	Vec3 size(max(x + 0.5f, xMax), abs(y), 0.f);
-	return rRenderer.GetContext()->CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, size);
+	return pRdrContext->CreateGeometry(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, size);
 }
 
 void Font::QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const char* text, Color color)
 {
-	RdrGeoHandle hGeo = CreateTextGeo(rRenderer, text);
+	RdrGeoHandle hGeo = CreateTextGeo(rRenderer.GetContext(), text);
 	queueDrawCommon(rRenderer, pos, size, hGeo, true, color);
 }
 

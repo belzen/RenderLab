@@ -30,7 +30,6 @@ StructuredBuffer<ShadowData> g_shadowData : register(t18);
 
 Texture2DArray shadowMaps : register(t14);
 TextureCubeArray shadowCubeMaps : register(t15);
-SamplerState shadowSampler : register(s14);
 SamplerComparisonState shadowMapsSampler : register(s15);
 
 int getTileId(in float2 screenPos, in uint screenWidth)

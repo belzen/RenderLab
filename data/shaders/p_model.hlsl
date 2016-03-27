@@ -1,11 +1,5 @@
+#include "ps_common.hlsli"
 #include "light_inc.hlsli"
-
-cbuffer PerFrame
-{
-	float4x4 invProjMat;
-	float3 viewPosition;
-	uint screenWidth;
-};
 
 static float4 ambient_color = float4(1.f, 1.f, 1.f, 1.f);
 static float ambient_intensity = 0.1f;
@@ -39,8 +33,8 @@ float4 main(PixelInput input) : SV_TARGET
 	normal = (normal.x * input.tangent) + (normal.y * input.bitangent) + (normal.z * input.normal);
 	normal = normalize(normal);
 
-	float3 cameraViewDir = normalize(viewPosition - input.position_ws.xyz);
+	float3 cameraViewDir = normalize(cbPerFrame.viewPos - input.position_ws.xyz);
 
-	float4 litColor = doLighting(input.position_ws, color, normal, cameraViewDir, input.position.xy, screenWidth);
+	float4 litColor = doLighting(input.position_ws, color, normal, cameraViewDir, input.position.xy, cbPerFrame.viewWidth);
 	return saturate(ambient + litColor);
 }

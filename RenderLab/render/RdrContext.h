@@ -1,100 +1,141 @@
 #pragma once
 
 #include <map>
-#include "RdrHandles.h"
-#include "RdrDeviceObjects.h"
-#include "Math.h"
+#include "RdrDeviceTypes.h"
+#include "RdrGeometry.h"
 #include "RdrShaders.h"
+#include "Math.h"
 #include "FreeList.h"
 #include "Camera.h"
 
-struct ID3D11Device;
-struct ID3D11DeviceContext;
-struct ID3D11Buffer;
-struct ID3D11Texture2D;
-struct ID3D11ShaderResourceView;
-struct ID3D11UnorderedAccessView;
-struct ID3D11DepthStencilView;
-struct ID3D11RenderTargetView;
-struct ID3D11View;
-struct ID3D11Resource;
-struct ID3D11InputLayout;
-struct ID3D11SamplerState;
-struct D3D11_INPUT_ELEMENT_DESC;
+struct RdrDrawOp;
+class LightList;
 
 #define MAX_TEXTURES 1024
 #define MAX_SHADERS 1024
 #define MAX_GEO 1024
 
-struct Vertex
+typedef FreeList<RdrResource, MAX_TEXTURES> RdrResourceList;
+typedef FreeList<RdrVertexShader, MAX_SHADERS> RdrVertexShaderList;
+typedef FreeList<RdrPixelShader, MAX_SHADERS> RdrPixelShaderList;
+typedef FreeList<RdrComputeShader, MAX_SHADERS> RdrComputeShaderList;
+typedef FreeList<RdrGeometry, MAX_GEO> RdrGeoList;
+
+typedef std::map<std::string, RdrResourceHandle> RdrTextureMap;
+typedef std::map<std::string, RdrShaderHandle> RdrShaderMap;
+typedef std::map<std::string, RdrGeoHandle> RdrGeoMap;
+
+enum RdrResourceMapMode
 {
-	Vec3 position;
-	Vec3 normal;
-	Color color;
-	Vec2 texcoord;
-	Vec3 tangent;
-	Vec3 bitangent;
+	kRdrResourceMap_Read,
+	kRdrResourceMap_Write,
+	kRdrResourceMap_ReadWrite,
+	kRdrResourceMap_WriteDiscard,
+	kRdrResourceMap_WriteNoOverwrite,
+
+	kRdrResourceMap_Count
 };
 
-#define SAMPLER_TYPES_COUNT kComparisonFunc_Count * kRdrTexCoordMode_Count * 2
+typedef uint RdrCpuAccessFlags;
+enum RdrCpuAccessFlag
+{
+	kRdrCpuAccessFlag_Read  = 0x1,
+	kRdrCpuAccessFlag_Write = 0x2
+};
 
-typedef FreeList<RdrResource, MAX_TEXTURES> RdrResourceList;
-typedef FreeList<VertexShader, MAX_SHADERS> VertexShaderList;
-typedef FreeList<PixelShader, MAX_SHADERS> PixelShaderList;
-typedef FreeList<ComputeShader, MAX_SHADERS> ComputeShaderList;
-typedef FreeList<RdrGeometry, MAX_GEO> RdrGeoList;
-typedef std::map<std::string, RdrResourceHandle> TextureMap;
-typedef std::map<std::string, ShaderHandle> ShaderMap;
-typedef std::map<std::string, RdrGeoHandle> GeoMap;
+enum RdrResourceUsage
+{
+	kRdrResourceUsage_Default,
+	kRdrResourceUsage_Immutable,
+	kRdrResourceUsage_Dynamic,
+	kRdrResourceUsage_Staging,
+
+	kRdrResourceUsage_Count
+};
 
 class RdrContext
 {
 public:
-	void InitSamplers();
-	RdrSampler GetSampler(const RdrSamplerState& state);
-
 	RdrGeoHandle LoadGeo(const char* filename);
-	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& size);
 
-	RdrResourceHandle LoadTexture(const char* filename);
-	void ReleaseResource(RdrResourceHandle hTex);
+	virtual bool Init(HWND hWnd, uint width, uint height, uint msaaLevel) = 0;
+	virtual void Release() = 0;
 
-	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat format);
-	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format);
+	virtual RdrGeoHandle CreateGeometry(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& size) = 0;
+	virtual void ReleaseGeometry(RdrGeoHandle hGeo) = 0;
+	const RdrGeometry* GetGeometry(RdrGeoHandle hGeo) const;
 
-	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat format);
-	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat format);
+	virtual RdrResourceHandle LoadTexture(const char* filename) = 0;
 
-	RdrDepthStencilView CreateDepthStencilView(RdrResourceHandle hTexArrayRes, int arrayIndex);
-	RdrRenderTargetView CreateRenderTargetView(RdrResourceHandle hTexArrayRes, int arrayIndex, RdrResourceFormat format);
+	const RdrResource* GetResource(RdrResourceHandle hRes) const;
+	virtual void ReleaseResource(RdrResourceHandle hRes) = 0;;
 
-	ShaderHandle LoadVertexShader(const char* filename, D3D11_INPUT_ELEMENT_DESC* aDesc, int numElements);
-	ShaderHandle LoadPixelShader(const char* filename);
-	ShaderHandle LoadComputeShader(const char* filename);
+	virtual RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat format) = 0;
+	virtual RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount) = 0;
+	virtual RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format) = 0;
 
-	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize);
+	virtual RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat format) = 0;
+	virtual RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat format) = 0;
 
-	ID3D11Buffer* CreateVertexBuffer(const void* vertices, int size);
-	ID3D11Buffer* CreateIndexBuffer(const void* indices, int size);
+	virtual RdrDepthStencilView CreateDepthStencilView(RdrResourceHandle hDepthTex, RdrResourceFormat format, bool bMultisampled) = 0;
+	virtual RdrDepthStencilView CreateDepthStencilView(RdrResourceHandle hDepthTexArray, int arrayIndex, RdrResourceFormat format) = 0;
 
-//private:
-	ID3D11Device* m_pDevice;
-	ID3D11DeviceContext* m_pContext;
+	virtual RdrRenderTargetView CreateRenderTargetView(RdrResourceHandle hTexArrayRes, int arrayIndex, RdrResourceFormat format) = 0;
 
-	RdrSampler m_samplers[SAMPLER_TYPES_COUNT];
+	virtual RdrShaderHandle LoadVertexShader(const char* filename, RdrVertexInputElement* inputDesc, uint numElements) = 0;
+	virtual RdrShaderHandle LoadPixelShader(const char* filename) = 0;
+	virtual RdrShaderHandle LoadComputeShader(const char* filename) = 0;
 
-	TextureMap m_textureCache;
+	virtual RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize) = 0;
+	
+	virtual RdrResourceHandle CreateVertexBuffer(const void* vertices, int size) = 0;
+	virtual RdrResourceHandle CreateIndexBuffer(const void* indices, int size) = 0;
+
+	virtual void DrawGeo(RdrDrawOp* pDrawOp, RdrShaderMode eShaderMode, const LightList* pLightList, RdrResourceHandle hTileLightIndices) = 0;
+	virtual void DispatchCompute(RdrDrawOp* pDrawOp) = 0;
+
+	virtual void SetRenderTargets(uint numTargets, RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget) = 0;
+	virtual void SetDepthStencilState(RdrDepthTestMode eDepthTest) = 0;
+	virtual void SetBlendState(const bool bAlphaBlend) = 0;
+	virtual void SetRasterState(const RdrRasterState& rasterState) = 0;
+	virtual void SetViewport(const Rect& viewport) = 0;
+
+	virtual void BeginEvent(LPCWSTR eventName) = 0;
+	virtual void EndEvent() = 0;
+
+	virtual void Resize(uint width, uint height) = 0;
+	virtual void Present() = 0;
+
+	virtual void ClearRenderTargetView(const RdrRenderTargetView& renderTarget, const Color& clearColor) = 0;
+	virtual void ClearDepthStencilView(const RdrDepthStencilView& depthStencil, const bool bClearDepth, const float depthVal, const bool bClearStencil, const uint8 stencilVal) = 0;
+
+	virtual RdrRenderTargetView GetPrimaryRenderTarget() = 0;
+	virtual RdrDepthStencilView GetPrimaryDepthStencilTarget() = 0;
+	virtual RdrResourceHandle GetPrimaryDepthTexture() = 0;
+
+	virtual void* MapResource(RdrResourceHandle hResource, RdrResourceMapMode mapMode) = 0;
+	virtual void UnmapResource(RdrResourceHandle hResource) = 0;
+
+	virtual RdrResourceHandle CreateConstantBuffer(uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage) = 0;
+	virtual void VSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers) = 0;
+	virtual void PSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers) = 0;
+
+	virtual void PSClearResources() = 0;
+
+protected:
+	RdrTextureMap m_textureCache;
 	RdrResourceList m_resources;
 
-	ShaderMap m_vertexShaderCache;
-	VertexShaderList m_vertexShaders;
+	RdrShaderMap m_vertexShaderCache;
+	RdrVertexShaderList m_vertexShaders;
 
-	ShaderMap m_pixelShaderCache;
-	PixelShaderList m_pixelShaders;
+	RdrShaderMap m_pixelShaderCache;
+	RdrPixelShaderList m_pixelShaders;
 
-	ComputeShaderList m_computeShaders;
+	RdrShaderMap m_computeShaderCache;
+	RdrComputeShaderList m_computeShaders;
 
-	GeoMap m_geoCache;
+	RdrGeoMap m_geoCache;
 	RdrGeoList m_geo;
 };
 

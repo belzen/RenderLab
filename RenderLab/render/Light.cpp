@@ -63,28 +63,30 @@ void LightList::AddLight(Light& light)
 
 void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, const Scene& scene)
 {
+	static const RdrResourceFormat kDepthFormat = kResourceFormat_D16;
+
 	RdrContext* pContext = rRenderer.GetContext();
 	if (!m_hShadowMapTexArray)
 	{
-		m_hShadowMapTexArray = pContext->CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, kResourceFormat_D16);
+		m_hShadowMapTexArray = pContext->CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, kDepthFormat);
 		for (int i = 0; i < MAX_SHADOW_MAPS; ++i)
 		{
-			m_shadowMapDepthViews[i] = pContext->CreateDepthStencilView(m_hShadowMapTexArray, i);
+			m_shadowMapDepthViews[i] = pContext->CreateDepthStencilView(m_hShadowMapTexArray, i, kDepthFormat);
 		}
 	}
 	if (!m_hShadowCubeMapTexArray)
 	{
 #if SINGLEPASS_SHADOW_CUBEMAP
-		m_hShadowCubeMapTexArray = pContext->CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, kResourceFormat_R16_UNORM);
+		m_hShadowCubeMapTexArray = pContext->CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, kDepthFormat);
 		for (int i = 0; i < MAX_SHADOW_CUBEMAPS; ++i)
 		{
 			m_shadowCubeMapViews[i] = pContext->CreateRenderTargetView(m_hShadowCubeMapTexArray, i, kResourceFormat_R16_UNORM);
 		}
 #else
-		m_hShadowCubeMapTexArray = pContext->CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, kResourceFormat_D16);
+		m_hShadowCubeMapTexArray = pContext->CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, kDepthFormat);
 		for (int i = 0; i < MAX_SHADOW_CUBEMAPS * 6; ++i)
 		{
-			m_shadowCubeMapDepthViews[i] = pContext->CreateDepthStencilView(m_hShadowCubeMapTexArray, i);
+			m_shadowCubeMapDepthViews[i] = pContext->CreateDepthStencilView(m_hShadowCubeMapTexArray, i, kDepthFormat);
 		}
 #endif
 	}

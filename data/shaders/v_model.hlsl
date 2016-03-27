@@ -1,11 +1,13 @@
-cbuffer PerFrame
+#include "vs_constants.h"
+
+cbuffer PerFrame : register(b0)
 {
-	float4x4 viewproj_mat;
+	VsPerFrame cbPerFrame;
 }; 
 
-cbuffer PerObject
+cbuffer PerObject : register(b1)
 {
-	float4x4 world_mat;
+	float4x4 mtxWorld;
 };
 
 struct VertexInput
@@ -33,12 +35,12 @@ VertexOutput main( VertexInput input )
 {
 	VertexOutput output;
 
-	output.position_ws = mul(input.position, world_mat);
-	output.position = mul(output.position_ws, viewproj_mat);
+	output.position_ws = mul(input.position, mtxWorld);
+	output.position = mul(output.position_ws, cbPerFrame.mtxViewProj);
 
-	output.normal = mul(input.normal, (float3x3)world_mat);
-	output.tangent = mul(input.tangent, (float3x3)world_mat);
-	output.bitangent = mul(input.bitangent, (float3x3)world_mat);
+	output.normal = mul(input.normal, (float3x3)mtxWorld);
+	output.tangent = mul(input.tangent, (float3x3)mtxWorld);
+	output.bitangent = mul(input.bitangent, (float3x3)mtxWorld);
 
 	output.color = input.color;
 	output.texcoords = input.texcoords;

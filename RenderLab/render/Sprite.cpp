@@ -1,6 +1,7 @@
 #include "Precompiled.h"
 #include "Sprite.h"
 #include "Renderer.h"
+#include "RdrDrawOp.h"
 #include <d3d11.h>
 
 namespace
@@ -11,13 +12,11 @@ namespace
 		Vec2 uv;
 	};
 
-	static D3D11_INPUT_ELEMENT_DESC s_vertexDesc[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	static RdrVertexInputElement s_vertexDesc[] = {
+		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RG_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
+		{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 8, kRdrVertexInputClass_PerVertex, 0 }
 	};
 }
-
 
 void Sprite::Init(RdrContext* pRdrContext, const Vec2 aTexcoords[4], const char* textureName)
 {
@@ -36,7 +35,7 @@ void Sprite::Init(RdrContext* pRdrContext, const Vec2 aTexcoords[4], const char*
 	verts[3].uv = aTexcoords[3];
 
 	uint16 indices[6] = { 0, 1, 2, 1, 3, 2 };
-	m_hGeo = pRdrContext->CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, Vec3(1.f, 1.f, 0.0f));
+	m_hGeo = pRdrContext->CreateGeometry(verts, sizeof(SpriteVertex), 4, indices, 6, Vec3(1.f, 1.f, 0.0f));
 }
 
 void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha)

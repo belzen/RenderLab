@@ -9,8 +9,8 @@ class Model
 {
 public:
 	Model(RdrGeoHandle hGeo,
-		ShaderHandle hVertexShader,
-		ShaderHandle hPixelShader,
+		RdrShaderHandle hVertexShader,
+		RdrShaderHandle hPixelShader,
 		RdrSamplerState* aSamplers,
 		RdrResourceHandle* ahTextures,
 		int numTextures );
@@ -21,8 +21,8 @@ public:
 
 	RdrGeoHandle GetGeoHandle() const { return m_hGeo; }
 private:
-	ShaderHandle m_hVertexShader;
-	ShaderHandle m_hPixelShader;
+	RdrShaderHandle m_hVertexShader;
+	RdrShaderHandle m_hPixelShader;
 	RdrGeoHandle m_hGeo;
 	RdrSamplerState m_samplers[MAX_TEXTURES_PER_DRAW];
 	RdrResourceHandle m_hTextures[MAX_TEXTURES_PER_DRAW];

@@ -1,0 +1,143 @@
+#pragma once
+
+struct ID3D11DepthStencilView;
+struct ID3D11RenderTargetView;
+struct ID3D11SamplerState;
+
+enum RdrShaderSemantic
+{
+	kRdrShaderSemantic_Position,
+	kRdrShaderSemantic_Texcoord,
+	kRdrShaderSemantic_Color,
+	kRdrShaderSemantic_Normal,
+	kRdrShaderSemantic_Binormal,
+	kRdrShaderSemantic_Tangent,
+
+	kRdrShaderSemantic_Count
+};
+
+enum RdrVertexInputFormat
+{
+	kRdrVertexInputFormat_RG_F32,
+	kRdrVertexInputFormat_RGB_F32,
+	kRdrVertexInputFormat_RGBA_F32,
+
+	kRdrVertexInputFormat_Count
+};
+
+enum RdrVertexInputClass
+{
+	kRdrVertexInputClass_PerVertex,
+	kRdrVertexInputClass_PerInstance,
+
+	kRdrVertexInputClass_Count
+};
+
+struct RdrVertexInputElement
+{
+	RdrShaderSemantic semantic;
+	uint semanticIndex;
+	RdrVertexInputFormat format;
+	uint streamIndex;
+	uint byteOffset;
+	RdrVertexInputClass inputClass;
+	uint instanceDataStepRate;
+};
+
+enum RdrPassEnum
+{
+	kRdrPass_ZPrepass,
+	kRdrPass_Opaque,
+	kRdrPass_Alpha,
+	kRdrPass_UI,
+
+	kRdrPass_Count
+};
+
+enum RdrBucketType
+{
+	kRdrBucketType_Opaque,
+	kRdrBucketType_Alpha,
+	kRdrBucketType_UI,
+
+	kRdrBucketType_Count
+};
+
+enum RdrShaderMode
+{
+	kRdrShaderMode_Normal,
+	kRdrShaderMode_DepthOnly,
+	kRdrShaderMode_CubeMapDepthOnly,
+
+	kRdrShaderMode_Count
+};
+
+enum RdrTexCoordMode
+{
+	kRdrTexCoordMode_Wrap,
+	kRdrTexCoordMode_Clamp,
+	kRdrTexCoordMode_Mirror,
+
+	kRdrTexCoordMode_Count
+};
+
+enum RdrResourceFormat
+{
+	kResourceFormat_D16,
+	kResourceFormat_D24_UNORM_S8_UINT,
+	kResourceFormat_R16_UNORM,
+	kResourceFormat_RG_F16,
+	kResourceFormat_Count,
+};
+
+enum RdrComparisonFunc
+{
+	kComparisonFunc_Never,
+	kComparisonFunc_Less,
+	kComparisonFunc_Equal,
+	kComparisonFunc_LessEqual,
+	kComparisonFunc_Greater,
+	kComparisonFunc_NotEqual,
+	kComparisonFunc_GreaterEqual,
+	kComparisonFunc_Always,
+
+	kComparisonFunc_Count
+};
+
+enum RdrDepthTestMode
+{
+	kRdrDepthTestMode_None,
+	kRdrDepthTestMode_Less,
+	kRdrDepthTestMode_Equal,
+
+	kRdrDepthTestMode_Count,
+};
+
+struct RdrRasterState
+{
+	uint bEnableMSAA : 1;
+	uint bEnableScissor : 1;
+	uint bWireframe : 1;
+};
+
+struct RdrSamplerState
+{
+	RdrSamplerState()
+		: cmpFunc(kComparisonFunc_Never), texcoordMode(kRdrTexCoordMode_Wrap), bPointSample(false) {}
+	RdrSamplerState(const RdrComparisonFunc cmpFunc, const RdrTexCoordMode texcoordMode, const bool bPointSample)
+		: cmpFunc(cmpFunc), texcoordMode(texcoordMode), bPointSample(bPointSample) {}
+
+	uint cmpFunc : 4;
+	uint texcoordMode : 2;
+	uint bPointSample : 1;
+};
+
+struct RdrDepthStencilView
+{
+	ID3D11DepthStencilView* pView;
+};
+
+struct RdrRenderTargetView
+{
+	ID3D11RenderTargetView* pView;
+};

@@ -47,6 +47,12 @@ public:
 		return &m_objects[id];
 	}
 
+	const T_object* get(uint id) const
+	{
+		assert(m_inUse[id]);
+		return &m_objects[id];
+	}
+
 	uint getId(T_object* pObj)
 	{
 		return pObj - m_objects;

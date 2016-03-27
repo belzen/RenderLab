@@ -1,5 +1,9 @@
 #pragma once
 
+#define NOMINMAX
+#include <windows.h>
+
+
 #include <malloc.h>
 #include <assert.h>
 

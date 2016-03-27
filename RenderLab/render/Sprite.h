@@ -1,6 +1,8 @@
 #pragma once
 
-#include "RdrDrawOp.h"
+#include "RdrGeometry.h"
+#include "RdrShaders.h"
+#include "RdrDeviceTypes.h"
 
 class Renderer;
 class RdrContext;
@@ -14,8 +16,8 @@ public:
 	void QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha);
 
 private:
-	ShaderHandle m_hVertexShader;
-	ShaderHandle m_hPixelShader;
+	RdrShaderHandle m_hVertexShader;
+	RdrShaderHandle m_hPixelShader;
 	RdrGeoHandle m_hGeo;
 	RdrResourceHandle m_hTexture;
 };

@@ -177,9 +177,9 @@
     <ClCompile Include="render\Model.cpp" />
     <ClCompile Include="render\RdrContext.cpp" />
     <ClCompile Include="render\RdrContextD3D11.cpp" />
+    <ClCompile Include="render\RdrContextD3D11_Shaders.cpp" />
     <ClCompile Include="render\RdrDrawOp.cpp" />
     <ClCompile Include="render\Renderer.cpp" />
-    <ClCompile Include="render\RdrShaders.cpp" />
     <ClCompile Include="render\Sprite.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Timer.cpp" />
@@ -187,6 +187,7 @@
     <ClCompile Include="WorldObject.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\data\shaders\ps_constants.h" />
     <ClInclude Include="debug\Debug.h" />
     <ClInclude Include="debug\DebugConsole.h" />
     <ClInclude Include="FileWatcher.h" />
@@ -214,10 +215,11 @@
     <ClInclude Include="render\Model.h" />
     <ClInclude Include="render\RdrContext.h" />
     <ClInclude Include="render\RdrContextD3D11.h" />
-    <ClInclude Include="render\RdrDeviceObjects.h" />
+    <ClInclude Include="render\RdrDeviceTypes.h" />
     <ClInclude Include="render\RdrDrawOp.h" />
-    <ClInclude Include="render\RdrEnums.h" />
-    <ClInclude Include="render\RdrHandles.h" />
+    <ClInclude Include="render\RdrGeometry.h" />
+    <ClInclude Include="render\RdrResource.h" />
+    <ClInclude Include="render\RdrShaderConstants.h" />
     <ClInclude Include="render\Renderer.h" />
     <ClInclude Include="render\RdrShaders.h" />
     <ClInclude Include="render\Sprite.h" />
@@ -300,6 +302,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\data\shaders\light_inc.hlsli" />
+    <None Include="..\data\shaders\ps_common.hlsli" />
+    <None Include="..\data\shaders\vs_common.hlsli" />
+    <None Include="..\data\shaders\vs_constants.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

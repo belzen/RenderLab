@@ -9,13 +9,13 @@
 #include <fstream>
 #include <d3d11.h>
 
-static D3D11_INPUT_ELEMENT_DESC s_modelVertexDesc[] = {
-	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 40, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 48, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 60, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+static RdrVertexInputElement s_modelVertexDesc[] = {
+	{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RGB_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
+	{ kRdrShaderSemantic_Normal, 0, kRdrVertexInputFormat_RGB_F32, 0, 12, kRdrVertexInputClass_PerVertex, 0 },
+	{ kRdrShaderSemantic_Color, 0, kRdrVertexInputFormat_RGBA_F32, 0, 24, kRdrVertexInputClass_PerVertex, 0 },
+	{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 40, kRdrVertexInputClass_PerVertex, 0 },
+	{ kRdrShaderSemantic_Tangent, 0, kRdrVertexInputFormat_RGB_F32, 0, 48, kRdrVertexInputClass_PerVertex, 0 },
+	{ kRdrShaderSemantic_Binormal, 0, kRdrVertexInputFormat_RGB_F32, 0, 60, kRdrVertexInputClass_PerVertex, 0 }
 };
 
 Scene::Scene()
@@ -159,10 +159,10 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 			Vec3 scale = readScale(jObj.get("scale", Json::Value::null));
 
 			Json::Value jPixel = jObj.get("pixelShader", Json::Value::null);
-			ShaderHandle hPixelShader = pContext->LoadPixelShader(jPixel.asCString());
+			RdrShaderHandle hPixelShader = pContext->LoadPixelShader(jPixel.asCString());
 			
 			Json::Value jVertex = jObj.get("vertexShader", Json::Value::null);
-			ShaderHandle hVertexShader = pContext->LoadVertexShader(jVertex.asCString(), s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));
+			RdrShaderHandle hVertexShader = pContext->LoadVertexShader(jVertex.asCString(), s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));
 			
 			Json::Value jModel = jObj.get("model", Json::Value::null);
 			RdrGeoHandle hGeo = pContext->LoadGeo(jModel.asCString());

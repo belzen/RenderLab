@@ -6,8 +6,8 @@
 
 
 Model::Model(RdrGeoHandle hGeo,
-	ShaderHandle hVertexShader,
-	ShaderHandle hPixelShader,
+	RdrShaderHandle hVertexShader,
+	RdrShaderHandle hPixelShader,
 	RdrSamplerState* aSamplers,
 	RdrResourceHandle* ahTextures,
 	int numTextures)

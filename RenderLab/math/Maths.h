@@ -12,6 +12,9 @@
 
 #include "Vec3Math.h"
 
+using std::min;
+using std::max;
+
 namespace Maths
 {
 	const float kPi = DirectX::XM_PI;

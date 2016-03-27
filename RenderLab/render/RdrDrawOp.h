@@ -1,7 +1,7 @@
 #pragma once
-#include "RdrEnums.h"
-#include "RdrHandles.h"
-#include "RdrDeviceObjects.h"
+#include "RdrDeviceTypes.h"
+#include "RdrGeometry.h"
+#include "RdrShaders.h"
 
 #define MAX_TEXTURES_PER_DRAW 16
 
@@ -23,13 +23,13 @@ struct RdrDrawOp
 	Vec4 constants[16];
 	uint numConstants;
 
-	ShaderHandle hVertexShaders[kRdrShaderMode_Count];
-	ShaderHandle hPixelShaders[kRdrShaderMode_Count];
+	RdrShaderHandle hVertexShaders[kRdrShaderMode_Count];
+	RdrShaderHandle hPixelShaders[kRdrShaderMode_Count];
 
 	RdrGeoHandle hGeo;
 	bool bFreeGeo;
 
-	ShaderHandle hComputeShader;
+	RdrShaderHandle hComputeShader;
 	int computeThreads[3];
 
 	bool needsLighting;
