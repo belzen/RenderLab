@@ -27,6 +27,7 @@ public:
 	void AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);
 
 	void DrawFrame();
+	void PostFrameSync();
 
 	RdrContext* GetContext() { return m_pContext; }
 	const Camera& GetCurrentCamera(void) const;
@@ -46,7 +47,8 @@ private:
 	RdrResourceHandle m_hPerFrameBufferVS;
 	RdrResourceHandle m_hPerFrameBufferPS;
 
-	std::vector<RdrAction*> m_actions;
+	std::vector<RdrAction*> m_queuedActions; // Actions being queued by main thread
+	std::vector<RdrAction*> m_frameActions; // Actions being rendered.
 	RdrAction*				m_pCurrentAction;
 
 	RdrResourceHandle m_hTileLightIndices;

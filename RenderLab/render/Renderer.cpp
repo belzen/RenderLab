@@ -60,7 +60,7 @@ struct RdrAction
 	const LightList* pLights;
 };
 
-static RdrAction s_actionRingBuffer[16];
+static RdrAction s_actionRingBuffer[32];
 static uint s_nextAction = 0;
 static uint s_actionsInUse = 0;
 
@@ -383,7 +383,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLight
 
 void Renderer::EndAction()
 {
-	m_actions.push_back(m_pCurrentAction);
+	m_queuedActions.push_back(m_pCurrentAction);
 	m_pCurrentAction = nullptr;
 }
 
@@ -488,12 +488,48 @@ void Renderer::DrawPass(RdrAction* pAction, RdrPassEnum ePass)
 
 	m_pContext->EndEvent();
 }
-	
+
+void Renderer::PostFrameSync()
+{
+	// Return old frame actions to the pool.
+	uint numFrameActions = m_frameActions.size();
+	for (uint iAction = 0; iAction < numFrameActions; ++iAction)
+	{
+		RdrAction* pAction = m_frameActions[iAction];
+
+		// Free draw ops.
+		for (uint iBucket = 0; iBucket < kRdrBucketType_Count; ++iBucket)
+		{
+			uint numOps = pAction->buckets[iBucket].size();
+			std::vector<RdrDrawOp*>::iterator iter = pAction->buckets[iBucket].begin();
+			std::vector<RdrDrawOp*>::iterator endIter = pAction->buckets[iBucket].end();
+			for (; iter != endIter; ++iter)
+			{
+				RdrDrawOp* pDrawOp = *iter;
+				if (pDrawOp->bFreeGeo)
+				{
+					m_pContext->ReleaseGeometry(pDrawOp->hGeo);
+				}
+
+				RdrDrawOp::Release(pDrawOp);
+			}
+			pAction->buckets[iBucket].clear();
+		}
+
+		RdrAction::Release(pAction);
+	}
+
+	// Swap in new actions
+	m_frameActions = m_queuedActions;
+	m_queuedActions.clear();
+}
+
 void Renderer::DrawFrame()
 {
-	for (uint iAction = 0; iAction < m_actions.size(); ++iAction)
+	uint numFrameActions = m_frameActions.size();
+	for (uint iAction = 0; iAction < numFrameActions; ++iAction)
 	{
-		RdrAction* pAction = m_actions[iAction];
+		RdrAction* pAction = m_frameActions[iAction];
 		m_pContext->BeginEvent(pAction->name);
 
 		RdrRasterState rasterState;
@@ -521,30 +557,8 @@ void Renderer::DrawFrame()
 		}
 		DrawPass(pAction, kRdrPass_UI);
 
-		// Free draw ops.
-		for (uint iBucket = 0; iBucket < kRdrBucketType_Count; ++iBucket)
-		{
-			uint numOps = pAction->buckets[iBucket].size();
-			std::vector<RdrDrawOp*>::iterator iter = pAction->buckets[iBucket].begin();
-			std::vector<RdrDrawOp*>::iterator endIter = pAction->buckets[iBucket].end();
-			for (; iter != endIter; ++iter)
-			{
-				RdrDrawOp* pDrawOp = *iter;
-				if (pDrawOp->bFreeGeo)
-				{
-					m_pContext->ReleaseGeometry(pDrawOp->hGeo);
-				}
-
-				RdrDrawOp::Release(pDrawOp);
-			}
-			pAction->buckets[iBucket].clear();
-		}
-
 		m_pContext->EndEvent();
-		// Return action to the pool.
-		RdrAction::Release(pAction);
 	}
-	m_actions.clear();
 
 	m_pContext->Present();
 }

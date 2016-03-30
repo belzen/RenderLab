@@ -1,5 +1,6 @@
 #include "Precompiled.h"
 #include <windowsx.h>
+#include <thread>
 #include "render/Renderer.h"
 #include "render/Font.h"
 #include "Scene.h"
@@ -10,13 +11,19 @@
 #include "debug/DebugConsole.h"
 #include "debug/Debug.h"
 
-Renderer g_renderer;
-Scene g_scene;
-
 namespace
 {
 	const int kClientWidth = 1440;
 	const int kClientHeight = 960;
+
+	Scene g_scene;
+
+	Renderer g_renderer;
+
+	HANDLE g_hFrameSignal;
+	HANDLE g_hRenderFrameDoneEvent;
+
+	bool g_quitting;
 }
 
 LRESULT CALLBACK WinProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
@@ -63,6 +70,17 @@ LRESULT CALLBACK WinProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
+void renderThreadMain()
+{
+	while ( !g_quitting )
+	{
+		g_renderer.DrawFrame();
+
+		SetEvent(g_hRenderFrameDoneEvent);
+		WaitForSingleObject(g_hFrameSignal, INFINITE);
+	}
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 {
 	HWND hWnd;
@@ -100,10 +118,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 	defaultInput.SetCamera(&g_scene.GetMainCamera());
 	Input::PushContext(&defaultInput);
 
-	bool isQuitting = false;
 	FrameTimer frameTimer;
 
-	while (!isQuitting)
+	g_hFrameSignal = CreateEvent(NULL, false, false, L"Frame Done");
+	g_hRenderFrameDoneEvent = CreateEvent(NULL, false, false, L"Render Frame Done");
+	std::thread renderThread(renderThreadMain);
+
+	while (!g_quitting)
 	{
 		Input::Reset();
 
@@ -113,7 +134,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 			DispatchMessage(&msg);
 			if (msg.message == WM_QUIT)
 			{
-				isQuitting = true;
+				g_quitting = true;
 				break;
 			}
 		}
@@ -142,11 +163,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 			g_renderer.EndAction();
 		}
 
-		g_renderer.DrawFrame();
+		// Wait for render thread.
+		WaitForSingleObject(g_hRenderFrameDoneEvent, INFINITE);
 
+		// Sync threads.
+		g_renderer.PostFrameSync();
+
+		// Restart render thread
+		SetEvent(g_hFrameSignal);
 
 		frameTimer.Update(dt);
 	}
+
+	renderThread.join();
 
 	g_renderer.Cleanup();
 
