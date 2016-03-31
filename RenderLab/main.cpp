@@ -20,7 +20,7 @@ namespace
 
 	Renderer g_renderer;
 
-	HANDLE g_hFrameSignal;
+	HANDLE g_hFrameDoneEvent;
 	HANDLE g_hRenderFrameDoneEvent;
 
 	bool g_quitting;
@@ -77,7 +77,7 @@ void renderThreadMain()
 		g_renderer.DrawFrame();
 
 		SetEvent(g_hRenderFrameDoneEvent);
-		WaitForSingleObject(g_hFrameSignal, INFINITE);
+		WaitForSingleObject(g_hFrameDoneEvent, INFINITE);
 	}
 }
 
@@ -120,7 +120,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 	FrameTimer frameTimer;
 
-	g_hFrameSignal = CreateEvent(NULL, false, false, L"Frame Done");
+	g_hFrameDoneEvent = CreateEvent(NULL, false, false, L"Frame Done");
 	g_hRenderFrameDoneEvent = CreateEvent(NULL, false, false, L"Render Frame Done");
 	std::thread renderThread(renderThreadMain);
 
@@ -170,7 +170,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 		g_renderer.PostFrameSync();
 
 		// Restart render thread
-		SetEvent(g_hFrameSignal);
+		SetEvent(g_hFrameDoneEvent);
 
 		frameTimer.Update(dt);
 	}

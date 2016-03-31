@@ -11,6 +11,7 @@ public:
 	Model(RdrGeoHandle hGeo,
 		RdrShaderHandle hVertexShader,
 		RdrShaderHandle hPixelShader,
+		RdrShaderHandle hCubeMapGeoShader,
 		RdrSamplerState* aSamplers,
 		RdrResourceHandle* ahTextures,
 		int numTextures );
@@ -23,6 +24,7 @@ public:
 private:
 	RdrShaderHandle m_hVertexShader;
 	RdrShaderHandle m_hPixelShader;
+	RdrShaderHandle m_hCubeMapGeoShader;
 	RdrGeoHandle m_hGeo;
 	RdrSamplerState m_samplers[MAX_TEXTURES_PER_DRAW];
 	RdrResourceHandle m_hTextures[MAX_TEXTURES_PER_DRAW];

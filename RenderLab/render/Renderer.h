@@ -11,6 +11,7 @@ struct RdrDrawOp;
 struct Light;
 class LightList;
 
+
 class Renderer
 {
 public:
@@ -46,6 +47,7 @@ private:
 
 	RdrResourceHandle m_hPerFrameBufferVS;
 	RdrResourceHandle m_hPerFrameBufferPS;
+	RdrResourceHandle m_hCubemapPerFrameBufferGS;
 
 	std::vector<RdrAction*> m_queuedActions; // Actions being queued by main thread
 	std::vector<RdrAction*> m_frameActions; // Actions being rendered.

@@ -150,6 +150,24 @@ RdrShaderHandle RdrContextD3D11::LoadVertexShader(const char* filename, RdrVerte
 	return hShader;
 }
 
+RdrShaderHandle RdrContextD3D11::LoadGeometryShader(const char* filename)
+{
+	RdrShaderMap::iterator iter = m_geometryShaderCache.find(filename);
+	if (iter != m_geometryShaderCache.end())
+		return iter->second;
+
+	RdrGeometryShader* pShader = m_geometryShaders.alloc();
+	pShader->filename = _strdup(filename);
+	pShader->pCompiledData = CompileShader(filename, "main", "gs_5_0");
+
+	HRESULT hr = m_pDevice->CreateGeometryShader(pShader->pCompiledData->GetBufferPointer(), pShader->pCompiledData->GetBufferSize(), nullptr, &pShader->pShader);
+	assert(hr == S_OK);
+
+	RdrShaderHandle hShader = m_geometryShaders.getId(pShader);
+	m_geometryShaderCache.insert(std::make_pair(filename, hShader));
+	return hShader;
+}
+
 RdrShaderHandle RdrContextD3D11::LoadPixelShader(const char* filename)
 {
 	RdrShaderMap::iterator iter = m_pixelShaderCache.find(filename);

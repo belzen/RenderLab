@@ -13,16 +13,16 @@ struct VertexInput
 	float2 texcoords : TEXCOORD0;
 };
 
-struct VertexOutput
+struct VSOutput
 {
 	float4 position : SV_POSITION;
 	float2 texcoords : TEXCOORD0;
 	float alpha : TEXCOORD1;
 };
 
-VertexOutput main(VertexInput input)
+VSOutput main(VertexInput input)
 {
-	VertexOutput output;
+	VSOutput output;
 
 	float4 pos = float4(input.position * scale.xy + screen_pos.xy, screen_pos.z, 1.f);
 	output.position = mul(pos, cbPerFrame.mtxViewProj);

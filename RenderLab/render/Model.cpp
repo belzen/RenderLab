@@ -8,11 +8,13 @@
 Model::Model(RdrGeoHandle hGeo,
 	RdrShaderHandle hVertexShader,
 	RdrShaderHandle hPixelShader,
+	RdrShaderHandle hCubeMapGeoShader,
 	RdrSamplerState* aSamplers,
 	RdrResourceHandle* ahTextures,
 	int numTextures)
 	: m_hVertexShader(hVertexShader)
 	, m_hPixelShader(hPixelShader)
+	, m_hCubeMapGeoShader(hCubeMapGeoShader)
 	, m_hGeo(hGeo)
 	, m_numTextures(numTextures)
 {
@@ -53,7 +55,10 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat) const
 
 	pDrawOp->hVertexShaders[kRdrShaderMode_Normal] = m_hVertexShader;
 	pDrawOp->hVertexShaders[kRdrShaderMode_DepthOnly] = m_hVertexShader;
+	pDrawOp->hVertexShaders[kRdrShaderMode_CubeMapDepthOnly] = m_hVertexShader;
 	pDrawOp->hPixelShaders[kRdrShaderMode_Normal] = m_hPixelShader;
+	pDrawOp->hGeometryShaders[kRdrShaderMode_CubeMapDepthOnly] = m_hCubeMapGeoShader;
+
 	pDrawOp->hGeo = m_hGeo;
 	pDrawOp->needsLighting = true;
 

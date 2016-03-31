@@ -723,6 +723,16 @@ void RdrContextD3D11::DrawGeo(RdrDrawOp* pDrawOp, RdrShaderMode eShaderMode, con
 		m_pDevContext->PSSetShader(nullptr, nullptr, 0);
 	}
 
+	if (pDrawOp->hGeometryShaders[eShaderMode])
+	{
+		RdrGeometryShader* pGeometryShader = m_geometryShaders.get(pDrawOp->hGeometryShaders[eShaderMode]);
+		m_pDevContext->GSSetShader(pGeometryShader->pShader, nullptr, 0);
+	}
+	else
+	{
+		m_pDevContext->GSSetShader(nullptr, nullptr, 0);
+	}
+
 	for (uint i = 0; i < pDrawOp->texCount; ++i)
 	{
 		RdrResource* pTex = m_resources.get(pDrawOp->hTextures[i]);
@@ -1117,4 +1127,16 @@ void RdrContextD3D11::PSClearResources()
 {
 	ID3D11ShaderResourceView* resourceViews[16] = { 0 };
 	m_pDevContext->PSSetShaderResources(0, 16, resourceViews);
+}
+
+void RdrContextD3D11::GSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers)
+{
+	ID3D11Buffer* apBuffers[12];
+	assert(numBuffers < 12);
+	for (uint i = 0; i < numBuffers; ++i)
+	{
+		RdrResource* pResource = m_resources.get(aConstantBuffers[i]);
+		apBuffers[i] = pResource->pBuffer;
+	}
+	m_pDevContext->GSSetConstantBuffers(startSlot, numBuffers, apBuffers);
 }

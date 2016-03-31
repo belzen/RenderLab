@@ -1,6 +1,7 @@
 #pragma once
 
 struct ID3D11VertexShader;
+struct ID3D11GeometryShader;
 struct ID3D11PixelShader;
 struct ID3D11ComputeShader;
 struct ID3D10Blob;
@@ -13,6 +14,13 @@ struct RdrVertexShader
 {
 	ID3D11InputLayout* pInputLayout;
 	ID3D11VertexShader* pShader;
+	ID3D10Blob* pCompiledData;
+	const char* filename;
+};
+
+struct RdrGeometryShader
+{
+	ID3D11GeometryShader* pShader;
 	ID3D10Blob* pCompiledData;
 	const char* filename;
 };

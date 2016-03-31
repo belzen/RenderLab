@@ -1,4 +1,5 @@
 #include "vs_constants.h"
+#include "vs_output.hlsli"
 
 cbuffer PerFrame : register(b0)
 {
@@ -20,20 +21,9 @@ struct VertexInput
 	float3 bitangent : BINORMAL;
 };
 
-struct VertexOutput
+VSOutput main( VertexInput input )
 {
-	float4 position : SV_POSITION;
-	float4 position_ws : POSITION;
-	float3 normal : NORMAL;
-	float4 color : COLOR;
-	float2 texcoords : TEXCOORD0;
-	float3 tangent : TANGENT;
-	float3 bitangent : BINORMAL;
-};
-
-VertexOutput main( VertexInput input )
-{
-	VertexOutput output;
+	VSOutput output;
 
 	output.position_ws = mul(input.position, mtxWorld);
 	output.position = mul(output.position_ws, cbPerFrame.mtxViewProj);

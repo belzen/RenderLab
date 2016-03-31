@@ -51,6 +51,7 @@ class RdrContextD3D11 : public RdrContext
 	RdrRenderTargetView CreateRenderTargetView(RdrResourceHandle hTexArrayRes, int arrayIndex, RdrResourceFormat format);
 
 	RdrShaderHandle LoadVertexShader(const char* filename, RdrVertexInputElement* inputDesc, uint numElements);
+	RdrShaderHandle LoadGeometryShader(const char* filename);
 	RdrShaderHandle LoadPixelShader(const char* filename);
 	RdrShaderHandle LoadComputeShader(const char* filename);
 
@@ -87,6 +88,7 @@ class RdrContextD3D11 : public RdrContext
 	RdrResourceHandle CreateConstantBuffer(uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
 	void VSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers);
 	void PSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers);
+	void GSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers);
 
 	void PSClearResources();
 

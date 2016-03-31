@@ -17,6 +17,7 @@ class LightList;
 
 typedef FreeList<RdrResource, MAX_TEXTURES> RdrResourceList;
 typedef FreeList<RdrVertexShader, MAX_SHADERS> RdrVertexShaderList;
+typedef FreeList<RdrGeometryShader, MAX_SHADERS> RdrGeometryShaderList;
 typedef FreeList<RdrPixelShader, MAX_SHADERS> RdrPixelShaderList;
 typedef FreeList<RdrComputeShader, MAX_SHADERS> RdrComputeShaderList;
 typedef FreeList<RdrGeometry, MAX_GEO> RdrGeoList;
@@ -83,6 +84,7 @@ public:
 	virtual RdrRenderTargetView CreateRenderTargetView(RdrResourceHandle hTexArrayRes, int arrayIndex, RdrResourceFormat format) = 0;
 
 	virtual RdrShaderHandle LoadVertexShader(const char* filename, RdrVertexInputElement* inputDesc, uint numElements) = 0;
+	virtual RdrShaderHandle LoadGeometryShader(const char* filename) = 0;
 	virtual RdrShaderHandle LoadPixelShader(const char* filename) = 0;
 	virtual RdrShaderHandle LoadComputeShader(const char* filename) = 0;
 
@@ -119,6 +121,7 @@ public:
 	virtual RdrResourceHandle CreateConstantBuffer(uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage) = 0;
 	virtual void VSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers) = 0;
 	virtual void PSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers) = 0;
+	virtual void GSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers) = 0;
 
 	virtual void PSClearResources() = 0;
 
@@ -128,6 +131,9 @@ protected:
 
 	RdrShaderMap m_vertexShaderCache;
 	RdrVertexShaderList m_vertexShaders;
+
+	RdrShaderMap m_geometryShaderCache;
+	RdrGeometryShaderList m_geometryShaders;
 
 	RdrShaderMap m_pixelShaderCache;
 	RdrPixelShaderList m_pixelShaders;

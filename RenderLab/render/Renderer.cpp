@@ -55,6 +55,7 @@ struct RdrAction
 	std::vector<RdrDrawOp*> buckets[kRdrBucketType_Count];
 	RdrPass passes[kRdrPass_Count];
 	bool bDoLightCulling;
+	bool bIsCubemapCapture;
 
 	Camera camera;
 	const LightList* pLights;
@@ -119,6 +120,7 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 	// Constant buffers
 	m_hPerFrameBufferVS = m_pContext->CreateConstantBuffer(sizeof(VsPerFrame), kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
 	m_hPerFrameBufferPS = m_pContext->CreateConstantBuffer(sizeof(PsPerFrame), kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
+	m_hCubemapPerFrameBufferGS = m_pContext->CreateConstantBuffer(sizeof(GsCubemapPerFrame), kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
 
 	Font::Init(m_pContext);
 
@@ -132,6 +134,7 @@ void Renderer::Cleanup()
 {
 	m_pContext->ReleaseResource(m_hPerFrameBufferVS);
 	m_pContext->ReleaseResource(m_hPerFrameBufferPS);
+	m_pContext->ReleaseResource(m_hCubemapPerFrameBufferGS);
 
 	m_pContext->Release();
 	delete m_pContext;
@@ -432,6 +435,21 @@ void Renderer::SetPerFrameConstants(const RdrAction* pAction, const RdrPass* pPa
 
 	m_pContext->UnmapResource(m_hPerFrameBufferPS);
 	m_pContext->PSSetConstantBuffers(0, 1, &m_hPerFrameBufferPS);
+
+	if (pAction->bIsCubemapCapture)
+	{
+		GsCubemapPerFrame* gsConstants = (GsCubemapPerFrame*)m_pContext->MapResource(m_hCubemapPerFrameBufferGS, kRdrResourceMap_WriteDiscard);
+
+		for (uint f = 0; f < 6; ++f)
+		{
+			pPass->pCamera->GetMatrices(mtxView, mtxProj);
+			gsConstants->mtxViewProj[f] = Matrix44Multiply(mtxView, mtxProj);
+			gsConstants->mtxViewProj[f] = Matrix44Transpose(gsConstants->mtxViewProj[f]);
+		}
+
+		m_pContext->UnmapResource(m_hCubemapPerFrameBufferGS);
+		m_pContext->GSSetConstantBuffers(0, 1, &m_hCubemapPerFrameBufferGS);
+	}
 }
 
 void Renderer::DrawPass(RdrAction* pAction, RdrPassEnum ePass)

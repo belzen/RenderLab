@@ -16,16 +16,16 @@ struct VertexInput
 	float2 texcoords : TEXCOORD0;
 };
 
-struct VertexOutput
+struct VSOutput
 {
 	float4 position : SV_POSITION;
 	float4 color : COLOR;
 	float2 texcoords : TEXCOORD0;
 };
 
-VertexOutput main( VertexInput input )
+VSOutput main( VertexInput input )
 {
-	VertexOutput output;
+	VSOutput output;
 
 	float4 pos = float4(input.position * size + screen_pos.xy, screen_pos.z, 1.f);
 	output.position = mul(pos, viewproj_mat);

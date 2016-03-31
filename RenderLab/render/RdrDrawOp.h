@@ -25,6 +25,7 @@ struct RdrDrawOp
 
 	RdrShaderHandle hVertexShaders[kRdrShaderMode_Count];
 	RdrShaderHandle hPixelShaders[kRdrShaderMode_Count];
+	RdrShaderHandle hGeometryShaders[kRdrShaderMode_Count];
 
 	RdrGeoHandle hGeo;
 	bool bFreeGeo;

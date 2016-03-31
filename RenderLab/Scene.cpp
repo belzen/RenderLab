@@ -178,8 +178,10 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 				samplers[n] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 			}
 
+			RdrShaderHandle hCubeMapShader = pContext->LoadGeometryShader("g_cubemap.hlsl");
+
 			// todo: freelists
-			Model* pModel = new Model(hGeo, hVertexShader, hPixelShader, samplers, hTextures, numTextures);
+			Model* pModel = new Model(hGeo, hVertexShader, hPixelShader, hCubeMapShader, samplers, hTextures, numTextures);
 			m_objects.push_back(new WorldObject(pModel, pos, orientation, scale));
 		}
 	}
