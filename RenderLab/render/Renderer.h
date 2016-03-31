@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include "RdrContext.h"
+#include "RdrFrameState.h"
 
 class Camera;
 class WorldObject;
@@ -10,7 +10,6 @@ struct RdrPass;
 struct RdrDrawOp;
 struct Light;
 class LightList;
-
 
 class Renderer
 {
@@ -39,9 +38,10 @@ public:
 	Vec2 GetViewportSize() const { return Vec2((float)m_viewWidth, (float)m_viewHeight); }
 
 private:
-	void DrawPass(RdrAction* pAction, RdrPassEnum ePass);
-	void SetPerFrameConstants(const RdrAction* pAction, const RdrPass* pPass);
-	void DispatchLightCulling(RdrAction* pAction);
+	void DrawPass(const RdrAction& rAction, RdrPassEnum ePass);
+	void SetPerFrameConstants(const RdrAction& rAction, const RdrPass& rPass);
+	void DispatchLightCulling(const RdrAction& rAction);
+	RdrAction* GetNextAction();
 
 	RdrContext* m_pContext;
 
@@ -49,9 +49,10 @@ private:
 	RdrResourceHandle m_hPerFrameBufferPS;
 	RdrResourceHandle m_hCubemapPerFrameBufferGS;
 
-	std::vector<RdrAction*> m_queuedActions; // Actions being queued by main thread
-	std::vector<RdrAction*> m_frameActions; // Actions being rendered.
-	RdrAction*				m_pCurrentAction;
+	RdrFrameState m_states[2];
+	uint          m_queueState; // Index of the state being queued to by the main thread. (The other state is the active frame state).
+
+	RdrAction* m_pCurrentAction;
 
 	RdrResourceHandle m_hTileLightIndices;
 

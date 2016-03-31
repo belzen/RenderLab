@@ -13,7 +13,6 @@
 #include "RdrContextD3D11.h"
 #include "RdrShaderConstants.h"
 
-#define MAX_RENDERTARGETS 6
 
 namespace
 {
@@ -24,86 +23,26 @@ namespace
 	{
 		s_wireframe = (args[0].val.num != 0.f);
 	}
+
+	// Pass to bucket mappings
+	RdrBucketType s_passBuckets[] = {
+		kRdrBucketType_Opaque,	// kRdrPass_ZPrepass
+		kRdrBucketType_Opaque,	// kRdrPass_Opaque
+		kRdrBucketType_Alpha,	// kRdrPass_Alpha
+		kRdrBucketType_UI,		// kRdrPass_UI
+	};
+	static_assert(sizeof(s_passBuckets) / sizeof(s_passBuckets[0]) == kRdrPass_Count, "Missing pass -> bucket mappings");
+
+	// Event names for passes
+	static const wchar_t* s_passNames[] =
+	{
+		L"Z-Prepass",		// kRdrPass_ZPrepass,
+		L"Opaque",			// kRdrPass_Opaque,
+		L"Alpha",			// kRdrPass_Alpha,
+		L"UI",				// kRdrPass_UI,
+	};
+	static_assert(sizeof(s_passNames) / sizeof(s_passNames[0]) == kRdrPass_Count, "Missing RdrPass names!");
 }
-
-struct RdrPass
-{
-	RdrRenderTargetView aRenderTargets[MAX_RENDERTARGETS];
-	RdrDepthStencilView depthTarget;
-
-	// If no camera is set, an ortho projection is used.
-	const Camera* pCamera;
-	Rect viewport;
-
-	RdrShaderMode shaderMode;
-	RdrDepthTestMode depthTestMode;
-	bool bAlphaBlend;
-
-	bool bEnabled;
-	bool bClearRenderTargets;
-	bool bClearDepthTarget;
-};
-
-struct RdrAction
-{
-	static RdrAction* Allocate();
-	static void Release(RdrAction* pAction);
-
-	///
-	LPCWSTR name;
-
-	std::vector<RdrDrawOp*> buckets[kRdrBucketType_Count];
-	RdrPass passes[kRdrPass_Count];
-	bool bDoLightCulling;
-	bool bIsCubemapCapture;
-
-	Camera camera;
-	const LightList* pLights;
-};
-
-static RdrAction s_actionRingBuffer[32];
-static uint s_nextAction = 0;
-static uint s_actionsInUse = 0;
-
-RdrAction* RdrAction::Allocate()
-{
-	RdrAction* pAction = &s_actionRingBuffer[s_nextAction];
-	s_nextAction = (s_nextAction + 1) % ARRAYSIZE(s_actionRingBuffer);
-	++s_actionsInUse;
-	assert(s_actionsInUse < ARRAYSIZE(s_actionRingBuffer));
-	return pAction;
-}
-
-void RdrAction::Release(RdrAction* pAction)
-{
-	for (int i = 0; i < kRdrBucketType_Count; ++i)
-		pAction->buckets[i].clear();
-	memset(pAction->passes, 0, sizeof(pAction->passes));
-	pAction->pLights = nullptr;
-	--s_actionsInUse;
-}
-
-//////////////////////////////////////////////////////
-
-// Pass to bucket mappings
-RdrBucketType s_passBuckets[] = {
-	kRdrBucketType_Opaque,	// kRdrPass_ZPrepass
-	kRdrBucketType_Opaque,	// kRdrPass_Opaque
-	kRdrBucketType_Alpha,	// kRdrPass_Alpha
-	kRdrBucketType_UI,		// kRdrPass_UI
-};
-static_assert(sizeof(s_passBuckets) / sizeof(s_passBuckets[0]) == kRdrPass_Count, "Missing pass -> bucket mappings");
-
-// Event names for passes
-static const wchar_t* s_passNames[] =
-{
-	L"Z-Prepass",		// kRdrPass_ZPrepass,
-	L"Opaque",			// kRdrPass_Opaque,
-	L"Alpha",			// kRdrPass_Alpha,
-	L"UI",				// kRdrPass_UI,
-};
-static_assert(sizeof(s_passNames) / sizeof(s_passNames[0]) == kRdrPass_Count, "Missing RdrPass names!");
-
 //////////////////////////////////////////////////////
 
 
@@ -156,9 +95,16 @@ const Camera& Renderer::GetCurrentCamera(void) const
 	return m_pCurrentAction->camera;
 }
 
-void Renderer::DispatchLightCulling(RdrAction* pAction)
+RdrAction* Renderer::GetNextAction()
 {
-	const Camera& rCamera = pAction->camera;
+	RdrFrameState& state = m_states[m_queueState];
+	assert(state.numActions < MAX_ACTIONS_PER_FRAME);
+	return &state.actions[state.numActions++];
+}
+
+void Renderer::DispatchLightCulling(const RdrAction& rAction)
+{
+	const Camera& rCamera = rAction.camera;
 
 	m_pContext->BeginEvent(L"Light Culling");
 
@@ -233,7 +179,7 @@ void Renderer::DispatchLightCulling(RdrAction* pAction)
 	pCullOp->computeThreads[0] = tileCountX;
 	pCullOp->computeThreads[1] = tileCountY;
 	pCullOp->computeThreads[2] = 1;
-	pCullOp->hTextures[0] = pAction->pLights->GetLightListRes();
+	pCullOp->hTextures[0] = rAction.pLights->GetLightListRes();
 	pCullOp->hTextures[1] = m_hDepthMinMaxTex;
 	pCullOp->texCount = 2;
 	pCullOp->hViews[0] = m_hTileLightIndices;
@@ -265,7 +211,7 @@ void Renderer::DispatchLightCulling(RdrAction* pAction)
 	pParams->screenSize = GetViewportSize();
 	pParams->fovY = rCamera.GetFieldOfViewY();
 	pParams->aspectRatio = rCamera.GetAspectRatio();
-	pParams->lightCount = pAction->pLights->GetLightCount();
+	pParams->lightCount = rAction.pLights->GetLightCount();
 	pParams->tileCountX = tileCountX;
 	pParams->tileCountY = tileCountY;
 
@@ -282,7 +228,7 @@ void Renderer::BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilView d
 {
 	assert(m_pCurrentAction == nullptr);
 
-	m_pCurrentAction = RdrAction::Allocate();
+	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Shadow Map";
 	m_pCurrentAction->camera = rCamera;
 	m_pCurrentAction->bDoLightCulling = false;
@@ -303,7 +249,7 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrRenderTargetView
 {
 	assert(m_pCurrentAction == nullptr);
 
-	m_pCurrentAction = RdrAction::Allocate();
+	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Shadow Cube Map";
 	m_pCurrentAction->camera = pLight->MakeCamera(kCubemapFace_PositiveX);
 	m_pCurrentAction->bDoLightCulling = false;
@@ -331,7 +277,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLight
 	RdrRenderTargetView primaryRenderTarget = m_pContext->GetPrimaryRenderTarget();
 	RdrDepthStencilView primaryDepthTarget = m_pContext->GetPrimaryDepthStencilTarget();
 
-	m_pCurrentAction = RdrAction::Allocate();
+	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Primary Action";
 	m_pCurrentAction->pLights = pLights;
 	m_pCurrentAction->bDoLightCulling = true;
@@ -386,7 +332,6 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLight
 
 void Renderer::EndAction()
 {
-	m_queuedActions.push_back(m_pCurrentAction);
 	m_pCurrentAction = nullptr;
 }
 
@@ -395,16 +340,16 @@ void Renderer::AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket)
 	m_pCurrentAction->buckets[bucket].push_back(pDrawOp);
 }
 
-void Renderer::SetPerFrameConstants(const RdrAction* pAction, const RdrPass* pPass)
+void Renderer::SetPerFrameConstants(const RdrAction& rAction, const RdrPass& rPass)
 {
 	// VS buffer
 	VsPerFrame* vsConstants = (VsPerFrame*)m_pContext->MapResource(m_hPerFrameBufferVS, kRdrResourceMap_WriteDiscard);
 
 	Matrix44 mtxView;
 	Matrix44 mtxProj;
-	if (pPass->pCamera)
+	if (rPass.pCamera)
 	{
-		pPass->pCamera->GetMatrices(mtxView, mtxProj);
+		rPass.pCamera->GetMatrices(mtxView, mtxProj);
 	}
 	else
 	{
@@ -422,9 +367,9 @@ void Renderer::SetPerFrameConstants(const RdrAction* pAction, const RdrPass* pPa
 	// PS buffer.
 	PsPerFrame* psConstants = (PsPerFrame*)m_pContext->MapResource(m_hPerFrameBufferPS, kRdrResourceMap_WriteDiscard);
 
-	if (pPass->pCamera)
+	if (rPass.pCamera)
 	{
-		psConstants->viewPos = pPass->pCamera->GetPosition();
+		psConstants->viewPos = rPass.pCamera->GetPosition();
 	}
 	else
 	{
@@ -436,13 +381,13 @@ void Renderer::SetPerFrameConstants(const RdrAction* pAction, const RdrPass* pPa
 	m_pContext->UnmapResource(m_hPerFrameBufferPS);
 	m_pContext->PSSetConstantBuffers(0, 1, &m_hPerFrameBufferPS);
 
-	if (pAction->bIsCubemapCapture)
+	if (rAction.bIsCubemapCapture)
 	{
 		GsCubemapPerFrame* gsConstants = (GsCubemapPerFrame*)m_pContext->MapResource(m_hCubemapPerFrameBufferGS, kRdrResourceMap_WriteDiscard);
 
 		for (uint f = 0; f < 6; ++f)
 		{
-			pPass->pCamera->GetMatrices(mtxView, mtxProj);
+			rPass.pCamera->GetMatrices(mtxView, mtxProj);
 			gsConstants->mtxViewProj[f] = Matrix44Multiply(mtxView, mtxProj);
 			gsConstants->mtxViewProj[f] = Matrix44Transpose(gsConstants->mtxViewProj[f]);
 		}
@@ -452,45 +397,45 @@ void Renderer::SetPerFrameConstants(const RdrAction* pAction, const RdrPass* pPa
 	}
 }
 
-void Renderer::DrawPass(RdrAction* pAction, RdrPassEnum ePass)
+void Renderer::DrawPass(const RdrAction& rAction, RdrPassEnum ePass)
 {
-	RdrPass* pPass = &pAction->passes[ePass];
+	const RdrPass& rPass = rAction.passes[ePass];
 
-	if (!pPass->bEnabled)
+	if (!rPass.bEnabled)
 		return;
 
 	m_pContext->BeginEvent(s_passNames[ePass]);
 
-	if (pPass->bClearRenderTargets)
+	if (rPass.bClearRenderTargets)
 	{
-		for (uint i = 0; i < MAX_RENDERTARGETS; ++i)
+		for (uint i = 0; i < MAX_RENDER_TARGETS; ++i)
 		{
-			if (pPass->aRenderTargets[i].pView)
+			if (rPass.aRenderTargets[i].pView)
 			{
 				const Color clearColor(0.f, 0.f, 0.f, 1.f);
-				m_pContext->ClearRenderTargetView(pPass->aRenderTargets[i], clearColor);
+				m_pContext->ClearRenderTargetView(rPass.aRenderTargets[i], clearColor);
 			}
 		}
 	}
 
-	if (pPass->bClearDepthTarget)
+	if (rPass.bClearDepthTarget)
 	{
-		m_pContext->ClearDepthStencilView(pPass->depthTarget, true, 1.f, true, 0);
+		m_pContext->ClearDepthStencilView(rPass.depthTarget, true, 1.f, true, 0);
 	}
 
 	// Clear resource bindings to avoid input/output binding errors
 	m_pContext->PSClearResources();
 
-	m_pContext->SetRenderTargets(MAX_RENDERTARGETS, pPass->aRenderTargets, pPass->depthTarget);
-	m_pContext->SetDepthStencilState(pPass->depthTestMode);
-	m_pContext->SetBlendState(pPass->bAlphaBlend);
+	m_pContext->SetRenderTargets(MAX_RENDER_TARGETS, rPass.aRenderTargets, rPass.depthTarget);
+	m_pContext->SetDepthStencilState(rPass.depthTestMode);
+	m_pContext->SetBlendState(rPass.bAlphaBlend);
 
-	SetPerFrameConstants(pAction, pPass);
+	SetPerFrameConstants(rAction, rPass);
 
-	m_pContext->SetViewport(pPass->viewport);
+	m_pContext->SetViewport(rPass.viewport);
 
-	std::vector<RdrDrawOp*>::iterator opIter = pAction->buckets[ s_passBuckets[ePass] ].begin();
-	std::vector<RdrDrawOp*>::iterator opEndIter = pAction->buckets[ s_passBuckets[ePass] ].end();
+	std::vector<RdrDrawOp*>::const_iterator opIter = rAction.buckets[ s_passBuckets[ePass] ].begin();
+	std::vector<RdrDrawOp*>::const_iterator opEndIter = rAction.buckets[ s_passBuckets[ePass] ].end();
 	for ( ; opIter != opEndIter; ++opIter )
 	{
 		RdrDrawOp* pDrawOp = *opIter;
@@ -500,7 +445,7 @@ void Renderer::DrawPass(RdrAction* pAction, RdrPassEnum ePass)
 		}
 		else
 		{
-			m_pContext->DrawGeo(pDrawOp, pPass->shaderMode, pAction->pLights, m_hTileLightIndices);
+			m_pContext->DrawGeo(pDrawOp, rPass.shaderMode, rAction.pLights, m_hTileLightIndices);
 		}
 	}
 
@@ -509,18 +454,20 @@ void Renderer::DrawPass(RdrAction* pAction, RdrPassEnum ePass)
 
 void Renderer::PostFrameSync()
 {
+	RdrFrameState& rActiveState = m_states[!m_queueState];
+	assert(!m_pCurrentAction);
+
 	// Return old frame actions to the pool.
-	uint numFrameActions = m_frameActions.size();
-	for (uint iAction = 0; iAction < numFrameActions; ++iAction)
+	for (uint iAction = 0; iAction < rActiveState.numActions; ++iAction)
 	{
-		RdrAction* pAction = m_frameActions[iAction];
+		RdrAction& rAction = rActiveState.actions[iAction];
 
 		// Free draw ops.
 		for (uint iBucket = 0; iBucket < kRdrBucketType_Count; ++iBucket)
 		{
-			uint numOps = pAction->buckets[iBucket].size();
-			std::vector<RdrDrawOp*>::iterator iter = pAction->buckets[iBucket].begin();
-			std::vector<RdrDrawOp*>::iterator endIter = pAction->buckets[iBucket].end();
+			uint numOps = rAction.buckets[iBucket].size();
+			std::vector<RdrDrawOp*>::iterator iter = rAction.buckets[iBucket].begin();
+			std::vector<RdrDrawOp*>::iterator endIter = rAction.buckets[iBucket].end();
 			for (; iter != endIter; ++iter)
 			{
 				RdrDrawOp* pDrawOp = *iter;
@@ -531,24 +478,29 @@ void Renderer::PostFrameSync()
 
 				RdrDrawOp::Release(pDrawOp);
 			}
-			pAction->buckets[iBucket].clear();
+			rAction.buckets[iBucket].clear();
 		}
 
-		RdrAction::Release(pAction);
+		rAction.Reset();
 	}
 
-	// Swap in new actions
-	m_frameActions = m_queuedActions;
-	m_queuedActions.clear();
+	// Clear remaining state data.
+	rActiveState.numActions = 0;
+	rActiveState.constantBufferUpdates.clear();
+	rActiveState.resourceUpdates.clear();
+
+	// Swap state
+	m_queueState = !m_queueState;
 }
 
 void Renderer::DrawFrame()
 {
-	uint numFrameActions = m_frameActions.size();
-	for (uint iAction = 0; iAction < numFrameActions; ++iAction)
+	RdrFrameState& rFrameState = m_states[!m_queueState];
+
+	for (uint iAction = 0; iAction < rFrameState.numActions; ++iAction)
 	{
-		RdrAction* pAction = m_frameActions[iAction];
-		m_pContext->BeginEvent(pAction->name);
+		RdrAction& rAction = rFrameState.actions[iAction];
+		m_pContext->BeginEvent(rAction.name);
 
 		RdrRasterState rasterState;
 		rasterState.bEnableMSAA = (s_msaaLevel > 1);
@@ -559,13 +511,13 @@ void Renderer::DrawFrame()
 		// todo: sort buckets 
 		//std::sort(pAction->buckets[kRdrBucketType_Opaque].begin(), pAction->buckets[kRdrBucketType_Opaque].end(), );
 
-		DrawPass(pAction, kRdrPass_ZPrepass);
+		DrawPass(rAction, kRdrPass_ZPrepass);
 
-		if ( pAction->bDoLightCulling )
-			DispatchLightCulling(pAction);
+		if (rAction.bDoLightCulling )
+			DispatchLightCulling(rAction);
 
-		DrawPass(pAction, kRdrPass_Opaque);
-		DrawPass(pAction, kRdrPass_Alpha);
+		DrawPass(rAction, kRdrPass_Opaque);
+		DrawPass(rAction, kRdrPass_Alpha);
 
 		// UI should never be wireframe
 		if (s_wireframe)
@@ -573,7 +525,7 @@ void Renderer::DrawFrame()
 			rasterState.bWireframe = false;
 			m_pContext->SetRasterState(rasterState);
 		}
-		DrawPass(pAction, kRdrPass_UI);
+		DrawPass(rAction, kRdrPass_UI);
 
 		m_pContext->EndEvent();
 	}

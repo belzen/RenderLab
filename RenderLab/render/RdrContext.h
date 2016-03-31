@@ -96,7 +96,7 @@ public:
 	virtual void DrawGeo(RdrDrawOp* pDrawOp, RdrShaderMode eShaderMode, const LightList* pLightList, RdrResourceHandle hTileLightIndices) = 0;
 	virtual void DispatchCompute(RdrDrawOp* pDrawOp) = 0;
 
-	virtual void SetRenderTargets(uint numTargets, RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget) = 0;
+	virtual void SetRenderTargets(uint numTargets, const RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget) = 0;
 	virtual void SetDepthStencilState(RdrDepthTestMode eDepthTest) = 0;
 	virtual void SetBlendState(const bool bAlphaBlend) = 0;
 	virtual void SetRasterState(const RdrRasterState& rasterState) = 0;

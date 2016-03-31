@@ -961,7 +961,7 @@ void RdrContextD3D11::SetRasterState(const RdrRasterState& rasterState)
 	m_pDevContext->RSSetState(m_pRasterStates[rasterIndex]);
 }
 
-void RdrContextD3D11::SetRenderTargets(uint numTargets, RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget)
+void RdrContextD3D11::SetRenderTargets(uint numTargets, const RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget)
 {
 	static_assert(sizeof(RdrRenderTargetView) == sizeof(ID3D11RenderTargetView*), "RdrRenderTargetView must only contain the device object pointer");
 	m_pDevContext->OMSetRenderTargets(numTargets, (ID3D11RenderTargetView**)aRenderTargets, depthStencilTarget.pView);

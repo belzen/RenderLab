@@ -63,7 +63,7 @@ class RdrContextD3D11 : public RdrContext
 	void DrawGeo(RdrDrawOp* pDrawOp, RdrShaderMode eShaderMode, const LightList* pLightList, RdrResourceHandle hTileLightIndices);
 	void DispatchCompute(RdrDrawOp* pDrawOp);
 	
-	void SetRenderTargets(uint numTargets, RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget);
+	void SetRenderTargets(uint numTargets, const RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget);
 	void SetDepthStencilState(RdrDepthTestMode eDepthTest);
 	void SetBlendState(const bool bAlphaBlend);
 	void SetRasterState(const RdrRasterState& rasterState);

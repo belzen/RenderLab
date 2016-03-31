@@ -175,6 +175,7 @@
     <ClCompile Include="render\Font.cpp" />
     <ClCompile Include="render\Light.cpp" />
     <ClCompile Include="render\Model.cpp" />
+    <ClCompile Include="render\RdrFrameState.cpp" />
     <ClCompile Include="render\RdrContext.cpp" />
     <ClCompile Include="render\RdrContextD3D11.cpp" />
     <ClCompile Include="render\RdrContextD3D11_Shaders.cpp" />
@@ -218,6 +219,7 @@
     <ClInclude Include="render\RdrContextD3D11.h" />
     <ClInclude Include="render\RdrDeviceTypes.h" />
     <ClInclude Include="render\RdrDrawOp.h" />
+    <ClInclude Include="render\RdrFrameState.h" />
     <ClInclude Include="render\RdrGeometry.h" />
     <ClInclude Include="render\RdrResource.h" />
     <ClInclude Include="render\RdrShaderConstants.h" />

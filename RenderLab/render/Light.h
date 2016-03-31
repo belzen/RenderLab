@@ -14,8 +14,6 @@ class Scene;
 #define MAX_SHADOW_CUBEMAPS 2
 #define USE_SINGLEPASS_SHADOW_CUBEMAP 0
 
-typedef uint RdrResourceHandle;
-
 enum LightType
 {
 	kLightType_Directional,
