@@ -62,7 +62,7 @@ static inline Vec3 readPitchYawRoll(Json::Value& val)
 	return pitchYawRoll;
 }
 
-void Scene::Load(RdrContext* pContext, const char* filename)
+void Scene::Load(Renderer& rRenderer, const char* filename)
 {
 	char fullFilename[MAX_PATH];
 	sprintf_s(fullFilename, "data/scenes/%s", filename);
@@ -159,13 +159,14 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 			Vec3 scale = readScale(jObj.get("scale", Json::Value::null));
 
 			Json::Value jPixel = jObj.get("pixelShader", Json::Value::null);
-			RdrShaderHandle hPixelShader = pContext->LoadPixelShader(jPixel.asCString());
+			RdrShaderHandle hPixelShader = rRenderer.GetShaderSystem().CreateShaderFromFile(kRdrShaderType_Pixel, jPixel.asCString());
 			
 			Json::Value jVertex = jObj.get("vertexShader", Json::Value::null);
-			RdrShaderHandle hVertexShader = pContext->LoadVertexShader(jVertex.asCString(), s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));
+			RdrShaderHandle hVertexShader = rRenderer.GetShaderSystem().CreateShaderFromFile(kRdrShaderType_Vertex, jVertex.asCString());
+			RdrInputLayoutHandle hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(hVertexShader, s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));
 			
 			Json::Value jModel = jObj.get("model", Json::Value::null);
-			RdrGeoHandle hGeo = pContext->LoadGeo(jModel.asCString());
+			RdrGeoHandle hGeo = rRenderer.GetGeoSystem().CreateGeoFromFile(jModel.asCString(), nullptr);
 
 			Json::Value jTextures = jObj.get("textures", Json::Value::null);
 			int numTextures = jTextures.size();
@@ -174,14 +175,14 @@ void Scene::Load(RdrContext* pContext, const char* filename)
 			for (int n = 0; n < numTextures; ++n)
 			{
 				std::string texName = jTextures.get(n, Json::Value::null).asString();
-				hTextures[n] = pContext->LoadTexture(texName.c_str());
+				hTextures[n] = rRenderer.GetResourceSystem().CreateTextureFromFile(texName.c_str(), nullptr);
 				samplers[n] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 			}
 
-			RdrShaderHandle hCubeMapShader = pContext->LoadGeometryShader("g_cubemap.hlsl");
+			RdrShaderHandle hCubeMapShader = rRenderer.GetShaderSystem().CreateShaderFromFile(kRdrShaderType_Geometry, "g_cubemap.hlsl");
 
 			// todo: freelists
-			Model* pModel = new Model(hGeo, hVertexShader, hPixelShader, hCubeMapShader, samplers, hTextures, numTextures);
+			Model* pModel = new Model(hGeo, hInputLayout, hVertexShader, hPixelShader, hCubeMapShader, samplers, hTextures, numTextures);
 			m_objects.push_back(new WorldObject(pModel, pos, orientation, scale));
 		}
 	}

@@ -107,9 +107,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 	ShowWindow(hWnd, nCmdShow);
 	g_renderer.Init(hWnd, kClientWidth, kClientHeight);
-	DebugConsole::Init(g_renderer.GetContext());
+	DebugConsole::Init(g_renderer);
 
-	g_scene.Load(g_renderer.GetContext(), "basic.scene");
+	g_scene.Load(g_renderer, "basic.scene");
 
 	MSG msg;
 	Timer::Handle hTimer = Timer::Create();

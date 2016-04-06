@@ -1,5 +1,6 @@
 #include "Precompiled.h"
 #include "Light.h"
+#include "RdrTransientHeap.h"
 #include "Renderer.h"
 #include "Scene.h"
 
@@ -48,6 +49,7 @@ Camera Light::MakeCamera(CubemapFace face) const
 
 LightList::LightList()
 	: m_lightCount(0)
+	, m_prevLightCount(0)
 {
 
 }
@@ -58,35 +60,34 @@ void LightList::AddLight(Light& light)
 
 	m_lights[m_lightCount] = light;
 	++m_lightCount;
-	m_changed = true;
 }
 
 void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, const Scene& scene)
 {
 	static const RdrResourceFormat kDepthFormat = kResourceFormat_D16;
+	RdrResourceSystem& resourceSystem = rRenderer.GetResourceSystem();
 
-	RdrContext* pContext = rRenderer.GetContext();
 	if (!m_hShadowMapTexArray)
 	{
-		m_hShadowMapTexArray = pContext->CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, kDepthFormat);
+		m_hShadowMapTexArray = resourceSystem.CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, kDepthFormat);
 		for (int i = 0; i < MAX_SHADOW_MAPS; ++i)
 		{
-			m_shadowMapDepthViews[i] = pContext->CreateDepthStencilView(m_hShadowMapTexArray, i, kDepthFormat);
+			m_shadowMapDepthViews[i] = resourceSystem.CreateDepthStencilView(m_hShadowMapTexArray, i);
 		}
 	}
 	if (!m_hShadowCubeMapTexArray)
 	{
-		m_hShadowCubeMapTexArray = pContext->CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, kDepthFormat);
+		m_hShadowCubeMapTexArray = resourceSystem.CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, kDepthFormat);
 
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
 		for (int i = 0; i < MAX_SHADOW_CUBEMAPS; ++i)
 		{
-			m_shadowCubeMapViews[i] = pContext->CreateRenderTargetView(m_hShadowCubeMapTexArray, i, kResourceFormat_R16_UNORM);
+			m_shadowCubeMapViews[i] = rRenderer.CreateRenderTargetView(m_hShadowCubeMapTexArray, i, kResourceFormat_R16_UNORM);
 		}
 #else
 		for (int i = 0; i < MAX_SHADOW_CUBEMAPS * 6; ++i)
 		{
-			m_shadowCubeMapDepthViews[i] = pContext->CreateDepthStencilView(m_hShadowCubeMapTexArray, i, kDepthFormat);
+			m_shadowCubeMapDepthViews[i] = resourceSystem.CreateDepthStencilView(m_hShadowCubeMapTexArray, i);
 		}
 #endif
 	}
@@ -94,6 +95,7 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 	int shadowLights[MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS];
 	memset(shadowLights, -1, sizeof(shadowLights));
 
+	bool changed = false;
 	int curShadowMapIndex = 0;
 	int curShadowCubeMapIndex = 0;
 	// todo: Choose shadow lights based on location and dynamic object movement
@@ -107,11 +109,11 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 		bool hasMoreShadowCubeMaps = (curShadowCubeMapIndex < MAX_SHADOW_CUBEMAPS);
 		if (light.type == kLightType_Directional && hasMoreShadowMaps)
 		{
-			m_changed = true; // Directional lights always change.
+			changed = true; // Directional lights always change.
 			if (curShadowMapIndex != light.shadowMapIndex)
 			{
 				light.shadowMapIndex = curShadowMapIndex;
-				m_changed = true;
+				changed = true;
 			}
 
 			shadowLights[light.shadowMapIndex] = i;
@@ -128,7 +130,7 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 			if (curShadowMapIndex != light.shadowMapIndex)
 			{
 				light.shadowMapIndex = curShadowMapIndex;
-				m_changed = true;
+				changed = true;
 			}
 
 			shadowLights[light.shadowMapIndex] = i;
@@ -145,7 +147,7 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 			if (curShadowCubeMapIndex != (light.shadowMapIndex - MAX_SHADOW_MAPS))
 			{
 				light.shadowMapIndex = curShadowCubeMapIndex + MAX_SHADOW_MAPS;
-				m_changed = true;
+				changed = true;
 			}
 
 			shadowLights[light.shadowMapIndex] = i;
@@ -170,13 +172,23 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 			break;
 	}
 
-	if (m_changed)
+	changed = changed || (m_prevLightCount != m_lightCount);
+	if (changed)
 	{
-		if (m_hLightListRes)
-			pContext->ReleaseResource(m_hLightListRes);
-		m_hLightListRes = pContext->CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light));
+		if (m_prevLightCount != m_lightCount)
+		{
+			// todo: m_lights isn't threadsafe when queueing a create
+			if (m_hLightListRes)
+				rRenderer.GetResourceSystem().ReleaseResource(m_hLightListRes);
+			m_hLightListRes = rRenderer.GetResourceSystem().CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light), false, kRdrResourceUsage_Dynamic);
+		}
+		else
+		{
+			rRenderer.GetResourceSystem().UpdateStructuredBuffer(m_hLightListRes, m_lights, false);
+		}
 
-		ShadowMapData shadowData[MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS];
+		//ShadowMapData* pShadowData = (ShadowMapData*)RdrTransientHeap::Alloc(sizeof(ShadowMapData) * MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS);
+		static ShadowMapData pShadowData[MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS];
 		for (int i = 0; i < curShadowMapIndex; ++i)
 		{
 			Light& light = m_lights[shadowLights[i]];
@@ -186,10 +198,10 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 			Camera cam = light.MakeCamera();
 			cam.GetMatrices(mtxView, mtxProj);
 
-			shadowData[i].mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
-			shadowData[i].mtxViewProj = Matrix44Transpose(shadowData[i].mtxViewProj);
+			pShadowData[i].mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
+			pShadowData[i].mtxViewProj = Matrix44Transpose(pShadowData[i].mtxViewProj);
 		}
-		
+
 		for (int i = 0; i < curShadowCubeMapIndex; ++i)
 		{
 			uint shadowIndex = MAX_SHADOW_MAPS + i;
@@ -199,13 +211,18 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 
 			Camera cam = light.MakeCamera();
 			cam.GetMatrices(mtxView, mtxProj);
-			shadowData[shadowIndex].mtxViewProj = Matrix44Transpose(mtxProj);
+			pShadowData[shadowIndex].mtxViewProj = Matrix44Transpose(mtxProj);
 		}
 
 		if (m_hShadowMapDataRes)
-			pContext->ReleaseResource(m_hShadowMapDataRes);
-		m_hShadowMapDataRes = pContext->CreateStructuredBuffer(shadowData, MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS, sizeof(ShadowMapData));
+		{
+			resourceSystem.UpdateStructuredBuffer(m_hShadowMapDataRes, pShadowData, false);
+		}
+		else
+		{
+			m_hShadowMapDataRes = resourceSystem.CreateStructuredBuffer(pShadowData, MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS, sizeof(ShadowMapData), false, kRdrResourceUsage_Dynamic);
+		}
 
-		m_changed = false;
+		m_prevLightCount = m_lightCount;
 	}
 }

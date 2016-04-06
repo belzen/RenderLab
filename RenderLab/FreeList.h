@@ -2,7 +2,7 @@
 #include "Types.h"
 #include <assert.h>
 
-template <class T_object, uint T_nMaxEntries>
+template <class T_object, uint16 T_nMaxEntries>
 class FreeList
 {
 public:
@@ -30,7 +30,7 @@ public:
 		return &m_objects[id];
 	}
 
-	void releaseId(uint id)
+	void releaseId(uint16 id)
 	{
 		m_inUse[id] = false;
 		m_freeIdStack[m_numFree++] = id;
@@ -41,13 +41,13 @@ public:
 		releaseId(getId(pObj));
 	}
 
-	T_object* get(uint id)
+	T_object* get(uint16 id)
 	{
 		assert(m_inUse[id]);
 		return &m_objects[id];
 	}
 
-	const T_object* get(uint id) const
+	const T_object* get(uint16 id) const
 	{
 		assert(m_inUse[id]);
 		return &m_objects[id];

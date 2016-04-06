@@ -23,6 +23,7 @@ struct RdrDrawOp
 	Vec4 constants[16];
 	uint numConstants;
 
+	RdrInputLayoutHandle hInputLayouts[kRdrShaderMode_Count];
 	RdrShaderHandle hVertexShaders[kRdrShaderMode_Count];
 	RdrShaderHandle hPixelShaders[kRdrShaderMode_Count];
 	RdrShaderHandle hGeometryShaders[kRdrShaderMode_Count];
@@ -31,7 +32,7 @@ struct RdrDrawOp
 	bool bFreeGeo;
 
 	RdrShaderHandle hComputeShader;
-	int computeThreads[3];
+	uint computeThreads[3];
 
 	bool needsLighting;
 };

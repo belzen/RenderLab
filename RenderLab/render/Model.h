@@ -9,6 +9,7 @@ class Model
 {
 public:
 	Model(RdrGeoHandle hGeo,
+		RdrInputLayoutHandle hInputLayout,
 		RdrShaderHandle hVertexShader,
 		RdrShaderHandle hPixelShader,
 		RdrShaderHandle hCubeMapGeoShader,
@@ -22,6 +23,7 @@ public:
 
 	RdrGeoHandle GetGeoHandle() const { return m_hGeo; }
 private:
+	RdrInputLayoutHandle m_hInputLayout;
 	RdrShaderHandle m_hVertexShader;
 	RdrShaderHandle m_hPixelShader;
 	RdrShaderHandle m_hCubeMapGeoShader;

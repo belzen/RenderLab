@@ -3,6 +3,7 @@
 struct ID3D11DepthStencilView;
 struct ID3D11RenderTargetView;
 struct ID3D11SamplerState;
+struct ID3D11Buffer;
 
 enum RdrShaderSemantic
 {
@@ -87,6 +88,9 @@ enum RdrResourceFormat
 	kResourceFormat_D24_UNORM_S8_UINT,
 	kResourceFormat_R16_UNORM,
 	kResourceFormat_RG_F16,
+	kResourceFormat_R8_UNORM,
+	kResourceFormat_DXT1,
+	kResourceFormat_DXT5,
 	kResourceFormat_Count,
 };
 
@@ -132,12 +136,54 @@ struct RdrSamplerState
 	uint bPointSample : 1;
 };
 
+union RdrConstantBufferDeviceObj
+{
+	ID3D11Buffer* pBufferD3D11;
+};
+
+typedef uint16 RdrConstantBufferHandle;
+struct RdrConstantBuffer
+{
+	RdrConstantBufferDeviceObj bufferObj;
+	uint size;
+};
+
+typedef uint16 RdrDepthStencilViewHandle;
 struct RdrDepthStencilView
 {
 	ID3D11DepthStencilView* pView;
 };
 
+typedef uint16 RdrRenderTargetViewHandle;
 struct RdrRenderTargetView
 {
 	ID3D11RenderTargetView* pView;
+};
+
+enum RdrResourceMapMode
+{
+	kRdrResourceMap_Read,
+	kRdrResourceMap_Write,
+	kRdrResourceMap_ReadWrite,
+	kRdrResourceMap_WriteDiscard,
+	kRdrResourceMap_WriteNoOverwrite,
+
+	kRdrResourceMap_Count
+};
+
+typedef uint RdrCpuAccessFlags;
+enum RdrCpuAccessFlag
+{
+	kRdrCpuAccessFlag_Read = 0x1,
+	kRdrCpuAccessFlag_Write = 0x2
+};
+
+enum RdrResourceUsage
+{
+	kRdrResourceUsage_Default,
+	kRdrResourceUsage_Immutable,
+	kRdrResourceUsage_Dynamic,
+	kRdrResourceUsage_Staging,
+
+	kRdrResourceUsage_Count
 };

@@ -14,7 +14,7 @@ class Scene
 public:
 	Scene();
 
-	void Load(RdrContext* pContext, const char* filename);
+	void Load(Renderer& rRenderer, const char* filename);
 
 	void Update(float dt);
 	void QueueShadowMaps(Renderer& rRenderer, const Camera& rCamera);

@@ -2,6 +2,7 @@
 #include "Font.h"
 #include "Renderer.h"
 #include "RdrDrawOp.h"
+#include "RdrTransientHeap.h"
 #include "Camera.h"
 #include "UI.h"
 #include <d3d11.h>
@@ -31,6 +32,7 @@ namespace
 
 		RdrResourceHandle hTexture;
 
+		RdrInputLayoutHandle hInputLayout;
 		RdrShaderHandle hVertexShader;
 		RdrShaderHandle hPixelShader;
 	} g_text;
@@ -45,14 +47,13 @@ namespace
 		fclose(file);
 	}
 
-	void queueDrawCommon(Renderer& rRenderer, const UI::Position& uiPos, float size, RdrGeoHandle hTextGeo, bool bFreeGeo, Color color)
+	void queueDrawCommon(Renderer& rRenderer, const UI::Position& uiPos, float size, const TextObject& rText, bool bFreeGeo, Color color)
 	{
-		const RdrGeometry* pGeo = rRenderer.GetContext()->GetGeometry(hTextGeo);
-
-		Vec3 pos = UI::PosToScreenSpace(uiPos, Vec2(pGeo->size.x, pGeo->size.y) * size, rRenderer.GetViewportSize());
+		Vec3 pos = UI::PosToScreenSpace(uiPos, Vec2(rText.size.x, rText.size.y) * size, rRenderer.GetViewportSize());
 
 		RdrDrawOp* op = RdrDrawOp::Allocate();
-		op->hGeo = hTextGeo;
+		op->hGeo = rText.hTextGeo;
+		op->hInputLayouts[kRdrShaderMode_Normal] = g_text.hInputLayout;
 		op->hVertexShaders[kRdrShaderMode_Normal] = g_text.hVertexShader;
 		op->hPixelShaders[kRdrShaderMode_Normal] = g_text.hPixelShader;
 		op->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
@@ -67,27 +68,27 @@ namespace
 	}
 }
 
-void Font::Init(RdrContext* pRdrContext)
+void Font::Init(Renderer& rRenderer)
 {
 	const char* filename = "fonts/verdana.dds";
 	loadFontData("data/textures/fonts/verdana.dat");
 
-	g_text.hTexture = pRdrContext->LoadTexture(filename);
-	g_text.glyphPixelSize = pRdrContext->GetResource(g_text.hTexture)->width / 16;
+	RdrTextureInfo texInfo;
+	g_text.hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(filename, &texInfo);
+	g_text.glyphPixelSize = texInfo.width / 16;
 
-	g_text.hVertexShader = pRdrContext->LoadVertexShader("v_text.hlsl", s_vertexDesc, ARRAYSIZE(s_vertexDesc));
-	g_text.hPixelShader = pRdrContext->LoadPixelShader("p_text.hlsl");
+	g_text.hVertexShader = rRenderer.GetShaderSystem().CreateShaderFromFile(kRdrShaderType_Vertex, "v_text.hlsl");
+	g_text.hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(g_text.hVertexShader, s_vertexDesc, ARRAYSIZE(s_vertexDesc));
+	g_text.hPixelShader = rRenderer.GetShaderSystem().CreateShaderFromFile(kRdrShaderType_Pixel, "p_text.hlsl");
 }
 
-RdrGeoHandle Font::CreateTextGeo(RdrContext* pRdrContext, const char* text)
+TextObject Font::CreateText(Renderer& rRenderer, const char* text)
 {
-	static const int kMaxLen = 1024;
-	static TextVertex verts[kMaxLen * 4];
-	static uint16 indices[kMaxLen * 6];
-
 	int numQuads = 0;
 	int textLen = strlen(text);
-	assert(textLen < kMaxLen);
+
+	TextVertex* verts = (TextVertex*)RdrTransientHeap::Alloc(sizeof(TextVertex) * textLen * 4);
+	uint16* indices = (uint16*)RdrTransientHeap::Alloc(sizeof(uint16) * textLen * 6);
 
 	float x = 0.0f;
 	float y = 0.0f;
@@ -150,16 +151,20 @@ RdrGeoHandle Font::CreateTextGeo(RdrContext* pRdrContext, const char* text)
 	}
 
 	Vec3 size(max(x + 0.5f, xMax), abs(y), 0.f);
-	return pRdrContext->CreateGeometry(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, size);
+	TextObject obj;
+	obj.size.x = size.x;
+	obj.size.y = size.y;
+	obj.hTextGeo = rRenderer.GetGeoSystem().CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, size);
+	return obj;
 }
 
 void Font::QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const char* text, Color color)
 {
-	RdrGeoHandle hGeo = CreateTextGeo(rRenderer.GetContext(), text);
-	queueDrawCommon(rRenderer, pos, size, hGeo, true, color);
+	TextObject textObj = CreateText(rRenderer, text);
+	queueDrawCommon(rRenderer, pos, size, textObj, true, color);
 }
 
-void Font::QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const RdrGeoHandle hTextGeo, Color color)
+void Font::QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const TextObject& rText, Color color)
 {
-	queueDrawCommon(rRenderer, pos, size, hTextGeo, false, color);
+	queueDrawCommon(rRenderer, pos, size, rText, false, color);
 }

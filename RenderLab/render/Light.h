@@ -70,16 +70,16 @@ public:
 private:
 	Light m_lights[1024];
 	uint m_lightCount;
-	bool m_changed;
+	uint m_prevLightCount;
 
 	RdrResourceHandle m_hLightListRes;
 	RdrResourceHandle m_hShadowMapDataRes;
 	RdrResourceHandle m_hShadowMapTexArray;
 	RdrResourceHandle m_hShadowCubeMapTexArray;
-	RdrDepthStencilView m_shadowMapDepthViews[MAX_SHADOW_MAPS];
+	RdrDepthStencilViewHandle m_shadowMapDepthViews[MAX_SHADOW_MAPS];
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
-	RdrRenderTargetView m_shadowCubeMapViews[MAX_SHADOW_CUBEMAPS * 6];
+	RdrRenderTargetViewHandle m_shadowCubeMapViews[MAX_SHADOW_CUBEMAPS * 6];
 #else
-	RdrDepthStencilView m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * 6];
+	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * 6];
 #endif
 };

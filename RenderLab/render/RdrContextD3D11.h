@@ -21,7 +21,6 @@ struct ID3DUserDefinedAnnotation;
 
 struct D3D11_INPUT_ELEMENT_DESC;
 
-
 #define SAMPLER_TYPES_COUNT kComparisonFunc_Count * kRdrTexCoordMode_Count * 2
 #define RASTER_STATES_COUNT 2 * 2 * 2
 
@@ -30,38 +29,35 @@ class RdrContextD3D11 : public RdrContext
 	bool Init(HWND hWnd, uint width, uint height, uint msaaLevel);
 	void Release();
 
-	RdrGeoHandle CreateGeometry(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& size);
-	void ReleaseGeometry(RdrGeoHandle hGeo);
+	RdrVertexBuffer CreateVertexBuffer(const void* vertices, int size);
+	void ReleaseVertexBuffer(const RdrVertexBuffer* pBuffer);
 
-	RdrResourceHandle LoadTexture(const char* filename);
-	void ReleaseResource(RdrResourceHandle hRes);
+	RdrIndexBuffer CreateIndexBuffer(const void* indices, int size);
+	void ReleaseIndexBuffer(const RdrIndexBuffer* pBuffer);
 
-	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat format);
-	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount);
+	bool CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource);
 
-	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat format);
+	bool CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage, RdrResource& rResource);
+	bool UpdateStructuredBuffer(const void* pSrcData, RdrResource& rResource);
 
-	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat format);
-	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat format);
+	void ReleaseResource(RdrResource& rResource);
 
-	RdrDepthStencilView CreateDepthStencilView(RdrResourceHandle hDepthTex, RdrResourceFormat format, bool bMultisampled);
-	RdrDepthStencilView CreateDepthStencilView(RdrResourceHandle hDepthTexArray, int arrayIndex, RdrResourceFormat format);
-	void ReleaseDepthStencilView(RdrDepthStencilView depthStencilView);
+	RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTex);
+	RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTexArray, int arrayIndex);
+	void ClearDepthStencilView(const RdrDepthStencilView& depthStencil, const bool bClearDepth, const float depthVal, const bool bClearStencil, const uint8 stencilVal);
+	void ReleaseDepthStencilView(const RdrDepthStencilView& depthStencilView);
 
-	RdrRenderTargetView CreateRenderTargetView(RdrResourceHandle hTexArrayRes, int arrayIndex, RdrResourceFormat format);
+	RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexRes);
+	RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexArrayRes, int arrayIndex);
+	void ClearRenderTargetView(const RdrRenderTargetView& renderTarget, const Color& clearColor);
+	void ReleaseRenderTargetView(const RdrRenderTargetView& renderTargetView);
 
-	RdrShaderHandle LoadVertexShader(const char* filename, RdrVertexInputElement* inputDesc, uint numElements);
-	RdrShaderHandle LoadGeometryShader(const char* filename);
-	RdrShaderHandle LoadPixelShader(const char* filename);
-	RdrShaderHandle LoadComputeShader(const char* filename);
+	bool CompileShader(RdrShaderType eType, const char* pShaderText, uint textLen, void** ppOutCompiledData, uint* pOutDataSize);
+	void* CreateShader(RdrShaderType eType, const void* pCompiledData, uint compiledDataSize);
+	RdrInputLayout CreateInputLayout(const void* pCompiledVertexShader, uint vertexShaderSize, const RdrVertexInputElement* aVertexElements, uint numElements);
 
-	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize);
-
-	RdrResourceHandle CreateVertexBuffer(const void* vertices, int size);
-	RdrResourceHandle CreateIndexBuffer(const void* indices, int size);
-
-	void DrawGeo(RdrDrawOp* pDrawOp, RdrShaderMode eShaderMode, const LightList* pLightList, RdrResourceHandle hTileLightIndices);
-	void DispatchCompute(RdrDrawOp* pDrawOp);
+	void Draw(const RdrDrawState& rDrawState);
+	void DispatchCompute(const RdrDrawState& rDrawState, uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
 	
 	void SetRenderTargets(uint numTargets, const RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget);
 	void SetDepthStencilState(RdrDepthTestMode eDepthTest);
@@ -75,20 +71,11 @@ class RdrContextD3D11 : public RdrContext
 	void Resize(uint width, uint height);
 	void Present();
 
-	void ClearRenderTargetView(const RdrRenderTargetView& renderTarget, const Color& clearColor);
-	void ClearDepthStencilView(const RdrDepthStencilView& depthStencil, const bool bClearDepth, const float depthVal, const bool bClearStencil, const uint8 stencilVal);
-
 	RdrRenderTargetView GetPrimaryRenderTarget();
-	RdrDepthStencilView GetPrimaryDepthStencilTarget();
-	RdrResourceHandle GetPrimaryDepthTexture();
 
-	void* MapResource(RdrResourceHandle hResource, RdrResourceMapMode mapMode);
-	void UnmapResource(RdrResourceHandle hResource);
-
-	RdrResourceHandle CreateConstantBuffer(uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
-	void VSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers);
-	void PSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers);
-	void GSSetConstantBuffers(uint startSlot, uint numBuffers, RdrResourceHandle* aConstantBuffers);
+	RdrConstantBufferDeviceObj CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
+	void UpdateConstantBuffer(RdrConstantBuffer& buffer, const void* pData);
+	void ReleaseConstantBuffer(const RdrConstantBufferDeviceObj& buffer);
 
 	void PSClearResources();
 
@@ -102,8 +89,6 @@ private:
 
 	IDXGISwapChain*		      m_pSwapChain;
 	ID3D11RenderTargetView*   m_pPrimaryRenderTarget;
-	RdrDepthStencilView       m_primaryDepthStencilView;
-	RdrResourceHandle         m_hPrimaryDepthBuffer;
 
 	ID3D11SamplerState*      m_pSamplers[SAMPLER_TYPES_COUNT];
 	ID3D11BlendState*        m_pBlendStates[2];

@@ -6,13 +6,15 @@
 
 
 Model::Model(RdrGeoHandle hGeo,
+	RdrInputLayoutHandle hInputLayout,
 	RdrShaderHandle hVertexShader,
 	RdrShaderHandle hPixelShader,
 	RdrShaderHandle hCubeMapGeoShader,
 	RdrSamplerState* aSamplers,
 	RdrResourceHandle* ahTextures,
 	int numTextures)
-	: m_hVertexShader(hVertexShader)
+	: m_hInputLayout(hInputLayout)
+	, m_hVertexShader(hVertexShader)
 	, m_hPixelShader(hPixelShader)
 	, m_hCubeMapGeoShader(hCubeMapGeoShader)
 	, m_hGeo(hGeo)
@@ -53,6 +55,8 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat) const
 	}
 	pDrawOp->texCount = m_numTextures;
 
+	pDrawOp->hInputLayouts[kRdrShaderMode_Normal] = m_hInputLayout;
+	pDrawOp->hInputLayouts[kRdrShaderMode_DepthOnly] = m_hInputLayout;
 	pDrawOp->hVertexShaders[kRdrShaderMode_Normal] = m_hVertexShader;
 	pDrawOp->hVertexShaders[kRdrShaderMode_DepthOnly] = m_hVertexShader;
 	pDrawOp->hVertexShaders[kRdrShaderMode_CubeMapDepthOnly] = m_hVertexShader;

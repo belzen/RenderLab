@@ -7,6 +7,7 @@
 #include <malloc.h>
 #include <assert.h>
 
+#include "Util.h"
 #include "Types.h"
 #include "math/maths.h"
 #include "shapes/Rect.h"

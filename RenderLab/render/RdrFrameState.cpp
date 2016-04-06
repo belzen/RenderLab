@@ -6,5 +6,5 @@ void RdrAction::Reset()
 	for (int i = 0; i < kRdrBucketType_Count; ++i)
 		buckets[i].clear();
 	memset(passes, 0, sizeof(passes));
-	pLights = nullptr;
+	memset(&lightParams, 0, sizeof(lightParams));
 }

@@ -112,22 +112,19 @@ float4 doLighting(in float3 pos_ws, in float4 color, in float3 normal, in float3
 		lightDir = lerp(-light.direction, lightDir, (light.type > 0));
 
 		// --- Lighting model
+		float ndl = saturate(dot(normal, lightDir));
+		float4 diffuse = color * ndl * float4(light.color, 1);
+
 #define PHONG 0
 #define BLINN_PHONG 1
 		const float kSpecExponent = 50.f;
 		const float kSpecIntensity = 0.5f;
 #if PHONG
-		float ndl = saturate(dot(normal, lightDir));
-		float4 diffuse = color * ndl * float4(light.color, 1);
-
 		float3 reflect = normalize(2 * ndl * normal - lightDir);
 		float4 specular = pow(saturate(dot(reflect, viewDir)), kSpecExponent) * kSpecIntensity;
 #elif BLINN_PHONG
-		float ndl = saturate(dot(normal, lightDir));
-		float4 diffuse = color * ndl * float4(light.color, 1);
-
 		float3 halfVec = normalize(lightDir + viewDir);
-		float4 specular = pow(saturate(dot(halfVec, normal)), kSpecExponent) * kSpecIntensity;
+		float4 specular = pow(saturate(dot(normal, halfVec)), kSpecExponent) * kSpecIntensity;
 #endif
 		// ---
 

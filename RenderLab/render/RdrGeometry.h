@@ -12,15 +12,32 @@ struct Vertex
 	Vec3 bitangent;
 };
 
-typedef uint RdrGeoHandle;
-struct RdrGeometry
+struct RdrGeoInfo
 {
-	RdrResourceHandle hVertexBuffer;
-	RdrResourceHandle hIndexBuffer;
 	int numVerts;
 	int numIndices;
 	uint vertStride;
 	Vec3 size;
 	float radius;
+};
+
+typedef uint RdrVertexBufferHandle;
+struct RdrVertexBuffer
+{
+	ID3D11Buffer* pBuffer;
+};
+
+typedef uint RdrIndexBufferHandle;
+struct RdrIndexBuffer
+{
+	ID3D11Buffer* pBuffer;
+};
+
+typedef uint RdrGeoHandle;
+struct RdrGeometry
+{
+	RdrVertexBufferHandle hVertexBuffer;
+	RdrIndexBufferHandle hIndexBuffer;
+	RdrGeoInfo geoInfo;
 }; 
 

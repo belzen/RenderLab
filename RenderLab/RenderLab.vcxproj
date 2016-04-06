@@ -97,6 +97,7 @@
       <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -159,6 +160,7 @@
   <ItemGroup>
     <ClCompile Include="debug\Debug.cpp" />
     <ClCompile Include="debug\DebugConsole.cpp" />
+    <ClCompile Include="FileLoader.cpp" />
     <ClCompile Include="FileWatcher.cpp" />
     <ClCompile Include="FrameTimer.cpp" />
     <ClCompile Include="input\CameraInputContext.cpp" />
@@ -173,6 +175,7 @@
     <ClCompile Include="render\Camera.cpp" />
     <ClCompile Include="render\Color.cpp" />
     <ClCompile Include="render\Font.cpp" />
+    <ClCompile Include="render\RdrGeoSystem.cpp" />
     <ClCompile Include="render\Light.cpp" />
     <ClCompile Include="render\Model.cpp" />
     <ClCompile Include="render\RdrFrameState.cpp" />
@@ -180,8 +183,11 @@
     <ClCompile Include="render\RdrContextD3D11.cpp" />
     <ClCompile Include="render\RdrContextD3D11_Shaders.cpp" />
     <ClCompile Include="render\RdrDrawOp.cpp" />
+    <ClCompile Include="render\RdrTransientHeap.cpp" />
     <ClCompile Include="render\Renderer.cpp" />
+    <ClCompile Include="render\RdrShaderSystem.cpp" />
     <ClCompile Include="render\Sprite.cpp" />
+    <ClCompile Include="render\RdrResourceSystem.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="UI.cpp" />
@@ -192,6 +198,7 @@
     <ClInclude Include="..\data\shaders\ps_constants.h" />
     <ClInclude Include="debug\Debug.h" />
     <ClInclude Include="debug\DebugConsole.h" />
+    <ClInclude Include="FileLoader.h" />
     <ClInclude Include="FileWatcher.h" />
     <ClInclude Include="FrameTimer.h" />
     <ClInclude Include="FreeList.h" />
@@ -219,18 +226,24 @@
     <ClInclude Include="render\RdrContextD3D11.h" />
     <ClInclude Include="render\RdrDeviceTypes.h" />
     <ClInclude Include="render\RdrDrawOp.h" />
+    <ClInclude Include="render\RdrDrawState.h" />
     <ClInclude Include="render\RdrFrameState.h" />
     <ClInclude Include="render\RdrGeometry.h" />
     <ClInclude Include="render\RdrResource.h" />
     <ClInclude Include="render\RdrShaderConstants.h" />
+    <ClInclude Include="render\RdrShaderSystem.h" />
+    <ClInclude Include="render\RdrResourceSystem.h" />
+    <ClInclude Include="render\RdrTransientHeap.h" />
     <ClInclude Include="render\Renderer.h" />
     <ClInclude Include="render\RdrShaders.h" />
     <ClInclude Include="render\Sprite.h" />
+    <ClInclude Include="render\RdrGeoSystem.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="shapes\Plane.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="UI.h" />
+    <ClInclude Include="Util.h" />
     <ClInclude Include="WorldObject.h" />
   </ItemGroup>
   <ItemGroup>

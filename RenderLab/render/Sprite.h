@@ -11,11 +11,12 @@ class Sprite
 {
 public:
 	// Texcoords: TL TR BL BR
-	void Init(RdrContext* pRdrContext, const Vec2 aTexcoords[4], const char* texture);
+	void Init(Renderer& rRenderer, const Vec2 aTexcoords[4], const char* texture);
 
 	void QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha);
 
 private:
+	RdrInputLayoutHandle m_hInputLayout;
 	RdrShaderHandle m_hVertexShader;
 	RdrShaderHandle m_hPixelShader;
 	RdrGeoHandle m_hGeo;

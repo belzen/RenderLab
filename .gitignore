@@ -12,6 +12,7 @@ RenderLab.sdf
 *.vcxproj.filters
 *.vcxproj.user
 *.opendb
+*.vc.db
 /ipch/
 /obj/
 *.pdb

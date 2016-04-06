@@ -8,33 +8,38 @@ struct ID3D10Blob;
 struct ID3D11Device;
 struct ID3D11InputLayout;
 
-typedef uint RdrShaderHandle;
+typedef uint16 RdrShaderHandle;
+typedef uint16 RdrInputLayoutHandle;
 
-struct RdrVertexShader
+struct RdrInputLayout
 {
 	ID3D11InputLayout* pInputLayout;
-	ID3D11VertexShader* pShader;
-	ID3D10Blob* pCompiledData;
-	const char* filename;
 };
 
-struct RdrGeometryShader
+enum RdrShaderType
 {
-	ID3D11GeometryShader* pShader;
-	ID3D10Blob* pCompiledData;
-	const char* filename;
+	kRdrShaderType_Vertex,
+	kRdrShaderType_Pixel,
+	kRdrShaderType_Geometry,
+	kRdrShaderType_Compute,
+
+	kRdrShaderType_Count
 };
 
-struct RdrPixelShader
+struct RdrShader
 {
-	ID3D11PixelShader* pShader;
-	ID3D10Blob* pCompiledData;
+	union
+	{
+		ID3D11VertexShader*   pVertex;
+		ID3D11GeometryShader* pGeometry;
+		ID3D11PixelShader*    pPixel;
+		ID3D11ComputeShader*  pCompute;
+		void*                 pTypeless;
+	};
+
 	const char* filename;
+
+	const void* pVertexCompiledData;
+	uint compiledSize;
 };
 
-struct RdrComputeShader
-{
-	ID3D11ComputeShader* pShader;
-	ID3D10Blob* pCompiledData;
-	const char* filename;
-};
