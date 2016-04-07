@@ -19,7 +19,7 @@ public:
 
 	~Model();
 
-	void QueueDraw(Renderer& rRenderer, const Matrix44& worldMat) const;
+	void QueueDraw(Renderer& rRenderer, const Matrix44& worldMat);
 
 	RdrGeoHandle GetGeoHandle() const { return m_hGeo; }
 private:

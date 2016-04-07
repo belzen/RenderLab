@@ -5,34 +5,49 @@
 
 #define MAX_TEXTURES_PER_DRAW 16
 
+enum RdrDrawOpType
+{
+	kRdrDrawOpType_Graphics,
+	kRdrDrawOpType_Compute
+};
+
 struct RdrDrawOp
 {
 	static RdrDrawOp* Allocate();
 	static void Release(RdrDrawOp* pDrawOp);
 
-	Vec3 position;
-
 	RdrSamplerState samplers[MAX_TEXTURES_PER_DRAW];
 	RdrResourceHandle hTextures[MAX_TEXTURES_PER_DRAW];
 	uint texCount;
 
-	// UAVs
-	RdrResourceHandle hViews[8];
-	uint viewCount;
+	union
+	{
+		struct
+		{
+			RdrConstantBufferHandle hVsConstants;
 
-	Vec4 constants[16];
-	uint numConstants;
+			RdrInputLayoutHandle hInputLayouts[kRdrShaderMode_Count];
+			RdrShaderHandle hVertexShaders[kRdrShaderMode_Count];
+			RdrShaderHandle hPixelShaders[kRdrShaderMode_Count];
+			RdrShaderHandle hGeometryShaders[kRdrShaderMode_Count];
 
-	RdrInputLayoutHandle hInputLayouts[kRdrShaderMode_Count];
-	RdrShaderHandle hVertexShaders[kRdrShaderMode_Count];
-	RdrShaderHandle hPixelShaders[kRdrShaderMode_Count];
-	RdrShaderHandle hGeometryShaders[kRdrShaderMode_Count];
+			RdrGeoHandle hGeo;
+			bool bFreeGeo;
 
-	RdrGeoHandle hGeo;
-	bool bFreeGeo;
+			bool bNeedsLighting;
+		} graphics;
 
-	RdrShaderHandle hComputeShader;
-	uint computeThreads[3];
+		struct
+		{
+			RdrShaderHandle hShader;
+			uint threads[3];
 
-	bool needsLighting;
+			RdrResourceHandle hViews[8];
+			uint viewCount;
+
+			RdrConstantBufferHandle hCsConstants;
+		} compute;
+	};
+
+	RdrDrawOpType eType;
 };

@@ -20,7 +20,7 @@ namespace
 			std::string text;
 			std::getline(file, text, (char)EOF);
 
-			int size = text.length();
+			int size = (int)text.length();
 			char* data = new char[size + 1];
 			strcpy_s(data, size + 1, text.c_str());
 
@@ -93,7 +93,7 @@ RdrShaderHandle RdrShaderSystem::CreateShaderFromFile(RdrShaderType eType, const
 
 		CmdCreateShader cmd;
 		cmd.hShader = shaders.getId(pShader);
-		cmd.textLen = pBlob->GetBufferSize();
+		cmd.textLen = (uint)pBlob->GetBufferSize();
 		cmd.pShaderText = new char[cmd.textLen];
 		memcpy(cmd.pShaderText, pBlob->GetBufferPointer(), cmd.textLen);
 		cmd.eType = eType;
@@ -146,7 +146,7 @@ void RdrShaderSystem::ProcessCommands()
 	FrameState& state = m_states[!m_queueState];
 
 	// Shader creates
-	uint numCmds = state.shaderCreates.size();
+	uint numCmds = (uint)state.shaderCreates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
 		CmdCreateShader& cmd = state.shaderCreates[i];
@@ -170,7 +170,7 @@ void RdrShaderSystem::ProcessCommands()
 		}
 	}
 
-	numCmds = state.layoutCreates.size();
+	numCmds = (uint)state.layoutCreates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
 		CmdCreateInputLayout& cmd = state.layoutCreates[i];

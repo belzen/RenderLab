@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 		return 1;
 
 	WCHAR filename[MAX_PATH] = { 0 };
-	int c = MultiByteToWideChar(CP_UTF8, 0, argv[1], strlen(argv[1]), filename, MAX_PATH);
+	int c = MultiByteToWideChar(CP_UTF8, 0, argv[1], (int)strlen(argv[1]), filename, MAX_PATH);
 
 	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	assert(hr == S_OK);
@@ -80,9 +80,9 @@ int main(int argc, char** argv)
 
 	// Create signed distance field
 	uint8_t* pixels = image->GetPixels();
-	int numPixels = info.width * info.height;
-	int pixelSize = image->GetPixelsSize() / numPixels;
-	int maxDim = max(info.width, info.height) + 1;
+	int numPixels = (int)(info.width * info.height);
+	int pixelSize = (int)image->GetPixelsSize() / numPixels;
+	int maxDim = (int)max(info.width, info.height) + 1;
 
 	Point* grid1 = new Point[numPixels]; // Test inside
 	Point* grid2 = new Point[numPixels]; // Test outside
@@ -100,8 +100,8 @@ int main(int argc, char** argv)
 		}
 	}
 
-	CreateSDF(grid1, info.width, info.height);
-	CreateSDF(grid2, info.width, info.height);
+	CreateSDF(grid1, (int)info.width, (int)info.height);
+	CreateSDF(grid2, (int)info.width, (int)info.height);
 
 	// Merge grid values and write to file.
 

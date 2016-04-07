@@ -31,12 +31,12 @@ LRESULT CALLBACK WinProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	switch (message)
 	{
 	case WM_KEYDOWN:
-		Input::SetKeyDown(wParam, true);
+		Input::SetKeyDown((int)wParam, true);
 		if (wParam == KEY_ESC)
 			PostQuitMessage(0);
 		return 0;
 	case WM_KEYUP:
-		Input::SetKeyDown(wParam, false);
+		Input::SetKeyDown((int)wParam, false);
 		return 0;
 	case WM_LBUTTONDOWN:
 		Input::SetMouseDown(0, true, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));

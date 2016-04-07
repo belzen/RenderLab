@@ -2,6 +2,7 @@
 #include "RdrTransientHeap.h"
 
 // todo: Custom transient heap
+//		 - Linear allocator?  Fast, but would need two large buffers to flip frame.
 void* RdrTransientHeap::Alloc(const uint size)
 {
 	return (void*)new char[size];

@@ -32,7 +32,8 @@ public:
 	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, bool bFreeData, RdrResourceUsage eUsage);
 	RdrResourceHandle UpdateStructuredBuffer(const RdrResourceHandle hResource, const void* pSrcData, bool bFreeData);
 
-	RdrResourceHandle CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
+	RdrConstantBufferHandle CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
+	RdrConstantBufferHandle CreateTempConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
 	void UpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData);
 	void ReleaseConstantBuffer(RdrConstantBufferHandle hBuffer);
 
@@ -48,6 +49,7 @@ public:
 	void ReleaseRenderTargetView(const RdrRenderTargetViewHandle hView);
 
 	const RdrResource* GetResource(const RdrResourceHandle hRes);
+	const RdrConstantBuffer* GetConstantBuffer(const RdrConstantBufferHandle hBuffer);
 
 	void FlipState();
 	void ProcessCommands();
@@ -94,6 +96,7 @@ private:
 		RdrResourceUsage eUsage;
 		const void* pData;
 		uint size;
+		bool bIsTemp;
 	};
 
 	struct CmdUpdateConstantBuffer
@@ -144,6 +147,8 @@ private:
 		std::vector<CmdReleaseRenderTarget>   renderTargetReleases;
 		std::vector<CmdCreateDepthStencil>    depthStencilCreates;
 		std::vector<CmdReleaseDepthStencil>   depthStencilReleases;
+
+		std::vector<RdrConstantBufferHandle>  tempConstantBuffers;
 	};
 
 	RdrResourceHandle CreateTextureInternal(uint width, uint height, uint mipLevels, uint ararySize, RdrResourceFormat eFormat, uint sampleCount, bool bCubemap);

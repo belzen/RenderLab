@@ -52,17 +52,21 @@ namespace
 		Vec3 pos = UI::PosToScreenSpace(uiPos, Vec2(rText.size.x, rText.size.y) * size, rRenderer.GetViewportSize());
 
 		RdrDrawOp* op = RdrDrawOp::Allocate();
-		op->hGeo = rText.hTextGeo;
-		op->hInputLayouts[kRdrShaderMode_Normal] = g_text.hInputLayout;
-		op->hVertexShaders[kRdrShaderMode_Normal] = g_text.hVertexShader;
-		op->hPixelShaders[kRdrShaderMode_Normal] = g_text.hPixelShader;
+		op->eType = kRdrDrawOpType_Graphics;
+		op->graphics.hGeo = rText.hTextGeo;
+		op->graphics.bFreeGeo = bFreeGeo;
+		op->graphics.hInputLayouts[kRdrShaderMode_Normal] = g_text.hInputLayout;
+		op->graphics.hVertexShaders[kRdrShaderMode_Normal] = g_text.hVertexShader;
+		op->graphics.hPixelShaders[kRdrShaderMode_Normal] = g_text.hPixelShader;
 		op->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 		op->hTextures[0] = g_text.hTexture;
 		op->texCount = 1;
-		op->bFreeGeo = bFreeGeo;
-		op->constants[0] = Vec4(color.r, color.g, color.b, color.a);
-		op->constants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
-		op->numConstants = 2;
+
+		uint constantsSize = sizeof(Vec4) * 2;
+		Vec4* pConstants = (Vec4*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+		pConstants[0] = Vec4(color.r, color.g, color.b, color.a);
+		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
+		op->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
 
 		rRenderer.AddToBucket(op, kRdrBucketType_UI);
 	}
@@ -85,7 +89,7 @@ void Font::Init(Renderer& rRenderer)
 TextObject Font::CreateText(Renderer& rRenderer, const char* text)
 {
 	int numQuads = 0;
-	int textLen = strlen(text);
+	int textLen = (int)strlen(text);
 
 	TextVertex* verts = (TextVertex*)RdrTransientHeap::Alloc(sizeof(TextVertex) * textLen * 4);
 	uint16* indices = (uint16*)RdrTransientHeap::Alloc(sizeof(uint16) * textLen * 6);

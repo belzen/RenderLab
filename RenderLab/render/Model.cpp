@@ -1,6 +1,7 @@
 #include "Precompiled.h"
 #include "Model.h"
 #include "RdrContext.h"
+#include "RdrTransientHeap.h"
 #include "Renderer.h"
 #include "Camera.h"
 
@@ -32,21 +33,15 @@ Model::~Model()
 {
 }
 
-void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat) const
+void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat)
 {
 	RdrDrawOp* pDrawOp = RdrDrawOp::Allocate();
+	pDrawOp->eType = kRdrDrawOpType_Graphics;
 
-	pDrawOp->position = srcWorldMat.GetTranslation();
-
-	Matrix44 worldMat = Matrix44Transpose(srcWorldMat);
-	for (int i = 0; i < 4; ++i)
-	{
-		pDrawOp->constants[i].x = worldMat.m[i][0];
-		pDrawOp->constants[i].y = worldMat.m[i][1];
-		pDrawOp->constants[i].z = worldMat.m[i][2];
-		pDrawOp->constants[i].w = worldMat.m[i][3];
-	}
-	pDrawOp->numConstants = 4;
+	uint constantsSize = sizeof(Vec4) * 4;
+	Vec4* pConstants = (Vec4*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+	*((Matrix44*)pConstants) = Matrix44Transpose(srcWorldMat);
+	pDrawOp->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
 
 	for (int i = 0; i < m_numTextures; ++i)
 	{
@@ -55,16 +50,16 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat) const
 	}
 	pDrawOp->texCount = m_numTextures;
 
-	pDrawOp->hInputLayouts[kRdrShaderMode_Normal] = m_hInputLayout;
-	pDrawOp->hInputLayouts[kRdrShaderMode_DepthOnly] = m_hInputLayout;
-	pDrawOp->hVertexShaders[kRdrShaderMode_Normal] = m_hVertexShader;
-	pDrawOp->hVertexShaders[kRdrShaderMode_DepthOnly] = m_hVertexShader;
-	pDrawOp->hVertexShaders[kRdrShaderMode_CubeMapDepthOnly] = m_hVertexShader;
-	pDrawOp->hPixelShaders[kRdrShaderMode_Normal] = m_hPixelShader;
-	pDrawOp->hGeometryShaders[kRdrShaderMode_CubeMapDepthOnly] = m_hCubeMapGeoShader;
+	pDrawOp->graphics.hInputLayouts[kRdrShaderMode_Normal] = m_hInputLayout;
+	pDrawOp->graphics.hInputLayouts[kRdrShaderMode_DepthOnly] = m_hInputLayout;
+	pDrawOp->graphics.hVertexShaders[kRdrShaderMode_Normal] = m_hVertexShader;
+	pDrawOp->graphics.hVertexShaders[kRdrShaderMode_DepthOnly] = m_hVertexShader;
+	pDrawOp->graphics.hVertexShaders[kRdrShaderMode_CubeMapDepthOnly] = m_hVertexShader;
+	pDrawOp->graphics.hPixelShaders[kRdrShaderMode_Normal] = m_hPixelShader;
+	pDrawOp->graphics.hGeometryShaders[kRdrShaderMode_CubeMapDepthOnly] = m_hCubeMapGeoShader;
 
-	pDrawOp->hGeo = m_hGeo;
-	pDrawOp->needsLighting = true;
+	pDrawOp->graphics.hGeo = m_hGeo;
+	pDrawOp->graphics.bNeedsLighting = true;
 
 	rRenderer.AddToBucket(pDrawOp, kRdrBucketType_Opaque);
 }

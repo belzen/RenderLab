@@ -113,13 +113,13 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 	cmd.hGeo = m_geos.getId(pGeo);
 
 	cmd.info.vertStride = sizeof(Vertex);
-	cmd.info.numVerts = verts.size();
+	cmd.info.numVerts = (int)verts.size();
 
 	Vertex* pVertData = (Vertex*)RdrTransientHeap::Alloc(sizeof(Vertex) * cmd.info.numVerts);
 	memcpy(pVertData, verts.data(), sizeof(Vertex) * cmd.info.numVerts);
 	cmd.pVertData = pVertData;
 
-	cmd.info.numIndices = tris.size();
+	cmd.info.numIndices = (int)tris.size();
 	uint16* pIndexData = (uint16*)RdrTransientHeap::Alloc(sizeof(uint16) * cmd.info.numIndices);
 	memcpy(pIndexData, tris.data(), sizeof(uint16) * cmd.info.numIndices);
 	cmd.pIndexData = pIndexData;
@@ -127,7 +127,7 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 	// Calc radius
 	Vec3 vMin(FLT_MAX, FLT_MAX, FLT_MAX);
 	Vec3 vMax(-FLT_MIN, -FLT_MIN, -FLT_MIN);
-	for (uint i = 0; i < cmd.info.numVerts; ++i)
+	for (int i = 0; i < cmd.info.numVerts; ++i)
 	{
 		vMin.x = min(verts[i].position.x, vMin.x);
 		vMax.x = max(verts[i].position.x, vMax.x);
@@ -202,7 +202,7 @@ void RdrGeoSystem::ProcessCommands()
 	FrameState& state = m_states[!m_queueState];
 
 	// Frees
-	uint numCmds = state.releases.size();
+	uint numCmds = (uint)state.releases.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
 		CmdRelease& cmd = state.releases[i];
@@ -222,7 +222,7 @@ void RdrGeoSystem::ProcessCommands()
 	}
 
 	// Updates
-	numCmds = state.updates.size();
+	numCmds = (uint)state.updates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
 		CmdUpdate& cmd = state.updates[i];

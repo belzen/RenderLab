@@ -47,7 +47,7 @@ public:
 private:
 	void DrawPass(const RdrAction& rAction, RdrPassEnum ePass);
 	void SetPerFrameConstants(const RdrAction& rAction, const RdrPass& rPass);
-	void DispatchLightCulling(const RdrAction& rAction);
+	void QueueLightCulling();
 
 	RdrFrameState& GetQueueState() { return m_frameStates[m_queueState]; }
 	RdrFrameState& GetActiveState() { return m_frameStates[!m_queueState]; }
@@ -85,6 +85,8 @@ private:
 	int m_viewHeight;
 
 	// Forward+ lighting
+	RdrConstantBufferHandle m_hDepthMinMaxConstants;
+	RdrConstantBufferHandle m_hTileCullConstants;
 	RdrShaderHandle		m_hDepthMinMaxShader;
 	RdrShaderHandle		m_hLightCullShader;
 	RdrResourceHandle	m_hDepthMinMaxTex;

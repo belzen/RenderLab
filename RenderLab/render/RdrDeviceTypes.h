@@ -48,6 +48,7 @@ struct RdrVertexInputElement
 enum RdrPassEnum
 {
 	kRdrPass_ZPrepass,
+	kRdrPass_LightCulling,
 	kRdrPass_Opaque,
 	kRdrPass_Alpha,
 	kRdrPass_UI,
@@ -57,6 +58,7 @@ enum RdrPassEnum
 
 enum RdrBucketType
 {
+	kRdrBucketType_LightCulling,
 	kRdrBucketType_Opaque,
 	kRdrBucketType_Alpha,
 	kRdrBucketType_UI,

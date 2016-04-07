@@ -50,17 +50,21 @@ void Sprite::Init(Renderer& rRenderer, const Vec2 aTexcoords[4], const char* tex
 void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha)
 {
 	RdrDrawOp* op = RdrDrawOp::Allocate();
-	op->hGeo = m_hGeo;
-	op->hInputLayouts[kRdrShaderMode_Normal] = m_hVertexShader;
-	op->hVertexShaders[kRdrShaderMode_Normal] = m_hInputLayout;
-	op->hPixelShaders[kRdrShaderMode_Normal] = m_hPixelShader;
+	op->eType = kRdrDrawOpType_Graphics;
+	op->graphics.hGeo = m_hGeo;
+	op->graphics.bFreeGeo = false;
+	op->graphics.hInputLayouts[kRdrShaderMode_Normal] = m_hVertexShader;
+	op->graphics.hVertexShaders[kRdrShaderMode_Normal] = m_hInputLayout;
+	op->graphics.hPixelShaders[kRdrShaderMode_Normal] = m_hPixelShader;
 	op->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 	op->hTextures[0] = m_hTexture;
 	op->texCount = 1;
-	op->bFreeGeo = false;
-	op->constants[0] = Vec4(pos.x - rRenderer.GetViewportWidth() * 0.5f, pos.y + rRenderer.GetViewportHeight() * 0.5f, pos.z + 1.f, 0.f);
-	op->constants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
-	op->numConstants = 2;
+
+	uint constantsSize = sizeof(Vec4) * 2;
+	Vec4* pConstants = (Vec4*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+	pConstants[0] = Vec4(pos.x - rRenderer.GetViewportWidth() * 0.5f, pos.y + rRenderer.GetViewportHeight() * 0.5f, pos.z + 1.f, 0.f);
+	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
+	op->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
 
 	rRenderer.AddToBucket(op, kRdrBucketType_UI);
 }

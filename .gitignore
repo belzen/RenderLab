@@ -20,4 +20,5 @@ RenderLab.sdf
 *.iobj
 *.ilk
 *_debug.exe
-/bin/shaders/
+/bin/x64/shaders/
+/bin/Win32/shaders/

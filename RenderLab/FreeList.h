@@ -55,7 +55,7 @@ public:
 
 	uint getId(T_object* pObj)
 	{
-		return pObj - m_objects;
+		return (uint)(pObj - m_objects);
 	}
 
 private:

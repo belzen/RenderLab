@@ -90,7 +90,7 @@ bool RdrContextD3D11::CompileShader(RdrShaderType eType, const char* pShaderText
 	
 	*ppOutCompiledData = new char[pCompiledData->GetBufferSize()];
 	memcpy(*ppOutCompiledData, pCompiledData->GetBufferPointer(), pCompiledData->GetBufferSize());
-	*pOutDataSize = pCompiledData->GetBufferSize();
+	*pOutDataSize = (uint)pCompiledData->GetBufferSize();
 
 	pCompiledData->Release();
 	return true;
