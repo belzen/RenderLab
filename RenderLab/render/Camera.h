@@ -2,6 +2,18 @@
 
 #include "Math.h"
 
+enum CubemapFace
+{
+	kCubemapFace_PositiveX,
+	kCubemapFace_NegativeX,
+	kCubemapFace_PositiveY,
+	kCubemapFace_NegativeY,
+	kCubemapFace_PositiveZ,
+	kCubemapFace_NegativeZ,
+
+	kCubemapFace_Count
+};
+
 class Camera
 {
 public:
@@ -9,6 +21,8 @@ public:
 
 	void SetAsPerspective(const Vec3& pos, const Vec3& dir, float fovY, float aspectRatio, float nearDist, float farDist);
 	void SetAsOrtho(const Vec3& pos, const Vec3& dir, float width, float height, float nearDist, float farDist);
+	void SetAsCubemapFace(const Vec3& pos, const CubemapFace eFace, float nearDist, float farDist);
+	void SetAsSphere(const Vec3& pos, float nearDist, float farDist);
 
 	void UpdateProjection();
 	void GetMatrices(Matrix44& view, Matrix44& proj) const;

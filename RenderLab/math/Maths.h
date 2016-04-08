@@ -18,6 +18,7 @@ using std::max;
 namespace Maths
 {
 	const float kPi = DirectX::XM_PI;
+	const float kTwoPi = DirectX::XM_2PI;
 
 	inline float DegToRad(float deg)
 	{

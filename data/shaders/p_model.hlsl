@@ -33,8 +33,8 @@ float4 main(PixelInput input) : SV_TARGET
 	normal = (normal.x * input.tangent) + (normal.y * input.bitangent) + (normal.z * input.normal);
 	normal = normalize(normal);
 
-	float3 cameraViewDir = normalize(cbPerFrame.viewPos - input.position_ws.xyz);
+	float3 cameraViewDir = normalize(cbPerAction.viewPos - input.position_ws.xyz);
 
-	float4 litColor = doLighting(input.position_ws, color, normal, cameraViewDir, input.position.xy, cbPerFrame.viewWidth);
+	float4 litColor = doLighting(input.position_ws, color, normal, cameraViewDir, input.position.xy, cbPerAction.viewWidth);
 	return saturate(ambient + litColor);
 }

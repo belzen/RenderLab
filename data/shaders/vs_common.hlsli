@@ -2,5 +2,5 @@
 
 cbuffer PerFrame : register(b0)
 {
-	VsPerFrame cbPerFrame;
+	VsPerAction cbPerAction;
 };

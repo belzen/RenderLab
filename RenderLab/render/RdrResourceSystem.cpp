@@ -39,7 +39,7 @@ void RdrResourceSystem::Init(RdrContext* pRdrContext)
 	m_pRdrContext = pRdrContext;
 
 	// Reserve id 1 for the primary render target.
-	m_renderTargetViews.alloc();
+	m_renderTargetViews.allocSafe();
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* filename, RdrTextureInfo* pOutInfo)
@@ -50,7 +50,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* filename,
 		return iter->second;
 
 	// Create new texture info
-	RdrResource* pResource = m_resources.alloc();
+	RdrResource* pResource = m_resources.allocSafe();
 	pResource->texInfo.filename = _strdup(filename); // todo: string cache
 
 	CmdCreateTexture cmd = { 0 };
@@ -122,7 +122,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureCubeArray(uint width, uint hei
 
 RdrResourceHandle RdrResourceSystem::CreateTextureInternal(uint width, uint height, uint mipLevels, uint arraySize, RdrResourceFormat eFormat, uint sampleCount, bool bCubemap)
 {
-	RdrResource* pResource = m_resources.alloc();
+	RdrResource* pResource = m_resources.allocSafe();
 
 	CmdCreateTexture cmd = { 0 };
 	cmd.hResource = m_resources.getId(pResource);
@@ -142,7 +142,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureInternal(uint width, uint heig
 
 RdrResourceHandle RdrResourceSystem::CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, bool bFreeData, RdrResourceUsage eUsage)
 {
-	RdrResource* pResource = m_resources.alloc();
+	RdrResource* pResource = m_resources.allocSafe();
 
 	CmdCreateBuffer cmd = { 0 };
 	cmd.hResource = m_resources.getId(pResource);
@@ -171,7 +171,7 @@ RdrResourceHandle RdrResourceSystem::UpdateStructuredBuffer(const RdrResourceHan
 
 RdrConstantBufferHandle RdrResourceSystem::CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage)
 {
-	RdrConstantBuffer* pBuffer = m_constantBuffers.alloc();
+	RdrConstantBuffer* pBuffer = m_constantBuffers.allocSafe();
 
 	CmdCreateConstantBuffer cmd = { 0 };
 	cmd.hBuffer = m_constantBuffers.getId(pBuffer);
@@ -189,7 +189,7 @@ RdrConstantBufferHandle RdrResourceSystem::CreateConstantBuffer(const void* pDat
 RdrConstantBufferHandle RdrResourceSystem::CreateTempConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage)
 {
 	// todo: constant buffer pools to avoid tons of create/releases
-	RdrConstantBuffer* pBuffer = m_constantBuffers.alloc();
+	RdrConstantBuffer* pBuffer = m_constantBuffers.allocSafe();
 
 	CmdCreateConstantBuffer cmd = { 0 };
 	cmd.hBuffer = m_constantBuffers.getId(pBuffer);
@@ -246,7 +246,7 @@ RdrRenderTargetView RdrResourceSystem::GetRenderTargetView(const RdrRenderTarget
 
 RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceHandle hResource)
 {
-	RdrRenderTargetView* pView = m_renderTargetViews.alloc();
+	RdrRenderTargetView* pView = m_renderTargetViews.allocSafe();
 
 	CmdCreateRenderTarget cmd = { 0 };
 	cmd.hResource = hResource;
@@ -280,7 +280,7 @@ void RdrResourceSystem::ReleaseDepthStencilView(const RdrRenderTargetViewHandle 
 
 RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceHandle hResource)
 {
-	RdrDepthStencilView* pView = m_depthStencilViews.alloc();
+	RdrDepthStencilView* pView = m_depthStencilViews.allocSafe();
 
 	CmdCreateDepthStencil cmd = { 0 };
 	cmd.hResource = hResource;
@@ -294,7 +294,7 @@ RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceH
 
 RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceHandle hResource, uint arrayIndex)
 {
-	RdrDepthStencilView* pView = m_depthStencilViews.alloc();
+	RdrDepthStencilView* pView = m_depthStencilViews.allocSafe();
 
 	CmdCreateDepthStencil cmd = { 0 };
 	cmd.hResource = hResource;
@@ -327,16 +327,21 @@ void RdrResourceSystem::FlipState()
 void RdrResourceSystem::ProcessCommands()
 {
 	FrameState& state = m_states[!m_queueState];
+	uint numCmds;
 
 	// Free resources
-	uint numCmds = (uint)state.resourceReleases.size();
-	for (uint i = 0; i < numCmds; ++i)
+	m_resources.AcquireLock();
 	{
-		CmdReleaseResource& cmd = state.resourceReleases[i];
-		RdrResource* pResource = m_resources.get(cmd.hResource);
-		m_pRdrContext->ReleaseResource(*pResource);
-		m_resources.releaseId(cmd.hResource);
+		numCmds = (uint)state.resourceReleases.size();
+		for (uint i = 0; i < numCmds; ++i)
+		{
+			CmdReleaseResource& cmd = state.resourceReleases[i];
+			RdrResource* pResource = m_resources.get(cmd.hResource);
+			m_pRdrContext->ReleaseResource(*pResource);
+			m_resources.releaseId(cmd.hResource);
+		}
 	}
+	m_resources.ReleaseLock();
 
 	// Free render targets
 	numCmds = (uint)state.renderTargetReleases.size();
@@ -345,7 +350,7 @@ void RdrResourceSystem::ProcessCommands()
 		CmdReleaseRenderTarget& cmd = state.renderTargetReleases[i];
 		RdrRenderTargetView* pView = m_renderTargetViews.get(cmd.hView);
 		m_pRdrContext->ReleaseRenderTargetView(*pView);
-		m_renderTargetViews.releaseId(cmd.hView);
+		m_renderTargetViews.releaseIdSafe(cmd.hView);
 	}
 
 	// Free depth stencils
@@ -355,18 +360,22 @@ void RdrResourceSystem::ProcessCommands()
 		CmdReleaseDepthStencil& cmd = state.depthStencilReleases[i];
 		RdrDepthStencilView* pView = m_depthStencilViews.get(cmd.hView);
 		m_pRdrContext->ReleaseDepthStencilView(*pView);
-		m_depthStencilViews.releaseId(cmd.hView);
+		m_depthStencilViews.releaseIdSafe(cmd.hView);
 	}
 
 	// Free constant buffers
-	numCmds = (uint)state.constantBufferReleases.size();
-	for (uint i = 0; i < numCmds; ++i)
+	m_constantBuffers.AcquireLock();
 	{
-		CmdReleaseConstantBuffer& cmd = state.constantBufferReleases[i];
-		RdrConstantBuffer* pBuffer = m_constantBuffers.get(cmd.hBuffer);
-		m_pRdrContext->ReleaseConstantBuffer(pBuffer->bufferObj);
-		m_constantBuffers.releaseId(cmd.hBuffer);
+		numCmds = (uint)state.constantBufferReleases.size();
+		for (uint i = 0; i < numCmds; ++i)
+		{
+			CmdReleaseConstantBuffer& cmd = state.constantBufferReleases[i];
+			RdrConstantBuffer* pBuffer = m_constantBuffers.get(cmd.hBuffer);
+			m_pRdrContext->ReleaseConstantBuffer(pBuffer->bufferObj);
+			m_constantBuffers.releaseId(cmd.hBuffer);
+		}
 	}
+	m_constantBuffers.ReleaseLock();
 
 	// Create textures
 	numCmds = (uint)state.textureCreates.size();

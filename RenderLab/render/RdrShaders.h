@@ -43,3 +43,44 @@ struct RdrShader
 	uint compiledSize;
 };
 
+typedef uint RdrShaderFlags;
+enum RdrShaderFlag // todo: replace all flags with enum type
+{
+	kRdrShaderFlag_DepthOnly = 0x1,
+	kRdrShaderFlag_CubemapCapture = 0x2,
+
+	// Note: Need to switch m_vertexShaders over to a hash table if flag count gets too large.
+	kRdrShaderFlag_NumCombos = 0x4
+};
+
+enum RdrVertexShaderType
+{
+	kRdrVertexShader_Model,
+	kRdrVertexShader_Text,
+	kRdrVertexShader_Sprite,
+
+	kRdrVertexShader_Count
+};
+
+struct RdrVertexShader
+{
+	RdrVertexShaderType eType;
+	RdrShaderFlags flags;
+};
+
+enum RdrGeometryShader
+{
+	kRdrGeometryShader_None,
+	kRdrGeometryShader_Model_CubemapCapture,
+
+	kRdrGeometryShader_Count
+};
+
+enum RdrComputeShader
+{
+	kRdrComputeShader_TiledDepthMinMax,
+	kRdrComputeShader_TiledLightCull,
+
+	kRdrComputeShader_Count
+};
+

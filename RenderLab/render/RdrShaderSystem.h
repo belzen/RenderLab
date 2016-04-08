@@ -17,43 +17,51 @@ class RdrShaderSystem
 public:
 	void Init(RdrContext* pRdrContext);
 
-	RdrShaderHandle CreateShaderFromFile(RdrShaderType eType, const char* filename);
-	RdrInputLayoutHandle CreateInputLayout(RdrShaderHandle hVertexShader, RdrVertexInputElement* aVertexElements, uint numElements);
+	RdrShaderHandle CreatePixelShaderFromFile(const char* filename);
+	RdrInputLayoutHandle CreateInputLayout(const RdrVertexShader& vertexShader, const RdrVertexInputElement* aVertexElements, const uint numElements);
 
-	const RdrShader* GetShader(RdrShaderType eType, RdrShaderHandle hShader);
-	const RdrInputLayout* GetInputLayout(RdrInputLayoutHandle hLayout);
+	const RdrShader* GetVertexShader(const RdrVertexShader shader);
+	const RdrShader* GetGeometryShader(const RdrGeometryShader eShader);
+	const RdrShader* GetComputeShader(const RdrComputeShader eShader);
+	const RdrShader* GetPixelShader(const RdrShaderHandle hShader);
+
+	const RdrInputLayout* GetInputLayout(const RdrInputLayoutHandle hLayout);
 
 	void FlipState();
 	void ProcessCommands();
 
 private:
-	struct CmdCreateShader
+	struct CmdCreatePixelShader
 	{
 		RdrShaderHandle hShader;
 		char* pShaderText;
 		uint textLen;
-		RdrShaderType eType;
 	};
 
 	struct CmdCreateInputLayout
 	{
 		RdrInputLayoutHandle hLayout;
-		RdrShaderHandle hVertexShader;
+		RdrVertexShader vertexShader;
 		RdrVertexInputElement vertexElements[16];
 		uint numElements;
 	};
 
 	struct FrameState
 	{
-		std::vector<CmdCreateShader> shaderCreates;
+		std::vector<CmdCreatePixelShader> pixelShaderCreates;
 		std::vector<CmdCreateInputLayout> layoutCreates;
 	};
 
 private:
 	RdrContext* m_pRdrContext;
 
-	RdrShaderHandleMap m_shaderCaches[kRdrShaderType_Count];
-	RdrShaderList      m_shaders[kRdrShaderType_Count];
+	RdrShader m_vertexShaders[kRdrVertexShader_Count * kRdrShaderFlag_NumCombos];
+	RdrShader m_geometryShaders[kRdrGeometryShader_Count];
+	RdrShader m_computeShaders[kRdrComputeShader_Count];
+
+	RdrShaderHandleMap m_pixelShaderCache;
+	RdrShaderList      m_pixelShaders;
+
 	RdrInputLayoutList m_inputLayouts;
 
 	FrameState m_states[2];

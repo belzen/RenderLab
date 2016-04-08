@@ -7,14 +7,36 @@
 
 namespace
 {
-	const char* s_shaderRootDir = "data/shaders/";
+	const char* kShaderRootDir = "data/shaders/";
+
+	const uint kMaxDefines = 16;
+
+	const char* kVertexShaderFilenames[] = {
+		"v_model.hlsl",  // kRdrVertexShader_Model
+		"v_text.hlsl", // kRdrVertexShader_Text
+		"v_sprite.hlsl"    // kRdrVertexShader_Sprite
+	};
+	static_assert(ARRAYSIZE(kVertexShaderFilenames) == kRdrVertexShader_Count, "Missing vertex shader filename!");
+
+	const char* kGeometryShaderFilenames[] = {
+		nullptr,           // kRdrGeometryShader_None
+		"g_cubemap.hlsl",  // kRdrGeometryShader_Model_CubemapCapture
+	};
+	static_assert(ARRAYSIZE(kGeometryShaderFilenames) == kRdrGeometryShader_Count, "Missing geometry shader filename!");
+
+	const char* kComputeShaderFilenames[] = {
+		"c_tiled_depth_calc.hlsl", // kRdrComputeShader_TiledDepthMinMax
+		"c_tiled_light_cull.hlsl"  // kRdrComputeShader_TiledLightCull
+	};
+	static_assert(ARRAYSIZE(kComputeShaderFilenames) == kRdrComputeShader_Count, "Missing compute shader filename!");
+
 
 	class IncludeHandler : public ID3DInclude
 	{
 		HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes)
 		{
 			char filename[MAX_PATH];
-			sprintf_s(filename, "%s/%s", s_shaderRootDir, pFileName);
+			sprintf_s(filename, "%s/%s", kShaderRootDir, pFileName);
 
 			std::ifstream file(filename);
 			std::string text;
@@ -37,21 +59,30 @@ namespace
 		}
 	};
 
-	ID3D10Blob* preprocessShader(const char* filename)
+	ID3D10Blob* preprocessShader(const char* filename, const char** aDefines, uint numDefines)
 	{
 		HRESULT hr;
 		ID3D10Blob* pCompiledData;
 		ID3D10Blob* pErrors = nullptr;
 
 		char fullFilename[MAX_PATH];
-		sprintf_s(fullFilename, "%s/%s", s_shaderRootDir, filename);
+		sprintf_s(fullFilename, "%s/%s", kShaderRootDir, filename);
 
 		std::ifstream file(fullFilename);
 		std::string shaderText;
 		std::getline(file, shaderText, (char)EOF);
 
+		assert(numDefines < kMaxDefines);
+
+		D3D_SHADER_MACRO macroDefines[kMaxDefines] = { 0 };
+		for (uint i = 0; i < numDefines; ++i)
+		{
+			macroDefines[i].Name = aDefines[i];
+			macroDefines[i].Definition = "1";
+		}
+
 		IncludeHandler include;
-		hr = D3DPreprocess(shaderText.c_str(), shaderText.size(), nullptr, nullptr, &include, &pCompiledData, &pErrors);
+		hr = D3DPreprocess(shaderText.c_str(), shaderText.size(), nullptr, macroDefines, &include, &pCompiledData, &pErrors);
 		if (hr != S_OK)
 		{
 			if (pCompiledData)
@@ -68,40 +99,98 @@ namespace
 
 		return pCompiledData;
 	}
+
+	void createDefaultShader(RdrContext* pRdrContext, const RdrShaderType eType, const char* shaderFilename, const RdrShaderFlags flags, RdrShader& rOutShader)
+	{
+		void* pCompiledData;
+		uint compiledDataSize;
+
+		const char* aDefines[kMaxDefines];
+		uint numDefines = 0;
+
+		if (flags & kRdrShaderFlag_DepthOnly)
+			aDefines[numDefines++] = "DEPTH_ONLY";
+		if (flags & kRdrShaderFlag_CubemapCapture)
+			aDefines[numDefines++] = "CUBEMAP_CAPTURE";
+
+		ID3D10Blob* pPreprocData = preprocessShader(shaderFilename, aDefines, numDefines);
+		assert(pPreprocData);
+	
+		const char* pShaderText = (char*)pPreprocData->GetBufferPointer();
+		bool res = pRdrContext->CompileShader(eType, pShaderText, (uint)pPreprocData->GetBufferSize(), &pCompiledData, &compiledDataSize);
+		assert(res);
+
+		rOutShader.pTypeless = pRdrContext->CreateShader(eType, pCompiledData, compiledDataSize);
+		if (eType == kRdrShaderType_Vertex)
+		{
+			rOutShader.pVertexCompiledData = pCompiledData;
+			rOutShader.compiledSize = compiledDataSize;
+		}
+		else
+		{
+			delete pCompiledData;
+		}
+
+		pPreprocData->Release();
+	}
 }
 
 void RdrShaderSystem::Init(RdrContext* pRdrContext)
 {
 	m_pRdrContext = pRdrContext;
+
+	//////////////////////////////////////
+	// Load default shaders.
+	for (int vs = 0; vs < kRdrVertexShader_Count; ++vs)
+	{
+		for (uint flags = 0; flags < kRdrShaderFlag_NumCombos; ++flags)
+		{
+			createDefaultShader(m_pRdrContext, kRdrShaderType_Vertex, 
+				kVertexShaderFilenames[vs], (RdrShaderFlags)flags,
+				m_vertexShaders[vs * kRdrShaderFlag_NumCombos + flags]);
+		}
+	}
+
+	/// Geometry shaders
+	for (int gs = 1; gs < kRdrGeometryShader_Count; ++gs)
+	{
+		createDefaultShader(m_pRdrContext, kRdrShaderType_Geometry,
+			kGeometryShaderFilenames[gs], (RdrShaderFlags)0,
+			m_geometryShaders[gs]);
+	}
+
+	/// Compute shaders
+	for (int cs = 0; cs < kRdrComputeShader_Count; ++cs)
+	{
+		createDefaultShader(m_pRdrContext, kRdrShaderType_Compute,
+			kComputeShaderFilenames[cs], (RdrShaderFlags)0,
+			m_computeShaders[cs]);
+	}
 }
 
-RdrShaderHandle RdrShaderSystem::CreateShaderFromFile(RdrShaderType eType, const char* filename)
+RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename)
 {
-	RdrShaderList& shaders = m_shaders[eType];
-	RdrShaderHandleMap& shaderCache = m_shaderCaches[eType];
-
 	// Find shader in cache
-	RdrShaderHandleMap::iterator iter = shaderCache.find(filename);
-	if (iter != shaderCache.end())
+	RdrShaderHandleMap::iterator iter = m_pixelShaderCache.find(filename);
+	if (iter != m_pixelShaderCache.end())
 		return iter->second;
 
-	ID3D10Blob* pBlob = preprocessShader(filename);
+	ID3D10Blob* pBlob = preprocessShader(filename, nullptr, 0);
 	if (pBlob)
 	{
-		RdrShader* pShader = shaders.alloc();
+		RdrShader* pShader = m_pixelShaders.allocSafe();
 		pShader->filename = filename;
 
-		CmdCreateShader cmd;
-		cmd.hShader = shaders.getId(pShader);
+		CmdCreatePixelShader cmd;
+		cmd.hShader = m_pixelShaders.getId(pShader);
 		cmd.textLen = (uint)pBlob->GetBufferSize();
 		cmd.pShaderText = new char[cmd.textLen];
 		memcpy(cmd.pShaderText, pBlob->GetBufferPointer(), cmd.textLen);
-		cmd.eType = eType;
 
-		m_states[m_queueState].shaderCreates.push_back(cmd);
+		m_states[m_queueState].pixelShaderCreates.push_back(cmd);
 		pBlob->Release();
 
-		shaderCache.insert(std::make_pair(filename, cmd.hShader));
+		m_pixelShaderCache.insert(std::make_pair(filename, cmd.hShader));
 		return cmd.hShader;
 	}
 	else
@@ -110,13 +199,13 @@ RdrShaderHandle RdrShaderSystem::CreateShaderFromFile(RdrShaderType eType, const
 	}
 }
 
-RdrInputLayoutHandle RdrShaderSystem::CreateInputLayout(RdrShaderHandle hVertexShader, RdrVertexInputElement* aVertexElements, uint numElements)
+RdrInputLayoutHandle RdrShaderSystem::CreateInputLayout(const RdrVertexShader& vertexShader, const RdrVertexInputElement* aVertexElements, const uint numElements)
 {
-	RdrInputLayout* pLayout = m_inputLayouts.alloc();
+	RdrInputLayout* pLayout = m_inputLayouts.allocSafe();
 
 	CmdCreateInputLayout cmd;
 	cmd.hLayout = m_inputLayouts.getId(pLayout);
-	cmd.hVertexShader = hVertexShader;
+	cmd.vertexShader = vertexShader;
 	cmd.hLayout = m_inputLayouts.getId(pLayout);
 	cmd.numElements = numElements;
 	memcpy(cmd.vertexElements, aVertexElements, sizeof(RdrVertexInputElement) * numElements);
@@ -126,12 +215,27 @@ RdrInputLayoutHandle RdrShaderSystem::CreateInputLayout(RdrShaderHandle hVertexS
 	return cmd.hLayout;
 }
 
-const RdrShader* RdrShaderSystem::GetShader(RdrShaderType eType, RdrShaderHandle hShader)
+const RdrShader* RdrShaderSystem::GetVertexShader(const RdrVertexShader shader)
 {
-	return m_shaders[eType].get(hShader);
+	return &m_vertexShaders[shader.eType * kRdrShaderFlag_NumCombos + shader.flags];
 }
 
-const RdrInputLayout* RdrShaderSystem::GetInputLayout(RdrInputLayoutHandle hLayout)
+const RdrShader* RdrShaderSystem::GetGeometryShader(const RdrGeometryShader eShader)
+{
+	return &m_geometryShaders[eShader];
+}
+
+const RdrShader* RdrShaderSystem::GetComputeShader(const RdrComputeShader eShader)
+{
+	return &m_computeShaders[eShader];
+}
+
+const RdrShader* RdrShaderSystem::GetPixelShader(const RdrShaderHandle hShader)
+{
+	return m_pixelShaders.get(hShader);
+}
+
+const RdrInputLayout* RdrShaderSystem::GetInputLayout(const RdrInputLayoutHandle hLayout)
 {
 	return m_inputLayouts.get(hLayout);
 }
@@ -146,28 +250,21 @@ void RdrShaderSystem::ProcessCommands()
 	FrameState& state = m_states[!m_queueState];
 
 	// Shader creates
-	uint numCmds = (uint)state.shaderCreates.size();
+	uint numCmds = (uint)state.pixelShaderCreates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		CmdCreateShader& cmd = state.shaderCreates[i];
-		RdrShader* pShader = m_shaders[cmd.eType].get(cmd.hShader);
+		CmdCreatePixelShader& cmd = state.pixelShaderCreates[i];
+		RdrShader* pShader = m_pixelShaders.get(cmd.hShader);
 
 		void* pCompiledData;
 		uint compiledDataSize;
 
-		bool res = m_pRdrContext->CompileShader(cmd.eType, cmd.pShaderText, cmd.textLen, &pCompiledData, &compiledDataSize);
+		bool res = m_pRdrContext->CompileShader(kRdrShaderType_Pixel, cmd.pShaderText, cmd.textLen, &pCompiledData, &compiledDataSize);
 		assert(res);
 
-		pShader->pTypeless = m_pRdrContext->CreateShader(cmd.eType, pCompiledData, compiledDataSize);
-		if (cmd.eType == kRdrShaderType_Vertex)
-		{
-			pShader->pVertexCompiledData = pCompiledData;
-			pShader->compiledSize = compiledDataSize;
-		}
-		else
-		{
-			delete pCompiledData;
-		}
+		pShader->pTypeless = m_pRdrContext->CreateShader(kRdrShaderType_Pixel, pCompiledData, compiledDataSize);
+		
+		delete pCompiledData;
 	}
 
 	numCmds = (uint)state.layoutCreates.size();
@@ -175,11 +272,11 @@ void RdrShaderSystem::ProcessCommands()
 	{
 		CmdCreateInputLayout& cmd = state.layoutCreates[i];
 		RdrInputLayout* pLayout = m_inputLayouts.get(cmd.hLayout);
-		RdrShader* pShader = m_shaders[kRdrShaderType_Vertex].get(cmd.hVertexShader);
+		const RdrShader* pShader = GetVertexShader(cmd.vertexShader);
 
 		*pLayout = m_pRdrContext->CreateInputLayout(pShader->pVertexCompiledData, pShader->compiledSize, cmd.vertexElements, cmd.numElements);
 	}
 
 	state.layoutCreates.clear();
-	state.shaderCreates.clear();
+	state.pixelShaderCreates.clear();
 }

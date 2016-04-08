@@ -17,7 +17,6 @@ public:
 
 private:
 	RdrInputLayoutHandle m_hInputLayout;
-	RdrShaderHandle m_hVertexShader;
 	RdrShaderHandle m_hPixelShader;
 	RdrGeoHandle m_hGeo;
 	RdrConstantBufferHandle m_hVsConstants;

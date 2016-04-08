@@ -796,7 +796,8 @@ void RdrContextD3D11::EndEvent()
 
 void RdrContextD3D11::Present()
 {
-	m_pSwapChain->Present(0, 0);
+	HRESULT hr = m_pSwapChain->Present(0, 0);
+	assert(hr == S_OK);
 }
 
 void RdrContextD3D11::Resize(uint width, uint height)

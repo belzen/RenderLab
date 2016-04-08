@@ -14,6 +14,8 @@
 
 namespace
 {
+	const RdrVertexShader kVertexShader = { kRdrVertexShader_Text, 0 };
+
 	static RdrVertexInputElement s_vertexDesc[] = {
 		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RG_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
 		{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 8, kRdrVertexInputClass_PerVertex, 0 }
@@ -33,7 +35,6 @@ namespace
 		RdrResourceHandle hTexture;
 
 		RdrInputLayoutHandle hInputLayout;
-		RdrShaderHandle hVertexShader;
 		RdrShaderHandle hPixelShader;
 	} g_text;
 
@@ -55,8 +56,8 @@ namespace
 		op->eType = kRdrDrawOpType_Graphics;
 		op->graphics.hGeo = rText.hTextGeo;
 		op->graphics.bFreeGeo = bFreeGeo;
-		op->graphics.hInputLayouts[kRdrShaderMode_Normal] = g_text.hInputLayout;
-		op->graphics.hVertexShaders[kRdrShaderMode_Normal] = g_text.hVertexShader;
+		op->graphics.hInputLayout = g_text.hInputLayout;
+		op->graphics.vertexShader = kVertexShader;
 		op->graphics.hPixelShaders[kRdrShaderMode_Normal] = g_text.hPixelShader;
 		op->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 		op->hTextures[0] = g_text.hTexture;
@@ -81,9 +82,8 @@ void Font::Init(Renderer& rRenderer)
 	g_text.hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(filename, &texInfo);
 	g_text.glyphPixelSize = texInfo.width / 16;
 
-	g_text.hVertexShader = rRenderer.GetShaderSystem().CreateShaderFromFile(kRdrShaderType_Vertex, "v_text.hlsl");
-	g_text.hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(g_text.hVertexShader, s_vertexDesc, ARRAYSIZE(s_vertexDesc));
-	g_text.hPixelShader = rRenderer.GetShaderSystem().CreateShaderFromFile(kRdrShaderType_Pixel, "p_text.hlsl");
+	g_text.hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(kVertexShader, s_vertexDesc, ARRAYSIZE(s_vertexDesc));
+	g_text.hPixelShader = rRenderer.GetShaderSystem().CreatePixelShaderFromFile("p_text.hlsl");
 }
 
 TextObject Font::CreateText(Renderer& rRenderer, const char* text)

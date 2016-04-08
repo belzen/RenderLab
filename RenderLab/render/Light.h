@@ -22,17 +22,6 @@ enum LightType
 	kLightType_Environment,
 };
 
-enum CubemapFace
-{
-	kCubemapFace_Default,
-	kCubemapFace_PositiveX = kCubemapFace_Default,
-	kCubemapFace_NegativeX,
-	kCubemapFace_PositiveY,
-	kCubemapFace_NegativeY,
-	kCubemapFace_PositiveZ,
-	kCubemapFace_NegativeZ
-};
-
 // WARNING - Must match struct in light_inc.hlsli
 struct Light
 {
@@ -50,7 +39,7 @@ struct Light
 	uint shadowMapIndex;
 
 	///
-	Camera MakeCamera(CubemapFace face = kCubemapFace_Default) const;
+	Camera MakeCamera() const;
 };
 
 class LightList

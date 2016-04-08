@@ -46,7 +46,8 @@ public:
 
 private:
 	void DrawPass(const RdrAction& rAction, RdrPassEnum ePass);
-	void SetPerFrameConstants(const RdrAction& rAction, const RdrPass& rPass);
+	void CreatePerActionConstants();
+	void CreateCubemapCaptureConstants(const Vec3& position, const float nearDist, const float farDist);
 	void QueueLightCulling();
 
 	RdrFrameState& GetQueueState() { return m_frameStates[m_queueState]; }
@@ -54,7 +55,7 @@ private:
 
 	RdrAction* GetNextAction();
 
-	void DrawGeo(RdrDrawOp* pDrawOp, RdrShaderMode eShaderMode, const RdrLightParams& rLightParams, RdrResourceHandle hTileLightIndices);
+	void DrawGeo(const RdrAction& rAction, const RdrPassEnum ePass, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices);
 	void DispatchCompute(RdrDrawOp* pDrawOp);
 
 	///
@@ -66,11 +67,6 @@ private:
 
 	RdrDepthStencilViewHandle m_hPrimaryDepthStencilView;
 	RdrResourceHandle         m_hPrimaryDepthBuffer;
-
-	// todo: remove these
-	RdrConstantBuffer m_perFrameBufferVS;
-	RdrConstantBuffer m_perFrameBufferPS;
-	RdrConstantBuffer m_cubemapPerFrameBufferGS;
 
 	RdrDrawState m_drawState;
 
@@ -87,8 +83,6 @@ private:
 	// Forward+ lighting
 	RdrConstantBufferHandle m_hDepthMinMaxConstants;
 	RdrConstantBufferHandle m_hTileCullConstants;
-	RdrShaderHandle		m_hDepthMinMaxShader;
-	RdrShaderHandle		m_hLightCullShader;
 	RdrResourceHandle	m_hDepthMinMaxTex;
 	int					m_tileCountX;
 	int					m_tileCountY;

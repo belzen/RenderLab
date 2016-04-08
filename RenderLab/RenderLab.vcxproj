@@ -250,6 +250,7 @@
     <ClInclude Include="render\RdrGeoSystem.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="shapes\Plane.h" />
+    <ClInclude Include="ThreadLock.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="UI.h" />

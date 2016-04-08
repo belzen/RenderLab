@@ -1,9 +1,9 @@
 #include "vs_constants.h"
 #include "vs_output.hlsli"
 
-cbuffer PerFrame : register(b0)
+cbuffer PerAction : register(b0)
 {
-	VsPerFrame cbPerFrame;
+	VsPerAction cbPerAction;
 }; 
 
 cbuffer PerObject : register(b1)
@@ -23,10 +23,13 @@ struct VertexInput
 
 VSOutput main( VertexInput input )
 {
-	VSOutput output;
+	VSOutput output = (VSOutput)0;
 
 	output.position_ws = mul(input.position, mtxWorld);
-	output.position = mul(output.position_ws, cbPerFrame.mtxViewProj);
+
+#if !CUBEMAP_CAPTURE // This is unnecessary if we're using cubemap capture geometry shader.
+	output.position = mul(output.position_ws, cbPerAction.mtxViewProj);
+#endif
 
 	output.normal = mul(input.normal, (float3x3)mtxWorld);
 	output.tangent = mul(input.tangent, (float3x3)mtxWorld);

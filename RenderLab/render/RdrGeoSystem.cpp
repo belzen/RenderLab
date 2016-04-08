@@ -107,7 +107,7 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 	}
 
 
-	RdrGeometry* pGeo = m_geos.alloc();
+	RdrGeometry* pGeo = m_geos.allocSafe();
 
 	CmdUpdate cmd;
 	cmd.hGeo = m_geos.getId(pGeo);
@@ -175,7 +175,7 @@ void RdrGeoSystem::ReleaseGeo(const RdrGeoHandle hGeo)
 
 RdrGeoHandle RdrGeoSystem::CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& size)
 {
-	RdrGeometry* pGeo = m_geos.alloc();
+	RdrGeometry* pGeo = m_geos.allocSafe();
 
 	CmdUpdate cmd;
 	cmd.hGeo = m_geos.getId(pGeo);
@@ -200,26 +200,31 @@ void RdrGeoSystem::FlipState()
 void RdrGeoSystem::ProcessCommands()
 {
 	FrameState& state = m_states[!m_queueState];
+	uint numCmds;
 
 	// Frees
-	uint numCmds = (uint)state.releases.size();
-	for (uint i = 0; i < numCmds; ++i)
+	m_geos.AcquireLock();
 	{
-		CmdRelease& cmd = state.releases[i];
-		RdrGeometry* pGeo = m_geos.get(cmd.hGeo);
+		numCmds = (uint)state.releases.size();
+		for (uint i = 0; i < numCmds; ++i)
+		{
+			CmdRelease& cmd = state.releases[i];
+			RdrGeometry* pGeo = m_geos.get(cmd.hGeo);
 
-		RdrVertexBuffer* pVertexBuffer = m_vertexBuffers.get(pGeo->hVertexBuffer);
-		m_pRdrContext->ReleaseVertexBuffer(pVertexBuffer);
-		m_vertexBuffers.releaseId(pGeo->hVertexBuffer);
-		pGeo->hVertexBuffer = 0;
+			RdrVertexBuffer* pVertexBuffer = m_vertexBuffers.get(pGeo->hVertexBuffer);
+			m_pRdrContext->ReleaseVertexBuffer(pVertexBuffer);
+			m_vertexBuffers.releaseId(pGeo->hVertexBuffer);
+			pGeo->hVertexBuffer = 0;
 
-		RdrIndexBuffer* pIndexBuffer = m_indexBuffers.get(pGeo->hIndexBuffer);
-		m_pRdrContext->ReleaseIndexBuffer(pIndexBuffer);
-		m_indexBuffers.releaseId(pGeo->hIndexBuffer);
-		pGeo->hIndexBuffer = 0;
+			RdrIndexBuffer* pIndexBuffer = m_indexBuffers.get(pGeo->hIndexBuffer);
+			m_pRdrContext->ReleaseIndexBuffer(pIndexBuffer);
+			m_indexBuffers.releaseId(pGeo->hIndexBuffer);
+			pGeo->hIndexBuffer = 0;
 
-		m_geos.releaseId(cmd.hGeo);
+			m_geos.releaseId(cmd.hGeo);
+		}
 	}
+	m_geos.ReleaseLock();
 
 	// Updates
 	numCmds = (uint)state.updates.size();

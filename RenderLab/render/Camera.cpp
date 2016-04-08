@@ -40,6 +40,25 @@ void Camera::SetAsOrtho(const Vec3& pos, const Vec3& dir, float width, float hei
 	UpdateProjection();
 }
 
+void Camera::SetAsCubemapFace(const Vec3& pos, const CubemapFace eFace, float nearDist, float farDist)
+{
+	static const Vec3 faceDirs[6] = {
+		Vec3::kUnitX,
+		-Vec3::kUnitX,
+		Vec3::kUnitY,
+		-Vec3::kUnitY,
+		Vec3::kUnitZ,
+		-Vec3::kUnitZ
+	};
+	float angle = Maths::DegToRad(90.f);
+	SetAsPerspective(pos, faceDirs[eFace], angle, 1.f, nearDist, farDist);
+}
+
+void Camera::SetAsSphere(const Vec3& pos, float nearDist, float farDist)
+{
+	SetAsPerspective(pos, Vec3::kUnitZ, Maths::kTwoPi, 1.f, nearDist, farDist);
+}
+
 void Camera::UpdateProjection()
 {
 	if (m_isOrtho)
@@ -110,11 +129,22 @@ void Camera::UpdateFrustum(void)
 
 bool Camera::CanSee(const Vec3 pos, float radius) const
 {
-	for (int i = 0; i < 6; ++i)
+	if (m_fovY > Maths::kPi)
 	{
-		float dist = m_frustum.planes[i].Distance(pos);
-		if (dist < -radius)
-			return false;
+		// Spherical camera.  Used by cubemap captures.
+		Vec3 diff = pos - m_position;
+		float distSqr = Vec3Dot(diff, diff) - (radius * radius);
+		float maxDist = radius + m_farDist;
+		return distSqr <= (maxDist * maxDist);
+	}
+	else
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			float dist = m_frustum.planes[i].Distance(pos);
+			if (dist < -radius)
+				return false;
+		}
 	}
 
 	return true;

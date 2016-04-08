@@ -26,10 +26,10 @@ struct RdrDrawOp
 		{
 			RdrConstantBufferHandle hVsConstants;
 
-			RdrInputLayoutHandle hInputLayouts[kRdrShaderMode_Count];
-			RdrShaderHandle hVertexShaders[kRdrShaderMode_Count];
-			RdrShaderHandle hPixelShaders[kRdrShaderMode_Count];
-			RdrShaderHandle hGeometryShaders[kRdrShaderMode_Count];
+			RdrInputLayoutHandle hInputLayout;
+			RdrVertexShader      vertexShader;
+			RdrGeometryShader    geometryShader;
+			RdrShaderHandle      hPixelShaders[kRdrShaderMode_Count];
 
 			RdrGeoHandle hGeo;
 			bool bFreeGeo;
@@ -39,7 +39,7 @@ struct RdrDrawOp
 
 		struct
 		{
-			RdrShaderHandle hShader;
+			RdrComputeShader shader;
 			uint threads[3];
 
 			RdrResourceHandle hViews[8];

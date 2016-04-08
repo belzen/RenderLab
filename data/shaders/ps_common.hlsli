@@ -1,6 +1,6 @@
 #include "ps_constants.h"
 
-cbuffer PerFrame : register(b0)
+cbuffer PerAction : register(b0)
 {
-	PsPerFrame cbPerFrame;
+	PsPerAction cbPerAction;
 };

@@ -5,19 +5,19 @@
 #include "Renderer.h"
 #include "Camera.h"
 
+namespace
+{
+	RdrVertexShader kVertexShader = { kRdrVertexShader_Model, 0 };
+}
 
 Model::Model(RdrGeoHandle hGeo,
 	RdrInputLayoutHandle hInputLayout,
-	RdrShaderHandle hVertexShader,
 	RdrShaderHandle hPixelShader,
-	RdrShaderHandle hCubeMapGeoShader,
 	RdrSamplerState* aSamplers,
 	RdrResourceHandle* ahTextures,
 	int numTextures)
 	: m_hInputLayout(hInputLayout)
-	, m_hVertexShader(hVertexShader)
 	, m_hPixelShader(hPixelShader)
-	, m_hCubeMapGeoShader(hCubeMapGeoShader)
 	, m_hGeo(hGeo)
 	, m_numTextures(numTextures)
 {
@@ -50,13 +50,9 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat)
 	}
 	pDrawOp->texCount = m_numTextures;
 
-	pDrawOp->graphics.hInputLayouts[kRdrShaderMode_Normal] = m_hInputLayout;
-	pDrawOp->graphics.hInputLayouts[kRdrShaderMode_DepthOnly] = m_hInputLayout;
-	pDrawOp->graphics.hVertexShaders[kRdrShaderMode_Normal] = m_hVertexShader;
-	pDrawOp->graphics.hVertexShaders[kRdrShaderMode_DepthOnly] = m_hVertexShader;
-	pDrawOp->graphics.hVertexShaders[kRdrShaderMode_CubeMapDepthOnly] = m_hVertexShader;
+	pDrawOp->graphics.hInputLayout = m_hInputLayout;
+	pDrawOp->graphics.vertexShader = kVertexShader;
 	pDrawOp->graphics.hPixelShaders[kRdrShaderMode_Normal] = m_hPixelShader;
-	pDrawOp->graphics.hGeometryShaders[kRdrShaderMode_CubeMapDepthOnly] = m_hCubeMapGeoShader;
 
 	pDrawOp->graphics.hGeo = m_hGeo;
 	pDrawOp->graphics.bNeedsLighting = true;

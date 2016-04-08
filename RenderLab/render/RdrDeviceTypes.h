@@ -70,7 +70,6 @@ enum RdrShaderMode
 {
 	kRdrShaderMode_Normal,
 	kRdrShaderMode_DepthOnly,
-	kRdrShaderMode_CubeMapDepthOnly,
 
 	kRdrShaderMode_Count
 };
@@ -146,6 +145,8 @@ union RdrConstantBufferDeviceObj
 typedef uint16 RdrConstantBufferHandle;
 struct RdrConstantBuffer
 {
+	static inline uint GetRequiredSize(uint size) { return sizeof(Vec4) * (uint)ceilf(size / (float)sizeof(Vec4)); }
+
 	RdrConstantBufferDeviceObj bufferObj;
 	uint size;
 };

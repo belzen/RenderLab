@@ -25,7 +25,7 @@ VSOutput main(VertexInput input)
 	VSOutput output;
 
 	float4 pos = float4(input.position * scale.xy + screen_pos.xy, screen_pos.z, 1.f);
-	output.position = mul(pos, cbPerFrame.mtxViewProj);
+	output.position = mul(pos, cbPerAction.mtxViewProj);
 
 	output.texcoords = input.texcoords;
 	output.alpha = alpha;

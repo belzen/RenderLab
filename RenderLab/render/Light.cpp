@@ -12,7 +12,7 @@ struct ShadowMapData
 	Matrix44 mtxViewProj;
 };
 
-Camera Light::MakeCamera(CubemapFace face) const
+Camera Light::MakeCamera() const
 {
 	float angle = acosf(outerConeAngleCos) + Maths::DegToRad(5.f);
 	Camera cam;
@@ -30,16 +30,7 @@ Camera Light::MakeCamera(CubemapFace face) const
 	}
 	case kLightType_Point:
 	{
-		static const Vec3 faceDirs[6] = {
-			Vec3::kUnitX,
-			-Vec3::kUnitX,
-			Vec3::kUnitY,
-			-Vec3::kUnitY,
-			Vec3::kUnitZ,
-			-Vec3::kUnitZ
-		};
-		float angle = Maths::DegToRad(90.f);
-		cam.SetAsPerspective(position, faceDirs[face], angle, 1.f, 0.1f, radius * 2.f);
+		assert(false);
 		break;
 	}
 	}
@@ -160,7 +151,9 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 #else
 			for (uint face = 0; face < 6; ++face)
 			{
-				rRenderer.BeginShadowMapAction(light.MakeCamera((CubemapFace)face), m_shadowCubeMapDepthViews[curShadowCubeMapIndex * 6 + face], viewport);
+				Camera cam;
+				cam.SetAsCubemapFace(light.position, (CubemapFace)face, 0.1f, light.radius * 2.f);
+				rRenderer.BeginShadowMapAction(cam, m_shadowCubeMapDepthViews[curShadowCubeMapIndex * 6 + face], viewport);
 				scene.QueueDraw(rRenderer);
 				rRenderer.EndAction();
 			}
@@ -187,8 +180,8 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 			rRenderer.GetResourceSystem().UpdateStructuredBuffer(m_hLightListRes, m_lights, false);
 		}
 
-		//ShadowMapData* pShadowData = (ShadowMapData*)RdrTransientHeap::Alloc(sizeof(ShadowMapData) * MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS);
-		static ShadowMapData pShadowData[MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS];
+		//ShadowMapData* pShadowData = (ShadowMapData*)RdrTransientHeap::Alloc(sizeof(ShadowMapData) * MAX_SHADOW_MAPS);
+		static ShadowMapData pShadowData[MAX_SHADOW_MAPS];
 		for (int i = 0; i < curShadowMapIndex; ++i)
 		{
 			Light& light = m_lights[shadowLights[i]];
@@ -202,25 +195,13 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 			pShadowData[i].mtxViewProj = Matrix44Transpose(pShadowData[i].mtxViewProj);
 		}
 
-		for (int i = 0; i < curShadowCubeMapIndex; ++i)
-		{
-			uint shadowIndex = MAX_SHADOW_MAPS + i;
-			Light& light = m_lights[shadowLights[shadowIndex]];
-			Matrix44 mtxView;
-			Matrix44 mtxProj;
-
-			Camera cam = light.MakeCamera();
-			cam.GetMatrices(mtxView, mtxProj);
-			pShadowData[shadowIndex].mtxViewProj = Matrix44Transpose(mtxProj);
-		}
-
 		if (m_hShadowMapDataRes)
 		{
 			resourceSystem.UpdateStructuredBuffer(m_hShadowMapDataRes, pShadowData, false);
 		}
 		else
 		{
-			m_hShadowMapDataRes = resourceSystem.CreateStructuredBuffer(pShadowData, MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS, sizeof(ShadowMapData), false, kRdrResourceUsage_Dynamic);
+			m_hShadowMapDataRes = resourceSystem.CreateStructuredBuffer(pShadowData, MAX_SHADOW_MAPS, sizeof(ShadowMapData), false, kRdrResourceUsage_Dynamic);
 		}
 
 		m_prevLightCount = m_lightCount;
