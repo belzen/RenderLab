@@ -33,12 +33,12 @@ public:
 	virtual void ReleaseResource(RdrResource& rResource) = 0;
 
 	virtual RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTex) = 0;
-	virtual RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTexArray, int arrayIndex) = 0;
+	virtual RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTexArray, uint arrayStartIndex, uint arraySize) = 0;
 	virtual void ClearDepthStencilView(const RdrDepthStencilView& depthStencil, const bool bClearDepth, const float depthVal, const bool bClearStencil, const uint8 stencilVal) = 0;
 	virtual void ReleaseDepthStencilView(const RdrDepthStencilView& depthStencilView) = 0;
 
 	virtual RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexRes) = 0;
-	virtual RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexArrayRes, int arrayIndex) = 0;
+	virtual RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexArrayRes, uint arrayStartIndex, uint arraySize) = 0;
 	virtual void ClearRenderTargetView(const RdrRenderTargetView& renderTarget, const Color& clearColor) = 0;
 	virtual void ReleaseRenderTargetView(const RdrRenderTargetView& renderTargetView) = 0;
 

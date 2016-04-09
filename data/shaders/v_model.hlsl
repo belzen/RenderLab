@@ -31,11 +31,14 @@ VSOutput main( VertexInput input )
 	output.position = mul(output.position_ws, cbPerAction.mtxViewProj);
 #endif
 
+#if !DEPTH_ONLY
 	output.normal = mul(input.normal, (float3x3)mtxWorld);
 	output.tangent = mul(input.tangent, (float3x3)mtxWorld);
 	output.bitangent = mul(input.bitangent, (float3x3)mtxWorld);
 
 	output.color = input.color;
 	output.texcoords = input.texcoords;
+#endif
+
 	return output;
 }

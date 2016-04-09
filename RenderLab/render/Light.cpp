@@ -4,7 +4,7 @@
 #include "Renderer.h"
 #include "Scene.h"
 
-static uint s_shadowMapSize = 2048;
+static uint s_shadowMapSize = 1024;
 static uint s_shadowCubeMapSize = 512;
 
 struct ShadowMapData
@@ -55,30 +55,29 @@ void LightList::AddLight(Light& light)
 
 void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, const Scene& scene)
 {
-	static const RdrResourceFormat kDepthFormat = kResourceFormat_D16;
 	RdrResourceSystem& resourceSystem = rRenderer.GetResourceSystem();
 
 	if (!m_hShadowMapTexArray)
 	{
-		m_hShadowMapTexArray = resourceSystem.CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, kDepthFormat);
+		m_hShadowMapTexArray = resourceSystem.CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, kResourceFormat_D16);
 		for (int i = 0; i < MAX_SHADOW_MAPS; ++i)
 		{
-			m_shadowMapDepthViews[i] = resourceSystem.CreateDepthStencilView(m_hShadowMapTexArray, i);
+			m_shadowMapDepthViews[i] = resourceSystem.CreateDepthStencilView(m_hShadowMapTexArray, i, 1);
 		}
 	}
 	if (!m_hShadowCubeMapTexArray)
 	{
-		m_hShadowCubeMapTexArray = resourceSystem.CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, kDepthFormat);
+		m_hShadowCubeMapTexArray = resourceSystem.CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, kResourceFormat_D16);
 
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
 		for (int i = 0; i < MAX_SHADOW_CUBEMAPS; ++i)
 		{
-			m_shadowCubeMapViews[i] = rRenderer.CreateRenderTargetView(m_hShadowCubeMapTexArray, i, kResourceFormat_R16_UNORM);
+			m_shadowCubeMapDepthViews[i] = resourceSystem.CreateDepthStencilView(m_hShadowCubeMapTexArray, i * kCubemapFace_Count, kCubemapFace_Count);
 		}
 #else
-		for (int i = 0; i < MAX_SHADOW_CUBEMAPS * 6; ++i)
+		for (int i = 0; i < MAX_SHADOW_CUBEMAPS * kCubemapFace_Count; ++i)
 		{
-			m_shadowCubeMapDepthViews[i] = resourceSystem.CreateDepthStencilView(m_hShadowCubeMapTexArray, i);
+			m_shadowCubeMapDepthViews[i] = resourceSystem.CreateDepthStencilView(m_hShadowCubeMapTexArray, i, 1);
 		}
 #endif
 	}
@@ -145,7 +144,7 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 
 			Rect viewport(0.f, 0.f, (float)s_shadowCubeMapSize, (float)s_shadowCubeMapSize);
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
-			rRenderer.BeginShadowCubeMapAction(&light, &m_shadowCubeMapViews[curShadowCubeMapIndex * 6], viewport);
+			rRenderer.BeginShadowCubeMapAction(&light, m_shadowCubeMapDepthViews[curShadowCubeMapIndex], viewport);
 			scene.QueueDraw(rRenderer);
 			rRenderer.EndAction();
 #else

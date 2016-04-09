@@ -19,7 +19,6 @@ namespace
 	static_assert(ARRAYSIZE(kVertexShaderFilenames) == kRdrVertexShader_Count, "Missing vertex shader filename!");
 
 	const char* kGeometryShaderFilenames[] = {
-		nullptr,           // kRdrGeometryShader_None
 		"g_cubemap.hlsl",  // kRdrGeometryShader_Model_CubemapCapture
 	};
 	static_assert(ARRAYSIZE(kGeometryShaderFilenames) == kRdrGeometryShader_Count, "Missing geometry shader filename!");
@@ -152,11 +151,14 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 	}
 
 	/// Geometry shaders
-	for (int gs = 1; gs < kRdrGeometryShader_Count; ++gs)
+	for (int gs = 0; gs < kRdrGeometryShader_Count; ++gs)
 	{
-		createDefaultShader(m_pRdrContext, kRdrShaderType_Geometry,
-			kGeometryShaderFilenames[gs], (RdrShaderFlags)0,
-			m_geometryShaders[gs]);
+		for (uint flags = 0; flags < kRdrShaderFlag_NumCombos; ++flags)
+		{
+			createDefaultShader(m_pRdrContext, kRdrShaderType_Geometry,
+				kGeometryShaderFilenames[gs], (RdrShaderFlags)flags,
+				m_geometryShaders[gs * kRdrShaderFlag_NumCombos + flags]);
+		}
 	}
 
 	/// Compute shaders
@@ -220,9 +222,9 @@ const RdrShader* RdrShaderSystem::GetVertexShader(const RdrVertexShader shader)
 	return &m_vertexShaders[shader.eType * kRdrShaderFlag_NumCombos + shader.flags];
 }
 
-const RdrShader* RdrShaderSystem::GetGeometryShader(const RdrGeometryShader eShader)
+const RdrShader* RdrShaderSystem::GetGeometryShader(const RdrGeometryShader shader)
 {
-	return &m_geometryShaders[eShader];
+	return &m_geometryShaders[shader.eType * kRdrShaderFlag_NumCombos + shader.flags];
 }
 
 const RdrShader* RdrShaderSystem::GetComputeShader(const RdrComputeShader eShader)

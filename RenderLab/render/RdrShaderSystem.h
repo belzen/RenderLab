@@ -21,7 +21,7 @@ public:
 	RdrInputLayoutHandle CreateInputLayout(const RdrVertexShader& vertexShader, const RdrVertexInputElement* aVertexElements, const uint numElements);
 
 	const RdrShader* GetVertexShader(const RdrVertexShader shader);
-	const RdrShader* GetGeometryShader(const RdrGeometryShader eShader);
+	const RdrShader* GetGeometryShader(const RdrGeometryShader shader);
 	const RdrShader* GetComputeShader(const RdrComputeShader eShader);
 	const RdrShader* GetPixelShader(const RdrShaderHandle hShader);
 
@@ -56,7 +56,7 @@ private:
 	RdrContext* m_pRdrContext;
 
 	RdrShader m_vertexShaders[kRdrVertexShader_Count * kRdrShaderFlag_NumCombos];
-	RdrShader m_geometryShaders[kRdrGeometryShader_Count];
+	RdrShader m_geometryShaders[kRdrGeometryShader_Count * kRdrShaderFlag_NumCombos];
 	RdrShader m_computeShaders[kRdrComputeShader_Count];
 
 	RdrShaderHandleMap m_pixelShaderCache;

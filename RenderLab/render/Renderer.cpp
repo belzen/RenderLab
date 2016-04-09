@@ -274,7 +274,7 @@ void Renderer::BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilViewHa
 	CreatePerActionConstants();
 }
 
-void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrRenderTargetViewHandle* ahTargetViews, Rect& viewport) // todo: finish
+void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport) // todo: finish
 {
 	assert(m_pCurrentAction == nullptr);
 
@@ -283,6 +283,7 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrRenderTargetView
 	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Shadow Cube Map";
 	m_pCurrentAction->camera.SetAsSphere(pLight->position, 0.1f, viewDist);
+	m_pCurrentAction->bIsCubemapCapture = true;
 
 	// Setup action passes
 	RdrPass& rPass = m_pCurrentAction->passes[kRdrPass_ZPrepass];
@@ -292,11 +293,7 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrRenderTargetView
 	rPass.shaderMode = kRdrShaderMode_DepthOnly;
 	rPass.depthTestMode = kRdrDepthTestMode_Less;
 	rPass.bClearDepthTarget = true;
-	rPass.bClearRenderTargets = true;
-	for (int i = 0; i < 6; ++i)
-	{
-		rPass.ahRenderTargets[i] = ahTargetViews[i];
-	}
+	rPass.hDepthTarget = hDepthView;
 
 	CreatePerActionConstants();
 	CreateCubemapCaptureConstants(pLight->position, 0.1f, pLight->radius * 2.f);
@@ -386,8 +383,8 @@ void Renderer::CreateCubemapCaptureConstants(const Vec3& position, const float n
 	Camera cam;
 	Matrix44 mtxView, mtxProj;
 
-	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(GsCubemapPerFrame));
-	GsCubemapPerFrame* pGsConstants = (GsCubemapPerFrame*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(GsCubemapPerAction));
+	GsCubemapPerAction* pGsConstants = (GsCubemapPerAction*)RdrTransientHeap::AllocAligned(constantsSize, 16);
 	for (uint f = 0; f < kCubemapFace_Count; ++f)
 	{
 		cam.SetAsCubemapFace(position, (CubemapFace)f, nearDist, farDist);
@@ -396,7 +393,7 @@ void Renderer::CreateCubemapCaptureConstants(const Vec3& position, const float n
 		pGsConstants->mtxViewProj[f] = Matrix44Transpose(pGsConstants->mtxViewProj[f]);
 	}
 
-	m_pCurrentAction->hPerActionGs = m_resources.CreateTempConstantBuffer(pGsConstants, constantsSize, 0, kRdrResourceUsage_Default);
+	m_pCurrentAction->hPerActionCubemapGs = m_resources.CreateTempConstantBuffer(pGsConstants, constantsSize, 0, kRdrResourceUsage_Default);
 }
 
 void Renderer::CreatePerActionConstants()
@@ -585,7 +582,7 @@ void Renderer::DrawFrame()
 		m_pContext->BeginEvent(rAction.name);
 
 		RdrRasterState rasterState;
-		rasterState.bEnableMSAA = (s_msaaLevel > 1);
+		rasterState.bEnableMSAA = (s_msaaLevel > 1); // todo: this is only true for final render target
 		rasterState.bEnableScissor = false;
 		rasterState.bWireframe = s_wireframe;
 		m_pContext->SetRasterState(rasterState);
@@ -617,44 +614,17 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPassEnum ePass, const 
 	const RdrPass& rPass = rAction.passes[ePass];
 	bool bDepthOnly = (rPass.shaderMode == kRdrShaderMode_DepthOnly);
 	const RdrGeometry* pGeo = m_geos.GetGeo(pDrawOp->graphics.hGeo);
+	RdrShaderFlags shaderFlags = 0;
 
+	// Vertex shader
 	RdrVertexShader vertexShader = pDrawOp->graphics.vertexShader;
 	if (bDepthOnly)
 	{
-		vertexShader.flags |= kRdrShaderFlag_DepthOnly;
+		shaderFlags |= kRdrShaderFlag_DepthOnly;
 	}
+	vertexShader.flags |= shaderFlags;
 
 	m_drawState.pVertexShader = m_shaders.GetVertexShader(vertexShader);
-	m_drawState.pGeometryShader = pDrawOp->graphics.geometryShader ?
-		m_shaders.GetGeometryShader(pDrawOp->graphics.geometryShader) :
-		nullptr;
-	m_drawState.pPixelShader = pDrawOp->graphics.hPixelShaders[rPass.shaderMode] ?
-		m_shaders.GetPixelShader(pDrawOp->graphics.hPixelShaders[rPass.shaderMode]) :
-		nullptr;
-
-	for (uint i = 0; i < pDrawOp->texCount; ++i)
-	{
-		m_drawState.pPsResources[i] = m_resources.GetResource(pDrawOp->hTextures[i]);
-		m_drawState.psSamplers[i] = pDrawOp->samplers[i];
-	}
-
-	if (pDrawOp->graphics.bNeedsLighting && !bDepthOnly)
-	{
-		m_drawState.pPsResources[kPsResource_LightList] = m_resources.GetResource(rLightParams.hLightListRes);
-		m_drawState.pPsResources[kPsResource_TileLightIds] = m_resources.GetResource(hTileLightIndices);
-		m_drawState.pPsResources[kPsResource_ShadowMaps] = m_resources.GetResource(rLightParams.hShadowMapTexArray);
-		m_drawState.pPsResources[kPsResource_ShadowCubeMaps] = m_resources.GetResource(rLightParams.hShadowCubeMapTexArray);
-		m_drawState.psSamplers[kPsSampler_ShadowMap] = RdrSamplerState(kComparisonFunc_LessEqual, kRdrTexCoordMode_Clamp, false);
-		m_drawState.pPsResources[kPsResource_ShadowMapData] = m_resources.GetResource(rLightParams.hShadowMapDataRes);
-	}
-
-	m_drawState.pInputLayout = m_shaders.GetInputLayout(pDrawOp->graphics.hInputLayout); // todo: layouts per flags
-	m_drawState.eTopology = kRdrTopology_TriangleList;
-
-	m_drawState.vertexBuffers[0] = *m_geos.GetVertexBuffer(pGeo->hVertexBuffer);
-	m_drawState.vertexStride = pGeo->geoInfo.vertStride;
-	m_drawState.vertexOffset = 0;
-	m_drawState.vertexCount = pGeo->geoInfo.numVerts;
 
 	RdrConstantBufferHandle hPerActionVs = (ePass == kRdrPass_UI) ? rAction.hUiPerActionVs : rAction.hPerActionVs;
 	m_drawState.vsConstantBuffers[0] = m_resources.GetConstantBuffer(hPerActionVs)->bufferObj;
@@ -668,9 +638,50 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPassEnum ePass, const 
 		m_drawState.vsConstantBufferCount = 1;
 	}
 
-	RdrConstantBufferHandle hPerActionPs = (ePass == kRdrPass_UI) ? rAction.hUiPerActionPs : rAction.hPerActionPs;
-	m_drawState.psConstantBuffers[0] = m_resources.GetConstantBuffer(rAction.hPerActionPs)->bufferObj;
-	m_drawState.psConstantBufferCount = 1;
+	// Geom shader
+	if (rAction.bIsCubemapCapture)
+	{
+		RdrGeometryShader geomShader = { kRdrGeometryShader_Model_CubemapCapture, shaderFlags };
+		m_drawState.pGeometryShader = m_shaders.GetGeometryShader(geomShader);
+		m_drawState.gsConstantBuffers[0] = m_resources.GetConstantBuffer(rAction.hPerActionCubemapGs)->bufferObj;
+		m_drawState.gsConstantBufferCount = 1;
+	}
+
+	// Pixel shader
+	m_drawState.pPixelShader = pDrawOp->graphics.hPixelShaders[rPass.shaderMode] ?
+		m_shaders.GetPixelShader(pDrawOp->graphics.hPixelShaders[rPass.shaderMode]) :
+		nullptr;
+	if (m_drawState.pPixelShader)
+	{
+		for (uint i = 0; i < pDrawOp->texCount; ++i)
+		{
+			m_drawState.pPsResources[i] = m_resources.GetResource(pDrawOp->hTextures[i]);
+			m_drawState.psSamplers[i] = pDrawOp->samplers[i];
+		}
+
+		if (pDrawOp->graphics.bNeedsLighting && !bDepthOnly)
+		{
+			m_drawState.pPsResources[kPsResource_LightList] = m_resources.GetResource(rLightParams.hLightListRes);
+			m_drawState.pPsResources[kPsResource_TileLightIds] = m_resources.GetResource(hTileLightIndices);
+			m_drawState.pPsResources[kPsResource_ShadowMaps] = m_resources.GetResource(rLightParams.hShadowMapTexArray);
+			m_drawState.pPsResources[kPsResource_ShadowCubeMaps] = m_resources.GetResource(rLightParams.hShadowCubeMapTexArray);
+			m_drawState.psSamplers[kPsSampler_ShadowMap] = RdrSamplerState(kComparisonFunc_LessEqual, kRdrTexCoordMode_Clamp, false);
+			m_drawState.pPsResources[kPsResource_ShadowMapData] = m_resources.GetResource(rLightParams.hShadowMapDataRes);
+		}
+
+		RdrConstantBufferHandle hPerActionPs = (ePass == kRdrPass_UI) ? rAction.hUiPerActionPs : rAction.hPerActionPs;
+		m_drawState.psConstantBuffers[0] = m_resources.GetConstantBuffer(rAction.hPerActionPs)->bufferObj;
+		m_drawState.psConstantBufferCount = 1;
+	}
+
+	// Input assembly
+	m_drawState.pInputLayout = m_shaders.GetInputLayout(pDrawOp->graphics.hInputLayout); // todo: layouts per flags
+	m_drawState.eTopology = kRdrTopology_TriangleList;
+
+	m_drawState.vertexBuffers[0] = *m_geos.GetVertexBuffer(pGeo->hVertexBuffer);
+	m_drawState.vertexStride = pGeo->geoInfo.vertStride;
+	m_drawState.vertexOffset = 0;
+	m_drawState.vertexCount = pGeo->geoInfo.numVerts;
 
 	if (pGeo->hIndexBuffer)
 	{
@@ -682,6 +693,7 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPassEnum ePass, const 
 		m_drawState.indexBuffer.pBuffer = nullptr;
 	}
 
+	// Done
 	m_pContext->Draw(m_drawState);
 
 	memset(&m_drawState, 0, sizeof(m_drawState));

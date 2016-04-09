@@ -41,6 +41,7 @@ namespace
 			DXGI_FORMAT_R8_UNORM,				// kResourceFormat_R8_UNORM
 			DXGI_FORMAT_BC1_UNORM,				// kResourceFormat_DXT1
 			DXGI_FORMAT_BC3_UNORM,				// kResourceFormat_DXT5
+			DXGI_FORMAT_B8G8R8A8_UNORM,			// kResourceFormat_RGBA_UNORM
 		};
 		static_assert(ARRAYSIZE(s_d3dFormats) == kResourceFormat_Count, "Missing D3D formats!");
 		return s_d3dFormats[format];
@@ -56,6 +57,7 @@ namespace
 			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_R8_UNORM
 			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_DXT1
 			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_DXT5
+			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_RGBA_UNORM
 		};
 		static_assert(ARRAYSIZE(s_d3dDepthFormats) == kResourceFormat_Count, "Missing D3D depth formats!");
 		assert(s_d3dDepthFormats[format] != DXGI_FORMAT_UNKNOWN);
@@ -72,6 +74,7 @@ namespace
 			DXGI_FORMAT_R8_TYPELESS,		// kResourceFormat_R8_UNORM
 			DXGI_FORMAT_BC1_TYPELESS,		// kResourceFormat_DXT1
 			DXGI_FORMAT_BC3_TYPELESS,		// kResourceFormat_DXT5
+			DXGI_FORMAT_B8G8R8A8_TYPELESS,	// kResourceFormat_RGBA_UNORM
 		};
 		static_assert(ARRAYSIZE(s_d3dTypelessFormats) == kResourceFormat_Count, "Missing typeless formats!");
 		return s_d3dTypelessFormats[format];
@@ -592,7 +595,7 @@ RdrDepthStencilView RdrContextD3D11::CreateDepthStencilView(const RdrResource& r
 	return view;
 }
 
-RdrDepthStencilView RdrContextD3D11::CreateDepthStencilView(const RdrResource& rDepthTex, int arrayIndex)
+RdrDepthStencilView RdrContextD3D11::CreateDepthStencilView(const RdrResource& rDepthTex, uint arrayStartIndex, uint arraySize)
 {
 	RdrDepthStencilView view;
 
@@ -602,18 +605,17 @@ RdrDepthStencilView RdrContextD3D11::CreateDepthStencilView(const RdrResource& r
 
 	if (rDepthTex.texInfo.sampleCount > 1)
 	{
-		dsvDesc.Texture2DMSArray.FirstArraySlice = arrayIndex;
-		dsvDesc.Texture2DMSArray.ArraySize = 1;
+		dsvDesc.Texture2DMSArray.FirstArraySlice = arrayStartIndex;
+		dsvDesc.Texture2DMSArray.ArraySize = arraySize;
 		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY;
 	}
 	else
 	{
 		dsvDesc.Texture2DArray.MipSlice = 0;
-		dsvDesc.Texture2DArray.FirstArraySlice = arrayIndex;
-		dsvDesc.Texture2DArray.ArraySize = 1;
+		dsvDesc.Texture2DArray.FirstArraySlice = arrayStartIndex;
+		dsvDesc.Texture2DArray.ArraySize = arraySize;
 		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
 	}
-
 
 	HRESULT hr = m_pDevice->CreateDepthStencilView(rDepthTex.pTexture, &dsvDesc, &view.pView);
 	assert(hr == S_OK);
@@ -641,7 +643,7 @@ RdrRenderTargetView RdrContextD3D11::CreateRenderTargetView(RdrResource& rTexRes
 	return view;
 }
 
-RdrRenderTargetView RdrContextD3D11::CreateRenderTargetView(RdrResource& rTexArrayRes, int arrayIndex)
+RdrRenderTargetView RdrContextD3D11::CreateRenderTargetView(RdrResource& rTexArrayRes, uint arrayStartIndex, uint arraySize)
 {
 	RdrRenderTargetView view;
 
@@ -649,8 +651,8 @@ RdrRenderTargetView RdrContextD3D11::CreateRenderTargetView(RdrResource& rTexArr
 	desc.Format = getD3DFormat(rTexArrayRes.texInfo.format);
 	desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
 	desc.Texture2DArray.MipSlice = 0;
-	desc.Texture2DArray.FirstArraySlice = arrayIndex;
-	desc.Texture2DArray.ArraySize = 1;
+	desc.Texture2DArray.FirstArraySlice = arrayStartIndex;
+	desc.Texture2DArray.ArraySize = arraySize;
 
 	HRESULT hr = m_pDevice->CreateRenderTargetView(rTexArrayRes.pTexture, &desc, &view.pView);
 	assert(hr == S_OK);

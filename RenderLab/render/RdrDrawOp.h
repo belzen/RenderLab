@@ -28,7 +28,6 @@ struct RdrDrawOp
 
 			RdrInputLayoutHandle hInputLayout;
 			RdrVertexShader      vertexShader;
-			RdrGeometryShader    geometryShader;
 			RdrShaderHandle      hPixelShaders[kRdrShaderMode_Count];
 
 			RdrGeoHandle hGeo;

@@ -12,7 +12,7 @@ class Scene;
 
 #define MAX_SHADOW_MAPS 10
 #define MAX_SHADOW_CUBEMAPS 2
-#define USE_SINGLEPASS_SHADOW_CUBEMAP 0
+#define USE_SINGLEPASS_SHADOW_CUBEMAP 1
 
 enum LightType
 {
@@ -67,8 +67,8 @@ private:
 	RdrResourceHandle m_hShadowCubeMapTexArray;
 	RdrDepthStencilViewHandle m_shadowMapDepthViews[MAX_SHADOW_MAPS];
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
-	RdrRenderTargetViewHandle m_shadowCubeMapViews[MAX_SHADOW_CUBEMAPS * 6];
+	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS];
 #else
-	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * 6];
+	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * kCubemapFace_Count];
 #endif
 };

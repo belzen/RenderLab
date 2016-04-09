@@ -40,11 +40,12 @@ public:
 	void ReleaseResource(RdrResourceHandle hRes);
 
 	RdrDepthStencilViewHandle CreateDepthStencilView(RdrResourceHandle hResource);
-	RdrDepthStencilViewHandle CreateDepthStencilView(RdrResourceHandle hResource, uint arrayIndex);
+	RdrDepthStencilViewHandle CreateDepthStencilView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize);
 	RdrDepthStencilView GetDepthStencilView(const RdrDepthStencilViewHandle hView);
 	void ReleaseDepthStencilView(const RdrRenderTargetViewHandle hView);
 
 	RdrRenderTargetViewHandle CreateRenderTargetView(RdrResourceHandle hResource);
+	RdrRenderTargetViewHandle CreateRenderTargetView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize);
 	RdrRenderTargetView GetRenderTargetView(const RdrRenderTargetViewHandle hView);
 	void ReleaseRenderTargetView(const RdrRenderTargetViewHandle hView);
 
@@ -114,7 +115,8 @@ private:
 	{
 		RdrRenderTargetViewHandle hView;
 		RdrResourceHandle hResource;
-		int arrayIndex;
+		int arrayStartIndex;
+		int arraySize;
 	};
 
 	struct CmdReleaseRenderTarget
@@ -126,7 +128,8 @@ private:
 	{
 		RdrDepthStencilViewHandle hView;
 		RdrResourceHandle hResource;
-		int arrayIndex;
+		int arrayStartIndex;
+		int arraySize;
 	};
 
 	struct CmdReleaseDepthStencil

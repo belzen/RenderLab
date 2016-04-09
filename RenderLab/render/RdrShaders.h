@@ -68,12 +68,17 @@ struct RdrVertexShader
 	RdrShaderFlags flags;
 };
 
-enum RdrGeometryShader
+enum RdrGeometryShaderType
 {
-	kRdrGeometryShader_None,
 	kRdrGeometryShader_Model_CubemapCapture,
 
 	kRdrGeometryShader_Count
+};
+
+struct RdrGeometryShader
+{
+	RdrGeometryShaderType eType;
+	RdrShaderFlags flags;
 };
 
 enum RdrComputeShader

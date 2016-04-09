@@ -43,12 +43,12 @@ class RdrContextD3D11 : public RdrContext
 	void ReleaseResource(RdrResource& rResource);
 
 	RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTex);
-	RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTexArray, int arrayIndex);
+	RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTexArray, uint arrayStartIndex, uint arraySize);
 	void ClearDepthStencilView(const RdrDepthStencilView& depthStencil, const bool bClearDepth, const float depthVal, const bool bClearStencil, const uint8 stencilVal);
 	void ReleaseDepthStencilView(const RdrDepthStencilView& depthStencilView);
 
 	RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexRes);
-	RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexArrayRes, int arrayIndex);
+	RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexArrayRes, uint arrayStartIndex, uint arraySize);
 	void ClearRenderTargetView(const RdrRenderTargetView& renderTarget, const Color& clearColor);
 	void ReleaseRenderTargetView(const RdrRenderTargetView& renderTargetView);
 

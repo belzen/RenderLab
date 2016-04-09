@@ -53,7 +53,7 @@ struct RdrAction
 	RdrLightParams lightParams;
 	RdrConstantBufferHandle hPerActionVs;
 	RdrConstantBufferHandle hPerActionPs;
-	RdrConstantBufferHandle hPerActionGs;
+	RdrConstantBufferHandle hPerActionCubemapGs;
 
 	RdrConstantBufferHandle hUiPerActionVs;
 	RdrConstantBufferHandle hUiPerActionPs;

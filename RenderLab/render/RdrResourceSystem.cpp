@@ -246,11 +246,31 @@ RdrRenderTargetView RdrResourceSystem::GetRenderTargetView(const RdrRenderTarget
 
 RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceHandle hResource)
 {
+	assert(hResource);
+
 	RdrRenderTargetView* pView = m_renderTargetViews.allocSafe();
 
 	CmdCreateRenderTarget cmd = { 0 };
 	cmd.hResource = hResource;
 	cmd.hView = m_renderTargetViews.getId(pView);
+	cmd.arrayStartIndex = -1;
+
+	m_states[m_queueState].renderTargetCreates.push_back(cmd);
+
+	return cmd.hView;
+}
+
+RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize)
+{
+	assert(hResource);
+
+	RdrRenderTargetView* pView = m_renderTargetViews.allocSafe();
+
+	CmdCreateRenderTarget cmd = { 0 };
+	cmd.hResource = hResource;
+	cmd.hView = m_renderTargetViews.getId(pView);
+	cmd.arrayStartIndex = arrayStartIndex;
+	cmd.arraySize = arraySize;
 
 	m_states[m_queueState].renderTargetCreates.push_back(cmd);
 
@@ -280,26 +300,31 @@ void RdrResourceSystem::ReleaseDepthStencilView(const RdrRenderTargetViewHandle 
 
 RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceHandle hResource)
 {
+	assert(hResource);
+
 	RdrDepthStencilView* pView = m_depthStencilViews.allocSafe();
 
 	CmdCreateDepthStencil cmd = { 0 };
 	cmd.hResource = hResource;
 	cmd.hView = m_depthStencilViews.getId(pView);
-	cmd.arrayIndex = -1;
+	cmd.arrayStartIndex = -1;
 
 	m_states[m_queueState].depthStencilCreates.push_back(cmd);
 
 	return cmd.hView;
 }
 
-RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceHandle hResource, uint arrayIndex)
+RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize)
 {
+	assert(hResource);
+
 	RdrDepthStencilView* pView = m_depthStencilViews.allocSafe();
 
 	CmdCreateDepthStencil cmd = { 0 };
 	cmd.hResource = hResource;
 	cmd.hView = m_depthStencilViews.getId(pView);
-	cmd.arrayIndex = arrayIndex;
+	cmd.arrayStartIndex = arrayStartIndex;
+	cmd.arraySize = arraySize;
 
 	m_states[m_queueState].depthStencilCreates.push_back(cmd);
 
@@ -436,9 +461,9 @@ void RdrResourceSystem::ProcessCommands()
 		CmdCreateRenderTarget& cmd = state.renderTargetCreates[i];
 		RdrRenderTargetView* pView = m_renderTargetViews.get(cmd.hView);
 		RdrResource* pResource = m_resources.get(cmd.hResource);
-		if (cmd.arrayIndex >= 0)
+		if (cmd.arrayStartIndex >= 0)
 		{
-			*pView = m_pRdrContext->CreateRenderTargetView(*pResource, cmd.arrayIndex);
+			*pView = m_pRdrContext->CreateRenderTargetView(*pResource, cmd.arrayStartIndex, cmd.arraySize);
 		}
 		else
 		{
@@ -453,9 +478,9 @@ void RdrResourceSystem::ProcessCommands()
 		CmdCreateDepthStencil& cmd = state.depthStencilCreates[i];
 		RdrDepthStencilView* pView = m_depthStencilViews.get(cmd.hView);
 		RdrResource* pResource = m_resources.get(cmd.hResource);
-		if (cmd.arrayIndex >= 0)
+		if (cmd.arrayStartIndex >= 0)
 		{
-			*pView = m_pRdrContext->CreateDepthStencilView(*pResource, cmd.arrayIndex);
+			*pView = m_pRdrContext->CreateDepthStencilView(*pResource, cmd.arrayStartIndex, cmd.arraySize);
 		}
 		else
 		{

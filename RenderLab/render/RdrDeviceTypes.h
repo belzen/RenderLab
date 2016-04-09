@@ -92,7 +92,9 @@ enum RdrResourceFormat
 	kResourceFormat_R8_UNORM,
 	kResourceFormat_DXT1,
 	kResourceFormat_DXT5,
-	kResourceFormat_Count,
+	kResourceFormat_BGRA_UNORM,
+
+	kResourceFormat_Count
 };
 
 enum RdrComparisonFunc
