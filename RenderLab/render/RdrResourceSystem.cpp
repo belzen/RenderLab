@@ -22,11 +22,13 @@ namespace
 		case DXGI_FORMAT_R16_UNORM:
 			return kResourceFormat_R16_UNORM;
 		case DXGI_FORMAT_R16G16_FLOAT:
-			return kResourceFormat_RG_F16;
+			return kResourceFormat_R16G16_FLOAT;
 		case DXGI_FORMAT_R8_UNORM:
 			return kResourceFormat_R8_UNORM;
 		case DXGI_FORMAT_BC3_UNORM:
 			return kResourceFormat_DXT5;
+		case DXGI_FORMAT_B8G8R8A8_UNORM:
+			return kResourceFormat_B8G8R8A8_UNORM;
 		default:
 			assert(false);
 			return kResourceFormat_Count;
@@ -42,7 +44,7 @@ void RdrResourceSystem::Init(RdrContext* pRdrContext)
 	m_renderTargetViews.allocSafe();
 }
 
-RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* filename, RdrTextureInfo* pOutInfo)
+RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* filename, bool bIsCubemap, RdrTextureInfo* pOutInfo)
 {
 	// Find texture in cache
 	RdrResourceHandleMap::iterator iter = m_textureCache.find(filename);
@@ -75,9 +77,14 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* filename,
 	cmd.texInfo.height = (uint)metadata.height;
 	cmd.texInfo.mipLevels = (uint)metadata.mipLevels;
 	cmd.texInfo.arraySize = (uint)metadata.arraySize;
+	cmd.texInfo.bCubemap = bIsCubemap;
 	cmd.texInfo.sampleCount = 1;
-	cmd.texInfo.bCubemap = false;
 	cmd.bFreeData = true;
+
+	if (bIsCubemap)
+	{
+		cmd.texInfo.arraySize /= 6;
+	}
 
 	pPos += sizeof(DWORD); // magic?
 	pPos += sizeof(DirectX::DDS_HEADER);

@@ -7,7 +7,7 @@
 
 namespace
 {
-	const RdrVertexShader kVertexShader = { kRdrVertexShader_Sprite, 0 };
+	const RdrVertexShader kVertexShader = { kRdrVertexShader_Sprite, (RdrShaderFlags)0 };
 
 	struct SpriteVertex
 	{
@@ -25,7 +25,7 @@ void Sprite::Init(Renderer& rRenderer, const Vec2 aTexcoords[4], const char* tex
 {
 	m_hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(kVertexShader, s_vertexDesc, ARRAYSIZE(s_vertexDesc));
 	m_hPixelShader = rRenderer.GetShaderSystem().CreatePixelShaderFromFile("p_sprite.hlsl");
-	m_hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(textureName, nullptr);
+	m_hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(textureName, false, nullptr);
 
 	SpriteVertex* verts = (SpriteVertex*)RdrTransientHeap::Alloc(sizeof(SpriteVertex) * 4);
 	verts[0].position = Vec2(0.f, 0.f);

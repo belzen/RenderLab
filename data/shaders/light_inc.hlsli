@@ -42,7 +42,7 @@ int getTileId(in float2 screenPos, in uint screenWidth)
 
 float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float3 posToLight, in float lightRadius, in uint shadowMapIndex)
 {
-	const float bias = 0.001f;
+	const float bias = 0.004f;
 	if (shadowMapIndex >= MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS)
 	{
 		return 1.f;

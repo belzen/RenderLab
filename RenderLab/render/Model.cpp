@@ -2,22 +2,31 @@
 #include "Model.h"
 #include "RdrContext.h"
 #include "RdrTransientHeap.h"
+#include "RdrDrawOp.h"
 #include "Renderer.h"
 #include "Camera.h"
 
 namespace
 {
-	RdrVertexShader kVertexShader = { kRdrVertexShader_Model, 0 };
+	const RdrVertexShader kVertexShader = { kRdrVertexShader_Model, (RdrShaderFlags)0 };
+
+	static RdrVertexInputElement s_modelVertexDesc[] = {
+		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RGB_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
+		{ kRdrShaderSemantic_Normal, 0, kRdrVertexInputFormat_RGB_F32, 0, 12, kRdrVertexInputClass_PerVertex, 0 },
+		{ kRdrShaderSemantic_Color, 0, kRdrVertexInputFormat_RGBA_F32, 0, 24, kRdrVertexInputClass_PerVertex, 0 },
+		{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 40, kRdrVertexInputClass_PerVertex, 0 },
+		{ kRdrShaderSemantic_Tangent, 0, kRdrVertexInputFormat_RGB_F32, 0, 48, kRdrVertexInputClass_PerVertex, 0 },
+		{ kRdrShaderSemantic_Binormal, 0, kRdrVertexInputFormat_RGB_F32, 0, 60, kRdrVertexInputClass_PerVertex, 0 }
+	};
 }
 
-Model::Model(RdrGeoHandle hGeo,
-	RdrInputLayoutHandle hInputLayout,
+Model::Model(Renderer& rRenderer,
+	RdrGeoHandle hGeo,
 	RdrShaderHandle hPixelShader,
 	RdrSamplerState* aSamplers,
 	RdrResourceHandle* ahTextures,
 	int numTextures)
-	: m_hInputLayout(hInputLayout)
-	, m_hPixelShader(hPixelShader)
+	: m_hPixelShader(hPixelShader)
 	, m_hGeo(hGeo)
 	, m_numTextures(numTextures)
 {
@@ -26,6 +35,8 @@ Model::Model(RdrGeoHandle hGeo,
 		m_samplers[i] = aSamplers[i];
 		m_hTextures[i] = ahTextures[i];
 	}
+
+	m_hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));
 }
 
 

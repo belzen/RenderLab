@@ -29,6 +29,8 @@ class RdrContextD3D11 : public RdrContext
 	bool Init(HWND hWnd, uint width, uint height, uint msaaLevel);
 	void Release();
 
+	bool IsIdle();
+
 	RdrVertexBuffer CreateVertexBuffer(const void* vertices, int size);
 	void ReleaseVertexBuffer(const RdrVertexBuffer* pBuffer);
 
@@ -96,4 +98,5 @@ private:
 	ID3D11DepthStencilState* m_pDepthStencilStates[kRdrDepthTestMode_Count];
 
 	uint m_msaaLevel;
+	uint m_presentFlags;
 };

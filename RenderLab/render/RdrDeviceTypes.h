@@ -50,6 +50,7 @@ enum RdrPassEnum
 	kRdrPass_ZPrepass,
 	kRdrPass_LightCulling,
 	kRdrPass_Opaque,
+	kRdrPass_Sky,
 	kRdrPass_Alpha,
 	kRdrPass_UI,
 
@@ -60,6 +61,7 @@ enum RdrBucketType
 {
 	kRdrBucketType_LightCulling,
 	kRdrBucketType_Opaque,
+	kRdrBucketType_Sky,
 	kRdrBucketType_Alpha,
 	kRdrBucketType_UI,
 
@@ -88,11 +90,11 @@ enum RdrResourceFormat
 	kResourceFormat_D16,
 	kResourceFormat_D24_UNORM_S8_UINT,
 	kResourceFormat_R16_UNORM,
-	kResourceFormat_RG_F16,
+	kResourceFormat_R16G16_FLOAT,
 	kResourceFormat_R8_UNORM,
 	kResourceFormat_DXT1,
 	kResourceFormat_DXT5,
-	kResourceFormat_BGRA_UNORM,
+	kResourceFormat_B8G8R8A8_UNORM,
 
 	kResourceFormat_Count
 };

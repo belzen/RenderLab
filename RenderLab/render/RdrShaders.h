@@ -58,6 +58,7 @@ enum RdrVertexShaderType
 	kRdrVertexShader_Model,
 	kRdrVertexShader_Text,
 	kRdrVertexShader_Sprite,
+	kRdrVertexShader_Sky,
 
 	kRdrVertexShader_Count
 };

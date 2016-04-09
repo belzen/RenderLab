@@ -13,7 +13,7 @@
 #include "RdrContextD3D11.h"
 #include "RdrShaderConstants.h"
 #include "RdrTransientHeap.h"
-
+#include "RdrDrawOp.h"
 
 namespace
 {
@@ -44,6 +44,7 @@ namespace
 		kRdrBucketType_Opaque,	     // kRdrPass_ZPrepass
 		kRdrBucketType_LightCulling, // kRdrPass_LightCulling
 		kRdrBucketType_Opaque,	     // kRdrPass_Opaque
+		kRdrBucketType_Sky,	         // kRdrPass_Sky
 		kRdrBucketType_Alpha,		 // kRdrPass_Alpha
 		kRdrBucketType_UI,		     // kRdrPass_UI
 	};
@@ -52,11 +53,12 @@ namespace
 	// Event names for passes
 	static const wchar_t* s_passNames[] =
 	{
-		L"Z-Prepass",		// kRdrPass_ZPrepass,
-		L"Light Culling",	// kRdrPass_LightCulling,
-		L"Opaque",			// kRdrPass_Opaque,
-		L"Alpha",			// kRdrPass_Alpha,
-		L"UI",				// kRdrPass_UI,
+		L"Z-Prepass",		// kRdrPass_ZPrepass
+		L"Light Culling",	// kRdrPass_LightCulling
+		L"Opaque",			// kRdrPass_Opaque
+		L"Sky",				// kRdrPass_Sky
+		L"Alpha",			// kRdrPass_Alpha
+		L"UI",				// kRdrPass_UI
 	};
 	static_assert(sizeof(s_passNames) / sizeof(s_passNames[0]) == kRdrPass_Count, "Missing RdrPass names!");
 }
@@ -72,6 +74,7 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 		return false;
 
 	Resize(width, height);
+	ApplyDeviceChanges();
 
 	m_shaders.Init(m_pContext);
 	m_resources.Init(m_pContext);
@@ -92,24 +95,32 @@ void Renderer::Cleanup()
 
 void Renderer::Resize(int width, int height)
 {
-	if (!m_pContext || width == 0 || height == 0)
+	if (width == 0 || height == 0)
 		return;
 
-	m_viewWidth = width;
-	m_viewHeight = height;
+	m_pendingViewWidth = width;
+	m_pendingViewHeight = height;
+}
 
-	m_pContext->Resize(width, height);
+void Renderer::ApplyDeviceChanges()
+{
+	if (m_pendingViewWidth != m_viewWidth || m_pendingViewHeight != m_viewHeight)
+	{
+		m_pContext->Resize(m_pendingViewWidth, m_pendingViewHeight);
 
+		// Release existing resources
+		if (m_hPrimaryDepthStencilView)
+			m_resources.ReleaseDepthStencilView(m_hPrimaryDepthStencilView);
+		if (m_hPrimaryDepthBuffer)
+			m_resources.ReleaseResource(m_hPrimaryDepthBuffer);
 
-	// Release existing resources
-	if (m_hPrimaryDepthStencilView)
-		m_resources.ReleaseDepthStencilView(m_hPrimaryDepthStencilView);
-	if (m_hPrimaryDepthBuffer)
-		m_resources.ReleaseResource(m_hPrimaryDepthBuffer);
+		// Depth Buffer
+		m_hPrimaryDepthBuffer = m_resources.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, kResourceFormat_D24_UNORM_S8_UINT, s_msaaLevel);
+		m_hPrimaryDepthStencilView = m_resources.CreateDepthStencilView(m_hPrimaryDepthBuffer);
 
-	// Depth Buffer
-	m_hPrimaryDepthBuffer = m_resources.CreateTexture2DMS(width, height, kResourceFormat_D24_UNORM_S8_UINT, s_msaaLevel);
-	m_hPrimaryDepthStencilView = m_resources.CreateDepthStencilView(m_hPrimaryDepthBuffer);
+		m_viewWidth = m_pendingViewWidth;
+		m_viewHeight = m_pendingViewHeight;
+	}
 }
 
 const Camera& Renderer::GetCurrentCamera(void) const
@@ -146,7 +157,7 @@ void Renderer::QueueLightCulling()
 	{
 		if (m_hDepthMinMaxTex)
 			m_resources.ReleaseResource(m_hDepthMinMaxTex);
-		m_hDepthMinMaxTex = m_resources.CreateTexture2D(tileCountX, tileCountY, kResourceFormat_RG_F16);
+		m_hDepthMinMaxTex = m_resources.CreateTexture2D(tileCountX, tileCountY, kResourceFormat_R16G16_FLOAT);
 	}
 
 	RdrDrawOp* pDepthOp = RdrDrawOp::Allocate();
@@ -263,13 +274,15 @@ void Renderer::BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilViewHa
 
 	// Setup action passes
 	RdrPass& rPass = m_pCurrentAction->passes[kRdrPass_ZPrepass];
-	rPass.viewport = viewport;
-	rPass.bEnabled = true;
-	rPass.hDepthTarget = hDepthView;
-	rPass.bClearDepthTarget = true;
-	rPass.depthTestMode = kRdrDepthTestMode_Less;
-	rPass.bAlphaBlend = false;
-	rPass.shaderMode = kRdrShaderMode_DepthOnly;
+	{
+		rPass.viewport = viewport;
+		rPass.bEnabled = true;
+		rPass.hDepthTarget = hDepthView;
+		rPass.bClearDepthTarget = true;
+		rPass.depthTestMode = kRdrDepthTestMode_Less;
+		rPass.bAlphaBlend = false;
+		rPass.shaderMode = kRdrShaderMode_DepthOnly;
+	}
 
 	CreatePerActionConstants();
 }
@@ -287,13 +300,15 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilView
 
 	// Setup action passes
 	RdrPass& rPass = m_pCurrentAction->passes[kRdrPass_ZPrepass];
-	rPass.viewport = viewport;
-	rPass.bEnabled = true;
-	rPass.bAlphaBlend = false;
-	rPass.shaderMode = kRdrShaderMode_DepthOnly;
-	rPass.depthTestMode = kRdrDepthTestMode_Less;
-	rPass.bClearDepthTarget = true;
-	rPass.hDepthTarget = hDepthView;
+	{
+		rPass.viewport = viewport;
+		rPass.bEnabled = true;
+		rPass.bAlphaBlend = false;
+		rPass.shaderMode = kRdrShaderMode_DepthOnly;
+		rPass.depthTestMode = kRdrDepthTestMode_Less;
+		rPass.bClearDepthTarget = true;
+		rPass.hDepthTarget = hDepthView;
+	}
 
 	CreatePerActionConstants();
 	CreateCubemapCaptureConstants(pLight->position, 0.1f, pLight->radius * 2.f);
@@ -316,53 +331,74 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLight
 
 	// Z Prepass
 	RdrPass* pPass = &m_pCurrentAction->passes[kRdrPass_ZPrepass];
-	pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
-	pPass->bEnabled = true;
-	pPass->bAlphaBlend = false;
-	pPass->hDepthTarget = m_hPrimaryDepthStencilView;
-	pPass->bClearDepthTarget = true;
-	pPass->depthTestMode = kRdrDepthTestMode_Less;
-	pPass->shaderMode = kRdrShaderMode_DepthOnly;
+	{
+		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->bEnabled = true;
+		pPass->bAlphaBlend = false;
+		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
+		pPass->bClearDepthTarget = true;
+		pPass->depthTestMode = kRdrDepthTestMode_Less;
+		pPass->shaderMode = kRdrShaderMode_DepthOnly;
+	}
 
 	// Light Culling
 	pPass = &m_pCurrentAction->passes[kRdrPass_LightCulling];
-	pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
-	pPass->bEnabled = true;
-	pPass->bAlphaBlend = false;
-	pPass->bClearDepthTarget = false;
-	pPass->depthTestMode = kRdrDepthTestMode_None;
-	pPass->shaderMode = kRdrShaderMode_Normal;
+	{
+		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->bEnabled = true;
+		pPass->bAlphaBlend = false;
+		pPass->bClearDepthTarget = false;
+		pPass->depthTestMode = kRdrDepthTestMode_None;
+		pPass->shaderMode = kRdrShaderMode_Normal;
+	}
 
 	// Opaque
 	pPass = &m_pCurrentAction->passes[kRdrPass_Opaque];
-	pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
-	pPass->bEnabled = true;
-	pPass->ahRenderTargets[0] = RdrResourceSystem::kPrimaryRenderTargetHandle;
-	pPass->bClearRenderTargets = true;
-	pPass->bAlphaBlend = false;
-	pPass->hDepthTarget = m_hPrimaryDepthStencilView;
-	pPass->depthTestMode = kRdrDepthTestMode_Equal;
-	pPass->shaderMode = kRdrShaderMode_Normal;
+	{
+		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->bEnabled = true;
+		pPass->ahRenderTargets[0] = RdrResourceSystem::kPrimaryRenderTargetHandle;
+		pPass->bClearRenderTargets = true;
+		pPass->bAlphaBlend = false;
+		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
+		pPass->depthTestMode = kRdrDepthTestMode_Equal;
+		pPass->shaderMode = kRdrShaderMode_Normal;
+	}
+
+	// Sky
+	pPass = &m_pCurrentAction->passes[kRdrPass_Sky];
+	{
+		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->bEnabled = true;
+		pPass->ahRenderTargets[0] = RdrResourceSystem::kPrimaryRenderTargetHandle;
+		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
+		pPass->depthTestMode = kRdrDepthTestMode_Equal;
+		pPass->shaderMode = kRdrShaderMode_Normal;
+	}
 
 	// Alpha
 	pPass = &m_pCurrentAction->passes[kRdrPass_Alpha];
-	pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
-	pPass->bEnabled = true;
-	pPass->ahRenderTargets[0] = RdrResourceSystem::kPrimaryRenderTargetHandle;
-	pPass->bAlphaBlend = true;
-	pPass->hDepthTarget = m_hPrimaryDepthStencilView;
-	pPass->depthTestMode = kRdrDepthTestMode_None;
-	pPass->shaderMode = kRdrShaderMode_Normal;
+	{
+		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->bEnabled = true;
+		pPass->ahRenderTargets[0] = RdrResourceSystem::kPrimaryRenderTargetHandle;
+		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
+		pPass->depthTestMode = kRdrDepthTestMode_Equal;
+		pPass->shaderMode = kRdrShaderMode_Normal;
+		pPass->bAlphaBlend = true;
+	}
 
 	// UI
 	pPass = &m_pCurrentAction->passes[kRdrPass_UI];
-	pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
-	pPass->bEnabled = true;
-	pPass->ahRenderTargets[0] = RdrResourceSystem::kPrimaryRenderTargetHandle;
-	pPass->bAlphaBlend = true;
-	pPass->hDepthTarget = m_hPrimaryDepthStencilView;
-	pPass->depthTestMode = kRdrDepthTestMode_None;
-	pPass->shaderMode = kRdrShaderMode_Normal;
+	{
+		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->bEnabled = true;
+		pPass->ahRenderTargets[0] = RdrResourceSystem::kPrimaryRenderTargetHandle;
+		pPass->bAlphaBlend = true;
+		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
+		pPass->depthTestMode = kRdrDepthTestMode_None;
+		pPass->shaderMode = kRdrShaderMode_Normal;
+	}
 	
 	CreatePerActionConstants();
 	QueueLightCulling();
@@ -576,34 +612,38 @@ void Renderer::DrawFrame()
 	m_resources.ProcessCommands();
 	m_geos.ProcessCommands();
 
-	for (uint iAction = 0; iAction < rFrameState.numActions; ++iAction)
+	if (!m_pContext->IsIdle()) // If the device is idle (probably minimized), don't bother rendering anything.
 	{
-		RdrAction& rAction = rFrameState.actions[iAction];
-		m_pContext->BeginEvent(rAction.name);
-
-		RdrRasterState rasterState;
-		rasterState.bEnableMSAA = (s_msaaLevel > 1); // todo: this is only true for final render target
-		rasterState.bEnableScissor = false;
-		rasterState.bWireframe = s_wireframe;
-		m_pContext->SetRasterState(rasterState);
-
-		// todo: sort buckets 
-		//std::sort(pAction->buckets[kRdrBucketType_Opaque].begin(), pAction->buckets[kRdrBucketType_Opaque].end(), );
-
-		DrawPass(rAction, kRdrPass_ZPrepass);
-		DrawPass(rAction, kRdrPass_LightCulling);
-		DrawPass(rAction, kRdrPass_Opaque);
-		DrawPass(rAction, kRdrPass_Alpha);
-
-		// UI should never be wireframe
-		if (s_wireframe)
+		for (uint iAction = 0; iAction < rFrameState.numActions; ++iAction)
 		{
-			rasterState.bWireframe = false;
-			m_pContext->SetRasterState(rasterState);
-		}
-		DrawPass(rAction, kRdrPass_UI);
+			RdrAction& rAction = rFrameState.actions[iAction];
+			m_pContext->BeginEvent(rAction.name);
 
-		m_pContext->EndEvent();
+			RdrRasterState rasterState;
+			rasterState.bEnableMSAA = (s_msaaLevel > 1); // todo: this is only true for final render target
+			rasterState.bEnableScissor = false;
+			rasterState.bWireframe = s_wireframe;
+			m_pContext->SetRasterState(rasterState);
+
+			// todo: sort buckets 
+			//std::sort(pAction->buckets[kRdrBucketType_Opaque].begin(), pAction->buckets[kRdrBucketType_Opaque].end(), );
+
+			DrawPass(rAction, kRdrPass_ZPrepass);
+			DrawPass(rAction, kRdrPass_LightCulling);
+			DrawPass(rAction, kRdrPass_Opaque);
+			DrawPass(rAction, kRdrPass_Sky);
+			DrawPass(rAction, kRdrPass_Alpha);
+
+			// UI should never be wireframe
+			if (s_wireframe)
+			{
+				rasterState.bWireframe = false;
+				m_pContext->SetRasterState(rasterState);
+			}
+			DrawPass(rAction, kRdrPass_UI);
+
+			m_pContext->EndEvent();
+		}
 	}
 
 	m_pContext->Present();
@@ -614,7 +654,7 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPassEnum ePass, const 
 	const RdrPass& rPass = rAction.passes[ePass];
 	bool bDepthOnly = (rPass.shaderMode == kRdrShaderMode_DepthOnly);
 	const RdrGeometry* pGeo = m_geos.GetGeo(pDrawOp->graphics.hGeo);
-	RdrShaderFlags shaderFlags = 0;
+	RdrShaderFlags shaderFlags = (RdrShaderFlags)0;
 
 	// Vertex shader
 	RdrVertexShader vertexShader = pDrawOp->graphics.vertexShader;

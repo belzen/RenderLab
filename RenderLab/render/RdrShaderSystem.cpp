@@ -13,8 +13,9 @@ namespace
 
 	const char* kVertexShaderFilenames[] = {
 		"v_model.hlsl",  // kRdrVertexShader_Model
-		"v_text.hlsl", // kRdrVertexShader_Text
-		"v_sprite.hlsl"    // kRdrVertexShader_Sprite
+		"v_text.hlsl",   // kRdrVertexShader_Text
+		"v_sprite.hlsl", // kRdrVertexShader_Sprite
+		"v_sky.hlsl"     // kRdrVertexShader_Sky
 	};
 	static_assert(ARRAYSIZE(kVertexShaderFilenames) == kRdrVertexShader_Count, "Missing vertex shader filename!");
 

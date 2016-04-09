@@ -37,7 +37,7 @@ namespace
 			DXGI_FORMAT_R16_UNORM,				// kResourceFormat_D16
 			DXGI_FORMAT_R24_UNORM_X8_TYPELESS,	// kResourceFormat_D24_UNORM_S8_UINT
 			DXGI_FORMAT_R16_UNORM,				// kResourceFormat_R16_UNORM
-			DXGI_FORMAT_R16G16_FLOAT,			// kResourceFormat_RG_F16
+			DXGI_FORMAT_R16G16_FLOAT,			// kResourceFormat_R16G16_FLOAT
 			DXGI_FORMAT_R8_UNORM,				// kResourceFormat_R8_UNORM
 			DXGI_FORMAT_BC1_UNORM,				// kResourceFormat_DXT1
 			DXGI_FORMAT_BC3_UNORM,				// kResourceFormat_DXT5
@@ -53,7 +53,7 @@ namespace
 			DXGI_FORMAT_D16_UNORM,			// kResourceFormat_D16
 			DXGI_FORMAT_D24_UNORM_S8_UINT,	// kResourceFormat_D24_UNORM_S8_UINT
 			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_R16_UNORM
-			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_RG_F16
+			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_R16G16_FLOAT
 			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_R8_UNORM
 			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_DXT1
 			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_DXT5
@@ -70,7 +70,7 @@ namespace
 			DXGI_FORMAT_R16_TYPELESS,		// kResourceFormat_D16
 			DXGI_FORMAT_R24G8_TYPELESS,		// kResourceFormat_D24_UNORM_S8_UINT
 			DXGI_FORMAT_R16_TYPELESS,		// kResourceFormat_R16_UNORM
-			DXGI_FORMAT_R16G16_TYPELESS,	// kResourceFormat_RG_F16
+			DXGI_FORMAT_R16G16_TYPELESS,	// kResourceFormat_R16G16_FLOAT
 			DXGI_FORMAT_R8_TYPELESS,		// kResourceFormat_R8_UNORM
 			DXGI_FORMAT_BC1_TYPELESS,		// kResourceFormat_DXT1
 			DXGI_FORMAT_BC3_TYPELESS,		// kResourceFormat_DXT5
@@ -208,6 +208,8 @@ static int GetTexturePitch(const int width, const RdrResourceFormat eFormat)
 		return ((width + 3) & ~3) * 2;
 	case kResourceFormat_DXT5:
 		return ((width + 3) & ~3) * 4;
+	case kResourceFormat_B8G8R8A8_UNORM:
+		return width * 4;
 	default:
 		assert(false);
 		return 0;
@@ -223,6 +225,8 @@ static int GetTextureRows(const int height, const RdrResourceFormat eFormat)
 	case kResourceFormat_DXT1:
 	case kResourceFormat_DXT5:
 		return ((height + 3) & ~3) / 4;
+	case kResourceFormat_B8G8R8A8_UNORM:
+		return height;
 	default:
 		assert(false);
 		return 0;
@@ -324,6 +328,11 @@ void RdrContextD3D11::Release()
 	m_pDevice->Release();
 }
 
+bool RdrContextD3D11::IsIdle()
+{
+	return (m_presentFlags & DXGI_PRESENT_TEST);
+}
+
 ID3D11SamplerState* RdrContextD3D11::GetSampler(const RdrSamplerState& state)
 {
 	uint samplerIndex =
@@ -368,7 +377,7 @@ namespace
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 		if (resourceFormatIsDepth(rTexInfo.format))
 			desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
-		else
+		else if (eUsage != kRdrResourceUsage_Immutable)
 			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 		desc.SampleDesc.Count = rTexInfo.sampleCount;
 		desc.Format = getD3DTypelessFormat(rTexInfo.format);
@@ -501,34 +510,45 @@ namespace
 
 bool RdrContextD3D11::CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource)
 {
-	D3D11_SUBRESOURCE_DATA data[16] = { 0 };
-
-	D3D11_SUBRESOURCE_DATA* pData = nullptr;
+	uint sliceCount = rTexInfo.bCubemap ? rTexInfo.arraySize * 6 : rTexInfo.arraySize;
+	D3D11_SUBRESOURCE_DATA* pData = nullptr;  
+	
 	if (pSrcData)
 	{
+		uint resIndex = 0;
+		pData = (D3D11_SUBRESOURCE_DATA*)_malloca(sliceCount * rTexInfo.mipLevels * sizeof(D3D11_SUBRESOURCE_DATA));
+
 		char* pPos = (char*)pSrcData;
-		uint mipWidth = rTexInfo.width;
-		uint mipHeight = rTexInfo.height;
-		assert(mipWidth == mipHeight); // todo: support non-square textures
-		for (uint i = 0; i < rTexInfo.mipLevels; ++i)
+		assert(rTexInfo.width == rTexInfo.height); // todo: support non-square textures
+		for (uint slice = 0; slice < sliceCount; ++slice)
 		{
-			data[i].pSysMem = pPos;
-			data[i].SysMemPitch = GetTexturePitch(mipWidth, rTexInfo.format);
-			pPos += data[i].SysMemPitch * GetTextureRows(mipHeight, rTexInfo.format);
-			mipWidth >>= 1;
-			mipHeight >>= 1;
+			uint mipWidth = rTexInfo.width;
+			uint mipHeight = rTexInfo.height;
+			for (uint mip = 0; mip < rTexInfo.mipLevels; ++mip)
+			{
+				pData[resIndex].pSysMem = pPos;
+				pData[resIndex].SysMemPitch = GetTexturePitch(mipWidth, rTexInfo.format);
+				pPos += pData[resIndex].SysMemPitch * GetTextureRows(mipHeight, rTexInfo.format);
+				mipWidth >>= 1;
+				mipHeight >>= 1;
+				++resIndex;
+			}
 		}
-		pData = data;
 	}
 
+	bool res = false;
 	if (rTexInfo.bCubemap)
 	{
-		return CreateTextureCube(m_pDevice, pData, rTexInfo, eUsage, rResource);
+		res = CreateTextureCube(m_pDevice, pData, rTexInfo, eUsage, rResource);
 	}
 	else
 	{
-		return CreateTexture2D(m_pDevice, pData, rTexInfo, eUsage, rResource);
+		res = CreateTexture2D(m_pDevice, pData, rTexInfo, eUsage, rResource);
 	}
+
+	if (pData)
+		_freea(pData);
+	return res;
 }
 
 void RdrContextD3D11::ReleaseResource(RdrResource& rResource)
@@ -798,8 +818,18 @@ void RdrContextD3D11::EndEvent()
 
 void RdrContextD3D11::Present()
 {
-	HRESULT hr = m_pSwapChain->Present(0, 0);
-	assert(hr == S_OK);
+	HRESULT hr = m_pSwapChain->Present(0, m_presentFlags);
+	if (hr == DXGI_STATUS_OCCLUDED)
+	{
+		// Window is no longer visible, most likely minimized.  
+		// Set test flag so that we don't waste time presenting until the window is visible again.
+		m_presentFlags |= DXGI_PRESENT_TEST;
+	}
+	else
+	{
+		m_presentFlags &= ~DXGI_PRESENT_TEST;
+		assert(hr == S_OK);
+	}
 }
 
 void RdrContextD3D11::Resize(uint width, uint height)

@@ -3,6 +3,7 @@
 #include <vector>
 #include "render/RdrContext.h"
 #include "render/Light.h"
+#include "render/Sky.h"
 
 class Camera;
 class Renderer;
@@ -29,4 +30,5 @@ private:
 	std::vector<WorldObject*> m_objects;
 	LightList m_lights;
 	Camera m_mainCamera;
+	Sky m_sky;
 };

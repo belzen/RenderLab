@@ -9,15 +9,6 @@
 #include <fstream>
 #include <d3d11.h>
 
-static RdrVertexInputElement s_modelVertexDesc[] = {
-	{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RGB_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
-	{ kRdrShaderSemantic_Normal, 0, kRdrVertexInputFormat_RGB_F32, 0, 12, kRdrVertexInputClass_PerVertex, 0 },
-	{ kRdrShaderSemantic_Color, 0, kRdrVertexInputFormat_RGBA_F32, 0, 24, kRdrVertexInputClass_PerVertex, 0 },
-	{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 40, kRdrVertexInputClass_PerVertex, 0 },
-	{ kRdrShaderSemantic_Tangent, 0, kRdrVertexInputFormat_RGB_F32, 0, 48, kRdrVertexInputClass_PerVertex, 0 },
-	{ kRdrShaderSemantic_Binormal, 0, kRdrVertexInputFormat_RGB_F32, 0, 60, kRdrVertexInputClass_PerVertex, 0 }
-};
-
 Scene::Scene()
 {
 }
@@ -81,6 +72,23 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 
 		Json::Value jRot = jCamera.get("rotation", Json::Value::null);
 		m_mainCamera.SetPitchYawRoll(readPitchYawRoll(jRot));
+	}
+
+	// Sky
+	{
+		Json::Value jSky = root.get("sky", Json::Value::null);
+
+		Json::Value jPixel = jSky.get("pixelShader", Json::Value::null);
+		RdrShaderHandle hPixelShader = rRenderer.GetShaderSystem().CreatePixelShaderFromFile(jPixel.asCString());
+
+		Json::Value jModel = jSky.get("model", Json::Value::null);
+		RdrGeoHandle hGeo = rRenderer.GetGeoSystem().CreateGeoFromFile(jModel.asCString(), nullptr);
+
+		Json::Value jTexture = jSky.get("texture", Json::Value::null);
+		std::string texName = jTexture.asString();
+		RdrResourceHandle hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(texName.c_str(), true, nullptr);
+
+		m_sky.Init(rRenderer, hGeo, hPixelShader, hTexture);
 	}
 
 	// Lights
@@ -161,9 +169,6 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 			Json::Value jPixel = jObj.get("pixelShader", Json::Value::null);
 			RdrShaderHandle hPixelShader = rRenderer.GetShaderSystem().CreatePixelShaderFromFile(jPixel.asCString());
 			
-			RdrVertexShader vertexShader = { kRdrVertexShader_Model, 0 };
-			RdrInputLayoutHandle hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(vertexShader, s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));
-			
 			Json::Value jModel = jObj.get("model", Json::Value::null);
 			RdrGeoHandle hGeo = rRenderer.GetGeoSystem().CreateGeoFromFile(jModel.asCString(), nullptr);
 
@@ -174,12 +179,12 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 			for (int n = 0; n < numTextures; ++n)
 			{
 				std::string texName = jTextures.get(n, Json::Value::null).asString();
-				hTextures[n] = rRenderer.GetResourceSystem().CreateTextureFromFile(texName.c_str(), nullptr);
+				hTextures[n] = rRenderer.GetResourceSystem().CreateTextureFromFile(texName.c_str(), false, nullptr);
 				samplers[n] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 			}
 
 			// todo: freelists
-			Model* pModel = new Model(hGeo, hInputLayout, hPixelShader, samplers, hTextures, numTextures);
+			Model* pModel = new Model(rRenderer, hGeo, hPixelShader, samplers, hTextures, numTextures);
 			m_objects.push_back(new WorldObject(pModel, pos, orientation, scale));
 		}
 	}
@@ -202,4 +207,5 @@ void Scene::QueueDraw(Renderer& rRenderer) const
 	{
 		m_objects[i]->QueueDraw(rRenderer);
 	}
+	m_sky.QueueDraw(rRenderer);
 }

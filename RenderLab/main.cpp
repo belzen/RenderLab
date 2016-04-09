@@ -139,6 +139,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 			}
 		}
 
+		// Apply device changes (resizing, fullscreen, etc)
+		g_renderer.ApplyDeviceChanges();
+
 		float dt = Timer::GetElapsedSecondsAndReset(hTimer);
 
 		Input::GetActiveContext()->Update(dt);

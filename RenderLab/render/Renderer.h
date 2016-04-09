@@ -23,6 +23,8 @@ public:
 
 	void Resize(int width, int height);
 
+	void ApplyDeviceChanges();
+
 	void BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 	void BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 	void BeginPrimaryAction(const Camera& rCamera, const LightList* pLights);
@@ -36,9 +38,9 @@ public:
 	const Camera& GetCurrentCamera(void) const;
 
 	// todo: most uses of these will be wrong when using different render targets
-	int GetViewportWidth() const { return m_viewWidth; }
-	int GetViewportHeight() const { return m_viewHeight; }
-	Vec2 GetViewportSize() const { return Vec2((float)m_viewWidth, (float)m_viewHeight); }
+	int GetViewportWidth() const { return m_pendingViewWidth; }
+	int GetViewportHeight() const { return m_pendingViewHeight; }
+	Vec2 GetViewportSize() const { return Vec2((float)m_pendingViewWidth, (float)m_pendingViewHeight); }
 
 	RdrShaderSystem& GetShaderSystem() { return m_shaders; }
 	RdrResourceSystem& GetResourceSystem() { return m_resources; }
@@ -79,6 +81,8 @@ private:
 
 	int m_viewWidth;
 	int m_viewHeight;
+	int m_pendingViewWidth;
+	int m_pendingViewHeight;
 
 	// Forward+ lighting
 	RdrConstantBufferHandle m_hDepthMinMaxConstants;

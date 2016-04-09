@@ -1,15 +1,14 @@
 #pragma once
 
 #include "RdrDrawOp.h"
-#include "Math.h"
 
 class Renderer;
 
 class Model
 {
 public:
-	Model(RdrGeoHandle hGeo,
-		RdrInputLayoutHandle hInputLayout,
+	Model(Renderer& rRenderer, 
+		RdrGeoHandle hGeo,
 		RdrShaderHandle hPixelShader,
 		RdrSamplerState* aSamplers,
 		RdrResourceHandle* ahTextures,

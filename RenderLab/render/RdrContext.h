@@ -19,6 +19,8 @@ public:
 	virtual bool Init(HWND hWnd, uint width, uint height, uint msaaLevel) = 0;
 	virtual void Release() = 0;
 
+	virtual bool IsIdle() = 0;
+
 	virtual RdrVertexBuffer CreateVertexBuffer(const void* vertices, int size) = 0;
 	virtual void ReleaseVertexBuffer(const RdrVertexBuffer* pBuffer) = 0;
 
