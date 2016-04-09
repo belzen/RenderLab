@@ -13,7 +13,7 @@ cbuffer PerObject : register(b1)
 
 struct VertexInput
 {
-	float4 position : POSITION;
+	float3 position : POSITION;
 	float3 normal : NORMAL;
 	float4 color : COLOR;
 	float2 texcoords : TEXCOORD0;
@@ -21,11 +21,11 @@ struct VertexInput
 	float3 bitangent : BINORMAL;
 };
 
-VSOutput main( VertexInput input )
+VsOutputModel main( VertexInput input )
 {
-	VSOutput output = (VSOutput)0;
+	VsOutputModel output = (VsOutputModel)0;
 
-	output.position_ws = mul(input.position, mtxWorld);
+	output.position_ws = mul(float4(input.position,1), mtxWorld);
 
 #if !CUBEMAP_CAPTURE // This is unnecessary if we're using cubemap capture geometry shader.
 	output.position = mul(output.position_ws, cbPerAction.mtxViewProj);

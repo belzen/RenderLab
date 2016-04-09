@@ -28,9 +28,9 @@ StructuredBuffer<uint> g_tileLightIndices : register(t17);
 
 StructuredBuffer<ShadowData> g_shadowData : register(t18);
 
-Texture2DArray shadowMaps : register(t14);
-TextureCubeArray shadowCubeMaps : register(t15);
-SamplerComparisonState shadowMapsSampler : register(s15);
+Texture2DArray texShadowMaps : register(t14);
+TextureCubeArray texShadowCubemaps : register(t15);
+SamplerComparisonState sampShadowMaps : register(s15);
 
 int getTileId(in float2 screenPos, in uint screenWidth)
 {
@@ -58,7 +58,7 @@ float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float3 posToLig
 		float depthVal = (zFar + zNear) / (zFar - zNear) - (2 * zFar*zNear) / (zFar - zNear) / zDist;
 		depthVal = (depthVal + 1.0) * 0.5 - bias;
 
-		return shadowCubeMaps.SampleCmpLevelZero(shadowMapsSampler, float4(-light_dir, shadowMapIndex - MAX_SHADOW_MAPS), depthVal).x;
+		return texShadowCubemaps.SampleCmpLevelZero(sampShadowMaps, float4(-light_dir, shadowMapIndex - MAX_SHADOW_MAPS), depthVal).x;
 	}
 	else
 	{
@@ -77,12 +77,12 @@ float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float3 posToLig
 			float vis = 1.f;
 			for (int i = 0; i < 4; ++i)
 			{
-				float res = shadowMaps.SampleCmpLevelZero(shadowMapsSampler, float3(uv.xy + poissonDisk[i] / 700.f, shadowMapIndex), lightDepthValue).x;
+				float res = texShadowMaps.SampleCmpLevelZero(sampShadowMaps, float3(uv.xy + poissonDisk[i] / 700.f, shadowMapIndex), lightDepthValue).x;
 				vis -= (1.f - res) * 0.2f;
 			}
 			return vis;
 #else
-			return shadowMaps.SampleCmpLevelZero(shadowMapsSampler, float3(uv.xy, shadowMapIndex), lightDepthValue).x;
+			return texShadowMaps.SampleCmpLevelZero(sampShadowMaps, float3(uv.xy, shadowMapIndex), lightDepthValue).x;
 #endif
 
 		}

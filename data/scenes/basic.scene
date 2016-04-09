@@ -3,6 +3,12 @@
 		"position" : [ 0.0, 3.0, -5.0 ],
 		"rotation" : [ 15.0, 0.0, 0.0 ]
 	},
+	"sky" : {
+		"position" : [ 0.0, 3.0, -5.0 ],
+		"model" : "skydome.obj",
+		"pixelShader" : "p_sky.hlsl",
+		"texture" : "skies/clouds2.dds"
+	},
 	"lights" : [
 		{
 			"type" : "directional",

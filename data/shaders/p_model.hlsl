@@ -15,18 +15,18 @@ struct PixelInput
 	float3 bitangent : BINORMAL;
 };
 
-Texture2D diffuseTex : register(t0);
-SamplerState diffuseTexSampler : register(s0);
+Texture2D texDiffuse : register(t0);
+SamplerState sampDiffuse : register(s0);
 
-Texture2D normalsTex : register(t1);
-SamplerState normalsTexSampler : register(s1);
+Texture2D texNormals : register(t1);
+SamplerState sampNormals : register(s1);
 
 float4 main(PixelInput input) : SV_TARGET
 {
-	float4 color = diffuseTex.Sample(diffuseTexSampler, input.texcoords) + input.color;
+	float4 color = texDiffuse.Sample(sampDiffuse, input.texcoords) + input.color;
 	float4 ambient = color * ambient_color * ambient_intensity;
 
-	float3 normal = normalsTex.Sample(normalsTexSampler, input.texcoords).xyz;
+	float3 normal = texNormals.Sample(sampNormals, input.texcoords).xyz;
 	normal = (normal * 2.f) - 1.f; // Expand normal range
 
 	// Transform normal into world space.
