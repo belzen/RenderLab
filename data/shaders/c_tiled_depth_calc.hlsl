@@ -12,8 +12,12 @@ RWTexture2D<float2> g_zMinMaxResults : register(u0);
 groupshared float grp_zMin[64];
 groupshared float grp_zMax[64];
 
+#define GroupSizeX 8
+#define GroupSizeY 8
+#define NumThreads GroupSizeX * GroupSizeY
+
 // Each tile is 16x16 pixels, but each thread samples 4 pixels
-[numthreads(8, 8, 1)]
+[numthreads(GroupSizeX, GroupSizeY, 1)]
 void main( uint3 dispatchId : SV_DispatchThreadID, uint3 groupId : SV_GroupID, uint groupIdx : SV_GroupIndex )
 {
 	uint2 samplePos = dispatchId.xy * 2;
@@ -34,23 +38,17 @@ void main( uint3 dispatchId : SV_DispatchThreadID, uint3 groupId : SV_GroupID, u
 
 	GroupMemoryBarrierWithGroupSync();
 
-	if (groupIdx < 32)
+	[unroll(NumThreads)]
+	for (uint i = NumThreads / 2; i > 0; i >>= 1)
 	{
-		grp_zMin[groupIdx] = min( grp_zMin[groupIdx], grp_zMin[groupIdx + 32] );
-		grp_zMax[groupIdx] = max( grp_zMax[groupIdx], grp_zMax[groupIdx + 32] );
-		grp_zMin[groupIdx] = min( grp_zMin[groupIdx], grp_zMin[groupIdx + 16] );
-		grp_zMax[groupIdx] = max( grp_zMax[groupIdx], grp_zMax[groupIdx + 16] );
-		grp_zMin[groupIdx] = min( grp_zMin[groupIdx], grp_zMin[groupIdx + 8] );
-		grp_zMax[groupIdx] = max( grp_zMax[groupIdx], grp_zMax[groupIdx + 8] );
-		grp_zMin[groupIdx] = min( grp_zMin[groupIdx], grp_zMin[groupIdx + 4] );
-		grp_zMax[groupIdx] = max( grp_zMax[groupIdx], grp_zMax[groupIdx + 4] );
-		grp_zMin[groupIdx] = min( grp_zMin[groupIdx], grp_zMin[groupIdx + 2] );
-		grp_zMax[groupIdx] = max( grp_zMax[groupIdx], grp_zMax[groupIdx + 2] );
-		grp_zMin[groupIdx] = min( grp_zMin[groupIdx], grp_zMin[groupIdx + 1] );
-		grp_zMax[groupIdx] = max( grp_zMax[groupIdx], grp_zMax[groupIdx + 1] );
-	}
+		if (groupIdx < i)
+		{
+			grp_zMin[groupIdx] = min(grp_zMin[groupIdx], grp_zMin[groupIdx + i]);
+			grp_zMax[groupIdx] = max(grp_zMax[groupIdx], grp_zMax[groupIdx + i]);
+		}
 
-	GroupMemoryBarrierWithGroupSync();
+		GroupMemoryBarrierWithGroupSync();
+	}
 
 	if (groupIdx == 0)
 	{
