@@ -65,7 +65,7 @@ void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, 
 	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	pConstants[0] = Vec4(pos.x - rRenderer.GetViewportWidth() * 0.5f, pos.y + rRenderer.GetViewportHeight() * 0.5f, pos.z + 1.f, 0.f);
 	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
-	op->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
+	op->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize);
 
 	rRenderer.AddToBucket(op, kRdrBucketType_UI);
 }

@@ -52,7 +52,7 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat)
 	uint constantsSize = sizeof(Vec4) * 4;
 	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	*((Matrix44*)pConstants) = Matrix44Transpose(srcWorldMat);
-	pDrawOp->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
+	pDrawOp->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize);
 
 	for (int i = 0; i < m_numTextures; ++i)
 	{

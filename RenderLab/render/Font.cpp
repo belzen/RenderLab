@@ -67,7 +67,7 @@ namespace
 		Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 		pConstants[0] = Vec4(color.r, color.g, color.b, color.a);
 		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
-		op->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
+		op->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize);
 
 		rRenderer.AddToBucket(op, kRdrBucketType_UI);
 	}

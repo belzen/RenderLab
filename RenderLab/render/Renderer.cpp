@@ -452,7 +452,7 @@ void Renderer::CreateCubemapCaptureConstants(const Vec3& position, const float n
 		pGsConstants->mtxViewProj[f] = Matrix44Transpose(pGsConstants->mtxViewProj[f]);
 	}
 
-	m_pCurrentAction->hPerActionCubemapGs = m_assets.resources.CreateTempConstantBuffer(pGsConstants, constantsSize, 0, kRdrResourceUsage_Default);
+	m_pCurrentAction->hPerActionCubemapGs = m_assets.resources.CreateTempConstantBuffer(pGsConstants, constantsSize);
 }
 
 void Renderer::CreatePerActionConstants()
@@ -473,7 +473,7 @@ void Renderer::CreatePerActionConstants()
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 
-		m_pCurrentAction->hPerActionVs = m_assets.resources.CreateTempConstantBuffer(pVsPerAction, constantsSize, 0, kRdrResourceUsage_Default);
+		m_pCurrentAction->hPerActionVs = m_assets.resources.CreateTempConstantBuffer(pVsPerAction, constantsSize);
 
 		// PS
 		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
@@ -483,7 +483,7 @@ void Renderer::CreatePerActionConstants()
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
 		pPsPerAction->viewWidth = m_viewWidth;
 
-		m_pCurrentAction->hPerActionPs = m_assets.resources.CreateTempConstantBuffer(pPsPerAction, constantsSize, 0, kRdrResourceUsage_Default);
+		m_pCurrentAction->hPerActionPs = m_assets.resources.CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
 
 	// Ui per-action
@@ -499,7 +499,7 @@ void Renderer::CreatePerActionConstants()
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 
-		m_pCurrentAction->hUiPerActionVs = m_assets.resources.CreateTempConstantBuffer(pVsPerAction, constantsSize, 0, kRdrResourceUsage_Default);
+		m_pCurrentAction->hUiPerActionVs = m_assets.resources.CreateTempConstantBuffer(pVsPerAction, constantsSize);
 	
 		// PS
 		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
@@ -509,7 +509,7 @@ void Renderer::CreatePerActionConstants()
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
 		pPsPerAction->viewWidth = m_viewWidth;
 
-		m_pCurrentAction->hUiPerActionPs = m_assets.resources.CreateTempConstantBuffer(pPsPerAction, constantsSize, 0, kRdrResourceUsage_Default);
+		m_pCurrentAction->hUiPerActionPs = m_assets.resources.CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
 }
 

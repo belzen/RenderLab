@@ -183,23 +183,43 @@ RdrConstantBufferHandle RdrResourceSystem::CreateConstantBuffer(const void* pDat
 	cmd.cpuAccessFlags = cpuAccessFlags;
 	cmd.eUsage = eUsage;
 	cmd.size = size;
-	cmd.bIsTemp = false;
 
 	m_states[m_queueState].constantBufferCreates.push_back(cmd);
 
 	return cmd.hBuffer;
 }
 
-RdrConstantBufferHandle RdrResourceSystem::CreateTempConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage)
+RdrConstantBufferHandle RdrResourceSystem::CreateTempConstantBuffer(const void* pData, uint size)
 {
+	assert(size % sizeof(Vec4) == 0);
+
 	// todo: constant buffer pools to avoid tons of create/releases
+	uint poolIndex = size / sizeof(Vec4);
+	if (poolIndex < kNumConstantBufferPools)
+	{
+		ConstantBufferPool& rPool = m_constantBufferPools[poolIndex];
+		if (rPool.bufferCount > 0)
+		{
+			RdrConstantBufferHandle hBuffer = rPool.ahBuffers[--rPool.bufferCount];
+
+			// Queue update command with temp flag.
+			CmdUpdateConstantBuffer cmd = { 0 };
+			cmd.hBuffer = hBuffer;
+			cmd.pData = pData;
+			cmd.bIsTemp = true;
+			m_states[m_queueState].constantBufferUpdates.push_back(cmd);
+
+			return hBuffer;
+		}
+	}
+
 	RdrConstantBuffer* pBuffer = m_constantBuffers.allocSafe();
 
 	CmdCreateConstantBuffer cmd = { 0 };
 	cmd.hBuffer = m_constantBuffers.getId(pBuffer);
 	cmd.pData = pData;
-	cmd.cpuAccessFlags = cpuAccessFlags;
-	cmd.eUsage = eUsage;
+	cmd.cpuAccessFlags = kRdrCpuAccessFlag_Write;
+	cmd.eUsage = kRdrResourceUsage_Dynamic;
 	cmd.size = size;
 	cmd.bIsTemp = true;
 
@@ -344,8 +364,18 @@ void RdrResourceSystem::FlipState()
 	{
 		RdrConstantBufferHandle hBuffer = state.tempConstantBuffers[i];
 		RdrConstantBuffer* pBuffer = m_constantBuffers.get(hBuffer);
-		m_pRdrContext->ReleaseConstantBuffer(pBuffer->bufferObj);
-		m_constantBuffers.releaseId(hBuffer);
+		uint poolIndex = pBuffer->size / sizeof(Vec4);
+		if (poolIndex < kNumConstantBufferPools && m_constantBufferPools[poolIndex].bufferCount < kMaxConstantBuffersPerPool)
+		{
+			ConstantBufferPool& rPool = m_constantBufferPools[poolIndex];
+			rPool.ahBuffers[rPool.bufferCount] = hBuffer;
+			++rPool.bufferCount;
+		}
+		else
+		{
+			m_pRdrContext->ReleaseConstantBuffer(pBuffer->bufferObj);
+			m_constantBuffers.releaseId(hBuffer);
+		}
 	}
 	state.tempConstantBuffers.clear();
 
@@ -494,6 +524,11 @@ void RdrResourceSystem::ProcessCommands()
 		CmdUpdateConstantBuffer& cmd = state.constantBufferUpdates[i];
 		RdrConstantBuffer* pBuffer = m_constantBuffers.get(cmd.hBuffer);
 		m_pRdrContext->UpdateConstantBuffer(*pBuffer, cmd.pData);
+
+		if (cmd.bIsTemp)
+		{
+			state.tempConstantBuffers.push_back(cmd.hBuffer);
+		}
 	}
 
 

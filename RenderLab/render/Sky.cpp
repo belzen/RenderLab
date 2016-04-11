@@ -41,7 +41,7 @@ void Sky::QueueDraw(Renderer& rRenderer) const
 	uint constantsSize = sizeof(Vec4) * 4;
 	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
-	pDrawOp->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
+	pDrawOp->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize);
 
 	pDrawOp->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 	pDrawOp->hTextures[0] = m_hSkyTexture;

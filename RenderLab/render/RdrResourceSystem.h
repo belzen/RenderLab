@@ -33,7 +33,7 @@ public:
 	RdrResourceHandle UpdateStructuredBuffer(const RdrResourceHandle hResource, const void* pSrcData);
 
 	RdrConstantBufferHandle CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
-	RdrConstantBufferHandle CreateTempConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
+	RdrConstantBufferHandle CreateTempConstantBuffer(const void* pData, uint size);
 	void UpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData);
 	void ReleaseConstantBuffer(RdrConstantBufferHandle hBuffer);
 
@@ -101,6 +101,7 @@ private:
 	{
 		RdrConstantBufferHandle hBuffer;
 		const void* pData;
+		bool bIsTemp;
 	};
 
 	struct CmdReleaseConstantBuffer
@@ -154,12 +155,21 @@ private:
 	RdrResourceHandle CreateTextureInternal(uint width, uint height, uint mipLevels, uint ararySize, RdrResourceFormat eFormat, uint sampleCount, bool bCubemap);
 
 private:
+	static const uint kMaxConstantBuffersPerPool = 128;
+	static const uint kNumConstantBufferPools = 10;
+	struct ConstantBufferPool
+	{
+		RdrConstantBufferHandle ahBuffers[kMaxConstantBuffersPerPool];
+		uint bufferCount;
+	};
+
 	RdrContext* m_pRdrContext;
 
 	RdrResourceHandleMap m_textureCache;
 	RdrResourceList      m_resources;
 
 	RdrConstantBufferList m_constantBuffers;
+	ConstantBufferPool m_constantBufferPools[kNumConstantBufferPools];
 
 	RdrRenderTargetViewList m_renderTargetViews;
 	RdrDepthStencilViewList m_depthStencilViews;
