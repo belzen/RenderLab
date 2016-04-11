@@ -1,7 +1,7 @@
 #include "Precompiled.h"
 #include "Model.h"
 #include "RdrContext.h"
-#include "RdrTransientHeap.h"
+#include "RdrTransientMem.h"
 #include "RdrDrawOp.h"
 #include "Renderer.h"
 #include "Camera.h"
@@ -50,7 +50,7 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat)
 	pDrawOp->eType = kRdrDrawOpType_Graphics;
 
 	uint constantsSize = sizeof(Vec4) * 4;
-	Vec4* pConstants = (Vec4*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	*((Matrix44*)pConstants) = Matrix44Transpose(srcWorldMat);
 	pDrawOp->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
 

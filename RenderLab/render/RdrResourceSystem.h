@@ -29,8 +29,8 @@ public:
 	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat);
 	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat);
 
-	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, bool bFreeData, RdrResourceUsage eUsage);
-	RdrResourceHandle UpdateStructuredBuffer(const RdrResourceHandle hResource, const void* pSrcData, bool bFreeData);
+	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage);
+	RdrResourceHandle UpdateStructuredBuffer(const RdrResourceHandle hResource, const void* pSrcData);
 
 	RdrConstantBufferHandle CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
 	RdrConstantBufferHandle CreateTempConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
@@ -65,7 +65,6 @@ private:
 		void* pHeaderData; // Pointer to start of texture data when loaded from a file.
 		void* pData; // Pointer to start of raw data.
 		uint dataSize;
-		bool bFreeData;
 	};
 
 	struct CmdCreateBuffer
@@ -75,14 +74,12 @@ private:
 		uint elementSize;
 		uint numElements;
 		RdrResourceUsage eUsage;
-		bool bFreeData;
 	};
 
 	struct CmdUpdateBuffer
 	{
 		RdrResourceHandle hResource;
 		const void* pData;
-		bool bFreeData;
 	};
 
 	struct CmdReleaseResource

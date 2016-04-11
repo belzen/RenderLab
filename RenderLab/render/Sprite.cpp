@@ -2,7 +2,7 @@
 #include "Sprite.h"
 #include "Renderer.h"
 #include "RdrDrawOp.h"
-#include "RdrTransientHeap.h"
+#include "RdrTransientMem.h"
 #include <d3d11.h>
 
 namespace
@@ -27,7 +27,7 @@ void Sprite::Init(Renderer& rRenderer, const Vec2 aTexcoords[4], const char* tex
 	m_hPixelShader = rRenderer.GetShaderSystem().CreatePixelShaderFromFile("p_sprite.hlsl");
 	m_hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(textureName, false, true, nullptr);
 
-	SpriteVertex* verts = (SpriteVertex*)RdrTransientHeap::Alloc(sizeof(SpriteVertex) * 4);
+	SpriteVertex* verts = (SpriteVertex*)RdrTransientMem::Alloc(sizeof(SpriteVertex) * 4);
 	verts[0].position = Vec2(0.f, 0.f);
 	verts[0].uv = aTexcoords[0];
 	verts[1].position = Vec2(1.f, 0.f);
@@ -37,7 +37,7 @@ void Sprite::Init(Renderer& rRenderer, const Vec2 aTexcoords[4], const char* tex
 	verts[3].position = Vec2(1.f, -1.f);
 	verts[3].uv = aTexcoords[3];
 
-	uint16* indices = (uint16*)RdrTransientHeap::Alloc(sizeof(uint16) * 6);
+	uint16* indices = (uint16*)RdrTransientMem::Alloc(sizeof(uint16) * 6);
 	indices[0] = 0;
 	indices[1] = 1;
 	indices[2] = 2;
@@ -62,7 +62,7 @@ void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, 
 	op->texCount = 1;
 
 	uint constantsSize = sizeof(Vec4) * 2;
-	Vec4* pConstants = (Vec4*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	pConstants[0] = Vec4(pos.x - rRenderer.GetViewportWidth() * 0.5f, pos.y + rRenderer.GetViewportHeight() * 0.5f, pos.z + 1.f, 0.f);
 	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
 	op->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);

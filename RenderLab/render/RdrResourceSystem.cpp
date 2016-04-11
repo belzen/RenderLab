@@ -1,7 +1,7 @@
 #include "Precompiled.h"
 #include "RdrResourceSystem.h"
 #include "RdrContext.h"
-#include "RdrTransientHeap.h"
+#include "RdrTransientMem.h"
 #include "FileLoader.h"
 
 #include <DirectXTex/include/DirectXTex.h>
@@ -79,7 +79,6 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* filename,
 	cmd.texInfo.arraySize = (uint)metadata.arraySize;
 	cmd.texInfo.bCubemap = bIsCubemap;
 	cmd.texInfo.sampleCount = 1;
-	cmd.bFreeData = true;
 
 	if (bIsCubemap)
 	{
@@ -147,7 +146,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureInternal(uint width, uint heig
 	return cmd.hResource;
 }
 
-RdrResourceHandle RdrResourceSystem::CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, bool bFreeData, RdrResourceUsage eUsage)
+RdrResourceHandle RdrResourceSystem::CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage)
 {
 	RdrResource* pResource = m_resources.allocSafe();
 
@@ -157,19 +156,17 @@ RdrResourceHandle RdrResourceSystem::CreateStructuredBuffer(const void* pSrcData
 	cmd.numElements = numElements;
 	cmd.elementSize = elementSize;
 	cmd.eUsage = eUsage;
-	cmd.bFreeData = bFreeData;
 
 	m_states[m_queueState].bufferCreates.push_back(cmd);
 
 	return cmd.hResource;
 }
 
-RdrResourceHandle RdrResourceSystem::UpdateStructuredBuffer(const RdrResourceHandle hResource, const void* pSrcData, bool bFreeData)
+RdrResourceHandle RdrResourceSystem::UpdateStructuredBuffer(const RdrResourceHandle hResource, const void* pSrcData)
 {
 	CmdUpdateBuffer cmd = { 0 };
 	cmd.hResource = hResource;
 	cmd.pData = pSrcData;
-	cmd.bFreeData = bFreeData;
 
 	m_states[m_queueState].bufferUpdates.push_back(cmd);
 
@@ -418,17 +415,7 @@ void RdrResourceSystem::ProcessCommands()
 		m_pRdrContext->CreateTexture(cmd.pData, cmd.texInfo, cmd.eUsage, *pResource);
 		pResource->texInfo = cmd.texInfo;
 
-		if (cmd.bFreeData)
-		{
-			if (cmd.pHeaderData)
-			{
-				delete cmd.pHeaderData;
-			}
-			else if (cmd.pData)
-			{
-				RdrTransientHeap::Free(cmd.pData);
-			}
-		}
+		SAFE_DELETE(cmd.pHeaderData);
 	}
 
 	// Update buffers
@@ -438,11 +425,6 @@ void RdrResourceSystem::ProcessCommands()
 		CmdUpdateBuffer& cmd = state.bufferUpdates[i];
 		RdrResource* pResource = m_resources.get(cmd.hResource);
 		m_pRdrContext->UpdateStructuredBuffer(cmd.pData, *pResource);
-
-		if (cmd.bFreeData)
-		{
-			RdrTransientHeap::Free(cmd.pData);
-		}
 	}
 
 	// Create buffers
@@ -454,11 +436,6 @@ void RdrResourceSystem::ProcessCommands()
 		pResource->bufferInfo.elementSize = cmd.elementSize;
 		pResource->bufferInfo.numElements = cmd.numElements;
 		m_pRdrContext->CreateStructuredBuffer(cmd.pData, cmd.numElements, cmd.elementSize, cmd.eUsage, *pResource);
-		
-		if (cmd.bFreeData)
-		{
-			RdrTransientHeap::Free(cmd.pData);
-		}
 	}
 
 	// Create render targets
@@ -508,7 +485,6 @@ void RdrResourceSystem::ProcessCommands()
 		{
 			state.tempConstantBuffers.push_back(cmd.hBuffer);
 		}
-		RdrTransientHeap::Free(cmd.pData);
 	}
 
 	// Update constant buffers
@@ -518,8 +494,6 @@ void RdrResourceSystem::ProcessCommands()
 		CmdUpdateConstantBuffer& cmd = state.constantBufferUpdates[i];
 		RdrConstantBuffer* pBuffer = m_constantBuffers.get(cmd.hBuffer);
 		m_pRdrContext->UpdateConstantBuffer(*pBuffer, cmd.pData);
-
-		RdrTransientHeap::Free(cmd.pData);
 	}
 
 

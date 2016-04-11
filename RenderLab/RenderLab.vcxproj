@@ -193,7 +193,7 @@
     <ClCompile Include="render\RdrContextD3D11.cpp" />
     <ClCompile Include="render\RdrContextD3D11_Shaders.cpp" />
     <ClCompile Include="render\RdrDrawOp.cpp" />
-    <ClCompile Include="render\RdrTransientHeap.cpp" />
+    <ClCompile Include="render\RdrTransientMem.cpp" />
     <ClCompile Include="render\Renderer.cpp" />
     <ClCompile Include="render\RdrShaderSystem.cpp" />
     <ClCompile Include="render\RdrPostProcess.cpp" />
@@ -219,6 +219,7 @@
     <ClInclude Include="input\Input.h" />
     <ClInclude Include="json\json-forwards.h" />
     <ClInclude Include="json\json.h" />
+    <ClInclude Include="LinearAllocator.h" />
     <ClInclude Include="math\Maths.h" />
     <ClInclude Include="math\Matrix33.h" />
     <ClInclude Include="math\Matrix44.h" />
@@ -246,7 +247,7 @@
     <ClInclude Include="render\RdrShaderConstants.h" />
     <ClInclude Include="render\RdrShaderSystem.h" />
     <ClInclude Include="render\RdrResourceSystem.h" />
-    <ClInclude Include="render\RdrTransientHeap.h" />
+    <ClInclude Include="render\RdrTransientMem.h" />
     <ClInclude Include="render\Renderer.h" />
     <ClInclude Include="render\RdrShaders.h" />
     <ClInclude Include="render\Sky.h" />

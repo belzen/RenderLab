@@ -2,7 +2,7 @@
 #include "RdrPostProcess.h"
 #include "RdrContext.h"
 #include "RdrDrawState.h"
-#include "RdrTransientHeap.h"
+#include "RdrTransientMem.h"
 #include "Renderer.h"
 #include "RdrShaderConstants.h"
 
@@ -25,7 +25,7 @@ namespace
 void RdrPostProcess::Init(RdrAssetSystems& rAssets)
 {
 	const uint kNumVerts = 6;
-	QuadVertex* pVerts = (QuadVertex*)RdrTransientHeap::Alloc(sizeof(QuadVertex) * kNumVerts);
+	QuadVertex* pVerts = (QuadVertex*)RdrTransientMem::Alloc(sizeof(QuadVertex) * kNumVerts);
 	pVerts[0].position = Vec2(-1.f,  1.f); pVerts[0].texcoord = Vec2(0.f, 0.f);
 	pVerts[1].position = Vec2( 1.f,  1.f); pVerts[1].texcoord = Vec2(1.f, 0.f);
 	pVerts[2].position = Vec2(-1.f, -1.f); pVerts[2].texcoord = Vec2(0.f, 1.f);
@@ -37,7 +37,7 @@ void RdrPostProcess::Init(RdrAssetSystems& rAssets)
 	m_hFullScreenQuadLayout = rAssets.shaders.CreateInputLayout(kQuadVertexShader, kQuadVertexDesc, ARRAYSIZE(kQuadVertexDesc));
 
 	m_hToneMapPs = rAssets.shaders.CreatePixelShaderFromFile("p_tonemap.hlsl");
-	m_hToneMapConstants = rAssets.resources.CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapParams), false, kRdrResourceUsage_Default);
+	m_hToneMapConstants = rAssets.resources.CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapParams), kRdrResourceUsage_Default);
 }
 
 void RdrPostProcess::HandleResize(uint width, uint height, RdrAssetSystems& rAssets)

@@ -1,7 +1,7 @@
 #include "Precompiled.h"
 #include "Sky.h"
 #include "RdrDrawOp.h"
-#include "RdrTransientHeap.h"
+#include "RdrTransientMem.h"
 #include "Renderer.h"
 
 namespace
@@ -39,7 +39,7 @@ void Sky::QueueDraw(Renderer& rRenderer) const
 	Matrix44 mtxWorld = Matrix44Translation(pos);
 
 	uint constantsSize = sizeof(Vec4) * 4;
-	Vec4* pConstants = (Vec4*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
 	pDrawOp->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
 

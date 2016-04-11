@@ -12,7 +12,7 @@
 #include "debug\DebugConsole.h"
 #include "RdrContextD3D11.h"
 #include "RdrShaderConstants.h"
-#include "RdrTransientHeap.h"
+#include "RdrTransientMem.h"
 #include "RdrDrawOp.h"
 
 namespace
@@ -200,7 +200,7 @@ void Renderer::QueueLightCulling()
 	invProjMtx = Matrix44Transpose(invProjMtx);
 
 	uint constantsSize = sizeof(Vec4) * 4;
-	Vec4* pConstants = (Vec4*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	for (int i = 0; i < 4; ++i)
 	{
 		pConstants[i].x = invProjMtx.m[i][0];
@@ -227,7 +227,7 @@ void Renderer::QueueLightCulling()
 		const uint kMaxLightsPerTile = 128; // Sync with MAX_LIGHTS_PER_TILE in "light_inc.hlsli"
 		if (m_hTileLightIndices)
 			m_assets.resources.ReleaseResource(m_hTileLightIndices);
-		m_hTileLightIndices = m_assets.resources.CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint), false, kRdrResourceUsage_Default);
+		m_hTileLightIndices = m_assets.resources.CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint), kRdrResourceUsage_Default);
 	}
 
 	RdrDrawOp* pCullOp = RdrDrawOp::Allocate();
@@ -261,7 +261,7 @@ void Renderer::QueueLightCulling()
 	};
 
 	constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(CullingParams));
-	CullingParams* pParams = (CullingParams*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+	CullingParams* pParams = (CullingParams*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	pParams->cameraPos = rCamera.GetPosition();
 	pParams->cameraDir = rCamera.GetDirection();
 	pParams->cameraNearDist = rCamera.GetNearDist();
@@ -443,7 +443,7 @@ void Renderer::CreateCubemapCaptureConstants(const Vec3& position, const float n
 	Matrix44 mtxView, mtxProj;
 
 	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(GsCubemapPerAction));
-	GsCubemapPerAction* pGsConstants = (GsCubemapPerAction*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+	GsCubemapPerAction* pGsConstants = (GsCubemapPerAction*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	for (uint f = 0; f < kCubemapFace_Count; ++f)
 	{
 		cam.SetAsCubemapFace(position, (CubemapFace)f, nearDist, farDist);
@@ -468,7 +468,7 @@ void Renderer::CreatePerActionConstants()
 
 		// VS
 		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(VsPerAction));
-		VsPerAction* pVsPerAction = (VsPerAction*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+		VsPerAction* pVsPerAction = (VsPerAction*)RdrTransientMem::AllocAligned(constantsSize, 16);
 
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
@@ -477,7 +477,7 @@ void Renderer::CreatePerActionConstants()
 
 		// PS
 		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
-		PsPerAction* pPsPerAction = (PsPerAction*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+		PsPerAction* pPsPerAction = (PsPerAction*)RdrTransientMem::AllocAligned(constantsSize, 16);
 
 		pPsPerAction->viewPos = rCamera.GetPosition();
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
@@ -494,7 +494,7 @@ void Renderer::CreatePerActionConstants()
 
 		// VS
 		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(VsPerAction));
-		VsPerAction* pVsPerAction = (VsPerAction*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+		VsPerAction* pVsPerAction = (VsPerAction*)RdrTransientMem::AllocAligned(constantsSize, 16);
 
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
@@ -503,7 +503,7 @@ void Renderer::CreatePerActionConstants()
 	
 		// PS
 		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
-		PsPerAction* pPsPerAction = (PsPerAction*)RdrTransientHeap::AllocAligned(constantsSize, 16);
+		PsPerAction* pPsPerAction = (PsPerAction*)RdrTransientMem::AllocAligned(constantsSize, 16);
 
 		pPsPerAction->viewPos = Vec3::kOrigin;
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
@@ -625,6 +625,7 @@ void Renderer::PostFrameSync()
 	m_assets.resources.FlipState();
 	m_assets.geos.FlipState();
 	m_assets.shaders.FlipState();
+	RdrTransientMem::FlipState();
 }
 
 void Renderer::DrawFrame()

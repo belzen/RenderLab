@@ -2,7 +2,7 @@
 #include "RdrGeoSystem.h"
 #include "FileLoader.h"
 #include "RdrContext.h"
-#include "RdrTransientHeap.h"
+#include "RdrTransientMem.h"
 #include <fstream>
 
 void RdrGeoSystem::Init(RdrContext* pRdrContext)
@@ -115,12 +115,12 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 	cmd.info.vertStride = sizeof(Vertex);
 	cmd.info.numVerts = (int)verts.size();
 
-	Vertex* pVertData = (Vertex*)RdrTransientHeap::Alloc(sizeof(Vertex) * cmd.info.numVerts);
+	Vertex* pVertData = (Vertex*)RdrTransientMem::Alloc(sizeof(Vertex) * cmd.info.numVerts);
 	memcpy(pVertData, verts.data(), sizeof(Vertex) * cmd.info.numVerts);
 	cmd.pVertData = pVertData;
 
 	cmd.info.numIndices = (int)tris.size();
-	uint16* pIndexData = (uint16*)RdrTransientHeap::Alloc(sizeof(uint16) * cmd.info.numIndices);
+	uint16* pIndexData = (uint16*)RdrTransientMem::Alloc(sizeof(uint16) * cmd.info.numIndices);
 	memcpy(pIndexData, tris.data(), sizeof(uint16) * cmd.info.numIndices);
 	cmd.pIndexData = pIndexData;
 
@@ -253,9 +253,6 @@ void RdrGeoSystem::ProcessCommands()
 			// Updating
 			assert(false); //todo
 		}
-
-		RdrTransientHeap::Free(cmd.pVertData);
-		RdrTransientHeap::SafeFree(cmd.pIndexData);
 	}
 
 	state.updates.clear();

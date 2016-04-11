@@ -1,6 +1,6 @@
 #include "Precompiled.h"
 #include "Light.h"
-#include "RdrTransientHeap.h"
+#include "RdrTransientMem.h"
 #include "Renderer.h"
 #include "Scene.h"
 
@@ -172,11 +172,11 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 			// todo: m_lights isn't threadsafe when queueing a create
 			if (m_hLightListRes)
 				rRenderer.GetResourceSystem().ReleaseResource(m_hLightListRes);
-			m_hLightListRes = rRenderer.GetResourceSystem().CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light), false, kRdrResourceUsage_Dynamic);
+			m_hLightListRes = rRenderer.GetResourceSystem().CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light), kRdrResourceUsage_Dynamic);
 		}
 		else
 		{
-			rRenderer.GetResourceSystem().UpdateStructuredBuffer(m_hLightListRes, m_lights, false);
+			rRenderer.GetResourceSystem().UpdateStructuredBuffer(m_hLightListRes, m_lights);
 		}
 
 		//ShadowMapData* pShadowData = (ShadowMapData*)RdrTransientHeap::Alloc(sizeof(ShadowMapData) * MAX_SHADOW_MAPS);
@@ -196,11 +196,11 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 
 		if (m_hShadowMapDataRes)
 		{
-			resourceSystem.UpdateStructuredBuffer(m_hShadowMapDataRes, pShadowData, false);
+			resourceSystem.UpdateStructuredBuffer(m_hShadowMapDataRes, pShadowData);
 		}
 		else
 		{
-			m_hShadowMapDataRes = resourceSystem.CreateStructuredBuffer(pShadowData, MAX_SHADOW_MAPS, sizeof(ShadowMapData), false, kRdrResourceUsage_Dynamic);
+			m_hShadowMapDataRes = resourceSystem.CreateStructuredBuffer(pShadowData, MAX_SHADOW_MAPS, sizeof(ShadowMapData), kRdrResourceUsage_Dynamic);
 		}
 
 		m_prevLightCount = m_lightCount;
