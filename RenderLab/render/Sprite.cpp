@@ -7,7 +7,7 @@
 
 namespace
 {
-	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Sprite, (RdrShaderFlags)0 };
+	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Sprite, RdrShaderFlags::None };
 
 	struct SpriteVertex
 	{

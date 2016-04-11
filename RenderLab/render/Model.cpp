@@ -8,7 +8,7 @@
 
 namespace
 {
-	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Model, (RdrShaderFlags)0 };
+	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Model, RdrShaderFlags::None };
 
 	static const RdrVertexInputElement s_modelVertexDesc[] = {
 		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },

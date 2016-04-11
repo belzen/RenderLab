@@ -182,7 +182,7 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 	for (int cs = 0; cs < (int)RdrComputeShader::Count; ++cs)
 	{
 		createDefaultShader(m_pRdrContext, RdrShaderStage::Compute,
-			kComputeShaderDefs[cs], (RdrShaderFlags)0,
+			kComputeShaderDefs[cs], RdrShaderFlags::None,
 			m_computeShaders[cs]);
 	}
 }

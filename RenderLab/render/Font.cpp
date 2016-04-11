@@ -14,7 +14,7 @@
 
 namespace
 {
-	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Text, (RdrShaderFlags)0 };
+	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Text, RdrShaderFlags::None };
 
 	static const RdrVertexInputElement s_vertexDesc[] = {
 		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RG_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },

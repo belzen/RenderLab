@@ -6,7 +6,7 @@
 
 namespace
 {
-	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Sky, (RdrShaderFlags)0 };
+	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Sky, RdrShaderFlags::None };
 
 	static const RdrVertexInputElement s_skyVertexDesc[] = {
 		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 }

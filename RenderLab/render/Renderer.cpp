@@ -697,7 +697,7 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrD
 	const RdrPassData& rPass = rAction.passes[(int)ePass];
 	bool bDepthOnly = (rPass.shaderMode == RdrShaderMode::DepthOnly);
 	const RdrGeometry* pGeo = m_assets.geos.GetGeo(pDrawOp->graphics.hGeo);
-	RdrShaderFlags shaderFlags = (RdrShaderFlags)0;
+	RdrShaderFlags shaderFlags = RdrShaderFlags::None;
 
 	// Vertex shader
 	RdrVertexShader vertexShader = pDrawOp->graphics.vertexShader;

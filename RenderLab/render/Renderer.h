@@ -43,7 +43,6 @@ public:
 
 	const Camera& GetCurrentCamera(void) const;
 
-	// todo: most uses of these will be wrong when using different render targets
 	int GetViewportWidth() const;
 	int GetViewportHeight() const;
 	Vec2 GetViewportSize() const;
