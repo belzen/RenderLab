@@ -11,6 +11,7 @@ struct Light
 	uint shadowMapIndex;
 };
 
+// todo: Store Light in constant buffer, it's way faster https://developer.nvidia.com/content/how-about-constant-buffers
 struct ShadowData
 {
 	float4x4 mtxViewProj;
@@ -22,6 +23,9 @@ struct ShadowData
 #define TILE_SIZE 16.f
 
 #if !LIGHT_DATA_ONLY
+
+static float3 ambient_color = float3(1.f, 1.f, 1.f);
+static float ambient_intensity = 0.0075f;
 
 StructuredBuffer<Light> g_lights : register(t16);
 StructuredBuffer<uint> g_tileLightIndices : register(t17);
@@ -93,56 +97,58 @@ float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float3 posToLig
 	}
 }
 
-float4 doLighting(in float3 pos_ws, in float4 color, in float3 normal, in float3 viewDir, in float2 screenPos, in uint screenWidth)
+float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3 viewDir, in float2 screenPos, in uint screenWidth)
 {
 	int tileIdx = getTileId(screenPos, screenWidth) * MAX_LIGHTS_PER_TILE;
 	int numLights = g_tileLightIndices[tileIdx];
 
-	float4 litColor = 0;
+	float3 litColor = 0;
 
 	for (int i = 0; i < numLights; ++i)
 	{
 		Light light = g_lights[ g_tileLightIndices[tileIdx + i + 1] ];
 
 		float3 posToLight = light.position - pos_ws;
-		float lightDistSqr = dot(posToLight, posToLight);
-		float3 lightDir = normalize(posToLight); // Direction to light.
+		float lightDist = length(posToLight);
+		float3 dirToLight = normalize(posToLight);
 
 		// Choose light dir depending on light type.
-		lightDir = lerp(-light.direction, lightDir, (light.type > 0));
+		dirToLight = lerp(-light.direction, dirToLight, (light.type > 0));
 
 		// --- Lighting model
-		float ndl = saturate(dot(normal, lightDir));
-		float4 diffuse = color * ndl * float4(light.color, 1);
+		float ndl = saturate(dot(normal, dirToLight));
+		float3 diffuse = color * ndl * light.color;
 
 #define PHONG 0
 #define BLINN_PHONG 1
-		const float kSpecExponent = 50.f;
-		const float kSpecIntensity = 0.5f;
+		const float kSpecExponent = 150.f;
+		const float kSpecIntensity = 0.1f;
 #if PHONG
-		float3 reflect = normalize(2 * ndl * normal - lightDir);
-		float4 specular = pow(saturate(dot(reflect, viewDir)), kSpecExponent) * kSpecIntensity;
+		float3 reflectVec = normalize(2 * ndl * normal - dirToLight);
+		float4 specular = pow(saturate(dot(reflectVec, viewDir)), kSpecExponent) * kSpecIntensity;
 #elif BLINN_PHONG
-		float3 halfVec = normalize(lightDir + viewDir);
-		float4 specular = pow(saturate(dot(normal, halfVec)), kSpecExponent) * kSpecIntensity;
+		float3 halfVec = normalize(dirToLight + viewDir);
+		float3 specular = pow(saturate(dot(normal, halfVec)), kSpecExponent) * kSpecIntensity;
 #endif
 		// ---
 
 		// Point/Spot light distance falloff
-		float distFalloff = saturate(((light.radius * light.radius) - lightDistSqr) / lightDistSqr);
+		// todo: constant, linear, quadratic attenuation instead?
+		float distFalloff = 1.f / (lightDist * lightDist);
+		distFalloff *= saturate(1 - (lightDist / light.radius));
 		distFalloff = lerp(1.f, distFalloff, (light.type != 0));
 
 		// Spot light angular falloff
-		float spotEffect = dot(light.direction, -lightDir); //angle
+		float spotEffect = dot(light.direction, -dirToLight); //angle
 		float coneFalloffRange = max((light.innerConeAngleCos - light.outerConeAngleCos), 0.00001f);
 		float angularFalloff = saturate( (spotEffect - light.outerConeAngleCos) / coneFalloffRange );
 		angularFalloff = lerp(1.f, angularFalloff, (light.type == 2));
 
-		// todo: constant, linear, quadratic attenuation
-		litColor += (diffuse + specular) * distFalloff * angularFalloff * calcShadowFactor(pos_ws, lightDir, posToLight, light.radius, light.shadowMapIndex);
+		litColor += (diffuse + specular) * distFalloff * angularFalloff * calcShadowFactor(pos_ws, dirToLight, posToLight, light.radius, light.shadowMapIndex);
 	}
 
-	return litColor;
+	float3 ambient = color * ambient_color * ambient_intensity;
+	return ambient + litColor;
 }
 
 #endif

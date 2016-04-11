@@ -15,7 +15,7 @@ namespace
 		Vec2 uv;
 	};
 
-	static RdrVertexInputElement s_vertexDesc[] = {
+	static const RdrVertexInputElement s_vertexDesc[] = {
 		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RG_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
 		{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 8, kRdrVertexInputClass_PerVertex, 0 }
 	};
@@ -25,7 +25,7 @@ void Sprite::Init(Renderer& rRenderer, const Vec2 aTexcoords[4], const char* tex
 {
 	m_hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(kVertexShader, s_vertexDesc, ARRAYSIZE(s_vertexDesc));
 	m_hPixelShader = rRenderer.GetShaderSystem().CreatePixelShaderFromFile("p_sprite.hlsl");
-	m_hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(textureName, false, nullptr);
+	m_hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(textureName, false, true, nullptr);
 
 	SpriteVertex* verts = (SpriteVertex*)RdrTransientHeap::Alloc(sizeof(SpriteVertex) * 4);
 	verts[0].position = Vec2(0.f, 0.f);

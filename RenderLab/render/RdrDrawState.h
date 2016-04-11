@@ -12,6 +12,12 @@ enum RdrTopology
 class RdrDrawState
 {
 public:
+	// todo: remove need for reset()
+	void Reset()
+	{
+		memset(this, 0, sizeof(RdrDrawState));
+	}
+
 	const RdrShader* pVertexShader;
 	const RdrShader* pGeometryShader;
 	const RdrShader* pPixelShader;
@@ -27,11 +33,11 @@ public:
 	uint vertexCount;
 	uint indexCount;
 
-	const RdrResource* pPsResources[20];
+	RdrShaderResourceView psResources[20];
 	RdrSamplerState psSamplers[16];
 
-	const RdrResource* pCsResources[20];
-	const RdrResource* pCsUavs[8];
+	RdrShaderResourceView csResources[20];
+	RdrUnorderedAccessView csUavs[8];
 
 	RdrConstantBufferDeviceObj vsConstantBuffers[16];
 	RdrConstantBufferDeviceObj gsConstantBuffers[4];

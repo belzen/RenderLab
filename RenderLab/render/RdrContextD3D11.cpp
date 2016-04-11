@@ -41,7 +41,10 @@ namespace
 			DXGI_FORMAT_R8_UNORM,				// kResourceFormat_R8_UNORM
 			DXGI_FORMAT_BC1_UNORM,				// kResourceFormat_DXT1
 			DXGI_FORMAT_BC3_UNORM,				// kResourceFormat_DXT5
-			DXGI_FORMAT_B8G8R8A8_UNORM,			// kResourceFormat_RGBA_UNORM
+			DXGI_FORMAT_BC3_UNORM_SRGB,			// kResourceFormat_DXT5_sRGB
+			DXGI_FORMAT_B8G8R8A8_UNORM,			// kResourceFormat_B8G8R8A8_UNORM
+			DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,	// kResourceFormat_B8G8R8A8_UNORM_sRGB
+			DXGI_FORMAT_R16G16B16A16_FLOAT,		// kResourceFormat_R16G16B16A16_FLOAT
 		};
 		static_assert(ARRAYSIZE(s_d3dFormats) == kResourceFormat_Count, "Missing D3D formats!");
 		return s_d3dFormats[format];
@@ -57,7 +60,10 @@ namespace
 			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_R8_UNORM
 			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_DXT1
 			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_DXT5
-			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_RGBA_UNORM
+			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_DXT5_sRGB
+			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_B8G8R8A8_UNORM
+			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_B8G8R8A8_UNORM_sRGB
+			DXGI_FORMAT_UNKNOWN,	        // kResourceFormat_R16G16B16A16_FLOAT
 		};
 		static_assert(ARRAYSIZE(s_d3dDepthFormats) == kResourceFormat_Count, "Missing D3D depth formats!");
 		assert(s_d3dDepthFormats[format] != DXGI_FORMAT_UNKNOWN);
@@ -67,14 +73,17 @@ namespace
 	DXGI_FORMAT getD3DTypelessFormat(const RdrResourceFormat format)
 	{
 		static const DXGI_FORMAT s_d3dTypelessFormats[] = {
-			DXGI_FORMAT_R16_TYPELESS,		// kResourceFormat_D16
-			DXGI_FORMAT_R24G8_TYPELESS,		// kResourceFormat_D24_UNORM_S8_UINT
-			DXGI_FORMAT_R16_TYPELESS,		// kResourceFormat_R16_UNORM
-			DXGI_FORMAT_R16G16_TYPELESS,	// kResourceFormat_R16G16_FLOAT
-			DXGI_FORMAT_R8_TYPELESS,		// kResourceFormat_R8_UNORM
-			DXGI_FORMAT_BC1_TYPELESS,		// kResourceFormat_DXT1
-			DXGI_FORMAT_BC3_TYPELESS,		// kResourceFormat_DXT5
-			DXGI_FORMAT_B8G8R8A8_TYPELESS,	// kResourceFormat_RGBA_UNORM
+			DXGI_FORMAT_R16_TYPELESS,		   // kResourceFormat_D16
+			DXGI_FORMAT_R24G8_TYPELESS,		   // kResourceFormat_D24_UNORM_S8_UINT
+			DXGI_FORMAT_R16_TYPELESS,		   // kResourceFormat_R16_UNORM
+			DXGI_FORMAT_R16G16_TYPELESS,	   // kResourceFormat_R16G16_FLOAT
+			DXGI_FORMAT_R8_TYPELESS,		   // kResourceFormat_R8_UNORM
+			DXGI_FORMAT_BC1_TYPELESS,		   // kResourceFormat_DXT1
+			DXGI_FORMAT_BC3_TYPELESS,		   // kResourceFormat_DXT5
+			DXGI_FORMAT_BC3_TYPELESS,		   // kResourceFormat_DXT5_sRGB
+			DXGI_FORMAT_B8G8R8A8_TYPELESS,	   // kResourceFormat_B8G8R8A8_UNORM
+			DXGI_FORMAT_B8G8R8A8_TYPELESS,     // kResourceFormat_B8G8R8A8_UNORM_sRGB
+			DXGI_FORMAT_R16G16B16A16_TYPELESS, // kResourceFormat_R16G16B16A16_FLOAT
 		};
 		static_assert(ARRAYSIZE(s_d3dTypelessFormats) == kResourceFormat_Count, "Missing typeless formats!");
 		return s_d3dTypelessFormats[format];
@@ -150,11 +159,11 @@ bool RdrContextD3D11::CreateStructuredBuffer(const void* pSrcData, int numElemen
 
 	HRESULT hr = m_pDevice->CreateBuffer(&desc, (pSrcData ? &data : nullptr), (ID3D11Buffer**)&rResource.pResource);
 	assert(hr == S_OK);
-	hr = m_pDevice->CreateShaderResourceView(rResource.pResource, nullptr, &rResource.pResourceView);
+	hr = m_pDevice->CreateShaderResourceView(rResource.pResource, nullptr, &rResource.resourceView.pViewD3D11);
 	assert(hr == S_OK);
 	if (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
 	{
-		hr = m_pDevice->CreateUnorderedAccessView(rResource.pResource, nullptr, &rResource.pUnorderedAccessView);
+		hr = m_pDevice->CreateUnorderedAccessView(rResource.pResource, nullptr, &rResource.uav.pViewD3D11);
 		assert(hr == S_OK);
 	}
 
@@ -207,8 +216,10 @@ static int GetTexturePitch(const int width, const RdrResourceFormat eFormat)
 	case kResourceFormat_DXT1:
 		return ((width + 3) & ~3) * 2;
 	case kResourceFormat_DXT5:
+	case kResourceFormat_DXT5_sRGB:
 		return ((width + 3) & ~3) * 4;
 	case kResourceFormat_B8G8R8A8_UNORM:
+	case kResourceFormat_B8G8R8A8_UNORM_sRGB:
 		return width * 4;
 	default:
 		assert(false);
@@ -224,8 +235,10 @@ static int GetTextureRows(const int height, const RdrResourceFormat eFormat)
 		return height;
 	case kResourceFormat_DXT1:
 	case kResourceFormat_DXT5:
+	case kResourceFormat_DXT5_sRGB:
 		return ((height + 3) & ~3) / 4;
 	case kResourceFormat_B8G8R8A8_UNORM:
+	case kResourceFormat_B8G8R8A8_UNORM_sRGB:
 		return height;
 	default:
 		assert(false);
@@ -272,11 +285,9 @@ static D3D11_FILTER getFilterD3d(const RdrComparisonFunc cmpFunc, const bool bPo
 	}
 }
 
-bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height, uint msaaLevel)
+bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height)
 {
 	HRESULT hr;
-
-	m_msaaLevel = msaaLevel;
 
 	DXGI_SWAP_CHAIN_DESC swapChainDesc = { 0 };
 	swapChainDesc.BufferCount = 1;
@@ -284,7 +295,7 @@ bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height, uint msaaLevel)
 	swapChainDesc.BufferDesc.Width = width;
 	swapChainDesc.BufferDesc.Height = height;
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.SampleDesc.Count = msaaLevel;
+	swapChainDesc.SampleDesc.Count = 1;
 	swapChainDesc.SampleDesc.Quality = 0;
 	swapChainDesc.OutputWindow = hWnd;
 	swapChainDesc.Windowed = true;
@@ -409,7 +420,7 @@ namespace
 				viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
 			}
 
-			hr = pDevice->CreateShaderResourceView(rResource.pTexture, &viewDesc, &rResource.pResourceView);
+			hr = pDevice->CreateShaderResourceView(rResource.pTexture, &viewDesc, &rResource.resourceView.pViewD3D11);
 			assert(hr == S_OK);
 		}
 
@@ -430,9 +441,17 @@ namespace
 		desc.MiscFlags = 0;
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 		if (resourceFormatIsDepth(rTexInfo.format))
+		{
 			desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
-		else if (bCanBindAccessView)
-			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+		else
+		{
+			// todo: find out if having all these bindings cause any inefficiencies in D3D
+			if (bCanBindAccessView)
+				desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+			if (eUsage != kRdrResourceUsage_Immutable)
+				desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+		}
 
 		desc.SampleDesc.Count = rTexInfo.sampleCount;
 		desc.SampleDesc.Quality = 0;
@@ -479,7 +498,7 @@ namespace
 				}
 			}
 
-			hr = pDevice->CreateShaderResourceView(rResource.pTexture, &viewDesc, &rResource.pResourceView);
+			hr = pDevice->CreateShaderResourceView(rResource.pTexture, &viewDesc, &rResource.resourceView.pViewD3D11);
 			assert(hr == S_OK);
 		}
 
@@ -500,7 +519,7 @@ namespace
 				viewDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
 			}
 
-			hr = pDevice->CreateUnorderedAccessView(rResource.pTexture, &viewDesc, &rResource.pUnorderedAccessView);
+			hr = pDevice->CreateUnorderedAccessView(rResource.pTexture, &viewDesc, &rResource.uav.pViewD3D11);
 			assert(hr == S_OK);
 		}
 
@@ -558,16 +577,21 @@ void RdrContextD3D11::ReleaseResource(RdrResource& rResource)
 		rResource.pResource->Release();
 		rResource.pResource = nullptr;
 	}
-	if (rResource.pResourceView)
+	if (rResource.resourceView.pViewD3D11)
 	{
-		rResource.pResourceView->Release();
-		rResource.pResourceView = nullptr;
+		rResource.resourceView.pViewD3D11->Release();
+		rResource.resourceView.pViewD3D11 = nullptr;
 	}
-	if (rResource.pUnorderedAccessView)
+	if (rResource.uav.pViewD3D11)
 	{
-		rResource.pUnorderedAccessView->Release();
-		rResource.pUnorderedAccessView = nullptr;
+		rResource.uav.pViewD3D11->Release();
+		rResource.uav.pViewD3D11 = nullptr;
 	}
+}
+
+void RdrContextD3D11::ResolveSurface(const RdrResource& rSrc, const RdrResource& rDst)
+{
+	m_pDevContext->ResolveSubresource(rDst.pResource, 0, rSrc.pResource, 0, getD3DFormat(rSrc.texInfo.format));
 }
 
 RdrDepthStencilView RdrContextD3D11::CreateDepthStencilView(const RdrResource& rDepthTex)
@@ -654,8 +678,16 @@ RdrRenderTargetView RdrContextD3D11::CreateRenderTargetView(RdrResource& rTexRes
 
 	D3D11_RENDER_TARGET_VIEW_DESC desc;
 	desc.Format = getD3DFormat(rTexRes.texInfo.format);
-	desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-	desc.Texture2D.MipSlice = 0;
+	if (rTexRes.texInfo.sampleCount > 1)
+	{
+		desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
+		desc.Texture2DMS.UnusedField_NothingToDefine = 0;
+	}
+	else
+	{
+		desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		desc.Texture2D.MipSlice = 0;
+	}
 
 	HRESULT hr = m_pDevice->CreateRenderTargetView(rTexRes.pTexture, &desc, &view.pView);
 	assert(hr == S_OK);
@@ -944,10 +976,10 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 		m_pDevContext->PSSetShader(rDrawState.pPixelShader->pPixel, nullptr, 0);
 		m_pDevContext->PSSetConstantBuffers(0, rDrawState.psConstantBufferCount, (ID3D11Buffer**)rDrawState.psConstantBuffers);
 
-		uint numResources = ARRAYSIZE(rDrawState.pPsResources);
+		uint numResources = ARRAYSIZE(rDrawState.psResources);
 		for (uint i = 0; i < numResources; ++i)
 		{
-			ID3D11ShaderResourceView* pResource = rDrawState.pPsResources[i] ? rDrawState.pPsResources[i]->pResourceView : nullptr;
+			ID3D11ShaderResourceView* pResource = rDrawState.psResources[i].pViewD3D11;
 			m_pDevContext->PSSetShaderResources(i, 1, &pResource);
 		}
 
@@ -985,17 +1017,17 @@ void RdrContextD3D11::DispatchCompute(const RdrDrawState& rDrawState, uint threa
 
 	m_pDevContext->CSSetConstantBuffers(0, rDrawState.csConstantBufferCount, (ID3D11Buffer**)rDrawState.csConstantBuffers);
 
-	uint numResources = ARRAYSIZE(rDrawState.pCsResources);
+	uint numResources = ARRAYSIZE(rDrawState.csResources);
 	for (uint i = 0; i < numResources; ++i)
 	{
-		ID3D11ShaderResourceView* pResource = rDrawState.pCsResources[i] ? rDrawState.pCsResources[i]->pResourceView : nullptr;
+		ID3D11ShaderResourceView* pResource = rDrawState.csResources[i].pViewD3D11;
 		m_pDevContext->CSSetShaderResources(i, 1, &pResource);
 	}
 
-	uint numUavs = ARRAYSIZE(rDrawState.pCsUavs);
+	uint numUavs = ARRAYSIZE(rDrawState.csUavs);
 	for (uint i = 0; i < numUavs; ++i)
 	{
-		ID3D11UnorderedAccessView* pView = rDrawState.pCsUavs[i] ? rDrawState.pCsUavs[i]->pUnorderedAccessView : nullptr;
+		ID3D11UnorderedAccessView* pView = rDrawState.csUavs[i].pViewD3D11;
 		m_pDevContext->CSSetUnorderedAccessViews(i, 1, &pView, nullptr);
 	}
 

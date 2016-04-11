@@ -27,6 +27,24 @@ struct RdrStructuredBufferInfo
 	uint numElements;
 };
 
+struct RdrShaderResourceView
+{
+	union
+	{
+		ID3D11ShaderResourceView* pViewD3D11;
+		void* pTypeless;
+	};
+};
+
+struct RdrUnorderedAccessView
+{
+	union
+	{
+		ID3D11UnorderedAccessView* pViewD3D11;
+		void* pTypeless;
+	};
+};
+
 typedef uint16 RdrResourceHandle;
 struct RdrResource
 {
@@ -37,12 +55,27 @@ struct RdrResource
 		ID3D11Resource*  pResource;
 	};
 
-	ID3D11ShaderResourceView*	pResourceView;
-	ID3D11UnorderedAccessView*	pUnorderedAccessView;
+	RdrShaderResourceView resourceView;
+	RdrUnorderedAccessView uav;
 
 	union
 	{
 		RdrTextureInfo texInfo;
 		RdrStructuredBufferInfo bufferInfo;
 	};
+};
+
+union RdrConstantBufferDeviceObj
+{
+	ID3D11Buffer* pBufferD3D11;
+};
+
+typedef uint16 RdrConstantBufferHandle;
+struct RdrConstantBuffer
+{
+	static inline uint GetRequiredSize(uint size) { return sizeof(Vec4) * (uint)ceilf(size / (float)sizeof(Vec4)); }
+
+	RdrUnorderedAccessView uav;
+	RdrConstantBufferDeviceObj bufferObj;
+	uint size;
 };

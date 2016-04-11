@@ -18,3 +18,10 @@ struct VsOutputSky
 	float4 position : SV_POSITION;
 	float3 direction : POSITION;
 };
+
+struct VsOutputSprite
+{
+	float4 position : SV_POSITION;
+	float2 texcoords : TEXCOORD0;
+	float alpha : TEXCOORD1;
+};

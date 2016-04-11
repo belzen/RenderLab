@@ -1,4 +1,4 @@
-#include "vs_output.hlsli"
+#include "v_output.hlsli"
 
 TextureCube texSkyDome : register(t0);
 SamplerState sampSkyDome : register(s0);

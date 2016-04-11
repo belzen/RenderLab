@@ -59,6 +59,7 @@ enum RdrVertexShaderType
 	kRdrVertexShader_Text,
 	kRdrVertexShader_Sprite,
 	kRdrVertexShader_Sky,
+	kRdrVertexShader_Screen, // Pass through shader for geo in screen-space
 
 	kRdrVertexShader_Count
 };
@@ -86,6 +87,9 @@ enum RdrComputeShader
 {
 	kRdrComputeShader_TiledDepthMinMax,
 	kRdrComputeShader_TiledLightCull,
+	kRdrComputeShader_LuminanceMeasure_First,
+	kRdrComputeShader_LuminanceMeasure_Mid,
+	kRdrComputeShader_LuminanceMeasure_Final,
 
 	kRdrComputeShader_Count
 };

@@ -16,7 +16,7 @@ class RdrDrawState;
 class RdrContext
 {
 public:
-	virtual bool Init(HWND hWnd, uint width, uint height, uint msaaLevel) = 0;
+	virtual bool Init(HWND hWnd, uint width, uint height) = 0;
 	virtual void Release() = 0;
 
 	virtual bool IsIdle() = 0;
@@ -33,6 +33,8 @@ public:
 	virtual bool UpdateStructuredBuffer(const void* pSrcData, RdrResource& rResource) = 0;
 
 	virtual void ReleaseResource(RdrResource& rResource) = 0;
+
+	virtual void ResolveSurface(const RdrResource& rSrc, const RdrResource& rDst) = 0;
 
 	virtual RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTex) = 0;
 	virtual RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTexArray, uint arrayStartIndex, uint arraySize) = 0;

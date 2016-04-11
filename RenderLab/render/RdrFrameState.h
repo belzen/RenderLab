@@ -59,6 +59,7 @@ struct RdrAction
 	RdrConstantBufferHandle hUiPerActionPs;
 
 	bool bIsCubemapCapture;
+	bool bEnablePostProcessing;
 };
 
 struct RdrFrameState

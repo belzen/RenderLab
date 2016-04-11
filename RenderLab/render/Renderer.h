@@ -6,6 +6,7 @@
 #include "RdrGeoSystem.h"
 #include "RdrResourceSystem.h"
 #include "RdrDrawState.h"
+#include "RdrPostProcess.h"
 
 class Camera;
 class WorldObject;
@@ -14,6 +15,13 @@ struct RdrPass;
 struct RdrDrawOp;
 struct Light;
 class LightList;
+
+struct RdrAssetSystems
+{
+	RdrShaderSystem   shaders;
+	RdrResourceSystem resources;
+	RdrGeoSystem      geos;
+};
 
 class Renderer
 {
@@ -42,9 +50,9 @@ public:
 	int GetViewportHeight() const { return m_pendingViewHeight; }
 	Vec2 GetViewportSize() const { return Vec2((float)m_pendingViewWidth, (float)m_pendingViewHeight); }
 
-	RdrShaderSystem& GetShaderSystem() { return m_shaders; }
-	RdrResourceSystem& GetResourceSystem() { return m_resources; }
-	RdrGeoSystem& GetGeoSystem() { return m_geos; }
+	RdrShaderSystem& GetShaderSystem() { return m_assets.shaders; }
+	RdrResourceSystem& GetResourceSystem() { return m_assets.resources; }
+	RdrGeoSystem& GetGeoSystem() { return m_assets.geos; }
 
 private:
 	void DrawPass(const RdrAction& rAction, RdrPassEnum ePass);
@@ -63,12 +71,14 @@ private:
 	///
 	RdrContext* m_pContext;
 
-	RdrShaderSystem   m_shaders;
-	RdrResourceSystem m_resources;
-	RdrGeoSystem      m_geos;
+	RdrAssetSystems m_assets;
 
 	RdrDepthStencilViewHandle m_hPrimaryDepthStencilView;
 	RdrResourceHandle         m_hPrimaryDepthBuffer;
+
+	RdrResourceHandle         m_hColorBuffer;
+	RdrResourceHandle         m_hColorBufferMultisampled;
+	RdrRenderTargetViewHandle m_hColorBufferRenderTarget;
 
 	RdrDrawState m_drawState;
 
@@ -90,4 +100,6 @@ private:
 	RdrResourceHandle	m_hDepthMinMaxTex;
 	int					m_tileCountX;
 	int					m_tileCountY;
+
+	RdrPostProcess m_postProcess;
 };

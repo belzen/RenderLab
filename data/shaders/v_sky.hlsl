@@ -1,5 +1,5 @@
-#include "vs_constants.h"
-#include "vs_output.hlsli"
+#include "v_constants.h"
+#include "v_output.hlsli"
 
 cbuffer PerAction : register(b0)
 {

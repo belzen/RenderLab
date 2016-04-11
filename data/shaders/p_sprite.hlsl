@@ -1,18 +1,12 @@
-#include "ps_common.hlsli"
+#include "v_output.hlsli"
+#include "p_common.hlsli"
 
-struct PixelInput
+Texture2D texSprite : register(t0);
+SamplerState sampSprite : register(s0);
+
+float4 main(VsOutputSprite input) : SV_TARGET
 {
-	float4 position : SV_POSITION;
-	float2 texcoords : TEXCOORD0;
-	float alpha : TEXCOORD1;
-};
-
-Texture2D tex;
-SamplerState texSampler;
-
-float4 main(PixelInput input) : SV_TARGET
-{
-	float4 color = tex.Sample(texSampler, input.texcoords);
+	float4 color = texSprite.Sample(sampSprite, input.texcoords);
 	color.a *= input.alpha;
 	return color;
 }

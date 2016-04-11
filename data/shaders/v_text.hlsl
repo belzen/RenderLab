@@ -1,4 +1,4 @@
-#include "vs_common.hlsli"
+#include "v_common.hlsli"
 
 cbuffer PerObject : register(b1)
 {

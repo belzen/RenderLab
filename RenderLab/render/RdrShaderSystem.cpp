@@ -11,24 +11,34 @@ namespace
 
 	const uint kMaxDefines = 16;
 
-	const char* kVertexShaderFilenames[] = {
-		"v_model.hlsl",  // kRdrVertexShader_Model
-		"v_text.hlsl",   // kRdrVertexShader_Text
-		"v_sprite.hlsl", // kRdrVertexShader_Sprite
-		"v_sky.hlsl"     // kRdrVertexShader_Sky
+	struct RdrShaderDef
+	{
+		const char* filename;
+		const char* aDefines[kMaxDefines];
 	};
-	static_assert(ARRAYSIZE(kVertexShaderFilenames) == kRdrVertexShader_Count, "Missing vertex shader filename!");
 
-	const char* kGeometryShaderFilenames[] = {
-		"g_cubemap.hlsl",  // kRdrGeometryShader_Model_CubemapCapture
+	const RdrShaderDef kVertexShaderDefs[] = {
+		{ "v_model.hlsl", 0 },  // kRdrVertexShader_Model
+		{ "v_text.hlsl", 0},    // kRdrVertexShader_Text
+		{ "v_sprite.hlsl", 0 }, // kRdrVertexShader_Sprite
+		{ "v_sky.hlsl", 0 },    // kRdrVertexShader_Sky
+		{ "v_screen.hlsl", 0 }, // kRdrVertexShader_Screen
 	};
-	static_assert(ARRAYSIZE(kGeometryShaderFilenames) == kRdrGeometryShader_Count, "Missing geometry shader filename!");
+	static_assert(ARRAYSIZE(kVertexShaderDefs) == kRdrVertexShader_Count, "Missing vertex shader defs!");
 
-	const char* kComputeShaderFilenames[] = {
-		"c_tiled_depth_calc.hlsl", // kRdrComputeShader_TiledDepthMinMax
-		"c_tiled_light_cull.hlsl"  // kRdrComputeShader_TiledLightCull
+	const RdrShaderDef kGeometryShaderDefs[] = {
+		{ "g_cubemap.hlsl", 0 },  // kRdrGeometryShader_Model_CubemapCapture
 	};
-	static_assert(ARRAYSIZE(kComputeShaderFilenames) == kRdrComputeShader_Count, "Missing compute shader filename!");
+	static_assert(ARRAYSIZE(kGeometryShaderDefs) == kRdrGeometryShader_Count, "Missing geometry shader defs!");
+
+	const RdrShaderDef kComputeShaderDefs[] = {
+		{"c_tiled_depth_calc.hlsl", { 0 } },          // kRdrComputeShader_TiledDepthMinMax
+		{"c_tiled_light_cull.hlsl", { 0 } },          // kRdrComputeShader_TiledLightCull
+		{"c_luminance_measure.hlsl",{ "STEP_ONE", 0 } }, // kRdrComputeShader_LuminanceMeasure_First,
+		{"c_luminance_measure.hlsl", { "STEP_MID", 0 } },   // kRdrComputeShader_LuminanceMeasure_Mid,
+		{"c_luminance_measure.hlsl", { "STEP_FINAL", 0 } },  // kRdrComputeShader_LuminanceMeasure_Final,
+	};
+	static_assert(ARRAYSIZE(kComputeShaderDefs) == kRdrComputeShader_Count, "Missing compute shader defs!");
 
 
 	class IncludeHandler : public ID3DInclude
@@ -100,7 +110,7 @@ namespace
 		return pCompiledData;
 	}
 
-	void createDefaultShader(RdrContext* pRdrContext, const RdrShaderType eType, const char* shaderFilename, const RdrShaderFlags flags, RdrShader& rOutShader)
+	void createDefaultShader(RdrContext* pRdrContext, const RdrShaderType eType, const RdrShaderDef& rShaderDef, const RdrShaderFlags flags, RdrShader& rOutShader)
 	{
 		void* pCompiledData;
 		uint compiledDataSize;
@@ -108,12 +118,18 @@ namespace
 		const char* aDefines[kMaxDefines];
 		uint numDefines = 0;
 
+		while (rShaderDef.aDefines[numDefines] != 0)
+		{
+			aDefines[numDefines] = rShaderDef.aDefines[numDefines];
+			++numDefines;
+		}
+
 		if (flags & kRdrShaderFlag_DepthOnly)
 			aDefines[numDefines++] = "DEPTH_ONLY";
 		if (flags & kRdrShaderFlag_CubemapCapture)
 			aDefines[numDefines++] = "CUBEMAP_CAPTURE";
-
-		ID3D10Blob* pPreprocData = preprocessShader(shaderFilename, aDefines, numDefines);
+		
+		ID3D10Blob* pPreprocData = preprocessShader(rShaderDef.filename, aDefines, numDefines);
 		assert(pPreprocData);
 	
 		const char* pShaderText = (char*)pPreprocData->GetBufferPointer();
@@ -146,7 +162,7 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 		for (uint flags = 0; flags < kRdrShaderFlag_NumCombos; ++flags)
 		{
 			createDefaultShader(m_pRdrContext, kRdrShaderType_Vertex, 
-				kVertexShaderFilenames[vs], (RdrShaderFlags)flags,
+				kVertexShaderDefs[vs], (RdrShaderFlags)flags,
 				m_vertexShaders[vs * kRdrShaderFlag_NumCombos + flags]);
 		}
 	}
@@ -157,7 +173,7 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 		for (uint flags = 0; flags < kRdrShaderFlag_NumCombos; ++flags)
 		{
 			createDefaultShader(m_pRdrContext, kRdrShaderType_Geometry,
-				kGeometryShaderFilenames[gs], (RdrShaderFlags)flags,
+				kGeometryShaderDefs[gs], (RdrShaderFlags)flags,
 				m_geometryShaders[gs * kRdrShaderFlag_NumCombos + flags]);
 		}
 	}
@@ -166,7 +182,7 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 	for (int cs = 0; cs < kRdrComputeShader_Count; ++cs)
 	{
 		createDefaultShader(m_pRdrContext, kRdrShaderType_Compute,
-			kComputeShaderFilenames[cs], (RdrShaderFlags)0,
+			kComputeShaderDefs[cs], (RdrShaderFlags)0,
 			m_computeShaders[cs]);
 	}
 }

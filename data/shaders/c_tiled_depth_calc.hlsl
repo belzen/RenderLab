@@ -14,11 +14,11 @@ groupshared float grp_zMax[64];
 
 #define GroupSizeX 8
 #define GroupSizeY 8
-#define NumThreads GroupSizeX * GroupSizeY
+#define ThreadCount GroupSizeX * GroupSizeY
 
 // Each tile is 16x16 pixels, but each thread samples 4 pixels
 [numthreads(GroupSizeX, GroupSizeY, 1)]
-void main( uint3 dispatchId : SV_DispatchThreadID, uint3 groupId : SV_GroupID, uint groupIdx : SV_GroupIndex )
+void main( uint3 dispatchId : SV_DispatchThreadID, uint3 groupId : SV_GroupID, uint localIdx : SV_GroupIndex )
 {
 	uint2 samplePos = dispatchId.xy * 2;
 
@@ -31,26 +31,26 @@ void main( uint3 dispatchId : SV_DispatchThreadID, uint3 groupId : SV_GroupID, u
 	float zMax = max(z00, max(z10, max(z01, z11)));
 
 	float4 vDepthMin = mul(float4(0.f, 0.f, zMin, 1.f), g_mtxInvProj);
-	grp_zMin[groupIdx] = vDepthMin.z / vDepthMin.w;
+	grp_zMin[localIdx] = vDepthMin.z / vDepthMin.w;
 
 	float4 vDepthMax = mul(float4(0.f, 0.f, zMax, 1.f), g_mtxInvProj);
-	grp_zMax[groupIdx] = vDepthMin.z / vDepthMin.w;
+	grp_zMax[localIdx] = vDepthMin.z / vDepthMin.w;
 
 	GroupMemoryBarrierWithGroupSync();
 
-	[unroll(NumThreads)]
-	for (uint i = NumThreads / 2; i > 0; i >>= 1)
+	[unroll(ThreadCount)]
+	for (uint i = ThreadCount / 2; i > 0; i >>= 1)
 	{
-		if (groupIdx < i)
+		if (localIdx < i)
 		{
-			grp_zMin[groupIdx] = min(grp_zMin[groupIdx], grp_zMin[groupIdx + i]);
-			grp_zMax[groupIdx] = max(grp_zMax[groupIdx], grp_zMax[groupIdx + i]);
+			grp_zMin[localIdx] = min(grp_zMin[localIdx], grp_zMin[localIdx + i]);
+			grp_zMax[localIdx] = max(grp_zMax[localIdx], grp_zMax[localIdx + i]);
 		}
 
 		GroupMemoryBarrierWithGroupSync();
 	}
 
-	if (groupIdx == 0)
+	if (localIdx == 0)
 	{
 		g_zMinMaxResults[groupId.xy] = float2(grp_zMin[0], grp_zMax[0] + 1.f);
 	}

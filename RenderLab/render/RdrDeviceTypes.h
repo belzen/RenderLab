@@ -94,7 +94,10 @@ enum RdrResourceFormat
 	kResourceFormat_R8_UNORM,
 	kResourceFormat_DXT1,
 	kResourceFormat_DXT5,
+	kResourceFormat_DXT5_sRGB,
 	kResourceFormat_B8G8R8A8_UNORM,
+	kResourceFormat_B8G8R8A8_UNORM_sRGB,
+	kResourceFormat_R16G16B16A16_FLOAT,
 
 	kResourceFormat_Count
 };
@@ -139,20 +142,6 @@ struct RdrSamplerState
 	uint cmpFunc : 4;
 	uint texcoordMode : 2;
 	uint bPointSample : 1;
-};
-
-union RdrConstantBufferDeviceObj
-{
-	ID3D11Buffer* pBufferD3D11;
-};
-
-typedef uint16 RdrConstantBufferHandle;
-struct RdrConstantBuffer
-{
-	static inline uint GetRequiredSize(uint size) { return sizeof(Vec4) * (uint)ceilf(size / (float)sizeof(Vec4)); }
-
-	RdrConstantBufferDeviceObj bufferObj;
-	uint size;
 };
 
 typedef uint16 RdrDepthStencilViewHandle;

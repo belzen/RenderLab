@@ -86,7 +86,7 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 
 		Json::Value jTexture = jSky.get("texture", Json::Value::null);
 		std::string texName = jTexture.asString();
-		RdrResourceHandle hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(texName.c_str(), true, nullptr);
+		RdrResourceHandle hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(texName.c_str(), true, true, nullptr);
 
 		m_sky.Init(rRenderer, hGeo, hPixelShader, hTexture);
 	}
@@ -178,8 +178,12 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 			RdrResourceHandle hTextures[16];
 			for (int n = 0; n < numTextures; ++n)
 			{
-				std::string texName = jTextures.get(n, Json::Value::null).asString();
-				hTextures[n] = rRenderer.GetResourceSystem().CreateTextureFromFile(texName.c_str(), false, nullptr);
+				Json::Value jTex = jTextures.get(n, Json::Value::null);
+
+				std::string texName = jTex.get("filename", Json::Value::null).asString();
+				bool bIsSrgb = jTex.get("srgb", Json::Value::null).asBool();
+
+				hTextures[n] = rRenderer.GetResourceSystem().CreateTextureFromFile(texName.c_str(), false, bIsSrgb, nullptr);
 				samplers[n] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
 			}
 

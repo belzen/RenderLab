@@ -20,7 +20,7 @@ public:
 
 	void Init(RdrContext* pRdrContext);
 
-	RdrResourceHandle CreateTextureFromFile(const char* filename, bool bIsCubemap, RdrTextureInfo* pOutInfo);
+	RdrResourceHandle CreateTextureFromFile(const char* filename, bool bIsCubemap, bool bIsSrgb, RdrTextureInfo* pOutInfo);
 
 	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat);
 	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount);

@@ -1,5 +1,5 @@
-#include "vs_output.hlsli"
-#include "gs_constants.h"
+#include "v_output.hlsli"
+#include "g_constants.h"
 
 struct GsOutputModel
 {

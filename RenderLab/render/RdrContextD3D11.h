@@ -26,7 +26,7 @@ struct D3D11_INPUT_ELEMENT_DESC;
 
 class RdrContextD3D11 : public RdrContext
 {
-	bool Init(HWND hWnd, uint width, uint height, uint msaaLevel);
+	bool Init(HWND hWnd, uint width, uint height);
 	void Release();
 
 	bool IsIdle();
@@ -43,6 +43,8 @@ class RdrContextD3D11 : public RdrContext
 	bool UpdateStructuredBuffer(const void* pSrcData, RdrResource& rResource);
 
 	void ReleaseResource(RdrResource& rResource);
+
+	void ResolveSurface(const RdrResource& rSrc, const RdrResource& rDst);
 
 	RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTex);
 	RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTexArray, uint arrayStartIndex, uint arraySize);
@@ -97,6 +99,5 @@ private:
 	ID3D11RasterizerState*   m_pRasterStates[RASTER_STATES_COUNT];
 	ID3D11DepthStencilState* m_pDepthStencilStates[kRdrDepthTestMode_Count];
 
-	uint m_msaaLevel;
 	uint m_presentFlags;
 };

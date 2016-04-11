@@ -10,7 +10,7 @@ namespace
 {
 	const RdrVertexShader kVertexShader = { kRdrVertexShader_Model, (RdrShaderFlags)0 };
 
-	static RdrVertexInputElement s_modelVertexDesc[] = {
+	static const RdrVertexInputElement s_modelVertexDesc[] = {
 		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RGB_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
 		{ kRdrShaderSemantic_Normal, 0, kRdrVertexInputFormat_RGB_F32, 0, 12, kRdrVertexInputClass_PerVertex, 0 },
 		{ kRdrShaderSemantic_Color, 0, kRdrVertexInputFormat_RGBA_F32, 0, 24, kRdrVertexInputClass_PerVertex, 0 },

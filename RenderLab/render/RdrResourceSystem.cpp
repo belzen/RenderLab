@@ -11,7 +11,7 @@
 
 namespace
 {
-	RdrResourceFormat getFormatFromDXGI(DXGI_FORMAT format)
+	RdrResourceFormat getFormatFromDXGI(DXGI_FORMAT format, bool bIsSrgb)
 	{
 		switch (format)
 		{
@@ -26,9 +26,9 @@ namespace
 		case DXGI_FORMAT_R8_UNORM:
 			return kResourceFormat_R8_UNORM;
 		case DXGI_FORMAT_BC3_UNORM:
-			return kResourceFormat_DXT5;
+			return bIsSrgb ? kResourceFormat_DXT5_sRGB : kResourceFormat_DXT5;
 		case DXGI_FORMAT_B8G8R8A8_UNORM:
-			return kResourceFormat_B8G8R8A8_UNORM;
+			return bIsSrgb ? kResourceFormat_B8G8R8A8_UNORM_sRGB : kResourceFormat_B8G8R8A8_UNORM;
 		default:
 			assert(false);
 			return kResourceFormat_Count;
@@ -44,7 +44,7 @@ void RdrResourceSystem::Init(RdrContext* pRdrContext)
 	m_renderTargetViews.allocSafe();
 }
 
-RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* filename, bool bIsCubemap, RdrTextureInfo* pOutInfo)
+RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* filename, bool bIsCubemap, bool bIsSrgb, RdrTextureInfo* pOutInfo)
 {
 	// Find texture in cache
 	RdrResourceHandleMap::iterator iter = m_textureCache.find(filename);
@@ -72,7 +72,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* filename,
 
 	cmd.hResource = m_resources.getId(pResource);
 	cmd.eUsage = kRdrResourceUsage_Immutable;
-	cmd.texInfo.format = getFormatFromDXGI(metadata.format);
+	cmd.texInfo.format = getFormatFromDXGI(metadata.format, bIsSrgb);
 	cmd.texInfo.width = (uint)metadata.width;
 	cmd.texInfo.height = (uint)metadata.height;
 	cmd.texInfo.mipLevels = (uint)metadata.mipLevels;

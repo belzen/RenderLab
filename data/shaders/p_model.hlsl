@@ -1,8 +1,5 @@
-#include "ps_common.hlsli"
+#include "p_common.hlsli"
 #include "light_inc.hlsli"
-
-static float4 ambient_color = float4(1.f, 1.f, 1.f, 1.f);
-static float ambient_intensity = 0.1f;
 
 struct PixelInput
 {
@@ -24,7 +21,6 @@ SamplerState sampNormals : register(s1);
 float4 main(PixelInput input) : SV_TARGET
 {
 	float4 color = texDiffuse.Sample(sampDiffuse, input.texcoords) + input.color;
-	float4 ambient = color * ambient_color * ambient_intensity;
 
 	float3 normal = texNormals.Sample(sampNormals, input.texcoords).xyz;
 	normal = (normal * 2.f) - 1.f; // Expand normal range
@@ -35,6 +31,6 @@ float4 main(PixelInput input) : SV_TARGET
 
 	float3 cameraViewDir = normalize(cbPerAction.viewPos - input.position_ws.xyz);
 
-	float4 litColor = doLighting(input.position_ws, color, normal, cameraViewDir, input.position.xy, cbPerAction.viewWidth);
-	return saturate(ambient + litColor);
+	float3 litColor = doLighting(input.position_ws, color.rgb, normal, cameraViewDir, input.position.xy, cbPerAction.viewWidth);
+	return float4(litColor, 1);
 }

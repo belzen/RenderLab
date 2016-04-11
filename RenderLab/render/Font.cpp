@@ -16,7 +16,7 @@ namespace
 {
 	const RdrVertexShader kVertexShader = { kRdrVertexShader_Text, (RdrShaderFlags)0 };
 
-	static RdrVertexInputElement s_vertexDesc[] = {
+	static const RdrVertexInputElement s_vertexDesc[] = {
 		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RG_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
 		{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 8, kRdrVertexInputClass_PerVertex, 0 }
 	};
@@ -79,7 +79,7 @@ void Font::Init(Renderer& rRenderer)
 	loadFontData("data/textures/fonts/verdana.dat");
 
 	RdrTextureInfo texInfo;
-	g_text.hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(filename, false, &texInfo);
+	g_text.hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(filename, false, false, &texInfo);
 	g_text.glyphPixelSize = texInfo.width / 16;
 
 	g_text.hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(kVertexShader, s_vertexDesc, ARRAYSIZE(s_vertexDesc));

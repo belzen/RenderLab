@@ -1,4 +1,4 @@
-#include "ps_common.hlsli"
+#include "p_common.hlsli"
 
 struct PixelInput
 {

@@ -1,4 +1,5 @@
-#include "vs_common.hlsli"
+#include "v_output.hlsli"
+#include "v_common.hlsli"
 
 cbuffer PerObject : register(b1)
 {
@@ -13,16 +14,9 @@ struct VertexInput
 	float2 texcoords : TEXCOORD0;
 };
 
-struct VSOutput
+VsOutputSprite main(VertexInput input)
 {
-	float4 position : SV_POSITION;
-	float2 texcoords : TEXCOORD0;
-	float alpha : TEXCOORD1;
-};
-
-VSOutput main(VertexInput input)
-{
-	VSOutput output;
+	VsOutputSprite output;
 
 	float4 pos = float4(input.position * scale.xy + screen_pos.xy, screen_pos.z, 1.f);
 	output.position = mul(pos, cbPerAction.mtxViewProj);

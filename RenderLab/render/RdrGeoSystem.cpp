@@ -241,9 +241,12 @@ void RdrGeoSystem::ProcessCommands()
 			*pVertexBuffer = m_pRdrContext->CreateVertexBuffer(cmd.pVertData, cmd.info.vertStride * cmd.info.numVerts);
 			pGeo->hVertexBuffer = m_vertexBuffers.getId(pVertexBuffer);
 
-			RdrIndexBuffer* pIndexBuffer = m_indexBuffers.alloc();
-			*pIndexBuffer = m_pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices);
-			pGeo->hIndexBuffer = m_indexBuffers.getId(pIndexBuffer);
+			if (cmd.pIndexData)
+			{
+				RdrIndexBuffer* pIndexBuffer = m_indexBuffers.alloc();
+				*pIndexBuffer = m_pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices);
+				pGeo->hIndexBuffer = m_indexBuffers.getId(pIndexBuffer);
+			}
 		}
 		else
 		{
