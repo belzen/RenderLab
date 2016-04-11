@@ -6,10 +6,10 @@
 
 namespace
 {
-	const RdrVertexShader kVertexShader = { kRdrVertexShader_Sky, (RdrShaderFlags)0 };
+	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Sky, (RdrShaderFlags)0 };
 
 	static const RdrVertexInputElement s_skyVertexDesc[] = {
-		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RGB_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 }
+		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 }
 	};
 }
 
@@ -33,7 +33,7 @@ void Sky::Init(Renderer& rRenderer,
 void Sky::QueueDraw(Renderer& rRenderer) const
 {
 	RdrDrawOp* pDrawOp = RdrDrawOp::Allocate();
-	pDrawOp->eType = kRdrDrawOpType_Graphics;
+	pDrawOp->eType = RdrDrawOpType::Graphics;
 
 	Vec3 pos = rRenderer.GetCurrentCamera().GetPosition();
 	Matrix44 mtxWorld = Matrix44Translation(pos);
@@ -43,16 +43,16 @@ void Sky::QueueDraw(Renderer& rRenderer) const
 	*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
 	pDrawOp->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize);
 
-	pDrawOp->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
+	pDrawOp->samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
 	pDrawOp->hTextures[0] = m_hSkyTexture;
 	pDrawOp->texCount = 1;
 
 	pDrawOp->graphics.hInputLayout = m_hInputLayout;
 	pDrawOp->graphics.vertexShader = kVertexShader;
-	pDrawOp->graphics.hPixelShaders[kRdrShaderMode_Normal] = m_hPixelShader;
+	pDrawOp->graphics.hPixelShaders[(int)RdrShaderMode::Normal] = m_hPixelShader;
 
 	pDrawOp->graphics.hGeo = m_hGeo;
 	pDrawOp->graphics.bNeedsLighting = false;
 
-	rRenderer.AddToBucket(pDrawOp, kRdrBucketType_Sky);
+	rRenderer.AddToBucket(pDrawOp, RdrBucketType::Sky);
 }

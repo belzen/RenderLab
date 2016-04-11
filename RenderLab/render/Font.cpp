@@ -14,11 +14,11 @@
 
 namespace
 {
-	const RdrVertexShader kVertexShader = { kRdrVertexShader_Text, (RdrShaderFlags)0 };
+	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Text, (RdrShaderFlags)0 };
 
 	static const RdrVertexInputElement s_vertexDesc[] = {
-		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RG_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
-		{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 8, kRdrVertexInputClass_PerVertex, 0 }
+		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RG_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Texcoord, 0, RdrVertexInputFormat::RG_F32, 0, 8, RdrVertexInputClass::PerVertex, 0 }
 	};
 
 	struct TextVertex
@@ -53,13 +53,13 @@ namespace
 		Vec3 pos = UI::PosToScreenSpace(uiPos, Vec2(rText.size.x, rText.size.y) * size, rRenderer.GetViewportSize());
 
 		RdrDrawOp* op = RdrDrawOp::Allocate();
-		op->eType = kRdrDrawOpType_Graphics;
+		op->eType = RdrDrawOpType::Graphics;
 		op->graphics.hGeo = rText.hTextGeo;
 		op->graphics.bFreeGeo = bFreeGeo;
 		op->graphics.hInputLayout = g_text.hInputLayout;
 		op->graphics.vertexShader = kVertexShader;
-		op->graphics.hPixelShaders[kRdrShaderMode_Normal] = g_text.hPixelShader;
-		op->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
+		op->graphics.hPixelShaders[(int)RdrShaderMode::Normal] = g_text.hPixelShader;
+		op->samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
 		op->hTextures[0] = g_text.hTexture;
 		op->texCount = 1;
 
@@ -69,7 +69,7 @@ namespace
 		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
 		op->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize);
 
-		rRenderer.AddToBucket(op, kRdrBucketType_UI);
+		rRenderer.AddToBucket(op, RdrBucketType::UI);
 	}
 }
 

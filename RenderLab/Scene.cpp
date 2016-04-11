@@ -106,14 +106,14 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 			const char* typeStr = jType.asCString();
 			if (_stricmp(typeStr, "directional") == 0)
 			{
-				light.type = kLightType_Directional;
+				light.type = LightType::Directional;
 
 				light.direction = readVec3(jLight.get("direction", Json::Value::null));
 				light.direction = Vec3Normalize(light.direction);
 			}
 			else if (_stricmp(typeStr, "spot") == 0)
 			{
-				light.type = kLightType_Spot;
+				light.type = LightType::Spot;
 
 				light.direction = readVec3(jLight.get("direction", Json::Value::null));
 				light.direction = Vec3Normalize(light.direction);
@@ -126,7 +126,7 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 			}
 			else if (_stricmp(typeStr, "point") == 0)
 			{
-				light.type = kLightType_Point;
+				light.type = LightType::Point;
 			}
 			else
 			{
@@ -142,7 +142,7 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 			light.color.z *= intensity;
 
 			light.radius = jLight.get("radius", 0.f).asFloat();
-			if (light.type == kLightType_Directional)
+			if (light.type == LightType::Directional)
 			{
 				light.radius = FLT_MAX;
 			}
@@ -184,7 +184,7 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 				bool bIsSrgb = jTex.get("srgb", Json::Value::null).asBool();
 
 				hTextures[n] = rRenderer.GetResourceSystem().CreateTextureFromFile(texName.c_str(), false, bIsSrgb, nullptr);
-				samplers[n] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
+				samplers[n] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
 			}
 
 			// todo: freelists

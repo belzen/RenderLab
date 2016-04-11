@@ -14,12 +14,12 @@ namespace
 
 	bool resourceFormatIsDepth(const RdrResourceFormat eFormat)
 	{
-		return eFormat == kResourceFormat_D16 || eFormat == kResourceFormat_D24_UNORM_S8_UINT;
+		return eFormat == RdrResourceFormat::D16 || eFormat == RdrResourceFormat::D24_UNORM_S8_UINT;
 	}
 
 	bool resourceFormatIsCompressed(const RdrResourceFormat eFormat)
 	{
-		return eFormat == kResourceFormat_DXT5 || eFormat == kResourceFormat_DXT1;
+		return eFormat == RdrResourceFormat::DXT5 || eFormat == RdrResourceFormat::DXT1;
 	}
 
 	D3D11_PRIMITIVE_TOPOLOGY getD3DTopology(const RdrTopology eTopology)
@@ -27,74 +27,74 @@ namespace
 		static const D3D11_PRIMITIVE_TOPOLOGY s_d3dTopology[] = {
 			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,	// kRdrTopology_TriangleList
 		};
-		static_assert(ARRAYSIZE(s_d3dTopology) == kRdrTopology_Count, "Missing D3D topologies!");
-		return s_d3dTopology[eTopology];
+		static_assert(ARRAYSIZE(s_d3dTopology) == (int)RdrTopology::Count, "Missing D3D topologies!");
+		return s_d3dTopology[(int)eTopology];
 	}
 
 	DXGI_FORMAT getD3DFormat(const RdrResourceFormat format)
 	{
 		static const DXGI_FORMAT s_d3dFormats[] = {
-			DXGI_FORMAT_R16_UNORM,				// kResourceFormat_D16
-			DXGI_FORMAT_R24_UNORM_X8_TYPELESS,	// kResourceFormat_D24_UNORM_S8_UINT
-			DXGI_FORMAT_R16_UNORM,				// kResourceFormat_R16_UNORM
-			DXGI_FORMAT_R16G16_FLOAT,			// kResourceFormat_R16G16_FLOAT
-			DXGI_FORMAT_R8_UNORM,				// kResourceFormat_R8_UNORM
-			DXGI_FORMAT_BC1_UNORM,				// kResourceFormat_DXT1
-			DXGI_FORMAT_BC3_UNORM,				// kResourceFormat_DXT5
-			DXGI_FORMAT_BC3_UNORM_SRGB,			// kResourceFormat_DXT5_sRGB
-			DXGI_FORMAT_B8G8R8A8_UNORM,			// kResourceFormat_B8G8R8A8_UNORM
-			DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,	// kResourceFormat_B8G8R8A8_UNORM_sRGB
-			DXGI_FORMAT_R16G16B16A16_FLOAT,		// kResourceFormat_R16G16B16A16_FLOAT
+			DXGI_FORMAT_R16_UNORM,				// ResourceFormat::D16
+			DXGI_FORMAT_R24_UNORM_X8_TYPELESS,	// ResourceFormat::D24_UNORM_S8_UINT
+			DXGI_FORMAT_R16_UNORM,				// ResourceFormat::R16_UNORM
+			DXGI_FORMAT_R16G16_FLOAT,			// ResourceFormat::R16G16_FLOAT
+			DXGI_FORMAT_R8_UNORM,				// ResourceFormat::R8_UNORM
+			DXGI_FORMAT_BC1_UNORM,				// ResourceFormat::DXT1
+			DXGI_FORMAT_BC3_UNORM,				// ResourceFormat::DXT5
+			DXGI_FORMAT_BC3_UNORM_SRGB,			// ResourceFormat::DXT5_sRGB
+			DXGI_FORMAT_B8G8R8A8_UNORM,			// ResourceFormat::B8G8R8A8_UNORM
+			DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,	// ResourceFormat::B8G8R8A8_UNORM_sRGB
+			DXGI_FORMAT_R16G16B16A16_FLOAT,		// ResourceFormat::R16G16B16A16_FLOAT
 		};
-		static_assert(ARRAYSIZE(s_d3dFormats) == kResourceFormat_Count, "Missing D3D formats!");
-		return s_d3dFormats[format];
+		static_assert(ARRAYSIZE(s_d3dFormats) == (int)RdrResourceFormat::Count, "Missing D3D formats!");
+		return s_d3dFormats[(int)format];
 	}
 
 	DXGI_FORMAT getD3DDepthFormat(const RdrResourceFormat format)
 	{
 		static const DXGI_FORMAT s_d3dDepthFormats[] = {
-			DXGI_FORMAT_D16_UNORM,			// kResourceFormat_D16
-			DXGI_FORMAT_D24_UNORM_S8_UINT,	// kResourceFormat_D24_UNORM_S8_UINT
-			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_R16_UNORM
-			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_R16G16_FLOAT
-			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_R8_UNORM
-			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_DXT1
-			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_DXT5
-			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_DXT5_sRGB
-			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_B8G8R8A8_UNORM
-			DXGI_FORMAT_UNKNOWN,			// kResourceFormat_B8G8R8A8_UNORM_sRGB
-			DXGI_FORMAT_UNKNOWN,	        // kResourceFormat_R16G16B16A16_FLOAT
+			DXGI_FORMAT_D16_UNORM,			// ResourceFormat::D16
+			DXGI_FORMAT_D24_UNORM_S8_UINT,	// ResourceFormat::D24_UNORM_S8_UINT
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R16_UNORM
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R16G16_FLOAT
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R8_UNORM
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::DXT1
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::DXT5
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::DXT5_sRGB
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::B8G8R8A8_UNORM
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::B8G8R8A8_UNORM_sRGB
+			DXGI_FORMAT_UNKNOWN,	        // ResourceFormat::R16G16B16A16_FLOAT
 		};
-		static_assert(ARRAYSIZE(s_d3dDepthFormats) == kResourceFormat_Count, "Missing D3D depth formats!");
-		assert(s_d3dDepthFormats[format] != DXGI_FORMAT_UNKNOWN);
-		return s_d3dDepthFormats[format];
+		static_assert(ARRAYSIZE(s_d3dDepthFormats) == (int)RdrResourceFormat::Count, "Missing D3D depth formats!");
+		assert(s_d3dDepthFormats[(int)format] != DXGI_FORMAT_UNKNOWN);
+		return s_d3dDepthFormats[(int)format];
 	}
 
 	DXGI_FORMAT getD3DTypelessFormat(const RdrResourceFormat format)
 	{
 		static const DXGI_FORMAT s_d3dTypelessFormats[] = {
-			DXGI_FORMAT_R16_TYPELESS,		   // kResourceFormat_D16
-			DXGI_FORMAT_R24G8_TYPELESS,		   // kResourceFormat_D24_UNORM_S8_UINT
-			DXGI_FORMAT_R16_TYPELESS,		   // kResourceFormat_R16_UNORM
-			DXGI_FORMAT_R16G16_TYPELESS,	   // kResourceFormat_R16G16_FLOAT
-			DXGI_FORMAT_R8_TYPELESS,		   // kResourceFormat_R8_UNORM
-			DXGI_FORMAT_BC1_TYPELESS,		   // kResourceFormat_DXT1
-			DXGI_FORMAT_BC3_TYPELESS,		   // kResourceFormat_DXT5
-			DXGI_FORMAT_BC3_TYPELESS,		   // kResourceFormat_DXT5_sRGB
-			DXGI_FORMAT_B8G8R8A8_TYPELESS,	   // kResourceFormat_B8G8R8A8_UNORM
-			DXGI_FORMAT_B8G8R8A8_TYPELESS,     // kResourceFormat_B8G8R8A8_UNORM_sRGB
-			DXGI_FORMAT_R16G16B16A16_TYPELESS, // kResourceFormat_R16G16B16A16_FLOAT
+			DXGI_FORMAT_R16_TYPELESS,		   // ResourceFormat::D16
+			DXGI_FORMAT_R24G8_TYPELESS,		   // ResourceFormat::D24_UNORM_S8_UINT
+			DXGI_FORMAT_R16_TYPELESS,		   // ResourceFormat::R16_UNORM
+			DXGI_FORMAT_R16G16_TYPELESS,	   // ResourceFormat::R16G16_FLOAT
+			DXGI_FORMAT_R8_TYPELESS,		   // ResourceFormat::R8_UNORM
+			DXGI_FORMAT_BC1_TYPELESS,		   // ResourceFormat::DXT1
+			DXGI_FORMAT_BC3_TYPELESS,		   // ResourceFormat::DXT5
+			DXGI_FORMAT_BC3_TYPELESS,		   // ResourceFormat::DXT5_sRGB
+			DXGI_FORMAT_B8G8R8A8_TYPELESS,	   // ResourceFormat::B8G8R8A8_UNORM
+			DXGI_FORMAT_B8G8R8A8_TYPELESS,     // ResourceFormat::B8G8R8A8_UNORM_sRGB
+			DXGI_FORMAT_R16G16B16A16_TYPELESS, // ResourceFormat::R16G16B16A16_FLOAT
 		};
-		static_assert(ARRAYSIZE(s_d3dTypelessFormats) == kResourceFormat_Count, "Missing typeless formats!");
-		return s_d3dTypelessFormats[format];
+		static_assert(ARRAYSIZE(s_d3dTypelessFormats) == (int)RdrResourceFormat::Count, "Missing typeless formats!");
+		return s_d3dTypelessFormats[(int)format];
 	}
 
 	uint getD3DCpuAccessFlags(const RdrCpuAccessFlags cpuAccessFlags)
 	{
 		uint d3dFlags = 0;
-		if (cpuAccessFlags & kRdrCpuAccessFlag_Read)
+		if ((cpuAccessFlags & RdrCpuAccessFlags::Read) != RdrCpuAccessFlags::None)
 			d3dFlags |= D3D11_CPU_ACCESS_READ;
-		if (cpuAccessFlags & kRdrCpuAccessFlag_Write)
+		if ((cpuAccessFlags & RdrCpuAccessFlags::Write) != RdrCpuAccessFlags::None)
 			d3dFlags |= D3D11_CPU_ACCESS_WRITE;
 		return d3dFlags;
 	}
@@ -102,13 +102,13 @@ namespace
 	D3D11_USAGE getD3DUsage(const RdrResourceUsage eUsage)
 	{
 		static const D3D11_USAGE s_d3dUsage[] = {
-			D3D11_USAGE_DEFAULT,	// kRdrResourceUsage_Default
-			D3D11_USAGE_IMMUTABLE,	// kRdrResourceUsage_Immutable
-			D3D11_USAGE_DYNAMIC,	// kRdrResourceUsage_Dynamic
-			D3D11_USAGE_STAGING,	// kRdrResourceUsage_Staging
+			D3D11_USAGE_DEFAULT,	// RdrResourceUsage::Default
+			D3D11_USAGE_IMMUTABLE,	// RdrResourceUsage::Immutable
+			D3D11_USAGE_DYNAMIC,	// RdrResourceUsage::Dynamic
+			D3D11_USAGE_STAGING,	// RdrResourceUsage::Staging
 		};
-		static_assert(ARRAYSIZE(s_d3dUsage) == kRdrResourceUsage_Count, "Missing D3D11 resource usage!");
-		return s_d3dUsage[eUsage];
+		static_assert(ARRAYSIZE(s_d3dUsage) == (int)RdrResourceUsage::Count, "Missing D3D11 resource usage!");
+		return s_d3dUsage[(int)eUsage];
 	}
 
 	static ID3D11Buffer* createBuffer(ID3D11Device* pDevice, const void* pSrcData, const int size, const uint bindFlags)
@@ -142,7 +142,7 @@ bool RdrContextD3D11::CreateStructuredBuffer(const void* pSrcData, int numElemen
 	desc.ByteWidth = numElements * elementSize;
 	desc.StructureByteStride = elementSize;
 	desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	if (eUsage == kRdrResourceUsage_Dynamic)
+	if (eUsage == RdrResourceUsage::Dynamic)
 	{
 		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
@@ -211,15 +211,15 @@ static int GetTexturePitch(const int width, const RdrResourceFormat eFormat)
 {
 	switch (eFormat)
 	{
-	case kResourceFormat_R8_UNORM:
+	case RdrResourceFormat::R8_UNORM:
 		return width * 1;
-	case kResourceFormat_DXT1:
+	case RdrResourceFormat::DXT1:
 		return ((width + 3) & ~3) * 2;
-	case kResourceFormat_DXT5:
-	case kResourceFormat_DXT5_sRGB:
+	case RdrResourceFormat::DXT5:
+	case RdrResourceFormat::DXT5_sRGB:
 		return ((width + 3) & ~3) * 4;
-	case kResourceFormat_B8G8R8A8_UNORM:
-	case kResourceFormat_B8G8R8A8_UNORM_sRGB:
+	case RdrResourceFormat::B8G8R8A8_UNORM:
+	case RdrResourceFormat::B8G8R8A8_UNORM_sRGB:
 		return width * 4;
 	default:
 		assert(false);
@@ -231,14 +231,14 @@ static int GetTextureRows(const int height, const RdrResourceFormat eFormat)
 {
 	switch (eFormat)
 	{
-	case kResourceFormat_R8_UNORM:
+	case RdrResourceFormat::R8_UNORM:
 		return height;
-	case kResourceFormat_DXT1:
-	case kResourceFormat_DXT5:
-	case kResourceFormat_DXT5_sRGB:
+	case RdrResourceFormat::DXT1:
+	case RdrResourceFormat::DXT5:
+	case RdrResourceFormat::DXT5_sRGB:
 		return ((height + 3) & ~3) / 4;
-	case kResourceFormat_B8G8R8A8_UNORM:
-	case kResourceFormat_B8G8R8A8_UNORM_sRGB:
+	case RdrResourceFormat::B8G8R8A8_UNORM:
+	case RdrResourceFormat::B8G8R8A8_UNORM_sRGB:
 		return height;
 	default:
 		assert(false);
@@ -258,8 +258,8 @@ static D3D11_COMPARISON_FUNC getComparisonFuncD3d(const RdrComparisonFunc cmpFun
 		D3D11_COMPARISON_GREATER_EQUAL,
 		D3D11_COMPARISON_ALWAYS
 	};
-	static_assert(ARRAYSIZE(cmpFuncD3d) == kComparisonFunc_Count, "Missing comparison func");
-	return cmpFuncD3d[cmpFunc];
+	static_assert(ARRAYSIZE(cmpFuncD3d) == (int)RdrComparisonFunc::Count, "Missing comparison func");
+	return cmpFuncD3d[(int)cmpFunc];
 }
 
 static D3D11_TEXTURE_ADDRESS_MODE getTexCoordModeD3d(const RdrTexCoordMode uvMode)
@@ -269,13 +269,13 @@ static D3D11_TEXTURE_ADDRESS_MODE getTexCoordModeD3d(const RdrTexCoordMode uvMod
 		D3D11_TEXTURE_ADDRESS_CLAMP,
 		D3D11_TEXTURE_ADDRESS_MIRROR
 	};
-	static_assert(ARRAYSIZE(uvModeD3d) == kRdrTexCoordMode_Count, "Missing tex coord mode");
-	return uvModeD3d[uvMode];
+	static_assert(ARRAYSIZE(uvModeD3d) == (int)RdrTexCoordMode::Count, "Missing tex coord mode");
+	return uvModeD3d[(int)uvMode];
 }
 
 static D3D11_FILTER getFilterD3d(const RdrComparisonFunc cmpFunc, const bool bPointSample)
 {
-	if (cmpFunc != kComparisonFunc_Never)
+	if (cmpFunc != RdrComparisonFunc::Never)
 	{
 		return bPointSample ? D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT : D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
 	}
@@ -347,7 +347,7 @@ bool RdrContextD3D11::IsIdle()
 ID3D11SamplerState* RdrContextD3D11::GetSampler(const RdrSamplerState& state)
 {
 	uint samplerIndex =
-		state.cmpFunc * (kRdrTexCoordMode_Count * 2)
+		state.cmpFunc * ((uint)RdrTexCoordMode::Count * 2)
 		+ state.texcoordMode * 2
 		+ state.bPointSample;
 
@@ -388,7 +388,7 @@ namespace
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 		if (resourceFormatIsDepth(rTexInfo.format))
 			desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
-		else if (eUsage != kRdrResourceUsage_Immutable)
+		else if (eUsage != RdrResourceUsage::Immutable)
 			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 		desc.SampleDesc.Count = rTexInfo.sampleCount;
 		desc.Format = getD3DTypelessFormat(rTexInfo.format);
@@ -431,7 +431,7 @@ namespace
 	{
 		bool bIsMultisampled = (rTexInfo.sampleCount > 1);
 		bool bIsArray = (rTexInfo.arraySize > 1);
-		bool bCanBindAccessView = !bIsMultisampled && !resourceFormatIsCompressed(rTexInfo.format) && eUsage != kRdrResourceUsage_Immutable;
+		bool bCanBindAccessView = !bIsMultisampled && !resourceFormatIsCompressed(rTexInfo.format) && eUsage != RdrResourceUsage::Immutable;
 
 		D3D11_TEXTURE2D_DESC desc = { 0 };
 
@@ -449,7 +449,7 @@ namespace
 			// todo: find out if having all these bindings cause any inefficiencies in D3D
 			if (bCanBindAccessView)
 				desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-			if (eUsage != kRdrResourceUsage_Immutable)
+			if (eUsage != RdrResourceUsage::Immutable)
 				desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 		}
 
@@ -719,17 +719,17 @@ void RdrContextD3D11::ReleaseRenderTargetView(const RdrRenderTargetView& renderT
 
 void RdrContextD3D11::SetDepthStencilState(RdrDepthTestMode eDepthTest)
 {
-	if (!m_pDepthStencilStates[eDepthTest])
+	if (!m_pDepthStencilStates[(int)eDepthTest])
 	{
 		D3D11_DEPTH_STENCIL_DESC dsDesc;
 
-		dsDesc.DepthEnable = (eDepthTest != kRdrDepthTestMode_None);
+		dsDesc.DepthEnable = (eDepthTest != RdrDepthTestMode::None);
 		switch (eDepthTest)
 		{
-		case kRdrDepthTestMode_Less:
+		case RdrDepthTestMode::Less:
 			dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
 			break;
-		case kRdrDepthTestMode_Equal:
+		case RdrDepthTestMode::Equal:
 			dsDesc.DepthFunc = D3D11_COMPARISON_EQUAL;
 			break;
 		default:
@@ -754,10 +754,10 @@ void RdrContextD3D11::SetDepthStencilState(RdrDepthTestMode eDepthTest)
 		HRESULT hr = m_pDevice->CreateDepthStencilState(&dsDesc, &pState);
 		assert(hr == S_OK);
 
-		m_pDepthStencilStates[eDepthTest] = pState;
+		m_pDepthStencilStates[(int)eDepthTest] = pState;
 	}
 
-	m_pDevContext->OMSetDepthStencilState(m_pDepthStencilStates[eDepthTest], 1);
+	m_pDevContext->OMSetDepthStencilState(m_pDepthStencilStates[(int)eDepthTest], 1);
 }
 
 void RdrContextD3D11::SetBlendState(const bool bAlphaBlend)

@@ -9,8 +9,8 @@
 namespace
 {
 	static const RdrVertexInputElement kQuadVertexDesc[] = {
-		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RG_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
-		{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 8, kRdrVertexInputClass_PerVertex, 0 }
+		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RG_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Texcoord, 0, RdrVertexInputFormat::RG_F32, 0, 8, RdrVertexInputClass::PerVertex, 0 }
 	};
 
 	struct QuadVertex
@@ -19,7 +19,7 @@ namespace
 		Vec2 texcoord;
 	};
 
-	const RdrVertexShader kQuadVertexShader = { kRdrVertexShader_Screen, 0 };
+	const RdrVertexShader kQuadVertexShader = { RdrVertexShaderType::Screen, RdrShaderFlags::None };
 }
 
 void RdrPostProcess::Init(RdrAssetSystems& rAssets)
@@ -37,7 +37,7 @@ void RdrPostProcess::Init(RdrAssetSystems& rAssets)
 	m_hFullScreenQuadLayout = rAssets.shaders.CreateInputLayout(kQuadVertexShader, kQuadVertexDesc, ARRAYSIZE(kQuadVertexDesc));
 
 	m_hToneMapPs = rAssets.shaders.CreatePixelShaderFromFile("p_tonemap.hlsl");
-	m_hToneMapConstants = rAssets.resources.CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapParams), kRdrResourceUsage_Default);
+	m_hToneMapConstants = rAssets.resources.CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapParams), RdrResourceUsage::Default);
 }
 
 void RdrPostProcess::HandleResize(uint width, uint height, RdrAssetSystems& rAssets)
@@ -58,7 +58,7 @@ void RdrPostProcess::HandleResize(uint width, uint height, RdrAssetSystems& rAss
 		w = (uint)ceil(w / 16.f);
 		h = (uint)ceil(h / 16.f);
 
-		m_hLumOutputs[i] = rAssets.resources.CreateTexture2D(w, h, kResourceFormat_R16G16B16A16_FLOAT);
+		m_hLumOutputs[i] = rAssets.resources.CreateTexture2D(w, h, RdrResourceFormat::R16G16B16A16_FLOAT);
 		++i;
 	}
 }
@@ -75,13 +75,13 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDr
 		const RdrResource* pLumInput = pColorBuffer;
 		const RdrResource* pLumOutput = rAssets.resources.GetResource(m_hLumOutputs[0]);
 
-		rDrawState.pComputeShader = rAssets.shaders.GetComputeShader(kRdrComputeShader_LuminanceMeasure_First);
+		rDrawState.pComputeShader = rAssets.shaders.GetComputeShader(RdrComputeShader::LuminanceMeasure_First);
 		rDrawState.csResources[0] = pLumInput->resourceView;
 		rDrawState.csUavs[0] = pLumOutput->uav;
 		pRdrContext->DispatchCompute(rDrawState, w, h, 1);
 
 		uint i = 1;
-		rDrawState.pComputeShader = rAssets.shaders.GetComputeShader(kRdrComputeShader_LuminanceMeasure_Mid);
+		rDrawState.pComputeShader = rAssets.shaders.GetComputeShader(RdrComputeShader::LuminanceMeasure_Mid);
 		while (w > 16 || h > 16)
 		{
 			pLumInput = pLumOutput;
@@ -97,7 +97,7 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDr
 			pRdrContext->DispatchCompute(rDrawState, w, h, 1);
 		}
 
-		rDrawState.pComputeShader = rAssets.shaders.GetComputeShader(kRdrComputeShader_LuminanceMeasure_Final);
+		rDrawState.pComputeShader = rAssets.shaders.GetComputeShader(RdrComputeShader::LuminanceMeasure_Final);
 		rDrawState.csUavs[0] = rAssets.resources.GetResource(m_hToneMapConstants)->uav;
 		pRdrContext->DispatchCompute(rDrawState, 1, 1, 1);
 	}
@@ -119,13 +119,13 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDr
 		// Pixel shader
 		rDrawState.pPixelShader = rAssets.shaders.GetPixelShader(m_hToneMapPs);
 		rDrawState.psResources[0] = pColorBuffer->resourceView;
-		rDrawState.psSamplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Clamp, false);
+		rDrawState.psSamplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 		
 		rDrawState.psResources[1] = rAssets.resources.GetResource(m_hToneMapConstants)->resourceView;
 
 		// Input assembly
 		rDrawState.pInputLayout = rAssets.shaders.GetInputLayout(m_hFullScreenQuadLayout);
-		rDrawState.eTopology = kRdrTopology_TriangleList;
+		rDrawState.eTopology = RdrTopology::TriangleList;
 
 		const RdrGeometry* pGeo = rAssets.geos.GetGeo(m_hFullScreenQuadGeo);
 		rDrawState.vertexBuffers[0] = *rAssets.geos.GetVertexBuffer(pGeo->hVertexBuffer);

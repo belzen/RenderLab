@@ -5,10 +5,10 @@
 
 #define MAX_TEXTURES_PER_DRAW 16
 
-enum RdrDrawOpType
+enum class RdrDrawOpType
 {
-	kRdrDrawOpType_Graphics,
-	kRdrDrawOpType_Compute
+	Graphics,
+	Compute
 };
 
 struct RdrDrawOp
@@ -28,7 +28,7 @@ struct RdrDrawOp
 
 			RdrInputLayoutHandle hInputLayout;
 			RdrVertexShader      vertexShader;
-			RdrShaderHandle      hPixelShaders[kRdrShaderMode_Count];
+			RdrShaderHandle      hPixelShaders[(int)RdrShaderMode::Count];
 
 			RdrGeoHandle hGeo;
 			bool bFreeGeo;

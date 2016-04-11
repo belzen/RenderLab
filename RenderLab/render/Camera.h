@@ -2,16 +2,16 @@
 
 #include "Math.h"
 
-enum CubemapFace
+enum class CubemapFace
 {
-	kCubemapFace_PositiveX,
-	kCubemapFace_NegativeX,
-	kCubemapFace_PositiveY,
-	kCubemapFace_NegativeY,
-	kCubemapFace_PositiveZ,
-	kCubemapFace_NegativeZ,
+	PositiveX,
+	NegativeX,
+	PositiveY,
+	NegativeY,
+	PositiveZ,
+	NegativeZ,
 
-	kCubemapFace_Count
+	Count
 };
 
 class Camera
@@ -27,24 +27,24 @@ public:
 	void UpdateProjection();
 	void GetMatrices(Matrix44& view, Matrix44& proj) const;
 
-	float GetAspectRatio() const { return m_aspectRatio; }
+	float GetAspectRatio() const;
 	void SetAspectRatio(float aspectRatio);
 
-	float GetFieldOfViewY() const { return m_fovY; }
+	float GetFieldOfViewY() const;
 
-	float GetNearDist() const { return m_nearDist; }
-	float GetFarDist() const { return m_farDist; }
+	float GetNearDist() const;
+	float GetFarDist() const;
 
-	void SetPosition(Vec3 pos) { m_position = pos; }
-	const Vec3& Camera::GetPosition(void) const { return m_position; }
+	void SetPosition(const Vec3& pos);
+	const Vec3& GetPosition(void) const;
 
-	const Vec3& GetPitchYawRoll() const { return m_pitchYawRoll; }
+	const Vec3& GetPitchYawRoll() const;
 	void SetPitchYawRoll(const Vec3& pitchYawRoll);
 
-	const Vec3& GetDirection(void) const { return m_direction; }
+	const Vec3& GetDirection(void) const;
 
 	void UpdateFrustum(void);
-	bool CanSee(const Vec3 pos, float radius) const;
+	bool CanSee(const Vec3& pos, float radius) const;
 
 private:
 	struct Frustum
@@ -73,4 +73,44 @@ inline void Camera::SetPitchYawRoll(const Vec3& pitchYawRoll)
 	m_pitchYawRoll = pitchYawRoll;
 	Matrix44 rotation = Matrix44RotationPitchYawRoll(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z);
 	m_direction = Vec3TransformNormal(Vec3::kUnitZ, rotation);
+}
+
+inline float Camera::GetAspectRatio() const
+{ 
+	return m_aspectRatio; 
+}
+
+inline float Camera::GetFieldOfViewY() const
+{ 
+	return m_fovY; 
+}
+
+inline float Camera::GetNearDist() const
+{ 
+	return m_nearDist; 
+}
+
+inline float Camera::GetFarDist() const
+{ 
+	return m_farDist; 
+}
+
+inline void Camera::SetPosition(const Vec3& pos)
+{ 
+	m_position = pos; 
+}
+
+inline const Vec3& Camera::GetPosition(void) const
+{ 
+	return m_position; 
+}
+
+inline const Vec3& Camera::GetPitchYawRoll() const
+{ 
+	return m_pitchYawRoll; 
+}
+
+inline const Vec3& Camera::GetDirection(void) const
+{ 
+	return m_direction; 
 }

@@ -4,20 +4,24 @@
 
 namespace UI
 {
-	enum AlignmentFlags
+	enum class AlignmentFlags
 	{
-		kAlign_Default = 0x0, // Top-left
-		kAlign_CenterH = 0x1,
-		kAlign_CenterV = 0x2,
-		kAlign_Right   = 0x4,
-		kAlign_Top     = 0x6,
-		kAlign_Bottom  = 0x8,
-	};
+		None    = 0x0,
+		CenterH = 0x1,
+		CenterV = 0x2,
+		Left    = 0x4,
+		Right   = 0x8,
+		Top     = 0x10,
+		Bottom  = 0x20,
 
-	enum Units
+		Default = Top | Left
+	};
+	ENUM_FLAGS(AlignmentFlags)
+
+	enum class Units
 	{
-		kUnits_Pixels,
-		kUnits_Percentage
+		Pixels,
+		Percentage
 	};
 
 	struct Coord

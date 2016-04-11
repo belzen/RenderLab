@@ -8,15 +8,15 @@
 
 namespace
 {
-	const RdrVertexShader kVertexShader = { kRdrVertexShader_Model, (RdrShaderFlags)0 };
+	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Model, (RdrShaderFlags)0 };
 
 	static const RdrVertexInputElement s_modelVertexDesc[] = {
-		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RGB_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
-		{ kRdrShaderSemantic_Normal, 0, kRdrVertexInputFormat_RGB_F32, 0, 12, kRdrVertexInputClass_PerVertex, 0 },
-		{ kRdrShaderSemantic_Color, 0, kRdrVertexInputFormat_RGBA_F32, 0, 24, kRdrVertexInputClass_PerVertex, 0 },
-		{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 40, kRdrVertexInputClass_PerVertex, 0 },
-		{ kRdrShaderSemantic_Tangent, 0, kRdrVertexInputFormat_RGB_F32, 0, 48, kRdrVertexInputClass_PerVertex, 0 },
-		{ kRdrShaderSemantic_Binormal, 0, kRdrVertexInputFormat_RGB_F32, 0, 60, kRdrVertexInputClass_PerVertex, 0 }
+		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Normal, 0, RdrVertexInputFormat::RGB_F32, 0, 12, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Color, 0, RdrVertexInputFormat::RGBA_F32, 0, 24, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Texcoord, 0, RdrVertexInputFormat::RG_F32, 0, 40, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Tangent, 0, RdrVertexInputFormat::RGB_F32, 0, 48, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Binormal, 0, RdrVertexInputFormat::RGB_F32, 0, 60, RdrVertexInputClass::PerVertex, 0 }
 	};
 }
 
@@ -47,7 +47,7 @@ Model::~Model()
 void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat)
 {
 	RdrDrawOp* pDrawOp = RdrDrawOp::Allocate();
-	pDrawOp->eType = kRdrDrawOpType_Graphics;
+	pDrawOp->eType = RdrDrawOpType::Graphics;
 
 	uint constantsSize = sizeof(Vec4) * 4;
 	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
@@ -63,10 +63,10 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat)
 
 	pDrawOp->graphics.hInputLayout = m_hInputLayout;
 	pDrawOp->graphics.vertexShader = kVertexShader;
-	pDrawOp->graphics.hPixelShaders[kRdrShaderMode_Normal] = m_hPixelShader;
+	pDrawOp->graphics.hPixelShaders[(int)RdrShaderMode::Normal] = m_hPixelShader;
 
 	pDrawOp->graphics.hGeo = m_hGeo;
 	pDrawOp->graphics.bNeedsLighting = true;
 
-	rRenderer.AddToBucket(pDrawOp, kRdrBucketType_Opaque);
+	rRenderer.AddToBucket(pDrawOp, RdrBucketType::Opaque);
 }

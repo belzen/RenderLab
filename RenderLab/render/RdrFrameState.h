@@ -13,7 +13,7 @@ class LightList;
 #define MAX_ACTIONS_PER_FRAME 16
 #define MAX_RENDER_TARGETS 6
 
-struct RdrPass
+struct RdrPassData
 {
 	RdrRenderTargetViewHandle ahRenderTargets[MAX_RENDER_TARGETS];
 	RdrDepthStencilViewHandle hDepthTarget;
@@ -45,10 +45,12 @@ struct RdrAction
 	///
 	LPCWSTR name;
 
-	std::vector<RdrDrawOp*> buckets[kRdrBucketType_Count];
-	RdrPass passes[kRdrPass_Count];
+	std::vector<RdrDrawOp*> buckets[(int)RdrBucketType::Count];
+	RdrPassData passes[(int)RdrPass::Count];
 
 	Camera camera;
+
+	Rect primaryViewport;
 
 	RdrLightParams lightParams;
 	RdrConstantBufferHandle hPerActionVs;

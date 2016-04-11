@@ -41,50 +41,50 @@ namespace
 	const char* getD3DSemanticName(RdrShaderSemantic eSemantic)
 	{
 		static const char* s_d3dSemantics[] = {
-			"POSITION", // kRdrShaderSemantic_Position
-			"TEXCOORD", // kRdrShaderSemantic_Texcoord
-			"COLOR",    // kRdrShaderSemantic_Color
-			"NORMAL",   // kRdrShaderSemantic_Normal
-			"BINORMAL", // kRdrShaderSemantic_Binormal
-			"TANGENT"   // kRdrShaderSemantic_Tangent
+			"POSITION", // RdrShaderSemantic::Position
+			"TEXCOORD", // RdrShaderSemantic::Texcoord
+			"COLOR",    // RdrShaderSemantic::Color
+			"NORMAL",   // RdrShaderSemantic::Normal
+			"BINORMAL", // RdrShaderSemantic::Binormal
+			"TANGENT"   // RdrShaderSemantic::Tangent
 		};
-		static_assert(ARRAYSIZE(s_d3dSemantics) == kRdrShaderSemantic_Count, "Missing D3D11 shader semantic!");
-		return s_d3dSemantics[eSemantic];
+		static_assert(ARRAYSIZE(s_d3dSemantics) == (int)RdrShaderSemantic::Count, "Missing D3D11 shader semantic!");
+		return s_d3dSemantics[(int)eSemantic];
 	}
 
 	D3D11_INPUT_CLASSIFICATION getD3DVertexInputClass(RdrVertexInputClass eClass)
 	{
 		static const D3D11_INPUT_CLASSIFICATION s_d3dClasses[] = {
-			D3D11_INPUT_PER_VERTEX_DATA, // kRdrVertexInputClass_PerVertex
-			D3D11_INPUT_PER_INSTANCE_DATA// kRdrVertexInputClass_PerInstance
+			D3D11_INPUT_PER_VERTEX_DATA, // RdrVertexInputClass::PerVertex
+			D3D11_INPUT_PER_INSTANCE_DATA// RdrVertexInputClass::PerInstance
 		};
-		static_assert(ARRAYSIZE(s_d3dClasses) == kRdrVertexInputClass_Count, "Missing D3D11 vertex input class!");
-		return s_d3dClasses[eClass];
+		static_assert(ARRAYSIZE(s_d3dClasses) == (int)RdrVertexInputClass::Count, "Missing D3D11 vertex input class!");
+		return s_d3dClasses[(int)eClass];
 	}
 
 	DXGI_FORMAT getD3DVertexInputFormat(RdrVertexInputFormat eFormat)
 	{
 		static const DXGI_FORMAT s_d3dFormats[] = {
-			DXGI_FORMAT_R32G32_FLOAT,      // kRdrVertexInputFormat_RG_F32
-			DXGI_FORMAT_R32G32B32_FLOAT,   // kRdrVertexInputFormat_RGB_F32
-			DXGI_FORMAT_R32G32B32A32_FLOAT // kRdrVertexInputFormat_RGBA_F32
+			DXGI_FORMAT_R32G32_FLOAT,      // RdrVertexInputFormat::RG_F32
+			DXGI_FORMAT_R32G32B32_FLOAT,   // RdrVertexInputFormat::RGB_F32
+			DXGI_FORMAT_R32G32B32A32_FLOAT // RdrVertexInputFormat::RGBA_F32
 		};
-		static_assert(ARRAYSIZE(s_d3dFormats) == kRdrVertexInputFormat_Count, "Missing D3D11 vertex input format!");
-		return s_d3dFormats[eFormat];
+		static_assert(ARRAYSIZE(s_d3dFormats) == (int)RdrVertexInputFormat::Count, "Missing D3D11 vertex input format!");
+		return s_d3dFormats[(int)eFormat];
 	}
 }
 
-bool RdrContextD3D11::CompileShader(RdrShaderType eType, const char* pShaderText, uint textLen, void** ppOutCompiledData, uint* pOutDataSize)
+bool RdrContextD3D11::CompileShader(RdrShaderStage eType, const char* pShaderText, uint textLen, void** ppOutCompiledData, uint* pOutDataSize)
 {
 	static const char* s_d3dShaderModels[] = {
-		"vs_5_0", // kRdrShaderType_Vertex
-		"ps_5_0", // kRdrShaderType_Pixel
-		"gs_5_0", // kRdrShaderType_Geometry
-		"cs_5_0"  // kRdrShaderType_Compute
+		"vs_5_0", // RdrShaderStage::Vertex
+		"ps_5_0", // RdrShaderStage::Pixel
+		"gs_5_0", // RdrShaderStage::Geometry
+		"cs_5_0"  // RdrShaderStage::Compute
 	};
-	static_assert(ARRAYSIZE(s_d3dShaderModels) == kRdrShaderType_Count, "Missing D3D shader models!");
+	static_assert(ARRAYSIZE(s_d3dShaderModels) == (int)RdrShaderStage::Count, "Missing D3D shader models!");
 
-	ID3D10Blob* pCompiledData = compileShaderD3D(pShaderText, textLen, "main", s_d3dShaderModels[eType]);
+	ID3D10Blob* pCompiledData = compileShaderD3D(pShaderText, textLen, "main", s_d3dShaderModels[(int)eType]);
 	if (!pCompiledData)
 		return false;
 	
@@ -96,7 +96,7 @@ bool RdrContextD3D11::CompileShader(RdrShaderType eType, const char* pShaderText
 	return true;
 }
 
-void* RdrContextD3D11::CreateShader(RdrShaderType eType, const void* pShaderText, uint textLen)
+void* RdrContextD3D11::CreateShader(RdrShaderStage eType, const void* pShaderText, uint textLen)
 {
 	HRESULT hr;
 	
@@ -104,16 +104,16 @@ void* RdrContextD3D11::CreateShader(RdrShaderType eType, const void* pShaderText
 
 	switch (eType)
 	{
-	case kRdrShaderType_Vertex:
+	case RdrShaderStage::Vertex:
 		hr = m_pDevice->CreateVertexShader(pShaderText, textLen, nullptr, (ID3D11VertexShader**)&pOutShader);
 		break;
-	case kRdrShaderType_Pixel:
+	case RdrShaderStage::Pixel:
 		hr = m_pDevice->CreatePixelShader(pShaderText, textLen, nullptr, (ID3D11PixelShader**)&pOutShader);
 		break;
-	case kRdrShaderType_Geometry:
+	case RdrShaderStage::Geometry:
 		hr = m_pDevice->CreateGeometryShader(pShaderText, textLen, nullptr, (ID3D11GeometryShader**)&pOutShader);
 		break;
-	case kRdrShaderType_Compute:
+	case RdrShaderStage::Compute:
 		hr = m_pDevice->CreateComputeShader(pShaderText, textLen, nullptr, (ID3D11ComputeShader**)&pOutShader);
 		break;
 	default:

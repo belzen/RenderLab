@@ -18,7 +18,7 @@ public:
 	void HandleMouseDown(int button, bool down, int x, int y);
 	void HandleMouseMove(int x, int y, int dx, int dy);
 
-	bool WantsKeyDownRepeat() { return false; }
+	bool WantsKeyDownRepeat();
 
 	void SetCamera(Camera* pCamera);
 private:
@@ -27,6 +27,11 @@ private:
 	float m_maxMoveSpeed;
 	float m_accel;
 };
+
+inline bool CameraInputContext::WantsKeyDownRepeat()
+{ 
+	return false; 
+}
 
 inline void CameraInputContext::SetCamera(Camera* pCamera)
 {

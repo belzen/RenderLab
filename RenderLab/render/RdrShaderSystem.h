@@ -55,9 +55,9 @@ private:
 private:
 	RdrContext* m_pRdrContext;
 
-	RdrShader m_vertexShaders[kRdrVertexShader_Count * kRdrShaderFlag_NumCombos];
-	RdrShader m_geometryShaders[kRdrGeometryShader_Count * kRdrShaderFlag_NumCombos];
-	RdrShader m_computeShaders[kRdrComputeShader_Count];
+	RdrShader m_vertexShaders[(int)RdrVertexShaderType::Count * (int)RdrShaderFlags::NumCombos];
+	RdrShader m_geometryShaders[(int)RdrGeometryShaderType::Count * (int)RdrShaderFlags::NumCombos];
+	RdrShader m_computeShaders[(int)RdrComputeShader::Count];
 
 	RdrShaderHandleMap m_pixelShaderCache;
 	RdrShaderList      m_pixelShaders;

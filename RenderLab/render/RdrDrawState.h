@@ -1,11 +1,11 @@
 #pragma once
 #include "RdrShaders.h"
 
-enum RdrTopology
+enum class RdrTopology
 {
-	kRdrTopology_TriangleList,
+	TriangleList,
 
-	kRdrTopology_Count
+	Count
 };
 
 // todo: manage changed states

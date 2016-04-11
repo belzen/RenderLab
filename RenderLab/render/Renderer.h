@@ -10,8 +10,6 @@
 
 class Camera;
 class WorldObject;
-struct RdrAction;
-struct RdrPass;
 struct RdrDrawOp;
 struct Light;
 class LightList;
@@ -46,26 +44,26 @@ public:
 	const Camera& GetCurrentCamera(void) const;
 
 	// todo: most uses of these will be wrong when using different render targets
-	int GetViewportWidth() const { return m_pendingViewWidth; }
-	int GetViewportHeight() const { return m_pendingViewHeight; }
-	Vec2 GetViewportSize() const { return Vec2((float)m_pendingViewWidth, (float)m_pendingViewHeight); }
+	int GetViewportWidth() const;
+	int GetViewportHeight() const;
+	Vec2 GetViewportSize() const;
 
-	RdrShaderSystem& GetShaderSystem() { return m_assets.shaders; }
-	RdrResourceSystem& GetResourceSystem() { return m_assets.resources; }
-	RdrGeoSystem& GetGeoSystem() { return m_assets.geos; }
+	RdrShaderSystem& GetShaderSystem();
+	RdrResourceSystem& GetResourceSystem();
+	RdrGeoSystem& GetGeoSystem();
 
 private:
-	void DrawPass(const RdrAction& rAction, RdrPassEnum ePass);
+	void DrawPass(const RdrAction& rAction, RdrPass ePass);
 	void CreatePerActionConstants();
 	void CreateCubemapCaptureConstants(const Vec3& position, const float nearDist, const float farDist);
 	void QueueLightCulling();
 
-	RdrFrameState& GetQueueState() { return m_frameStates[m_queueState]; }
-	RdrFrameState& GetActiveState() { return m_frameStates[!m_queueState]; }
+	RdrFrameState& GetQueueState();
+	RdrFrameState& GetActiveState();
 
 	RdrAction* GetNextAction();
 
-	void DrawGeo(const RdrAction& rAction, const RdrPassEnum ePass, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices);
+	void DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices);
 	void DispatchCompute(RdrDrawOp* pDrawOp);
 
 	///
@@ -103,3 +101,45 @@ private:
 
 	RdrPostProcess m_postProcess;
 };
+
+inline int Renderer::GetViewportWidth() const 
+{ 
+	return m_pCurrentAction ? (int)m_pCurrentAction->primaryViewport.width : m_viewWidth;
+}
+
+inline int Renderer::GetViewportHeight() const 
+{ 
+	return m_pCurrentAction ? (int)m_pCurrentAction->primaryViewport.height : m_viewHeight; 
+}
+
+inline Vec2 Renderer::GetViewportSize() const 
+{
+	return m_pCurrentAction ?
+		Vec2(m_pCurrentAction->primaryViewport.width, m_pCurrentAction->primaryViewport.height) :
+		Vec2((float)m_viewWidth, (float)m_viewHeight);
+}
+
+inline RdrShaderSystem& Renderer::GetShaderSystem()
+{ 
+	return m_assets.shaders; 
+}
+
+inline RdrResourceSystem& Renderer::GetResourceSystem()
+{ 
+	return m_assets.resources;
+}
+
+inline RdrGeoSystem& Renderer::GetGeoSystem()
+{ 
+	return m_assets.geos; 
+}
+
+inline RdrFrameState& Renderer::GetQueueState()
+{ 
+	return m_frameStates[m_queueState]; 
+}
+
+inline RdrFrameState& Renderer::GetActiveState()
+{ 
+	return m_frameStates[!m_queueState]; 
+}

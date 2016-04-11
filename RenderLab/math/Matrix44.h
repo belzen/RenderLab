@@ -9,13 +9,8 @@ struct Matrix44 : public DirectX::XMFLOAT4X4
 	Matrix44(const DirectX::XMMATRIX& mtx);
 	Matrix44(const Vec3& translation);
 
-	inline Vec3 GetTranslation() const { return m[3]; }
-	inline void SetTranslation(const Vec3& pos) 
-	{
-		m[3][0] = pos.x;
-		m[3][1] = pos.y;
-		m[3][2] = pos.z;
-	}
+	const Vec3& GetTranslation() const;
+	void SetTranslation(const Vec3& pos);
 };
 
 inline Matrix44::Matrix44() 
@@ -40,6 +35,18 @@ inline Matrix44::Matrix44(const Vec3& translation)
 	m[3][0] = translation.x;
 	m[3][1] = translation.y;
 	m[3][2] = translation.z;
+}
+
+inline const Vec3& Matrix44::GetTranslation() const
+{ 
+	return m[3]; 
+}
+
+inline void Matrix44::SetTranslation(const Vec3& pos)
+{
+	m[3][0] = pos.x;
+	m[3][1] = pos.y;
+	m[3][2] = pos.z;
 }
 
 inline Matrix44 Matrix44Translation(const Vec3& translation)

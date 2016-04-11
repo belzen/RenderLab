@@ -229,7 +229,6 @@
     <ClInclude Include="math\Vec3Math.h" />
     <ClInclude Include="math\Vec4.h" />
     <ClInclude Include="Precompiled.h" />
-    <ClInclude Include="Rect.h" />
     <ClInclude Include="render\Camera.h" />
     <ClInclude Include="render\Color.h" />
     <ClInclude Include="render\Font.h" />
@@ -255,6 +254,7 @@
     <ClInclude Include="render\RdrGeoSystem.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="shapes\Plane.h" />
+    <ClInclude Include="shapes\Rect.h" />
     <ClInclude Include="ThreadLock.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Types.h" />

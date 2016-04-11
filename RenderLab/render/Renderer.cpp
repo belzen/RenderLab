@@ -25,49 +25,49 @@ namespace
 		s_wireframe = (args[0].val.num != 0.f);
 	}
 
-	enum RdrReservedPsResourceSlots
+	enum class RdrPsResourceSlots
 	{
-		kPsResource_ShadowMaps = 14,
-		kPsResource_ShadowCubeMaps = 15,
-		kPsResource_LightList = 16,
-		kPsResource_TileLightIds = 17,
-		kPsResource_ShadowMapData = 18,
+		ShadowMaps = 14,
+		ShadowCubeMaps = 15,
+		LightList = 16,
+		TileLightIds = 17,
+		ShadowMapData = 18,
 	};
 
-	enum RdrReservedPsSamplerSlots
+	enum class RdrPsSamplerSlots
 	{
-		kPsSampler_ShadowMap = 15,
+		ShadowMap = 15,
 	};
 
 	// Pass to bucket mappings
 	RdrBucketType s_passBuckets[] = {
-		kRdrBucketType_Opaque,	     // kRdrPass_ZPrepass
-		kRdrBucketType_LightCulling, // kRdrPass_LightCulling
-		kRdrBucketType_Opaque,	     // kRdrPass_Opaque
-		kRdrBucketType_Sky,	         // kRdrPass_Sky
-		kRdrBucketType_Alpha,		 // kRdrPass_Alpha
-		kRdrBucketType_UI,		     // kRdrPass_UI
+		RdrBucketType::Opaque,	     // RdrPass::ZPrepass
+		RdrBucketType::LightCulling, // RdrPass::LightCulling
+		RdrBucketType::Opaque,	     // RdrPass::Opaque
+		RdrBucketType::Sky,	         // RdrPass::Sky
+		RdrBucketType::Alpha,		 // RdrPass::Alpha
+		RdrBucketType::UI,		     // RdrPass::UI
 	};
-	static_assert(sizeof(s_passBuckets) / sizeof(s_passBuckets[0]) == kRdrPass_Count, "Missing pass -> bucket mappings");
+	static_assert(sizeof(s_passBuckets) / sizeof(s_passBuckets[0]) == (int)RdrPass::Count, "Missing pass -> bucket mappings");
 
 	// Event names for passes
 	static const wchar_t* s_passNames[] =
 	{
-		L"Z-Prepass",		// kRdrPass_ZPrepass
-		L"Light Culling",	// kRdrPass_LightCulling
-		L"Opaque",			// kRdrPass_Opaque
-		L"Sky",				// kRdrPass_Sky
-		L"Alpha",			// kRdrPass_Alpha
-		L"UI",				// kRdrPass_UI
+		L"Z-Prepass",		// RdrPass::ZPrepass
+		L"Light Culling",	// RdrPass::LightCulling
+		L"Opaque",			// RdrPass::Opaque
+		L"Sky",				// RdrPass::Sky
+		L"Alpha",			// RdrPass::Alpha
+		L"UI",				// RdrPass::UI
 	};
-	static_assert(sizeof(s_passNames) / sizeof(s_passNames[0]) == kRdrPass_Count, "Missing RdrPass names!");
+	static_assert(sizeof(s_passNames) / sizeof(s_passNames[0]) == (int)RdrPass::Count, "Missing RdrPass names!");
 }
 //////////////////////////////////////////////////////
 
 
 bool Renderer::Init(HWND hWnd, int width, int height)
 {
-	DebugConsole::RegisterCommand("wireframe", setWireframeEnabled, kDebugCommandArgType_Number);
+	DebugConsole::RegisterCommand("wireframe", setWireframeEnabled, DebugCommandArgType::Number);
 
 	m_pContext = new RdrContextD3D11();
 	if (!m_pContext->Init(hWnd, width, height))
@@ -122,10 +122,10 @@ void Renderer::ApplyDeviceChanges()
 			m_assets.resources.ReleaseRenderTargetView(m_hColorBufferRenderTarget);
 
 		// FP16 color
-		m_hColorBuffer = m_assets.resources.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, kResourceFormat_R16G16B16A16_FLOAT);
+		m_hColorBuffer = m_assets.resources.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT);
 		if (s_msaaLevel > 1)
 		{
-			m_hColorBufferMultisampled = m_assets.resources.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, kResourceFormat_R16G16B16A16_FLOAT, s_msaaLevel);
+			m_hColorBufferMultisampled = m_assets.resources.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, s_msaaLevel);
 			m_hColorBufferRenderTarget = m_assets.resources.CreateRenderTargetView(m_hColorBufferMultisampled);
 		}
 		else
@@ -135,7 +135,7 @@ void Renderer::ApplyDeviceChanges()
 		}
 
 		// Depth Buffer
-		m_hPrimaryDepthBuffer = m_assets.resources.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, kResourceFormat_D24_UNORM_S8_UINT, s_msaaLevel);
+		m_hPrimaryDepthBuffer = m_assets.resources.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::D24_UNORM_S8_UINT, s_msaaLevel);
 		m_hPrimaryDepthStencilView = m_assets.resources.CreateDepthStencilView(m_hPrimaryDepthBuffer);
 
 		m_viewWidth = m_pendingViewWidth;
@@ -179,12 +179,12 @@ void Renderer::QueueLightCulling()
 	{
 		if (m_hDepthMinMaxTex)
 			m_assets.resources.ReleaseResource(m_hDepthMinMaxTex);
-		m_hDepthMinMaxTex = m_assets.resources.CreateTexture2D(tileCountX, tileCountY, kResourceFormat_R16G16_FLOAT);
+		m_hDepthMinMaxTex = m_assets.resources.CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT);
 	}
 
 	RdrDrawOp* pDepthOp = RdrDrawOp::Allocate();
-	pDepthOp->eType = kRdrDrawOpType_Compute;
-	pDepthOp->compute.shader = kRdrComputeShader_TiledDepthMinMax;
+	pDepthOp->eType = RdrDrawOpType::Compute;
+	pDepthOp->compute.shader = RdrComputeShader::TiledDepthMinMax;
 	pDepthOp->compute.threads[0] = tileCountX;
 	pDepthOp->compute.threads[1] = tileCountY;
 	pDepthOp->compute.threads[2] = 1;
@@ -214,11 +214,11 @@ void Renderer::QueueLightCulling()
 	}
 	else
 	{
-		m_hDepthMinMaxConstants = m_assets.resources.CreateConstantBuffer(pConstants, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
+		m_hDepthMinMaxConstants = m_assets.resources.CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	}
 	pDepthOp->compute.hCsConstants = m_hDepthMinMaxConstants;
 
-	AddToBucket(pDepthOp, kRdrBucketType_LightCulling);
+	AddToBucket(pDepthOp, RdrBucketType::LightCulling);
 
 	//////////////////////////////////////
 	// Light culling
@@ -227,12 +227,12 @@ void Renderer::QueueLightCulling()
 		const uint kMaxLightsPerTile = 128; // Sync with MAX_LIGHTS_PER_TILE in "light_inc.hlsli"
 		if (m_hTileLightIndices)
 			m_assets.resources.ReleaseResource(m_hTileLightIndices);
-		m_hTileLightIndices = m_assets.resources.CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint), kRdrResourceUsage_Default);
+		m_hTileLightIndices = m_assets.resources.CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint), RdrResourceUsage::Default);
 	}
 
 	RdrDrawOp* pCullOp = RdrDrawOp::Allocate();
-	pCullOp->eType = kRdrDrawOpType_Compute;
-	pCullOp->compute.shader = kRdrComputeShader_TiledLightCull;
+	pCullOp->eType = RdrDrawOpType::Compute;
+	pCullOp->compute.shader = RdrComputeShader::TiledLightCull;
 	pCullOp->compute.threads[0] = tileCountX;
 	pCullOp->compute.threads[1] = tileCountY;
 	pCullOp->compute.threads[2] = 1;
@@ -279,11 +279,11 @@ void Renderer::QueueLightCulling()
 	}
 	else
 	{
-		m_hTileCullConstants = m_assets.resources.CreateConstantBuffer(pParams, constantsSize, kRdrCpuAccessFlag_Write, kRdrResourceUsage_Dynamic);
+		m_hTileCullConstants = m_assets.resources.CreateConstantBuffer(pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	}
 	pCullOp->compute.hCsConstants = m_hTileCullConstants;
 
-	AddToBucket(pCullOp, kRdrBucketType_LightCulling);
+	AddToBucket(pCullOp, RdrBucketType::LightCulling);
 }
 
 void Renderer::BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
@@ -293,23 +293,24 @@ void Renderer::BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilViewHa
 	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Shadow Map";
 	m_pCurrentAction->camera = rCamera;
+	m_pCurrentAction->primaryViewport = viewport;
 
 	// Setup action passes
-	RdrPass& rPass = m_pCurrentAction->passes[kRdrPass_ZPrepass];
+	RdrPassData& rPass = m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
 	{
 		rPass.viewport = viewport;
 		rPass.bEnabled = true;
 		rPass.hDepthTarget = hDepthView;
 		rPass.bClearDepthTarget = true;
-		rPass.depthTestMode = kRdrDepthTestMode_Less;
+		rPass.depthTestMode = RdrDepthTestMode::Less;
 		rPass.bAlphaBlend = false;
-		rPass.shaderMode = kRdrShaderMode_DepthOnly;
+		rPass.shaderMode = RdrShaderMode::DepthOnly;
 	}
 
 	CreatePerActionConstants();
 }
 
-void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport) // todo: finish
+void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
 {
 	assert(m_pCurrentAction == nullptr);
 
@@ -319,15 +320,16 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilView
 	m_pCurrentAction->name = L"Shadow Cube Map";
 	m_pCurrentAction->camera.SetAsSphere(pLight->position, 0.1f, viewDist);
 	m_pCurrentAction->bIsCubemapCapture = true;
+	m_pCurrentAction->primaryViewport = viewport;
 
 	// Setup action passes
-	RdrPass& rPass = m_pCurrentAction->passes[kRdrPass_ZPrepass];
+	RdrPassData& rPass = m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
 	{
 		rPass.viewport = viewport;
 		rPass.bEnabled = true;
 		rPass.bAlphaBlend = false;
-		rPass.shaderMode = kRdrShaderMode_DepthOnly;
-		rPass.depthTestMode = kRdrDepthTestMode_Less;
+		rPass.shaderMode = RdrShaderMode::DepthOnly;
+		rPass.depthTestMode = RdrDepthTestMode::Less;
 		rPass.bClearDepthTarget = true;
 		rPass.hDepthTarget = hDepthView;
 	}
@@ -340,6 +342,8 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLight
 {
 	assert(m_pCurrentAction == nullptr);
 
+	Rect viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);;
+
 	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Primary Action";
 	m_pCurrentAction->lightParams.hLightListRes = pLights->GetLightListRes();
@@ -350,77 +354,78 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLight
 
 	m_pCurrentAction->camera = rCamera;
 	m_pCurrentAction->camera.SetAspectRatio(m_viewWidth / (float)m_viewHeight);
+	m_pCurrentAction->primaryViewport = viewport;
 
 	// Z Prepass
-	RdrPass* pPass = &m_pCurrentAction->passes[kRdrPass_ZPrepass];
+	RdrPassData* pPass = &m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
 	{
-		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->viewport = viewport;
 		pPass->bEnabled = true;
 		pPass->bAlphaBlend = false;
 		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
 		pPass->bClearDepthTarget = true;
-		pPass->depthTestMode = kRdrDepthTestMode_Less;
-		pPass->shaderMode = kRdrShaderMode_DepthOnly;
+		pPass->depthTestMode = RdrDepthTestMode::Less;
+		pPass->shaderMode = RdrShaderMode::DepthOnly;
 	}
 
 	// Light Culling
-	pPass = &m_pCurrentAction->passes[kRdrPass_LightCulling];
+	pPass = &m_pCurrentAction->passes[(int)RdrPass::LightCulling];
 	{
-		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->viewport = viewport;
 		pPass->bEnabled = true;
 		pPass->bAlphaBlend = false;
 		pPass->bClearDepthTarget = false;
-		pPass->depthTestMode = kRdrDepthTestMode_None;
-		pPass->shaderMode = kRdrShaderMode_Normal;
+		pPass->depthTestMode = RdrDepthTestMode::None;
+		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
 	// Opaque
-	pPass = &m_pCurrentAction->passes[kRdrPass_Opaque];
+	pPass = &m_pCurrentAction->passes[(int)RdrPass::Opaque];
 	{
-		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->viewport = viewport;
 		pPass->bEnabled = true;
 		pPass->ahRenderTargets[0] = m_hColorBufferRenderTarget;
 		pPass->bClearRenderTargets = true;
 		pPass->bAlphaBlend = false;
 		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
-		pPass->depthTestMode = kRdrDepthTestMode_Equal;
-		pPass->shaderMode = kRdrShaderMode_Normal;
+		pPass->depthTestMode = RdrDepthTestMode::Equal;
+		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
 	// Sky
-	pPass = &m_pCurrentAction->passes[kRdrPass_Sky];
+	pPass = &m_pCurrentAction->passes[(int)RdrPass::Sky];
 	{
-		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->viewport = viewport;
 		pPass->bEnabled = true;
 		pPass->ahRenderTargets[0] = m_hColorBufferRenderTarget;
 		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
-		pPass->depthTestMode = kRdrDepthTestMode_Equal;
-		pPass->shaderMode = kRdrShaderMode_Normal;
+		pPass->depthTestMode = RdrDepthTestMode::Equal;
+		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
 	// Alpha
-	pPass = &m_pCurrentAction->passes[kRdrPass_Alpha];
+	pPass = &m_pCurrentAction->passes[(int)RdrPass::Alpha];
 	{
-		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->viewport = viewport;
 		pPass->bEnabled = true;
 		pPass->ahRenderTargets[0] = m_hColorBufferRenderTarget;
 		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
-		pPass->depthTestMode = kRdrDepthTestMode_Equal;
-		pPass->shaderMode = kRdrShaderMode_Normal;
+		pPass->depthTestMode = RdrDepthTestMode::Equal;
+		pPass->shaderMode = RdrShaderMode::Normal;
 		pPass->bAlphaBlend = true;
 	}
 
 	m_pCurrentAction->bEnablePostProcessing = true;
 
 	// UI
-	pPass = &m_pCurrentAction->passes[kRdrPass_UI];
+	pPass = &m_pCurrentAction->passes[(int)RdrPass::UI];
 	{
-		pPass->viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+		pPass->viewport = viewport;
 		pPass->bEnabled = true;
 		pPass->ahRenderTargets[0] = RdrResourceSystem::kPrimaryRenderTargetHandle;
 		pPass->bAlphaBlend = true;
-		pPass->depthTestMode = kRdrDepthTestMode_None;
-		pPass->shaderMode = kRdrShaderMode_Normal;
+		pPass->depthTestMode = RdrDepthTestMode::None;
+		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 	
 	CreatePerActionConstants();
@@ -432,9 +437,9 @@ void Renderer::EndAction()
 	m_pCurrentAction = nullptr;
 }
 
-void Renderer::AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket)
+void Renderer::AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType eBucket)
 {
-	m_pCurrentAction->buckets[bucket].push_back(pDrawOp);
+	m_pCurrentAction->buckets[(int)eBucket].push_back(pDrawOp);
 }
 
 void Renderer::CreateCubemapCaptureConstants(const Vec3& position, const float nearDist, const float farDist)
@@ -444,7 +449,7 @@ void Renderer::CreateCubemapCaptureConstants(const Vec3& position, const float n
 
 	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(GsCubemapPerAction));
 	GsCubemapPerAction* pGsConstants = (GsCubemapPerAction*)RdrTransientMem::AllocAligned(constantsSize, 16);
-	for (uint f = 0; f < kCubemapFace_Count; ++f)
+	for (uint f = 0; f < (uint)CubemapFace::Count; ++f)
 	{
 		cam.SetAsCubemapFace(position, (CubemapFace)f, nearDist, farDist);
 		cam.GetMatrices(mtxView, mtxProj);
@@ -487,7 +492,7 @@ void Renderer::CreatePerActionConstants()
 	}
 
 	// Ui per-action
-	if ( m_pCurrentAction->passes[kRdrPass_UI].bEnabled)
+	if ( m_pCurrentAction->passes[(int)RdrPass::UI].bEnabled)
 	{
 		mtxView = Matrix44::kIdentity;
 		mtxProj = DirectX::XMMatrixOrthographicLH((float)m_viewWidth, (float)m_viewHeight, 0.01f, 1000.f);
@@ -513,14 +518,14 @@ void Renderer::CreatePerActionConstants()
 	}
 }
 
-void Renderer::DrawPass(const RdrAction& rAction, RdrPassEnum ePass)
+void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 {
-	const RdrPass& rPass = rAction.passes[ePass];
+	const RdrPassData& rPass = rAction.passes[(int)ePass];
 
 	if (!rPass.bEnabled)
 		return;
 
-	m_pContext->BeginEvent(s_passNames[ePass]);
+	m_pContext->BeginEvent(s_passNames[(int)ePass]);
 
 	RdrRenderTargetView renderTargets[MAX_RENDER_TARGETS];
 	for (uint i = 0; i < MAX_RENDER_TARGETS; ++i)
@@ -567,12 +572,12 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPassEnum ePass)
 
 	m_pContext->SetViewport(rPass.viewport);
 
-	std::vector<RdrDrawOp*>::const_iterator opIter = rAction.buckets[ s_passBuckets[ePass] ].begin();
-	std::vector<RdrDrawOp*>::const_iterator opEndIter = rAction.buckets[ s_passBuckets[ePass] ].end();
+	std::vector<RdrDrawOp*>::const_iterator opIter = rAction.buckets[(int)s_passBuckets[(int)ePass] ].begin();
+	std::vector<RdrDrawOp*>::const_iterator opEndIter = rAction.buckets[(int)s_passBuckets[(int)ePass] ].end();
 	for ( ; opIter != opEndIter; ++opIter )
 	{
 		RdrDrawOp* pDrawOp = *opIter;
-		if (pDrawOp->eType == kRdrDrawOpType_Compute)
+		if (pDrawOp->eType == RdrDrawOpType::Compute)
 		{
 			DispatchCompute(pDrawOp);
 		}
@@ -596,7 +601,7 @@ void Renderer::PostFrameSync()
 		RdrAction& rAction = rActiveState.actions[iAction];
 
 		// Free draw ops.
-		for (uint iBucket = 0; iBucket < kRdrBucketType_Count; ++iBucket)
+		for (uint iBucket = 0; iBucket < (int)RdrBucketType::Count; ++iBucket)
 		{
 			uint numOps = (uint)rAction.buckets[iBucket].size();
 			std::vector<RdrDrawOp*>::iterator iter = rAction.buckets[iBucket].begin();
@@ -604,7 +609,7 @@ void Renderer::PostFrameSync()
 			for (; iter != endIter; ++iter)
 			{
 				RdrDrawOp* pDrawOp = *iter;
-				if (pDrawOp->eType == kRdrDrawOpType_Graphics && pDrawOp->graphics.bFreeGeo)
+				if (pDrawOp->eType == RdrDrawOpType::Graphics && pDrawOp->graphics.bFreeGeo)
 				{
 					m_assets.geos.ReleaseGeo(pDrawOp->graphics.hGeo);
 				}
@@ -644,38 +649,41 @@ void Renderer::DrawFrame()
 			m_pContext->BeginEvent(rAction.name);
 
 			RdrRasterState rasterState;
-			rasterState.bEnableMSAA = (s_msaaLevel > 1); // todo: this is only true for final render target
+			rasterState.bEnableMSAA = (s_msaaLevel > 1);
 			rasterState.bEnableScissor = false;
 			rasterState.bWireframe = s_wireframe;
 			m_pContext->SetRasterState(rasterState);
 
 			// todo: sort buckets 
-			//std::sort(pAction->buckets[kRdrBucketType_Opaque].begin(), pAction->buckets[kRdrBucketType_Opaque].end(), );
+			//std::sort(pAction->buckets[RdrBucketType::Opaque].begin(), pAction->buckets[RdrBucketType::Opaque].end(), );
 
-			DrawPass(rAction, kRdrPass_ZPrepass);
-			DrawPass(rAction, kRdrPass_LightCulling);
-			DrawPass(rAction, kRdrPass_Opaque);
-			DrawPass(rAction, kRdrPass_Sky);
-			DrawPass(rAction, kRdrPass_Alpha);
+			DrawPass(rAction, RdrPass::ZPrepass);
+			DrawPass(rAction, RdrPass::LightCulling);
+			DrawPass(rAction, RdrPass::Opaque);
+			DrawPass(rAction, RdrPass::Sky);
+			DrawPass(rAction, RdrPass::Alpha);
 
-			// Resolve multisampled color buffer.
-			const RdrResource* pColorBuffer = m_assets.resources.GetResource(m_hColorBuffer);
-			if (s_msaaLevel)
-			{
-				const RdrResource* pColorBufferMultisampled = m_assets.resources.GetResource(m_hColorBufferMultisampled);
-				m_pContext->ResolveSurface(*pColorBufferMultisampled, *pColorBuffer);
-			}
-
-			if (rAction.bEnablePostProcessing)
-				m_postProcess.DoPostProcessing(m_pContext, m_drawState, pColorBuffer, m_assets);
-
-			// UI should never be wireframe
 			if (s_wireframe)
 			{
 				rasterState.bWireframe = false;
 				m_pContext->SetRasterState(rasterState);
 			}
-			DrawPass(rAction, kRdrPass_UI);
+
+			// Resolve multisampled color buffer.
+			const RdrResource* pColorBuffer = m_assets.resources.GetResource(m_hColorBuffer);
+			if (s_msaaLevel > 1)
+			{
+				const RdrResource* pColorBufferMultisampled = m_assets.resources.GetResource(m_hColorBufferMultisampled);
+				m_pContext->ResolveSurface(*pColorBufferMultisampled, *pColorBuffer);
+
+				rasterState.bEnableMSAA = false;
+				m_pContext->SetRasterState(rasterState);
+			}
+
+			if (rAction.bEnablePostProcessing)
+				m_postProcess.DoPostProcessing(m_pContext, m_drawState, pColorBuffer, m_assets);
+
+			DrawPass(rAction, RdrPass::UI);
 
 			m_pContext->EndEvent();
 		}
@@ -684,10 +692,10 @@ void Renderer::DrawFrame()
 	m_pContext->Present();
 }
 
-void Renderer::DrawGeo(const RdrAction& rAction, const RdrPassEnum ePass, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices)
+void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices)
 {
-	const RdrPass& rPass = rAction.passes[ePass];
-	bool bDepthOnly = (rPass.shaderMode == kRdrShaderMode_DepthOnly);
+	const RdrPassData& rPass = rAction.passes[(int)ePass];
+	bool bDepthOnly = (rPass.shaderMode == RdrShaderMode::DepthOnly);
 	const RdrGeometry* pGeo = m_assets.geos.GetGeo(pDrawOp->graphics.hGeo);
 	RdrShaderFlags shaderFlags = (RdrShaderFlags)0;
 
@@ -695,13 +703,13 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPassEnum ePass, const 
 	RdrVertexShader vertexShader = pDrawOp->graphics.vertexShader;
 	if (bDepthOnly)
 	{
-		shaderFlags |= kRdrShaderFlag_DepthOnly;
+		shaderFlags |= RdrShaderFlags::DepthOnly;
 	}
 	vertexShader.flags |= shaderFlags;
 
 	m_drawState.pVertexShader = m_assets.shaders.GetVertexShader(vertexShader);
 
-	RdrConstantBufferHandle hPerActionVs = (ePass == kRdrPass_UI) ? rAction.hUiPerActionVs : rAction.hPerActionVs;
+	RdrConstantBufferHandle hPerActionVs = (ePass == RdrPass::UI) ? rAction.hUiPerActionVs : rAction.hPerActionVs;
 	m_drawState.vsConstantBuffers[0] = m_assets.resources.GetConstantBuffer(hPerActionVs)->bufferObj;
 	if (pDrawOp->graphics.hVsConstants)
 	{
@@ -716,15 +724,15 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPassEnum ePass, const 
 	// Geom shader
 	if (rAction.bIsCubemapCapture)
 	{
-		RdrGeometryShader geomShader = { kRdrGeometryShader_Model_CubemapCapture, shaderFlags };
+		RdrGeometryShader geomShader = { RdrGeometryShaderType::Model_CubemapCapture, shaderFlags };
 		m_drawState.pGeometryShader = m_assets.shaders.GetGeometryShader(geomShader);
 		m_drawState.gsConstantBuffers[0] = m_assets.resources.GetConstantBuffer(rAction.hPerActionCubemapGs)->bufferObj;
 		m_drawState.gsConstantBufferCount = 1;
 	}
 
 	// Pixel shader
-	m_drawState.pPixelShader = pDrawOp->graphics.hPixelShaders[rPass.shaderMode] ?
-		m_assets.shaders.GetPixelShader(pDrawOp->graphics.hPixelShaders[rPass.shaderMode]) :
+	m_drawState.pPixelShader = pDrawOp->graphics.hPixelShaders[(int)rPass.shaderMode] ?
+		m_assets.shaders.GetPixelShader(pDrawOp->graphics.hPixelShaders[(int)rPass.shaderMode]) :
 		nullptr;
 	if (m_drawState.pPixelShader)
 	{
@@ -736,22 +744,22 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPassEnum ePass, const 
 
 		if (pDrawOp->graphics.bNeedsLighting && !bDepthOnly)
 		{
-			m_drawState.psResources[kPsResource_LightList] = m_assets.resources.GetResource(rLightParams.hLightListRes)->resourceView;
-			m_drawState.psResources[kPsResource_TileLightIds] = m_assets.resources.GetResource(hTileLightIndices)->resourceView;
-			m_drawState.psResources[kPsResource_ShadowMaps] = m_assets.resources.GetResource(rLightParams.hShadowMapTexArray)->resourceView;
-			m_drawState.psResources[kPsResource_ShadowCubeMaps] = m_assets.resources.GetResource(rLightParams.hShadowCubeMapTexArray)->resourceView;
-			m_drawState.psSamplers[kPsSampler_ShadowMap] = RdrSamplerState(kComparisonFunc_LessEqual, kRdrTexCoordMode_Clamp, false);
-			m_drawState.psResources[kPsResource_ShadowMapData] = m_assets.resources.GetResource(rLightParams.hShadowMapDataRes)->resourceView;
+			m_drawState.psResources[(int)RdrPsResourceSlots::LightList] = m_assets.resources.GetResource(rLightParams.hLightListRes)->resourceView;
+			m_drawState.psResources[(int)RdrPsResourceSlots::TileLightIds] = m_assets.resources.GetResource(hTileLightIndices)->resourceView;
+			m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMaps] = m_assets.resources.GetResource(rLightParams.hShadowMapTexArray)->resourceView;
+			m_drawState.psResources[(int)RdrPsResourceSlots::ShadowCubeMaps] = m_assets.resources.GetResource(rLightParams.hShadowCubeMapTexArray)->resourceView;
+			m_drawState.psSamplers[(int)RdrPsSamplerSlots::ShadowMap] = RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false);
+			m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMapData] = m_assets.resources.GetResource(rLightParams.hShadowMapDataRes)->resourceView;
 		}
 
-		RdrConstantBufferHandle hPerActionPs = (ePass == kRdrPass_UI) ? rAction.hUiPerActionPs : rAction.hPerActionPs;
+		RdrConstantBufferHandle hPerActionPs = (ePass == RdrPass::UI) ? rAction.hUiPerActionPs : rAction.hPerActionPs;
 		m_drawState.psConstantBuffers[0] = m_assets.resources.GetConstantBuffer(rAction.hPerActionPs)->bufferObj;
 		m_drawState.psConstantBufferCount = 1;
 	}
 
 	// Input assembly
 	m_drawState.pInputLayout = m_assets.shaders.GetInputLayout(pDrawOp->graphics.hInputLayout); // todo: layouts per flags
-	m_drawState.eTopology = kRdrTopology_TriangleList;
+	m_drawState.eTopology = RdrTopology::TriangleList;
 
 	m_drawState.vertexBuffers[0] = *m_assets.geos.GetVertexBuffer(pGeo->hVertexBuffer);
 	m_drawState.vertexStride = pGeo->geoInfo.vertStride;

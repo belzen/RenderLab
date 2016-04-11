@@ -7,7 +7,7 @@
 
 namespace
 {
-	const RdrVertexShader kVertexShader = { kRdrVertexShader_Sprite, (RdrShaderFlags)0 };
+	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Sprite, (RdrShaderFlags)0 };
 
 	struct SpriteVertex
 	{
@@ -16,8 +16,8 @@ namespace
 	};
 
 	static const RdrVertexInputElement s_vertexDesc[] = {
-		{ kRdrShaderSemantic_Position, 0, kRdrVertexInputFormat_RG_F32, 0, 0, kRdrVertexInputClass_PerVertex, 0 },
-		{ kRdrShaderSemantic_Texcoord, 0, kRdrVertexInputFormat_RG_F32, 0, 8, kRdrVertexInputClass_PerVertex, 0 }
+		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RG_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Texcoord, 0, RdrVertexInputFormat::RG_F32, 0, 8, RdrVertexInputClass::PerVertex, 0 }
 	};
 }
 
@@ -51,13 +51,13 @@ void Sprite::Init(Renderer& rRenderer, const Vec2 aTexcoords[4], const char* tex
 void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha)
 {
 	RdrDrawOp* op = RdrDrawOp::Allocate();
-	op->eType = kRdrDrawOpType_Graphics;
+	op->eType = RdrDrawOpType::Graphics;
 	op->graphics.hGeo = m_hGeo;
 	op->graphics.bFreeGeo = false;
 	op->graphics.hInputLayout = m_hInputLayout;
 	op->graphics.vertexShader = kVertexShader;
-	op->graphics.hPixelShaders[kRdrShaderMode_Normal] = m_hPixelShader;
-	op->samplers[0] = RdrSamplerState(kComparisonFunc_Never, kRdrTexCoordMode_Wrap, false);
+	op->graphics.hPixelShaders[(int)RdrShaderMode::Normal] = m_hPixelShader;
+	op->samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
 	op->hTextures[0] = m_hTexture;
 	op->texCount = 1;
 
@@ -67,5 +67,5 @@ void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, 
 	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
 	op->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize);
 
-	rRenderer.AddToBucket(op, kRdrBucketType_UI);
+	rRenderer.AddToBucket(op, RdrBucketType::UI);
 }

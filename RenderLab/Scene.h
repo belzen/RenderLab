@@ -21,10 +21,10 @@ public:
 	void QueueShadowMaps(Renderer& rRenderer, const Camera& rCamera);
 	void QueueDraw(Renderer& rRenderer) const;
 
-	const LightList* GetLightList() const { return &m_lights; }
+	const LightList* GetLightList() const;
 
-	Camera& GetMainCamera() { return m_mainCamera; }
-	const Camera& GetMainCamera() const { return m_mainCamera; }
+	Camera& GetMainCamera();
+	const Camera& GetMainCamera() const;
 
 private:
 	std::vector<WorldObject*> m_objects;
@@ -32,3 +32,18 @@ private:
 	Camera m_mainCamera;
 	Sky m_sky;
 };
+
+inline const LightList* Scene::GetLightList() const
+{ 
+	return &m_lights; 
+}
+
+inline Camera& Scene::GetMainCamera()
+{ 
+	return m_mainCamera; 
+}
+
+inline const Camera& Scene::GetMainCamera() const
+{ 
+	return m_mainCamera; 
+}

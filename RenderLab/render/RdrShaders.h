@@ -16,14 +16,14 @@ struct RdrInputLayout
 	ID3D11InputLayout* pInputLayout;
 };
 
-enum RdrShaderType
+enum class RdrShaderStage
 {
-	kRdrShaderType_Vertex,
-	kRdrShaderType_Pixel,
-	kRdrShaderType_Geometry,
-	kRdrShaderType_Compute,
+	Vertex,
+	Pixel,
+	Geometry,
+	Compute,
 
-	kRdrShaderType_Count
+	Count
 };
 
 struct RdrShader
@@ -43,25 +43,26 @@ struct RdrShader
 	uint compiledSize;
 };
 
-typedef uint RdrShaderFlags;
-enum RdrShaderFlag // todo: replace all flags with enum type
+enum class RdrShaderFlags : uint
 {
-	kRdrShaderFlag_DepthOnly = 0x1,
-	kRdrShaderFlag_CubemapCapture = 0x2,
+	None = 0x0,
+	DepthOnly = 0x1,
+	CubemapCapture = 0x2,
 
 	// Note: Need to switch m_vertexShaders over to a hash table if flag count gets too large.
-	kRdrShaderFlag_NumCombos = 0x4
+	NumCombos = 0x4
 };
+ENUM_FLAGS(RdrShaderFlags);
 
-enum RdrVertexShaderType
+enum class RdrVertexShaderType
 {
-	kRdrVertexShader_Model,
-	kRdrVertexShader_Text,
-	kRdrVertexShader_Sprite,
-	kRdrVertexShader_Sky,
-	kRdrVertexShader_Screen, // Pass through shader for geo in screen-space
+	Model,
+	Text,
+	Sprite,
+	Sky,
+	Screen, // Pass through shader for geo in screen-space
 
-	kRdrVertexShader_Count
+	Count
 };
 
 struct RdrVertexShader
@@ -70,11 +71,11 @@ struct RdrVertexShader
 	RdrShaderFlags flags;
 };
 
-enum RdrGeometryShaderType
+enum class RdrGeometryShaderType
 {
-	kRdrGeometryShader_Model_CubemapCapture,
+	Model_CubemapCapture,
 
-	kRdrGeometryShader_Count
+	Count
 };
 
 struct RdrGeometryShader
@@ -83,14 +84,14 @@ struct RdrGeometryShader
 	RdrShaderFlags flags;
 };
 
-enum RdrComputeShader
+enum class RdrComputeShader
 {
-	kRdrComputeShader_TiledDepthMinMax,
-	kRdrComputeShader_TiledLightCull,
-	kRdrComputeShader_LuminanceMeasure_First,
-	kRdrComputeShader_LuminanceMeasure_Mid,
-	kRdrComputeShader_LuminanceMeasure_Final,
+	TiledDepthMinMax,
+	TiledLightCull,
+	LuminanceMeasure_First,
+	LuminanceMeasure_Mid,
+	LuminanceMeasure_Final,
 
-	kRdrComputeShader_Count
+	Count
 };
 

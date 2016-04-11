@@ -6,16 +6,16 @@ Vec3 UI::PosToScreenSpace(const UI::Position& uiPos, const Vec2& elemSize, const
 {
 	Vec3 pos(uiPos.x.val, -uiPos.y.val, uiPos.depth);
 
-	if (uiPos.x.units == UI::kUnits_Percentage)
+	if (uiPos.x.units == UI::Units::Percentage)
 		pos.x *= viewportSize.x;
 
-	if (uiPos.y.units == UI::kUnits_Percentage)
+	if (uiPos.y.units == UI::Units::Percentage)
 		pos.y *= viewportSize.y;
 
-	if (uiPos.alignment & UI::kAlign_Right)
+	if ((uiPos.alignment & UI::AlignmentFlags::Right) != UI::AlignmentFlags::None)
 		pos.x -= elemSize.x;
 
-	if (uiPos.alignment & UI::kAlign_Bottom)
+	if ((uiPos.alignment & UI::AlignmentFlags::Bottom) != UI::AlignmentFlags::None)
 		pos.y -= elemSize.y;
 
 	pos.x -= viewportSize.x * 0.5f;

@@ -51,7 +51,7 @@ void Camera::SetAsCubemapFace(const Vec3& pos, const CubemapFace eFace, float ne
 		-Vec3::kUnitZ
 	};
 	float angle = Maths::DegToRad(90.f);
-	SetAsPerspective(pos, faceDirs[eFace], angle, 1.f, nearDist, farDist);
+	SetAsPerspective(pos, faceDirs[(int)eFace], angle, 1.f, nearDist, farDist);
 }
 
 void Camera::SetAsSphere(const Vec3& pos, float nearDist, float farDist)
@@ -127,7 +127,7 @@ void Camera::UpdateFrustum(void)
 	m_frustum.planes[5] = Plane(nbr, nbl, fbl); // Bottom
 }
 
-bool Camera::CanSee(const Vec3 pos, float radius) const
+bool Camera::CanSee(const Vec3& pos, float radius) const
 {
 	if (m_fovY > Maths::kPi)
 	{

@@ -21,7 +21,7 @@ struct ID3DUserDefinedAnnotation;
 
 struct D3D11_INPUT_ELEMENT_DESC;
 
-#define SAMPLER_TYPES_COUNT kComparisonFunc_Count * kRdrTexCoordMode_Count * 2
+#define SAMPLER_TYPES_COUNT (int)RdrComparisonFunc::Count * (int)RdrTexCoordMode::Count * 2
 #define RASTER_STATES_COUNT 2 * 2 * 2
 
 class RdrContextD3D11 : public RdrContext
@@ -56,8 +56,8 @@ class RdrContextD3D11 : public RdrContext
 	void ClearRenderTargetView(const RdrRenderTargetView& renderTarget, const Color& clearColor);
 	void ReleaseRenderTargetView(const RdrRenderTargetView& renderTargetView);
 
-	bool CompileShader(RdrShaderType eType, const char* pShaderText, uint textLen, void** ppOutCompiledData, uint* pOutDataSize);
-	void* CreateShader(RdrShaderType eType, const void* pCompiledData, uint compiledDataSize);
+	bool CompileShader(RdrShaderStage eType, const char* pShaderText, uint textLen, void** ppOutCompiledData, uint* pOutDataSize);
+	void* CreateShader(RdrShaderStage eType, const void* pCompiledData, uint compiledDataSize);
 	RdrInputLayout CreateInputLayout(const void* pCompiledVertexShader, uint vertexShaderSize, const RdrVertexInputElement* aVertexElements, uint numElements);
 
 	void Draw(const RdrDrawState& rDrawState);
@@ -97,7 +97,7 @@ private:
 	ID3D11SamplerState*      m_pSamplers[SAMPLER_TYPES_COUNT];
 	ID3D11BlendState*        m_pBlendStates[2];
 	ID3D11RasterizerState*   m_pRasterStates[RASTER_STATES_COUNT];
-	ID3D11DepthStencilState* m_pDepthStencilStates[kRdrDepthTestMode_Count];
+	ID3D11DepthStencilState* m_pDepthStencilStates[(int)RdrDepthTestMode::Count];
 
 	uint m_presentFlags;
 };

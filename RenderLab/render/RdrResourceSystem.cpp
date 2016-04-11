@@ -16,22 +16,22 @@ namespace
 		switch (format)
 		{
 		case DXGI_FORMAT_D16_UNORM:
-			return kResourceFormat_D16;
+			return RdrResourceFormat::D16;
 		case DXGI_FORMAT_D24_UNORM_S8_UINT:
-			return kResourceFormat_D24_UNORM_S8_UINT;
+			return RdrResourceFormat::D24_UNORM_S8_UINT;
 		case DXGI_FORMAT_R16_UNORM:
-			return kResourceFormat_R16_UNORM;
+			return RdrResourceFormat::R16_UNORM;
 		case DXGI_FORMAT_R16G16_FLOAT:
-			return kResourceFormat_R16G16_FLOAT;
+			return RdrResourceFormat::R16G16_FLOAT;
 		case DXGI_FORMAT_R8_UNORM:
-			return kResourceFormat_R8_UNORM;
+			return RdrResourceFormat::R8_UNORM;
 		case DXGI_FORMAT_BC3_UNORM:
-			return bIsSrgb ? kResourceFormat_DXT5_sRGB : kResourceFormat_DXT5;
+			return bIsSrgb ? RdrResourceFormat::DXT5_sRGB : RdrResourceFormat::DXT5;
 		case DXGI_FORMAT_B8G8R8A8_UNORM:
-			return bIsSrgb ? kResourceFormat_B8G8R8A8_UNORM_sRGB : kResourceFormat_B8G8R8A8_UNORM;
+			return bIsSrgb ? RdrResourceFormat::B8G8R8A8_UNORM_sRGB : RdrResourceFormat::B8G8R8A8_UNORM;
 		default:
 			assert(false);
-			return kResourceFormat_Count;
+			return RdrResourceFormat::Count;
 		}
 	}
 }
@@ -71,7 +71,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* filename,
 	DirectX::GetMetadataFromDDSMemory(cmd.pHeaderData, cmd.dataSize, 0, metadata);
 
 	cmd.hResource = m_resources.getId(pResource);
-	cmd.eUsage = kRdrResourceUsage_Immutable;
+	cmd.eUsage = RdrResourceUsage::Immutable;
 	cmd.texInfo.format = getFormatFromDXGI(metadata.format, bIsSrgb);
 	cmd.texInfo.width = (uint)metadata.width;
 	cmd.texInfo.height = (uint)metadata.height;
@@ -132,7 +132,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureInternal(uint width, uint heig
 
 	CmdCreateTexture cmd = { 0 };
 	cmd.hResource = m_resources.getId(pResource);
-	cmd.eUsage = kRdrResourceUsage_Default;
+	cmd.eUsage = RdrResourceUsage::Default;
 	cmd.texInfo.format = eFormat;
 	cmd.texInfo.width = width;
 	cmd.texInfo.height = height;
@@ -193,7 +193,6 @@ RdrConstantBufferHandle RdrResourceSystem::CreateTempConstantBuffer(const void* 
 {
 	assert(size % sizeof(Vec4) == 0);
 
-	// todo: constant buffer pools to avoid tons of create/releases
 	uint poolIndex = size / sizeof(Vec4);
 	if (poolIndex < kNumConstantBufferPools)
 	{
@@ -218,8 +217,8 @@ RdrConstantBufferHandle RdrResourceSystem::CreateTempConstantBuffer(const void* 
 	CmdCreateConstantBuffer cmd = { 0 };
 	cmd.hBuffer = m_constantBuffers.getId(pBuffer);
 	cmd.pData = pData;
-	cmd.cpuAccessFlags = kRdrCpuAccessFlag_Write;
-	cmd.eUsage = kRdrResourceUsage_Dynamic;
+	cmd.cpuAccessFlags = RdrCpuAccessFlags::Write;
+	cmd.eUsage = RdrResourceUsage::Dynamic;
 	cmd.size = size;
 	cmd.bIsTemp = true;
 

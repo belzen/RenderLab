@@ -18,27 +18,27 @@ namespace
 	};
 
 	const RdrShaderDef kVertexShaderDefs[] = {
-		{ "v_model.hlsl", 0 },  // kRdrVertexShader_Model
-		{ "v_text.hlsl", 0},    // kRdrVertexShader_Text
-		{ "v_sprite.hlsl", 0 }, // kRdrVertexShader_Sprite
-		{ "v_sky.hlsl", 0 },    // kRdrVertexShader_Sky
-		{ "v_screen.hlsl", 0 }, // kRdrVertexShader_Screen
+		{ "v_model.hlsl", 0 },  // RdrVertexShaderType::Model
+		{ "v_text.hlsl", 0},    // RdrVertexShaderType::Text
+		{ "v_sprite.hlsl", 0 }, // RdrVertexShaderType::Sprite
+		{ "v_sky.hlsl", 0 },    // RdrVertexShaderType::Sky
+		{ "v_screen.hlsl", 0 }, // RdrVertexShaderType::Screen
 	};
-	static_assert(ARRAYSIZE(kVertexShaderDefs) == kRdrVertexShader_Count, "Missing vertex shader defs!");
+	static_assert(ARRAYSIZE(kVertexShaderDefs) == (int)RdrVertexShaderType::Count, "Missing vertex shader defs!");
 
 	const RdrShaderDef kGeometryShaderDefs[] = {
-		{ "g_cubemap.hlsl", 0 },  // kRdrGeometryShader_Model_CubemapCapture
+		{ "g_cubemap.hlsl", 0 },  // RdrGeometryShaderType::Model_CubemapCapture
 	};
-	static_assert(ARRAYSIZE(kGeometryShaderDefs) == kRdrGeometryShader_Count, "Missing geometry shader defs!");
+	static_assert(ARRAYSIZE(kGeometryShaderDefs) == (int)RdrGeometryShaderType::Count, "Missing geometry shader defs!");
 
 	const RdrShaderDef kComputeShaderDefs[] = {
-		{"c_tiled_depth_calc.hlsl", { 0 } },          // kRdrComputeShader_TiledDepthMinMax
-		{"c_tiled_light_cull.hlsl", { 0 } },          // kRdrComputeShader_TiledLightCull
-		{"c_luminance_measure.hlsl",{ "STEP_ONE", 0 } }, // kRdrComputeShader_LuminanceMeasure_First,
-		{"c_luminance_measure.hlsl", { "STEP_MID", 0 } },   // kRdrComputeShader_LuminanceMeasure_Mid,
-		{"c_luminance_measure.hlsl", { "STEP_FINAL", 0 } },  // kRdrComputeShader_LuminanceMeasure_Final,
+		{"c_tiled_depth_calc.hlsl", { 0 } },          // RdrComputeShader::TiledDepthMinMax
+		{"c_tiled_light_cull.hlsl", { 0 } },          // RdrComputeShader::TiledLightCull
+		{"c_luminance_measure.hlsl",{ "STEP_ONE", 0 } }, // RdrComputeShader::LuminanceMeasure_First,
+		{"c_luminance_measure.hlsl", { "STEP_MID", 0 } },   // RdrComputeShader::LuminanceMeasure_Mid,
+		{"c_luminance_measure.hlsl", { "STEP_FINAL", 0 } },  // RdrComputeShader::LuminanceMeasure_Final,
 	};
-	static_assert(ARRAYSIZE(kComputeShaderDefs) == kRdrComputeShader_Count, "Missing compute shader defs!");
+	static_assert(ARRAYSIZE(kComputeShaderDefs) == (int)RdrComputeShader::Count, "Missing compute shader defs!");
 
 
 	class IncludeHandler : public ID3DInclude
@@ -110,7 +110,7 @@ namespace
 		return pCompiledData;
 	}
 
-	void createDefaultShader(RdrContext* pRdrContext, const RdrShaderType eType, const RdrShaderDef& rShaderDef, const RdrShaderFlags flags, RdrShader& rOutShader)
+	void createDefaultShader(RdrContext* pRdrContext, const RdrShaderStage eType, const RdrShaderDef& rShaderDef, const RdrShaderFlags flags, RdrShader& rOutShader)
 	{
 		void* pCompiledData;
 		uint compiledDataSize;
@@ -124,9 +124,9 @@ namespace
 			++numDefines;
 		}
 
-		if (flags & kRdrShaderFlag_DepthOnly)
+		if ((flags & RdrShaderFlags::DepthOnly) != RdrShaderFlags::None)
 			aDefines[numDefines++] = "DEPTH_ONLY";
-		if (flags & kRdrShaderFlag_CubemapCapture)
+		if ((flags & RdrShaderFlags::CubemapCapture) != RdrShaderFlags::None)
 			aDefines[numDefines++] = "CUBEMAP_CAPTURE";
 		
 		ID3D10Blob* pPreprocData = preprocessShader(rShaderDef.filename, aDefines, numDefines);
@@ -137,7 +137,7 @@ namespace
 		assert(res);
 
 		rOutShader.pTypeless = pRdrContext->CreateShader(eType, pCompiledData, compiledDataSize);
-		if (eType == kRdrShaderType_Vertex)
+		if (eType == RdrShaderStage::Vertex)
 		{
 			rOutShader.pVertexCompiledData = pCompiledData;
 			rOutShader.compiledSize = compiledDataSize;
@@ -157,31 +157,31 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 
 	//////////////////////////////////////
 	// Load default shaders.
-	for (int vs = 0; vs < kRdrVertexShader_Count; ++vs)
+	for (int vs = 0; vs < (uint)RdrVertexShaderType::Count; ++vs)
 	{
-		for (uint flags = 0; flags < kRdrShaderFlag_NumCombos; ++flags)
+		for (uint flags = 0; flags < (uint)RdrShaderFlags::NumCombos; ++flags)
 		{
-			createDefaultShader(m_pRdrContext, kRdrShaderType_Vertex, 
+			createDefaultShader(m_pRdrContext, RdrShaderStage::Vertex, 
 				kVertexShaderDefs[vs], (RdrShaderFlags)flags,
-				m_vertexShaders[vs * kRdrShaderFlag_NumCombos + flags]);
+				m_vertexShaders[vs * (uint)RdrShaderFlags::NumCombos + flags]);
 		}
 	}
 
 	/// Geometry shaders
-	for (int gs = 0; gs < kRdrGeometryShader_Count; ++gs)
+	for (int gs = 0; gs < (int)RdrGeometryShaderType::Count; ++gs)
 	{
-		for (uint flags = 0; flags < kRdrShaderFlag_NumCombos; ++flags)
+		for (uint flags = 0; flags < (uint)RdrShaderFlags::NumCombos; ++flags)
 		{
-			createDefaultShader(m_pRdrContext, kRdrShaderType_Geometry,
+			createDefaultShader(m_pRdrContext, RdrShaderStage::Geometry,
 				kGeometryShaderDefs[gs], (RdrShaderFlags)flags,
-				m_geometryShaders[gs * kRdrShaderFlag_NumCombos + flags]);
+				m_geometryShaders[gs * (uint)RdrShaderFlags::NumCombos + flags]);
 		}
 	}
 
 	/// Compute shaders
-	for (int cs = 0; cs < kRdrComputeShader_Count; ++cs)
+	for (int cs = 0; cs < (int)RdrComputeShader::Count; ++cs)
 	{
-		createDefaultShader(m_pRdrContext, kRdrShaderType_Compute,
+		createDefaultShader(m_pRdrContext, RdrShaderStage::Compute,
 			kComputeShaderDefs[cs], (RdrShaderFlags)0,
 			m_computeShaders[cs]);
 	}
@@ -236,17 +236,17 @@ RdrInputLayoutHandle RdrShaderSystem::CreateInputLayout(const RdrVertexShader& v
 
 const RdrShader* RdrShaderSystem::GetVertexShader(const RdrVertexShader shader)
 {
-	return &m_vertexShaders[shader.eType * kRdrShaderFlag_NumCombos + shader.flags];
+	return &m_vertexShaders[(int)shader.eType * (int)RdrShaderFlags::NumCombos + (int)shader.flags];
 }
 
 const RdrShader* RdrShaderSystem::GetGeometryShader(const RdrGeometryShader shader)
 {
-	return &m_geometryShaders[shader.eType * kRdrShaderFlag_NumCombos + shader.flags];
+	return &m_geometryShaders[(int)shader.eType * (int)RdrShaderFlags::NumCombos + (int)shader.flags];
 }
 
 const RdrShader* RdrShaderSystem::GetComputeShader(const RdrComputeShader eShader)
 {
-	return &m_computeShaders[eShader];
+	return &m_computeShaders[(int)eShader];
 }
 
 const RdrShader* RdrShaderSystem::GetPixelShader(const RdrShaderHandle hShader)
@@ -278,10 +278,10 @@ void RdrShaderSystem::ProcessCommands()
 		void* pCompiledData;
 		uint compiledDataSize;
 
-		bool res = m_pRdrContext->CompileShader(kRdrShaderType_Pixel, cmd.pShaderText, cmd.textLen, &pCompiledData, &compiledDataSize);
+		bool res = m_pRdrContext->CompileShader(RdrShaderStage::Pixel, cmd.pShaderText, cmd.textLen, &pCompiledData, &compiledDataSize);
 		assert(res);
 
-		pShader->pTypeless = m_pRdrContext->CreateShader(kRdrShaderType_Pixel, pCompiledData, compiledDataSize);
+		pShader->pTypeless = m_pRdrContext->CreateShader(RdrShaderStage::Pixel, pCompiledData, compiledDataSize);
 		
 		delete pCompiledData;
 	}

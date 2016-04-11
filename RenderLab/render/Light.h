@@ -14,12 +14,12 @@ class Scene;
 #define MAX_SHADOW_CUBEMAPS 2
 #define USE_SINGLEPASS_SHADOW_CUBEMAP 1
 
-enum LightType
+enum class LightType
 {
-	kLightType_Directional,
-	kLightType_Point,
-	kLightType_Spot,
-	kLightType_Environment,
+	Directional,
+	Point,
+	Spot,
+	Environment,
 };
 
 // WARNING - Must match struct in light_inc.hlsli
@@ -37,9 +37,6 @@ struct Light
 
 	uint castsShadows;
 	uint shadowMapIndex;
-
-	///
-	Camera MakeCamera() const;
 };
 
 class LightList
@@ -51,11 +48,12 @@ public:
 
 	void PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, const Scene& scene);
 
-	RdrResourceHandle GetShadowMapDataRes() const { return m_hShadowMapDataRes; }
-	RdrResourceHandle GetShadowMapTexArray() const { return m_hShadowMapTexArray; }
-	RdrResourceHandle GetShadowCubeMapTexArray() const { return m_hShadowCubeMapTexArray; }
-	RdrResourceHandle GetLightListRes() const { return m_hLightListRes; }
-	uint GetLightCount() const { return m_lightCount; }
+	RdrResourceHandle GetShadowMapDataRes() const;
+	RdrResourceHandle GetShadowMapTexArray() const;
+	RdrResourceHandle GetShadowCubeMapTexArray() const;
+	RdrResourceHandle GetLightListRes() const;
+	uint GetLightCount() const;
+
 private:
 	Light m_lights[1024];
 	uint m_lightCount;
@@ -69,6 +67,31 @@ private:
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
 	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS];
 #else
-	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * kCubemapFace_Count];
+	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * CubemapFace::Count];
 #endif
 };
+
+inline RdrResourceHandle LightList::GetShadowMapDataRes() const
+{ 
+	return m_hShadowMapDataRes; 
+}
+
+inline RdrResourceHandle LightList::GetShadowMapTexArray() const
+{ 
+	return m_hShadowMapTexArray; 
+}
+
+inline RdrResourceHandle LightList::GetShadowCubeMapTexArray() const
+{ 
+	return m_hShadowCubeMapTexArray; 
+}
+
+inline RdrResourceHandle LightList::GetLightListRes() const
+{ 
+	return m_hLightListRes; 
+}
+
+inline uint LightList::GetLightCount() const
+{ 
+	return m_lightCount; 
+}

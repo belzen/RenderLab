@@ -5,33 +5,33 @@ struct ID3D11RenderTargetView;
 struct ID3D11SamplerState;
 struct ID3D11Buffer;
 
-enum RdrShaderSemantic
+enum class RdrShaderSemantic
 {
-	kRdrShaderSemantic_Position,
-	kRdrShaderSemantic_Texcoord,
-	kRdrShaderSemantic_Color,
-	kRdrShaderSemantic_Normal,
-	kRdrShaderSemantic_Binormal,
-	kRdrShaderSemantic_Tangent,
+	Position,
+	Texcoord,
+	Color,
+	Normal,
+	Binormal,
+	Tangent,
 
-	kRdrShaderSemantic_Count
+	Count
 };
 
-enum RdrVertexInputFormat
+enum class RdrVertexInputFormat
 {
-	kRdrVertexInputFormat_RG_F32,
-	kRdrVertexInputFormat_RGB_F32,
-	kRdrVertexInputFormat_RGBA_F32,
+	RG_F32,
+	RGB_F32,
+	RGBA_F32,
 
-	kRdrVertexInputFormat_Count
+	Count
 };
 
-enum RdrVertexInputClass
+enum class RdrVertexInputClass
 {
-	kRdrVertexInputClass_PerVertex,
-	kRdrVertexInputClass_PerInstance,
+	PerVertex,
+	PerInstance,
 
-	kRdrVertexInputClass_Count
+	Count
 };
 
 struct RdrVertexInputElement
@@ -45,84 +45,84 @@ struct RdrVertexInputElement
 	uint instanceDataStepRate;
 };
 
-enum RdrPassEnum
+enum class RdrPass
 {
-	kRdrPass_ZPrepass,
-	kRdrPass_LightCulling,
-	kRdrPass_Opaque,
-	kRdrPass_Sky,
-	kRdrPass_Alpha,
-	kRdrPass_UI,
+	ZPrepass,
+	LightCulling,
+	Opaque,
+	Sky,
+	Alpha,
+	UI,
 
-	kRdrPass_Count
+	Count
 };
 
-enum RdrBucketType
+enum class RdrBucketType
 {
-	kRdrBucketType_LightCulling,
-	kRdrBucketType_Opaque,
-	kRdrBucketType_Sky,
-	kRdrBucketType_Alpha,
-	kRdrBucketType_UI,
+	LightCulling,
+	Opaque,
+	Sky,
+	Alpha,
+	UI,
 
-	kRdrBucketType_Count
+	Count
 };
 
-enum RdrShaderMode
+enum class RdrShaderMode
 {
-	kRdrShaderMode_Normal,
-	kRdrShaderMode_DepthOnly,
+	Normal,
+	DepthOnly,
 
-	kRdrShaderMode_Count
+	Count
 };
 
-enum RdrTexCoordMode
+enum class RdrTexCoordMode
 {
-	kRdrTexCoordMode_Wrap,
-	kRdrTexCoordMode_Clamp,
-	kRdrTexCoordMode_Mirror,
+	Wrap,
+	Clamp,
+	Mirror,
 
-	kRdrTexCoordMode_Count
+	Count
 };
 
-enum RdrResourceFormat
+enum class RdrResourceFormat
 {
-	kResourceFormat_D16,
-	kResourceFormat_D24_UNORM_S8_UINT,
-	kResourceFormat_R16_UNORM,
-	kResourceFormat_R16G16_FLOAT,
-	kResourceFormat_R8_UNORM,
-	kResourceFormat_DXT1,
-	kResourceFormat_DXT5,
-	kResourceFormat_DXT5_sRGB,
-	kResourceFormat_B8G8R8A8_UNORM,
-	kResourceFormat_B8G8R8A8_UNORM_sRGB,
-	kResourceFormat_R16G16B16A16_FLOAT,
+	D16,
+	D24_UNORM_S8_UINT,
+	R16_UNORM,
+	R16G16_FLOAT,
+	R8_UNORM,
+	DXT1,
+	DXT5,
+	DXT5_sRGB,
+	B8G8R8A8_UNORM,
+	B8G8R8A8_UNORM_sRGB,
+	R16G16B16A16_FLOAT,
 
-	kResourceFormat_Count
+	Count
 };
 
-enum RdrComparisonFunc
+enum class RdrComparisonFunc
 {
-	kComparisonFunc_Never,
-	kComparisonFunc_Less,
-	kComparisonFunc_Equal,
-	kComparisonFunc_LessEqual,
-	kComparisonFunc_Greater,
-	kComparisonFunc_NotEqual,
-	kComparisonFunc_GreaterEqual,
-	kComparisonFunc_Always,
+	Never,
+	Less,
+	Equal,
+	LessEqual,
+	Greater,
+	NotEqual,
+	GreaterEqual,
+	Always,
 
-	kComparisonFunc_Count
+	Count
 };
 
-enum RdrDepthTestMode
+enum class RdrDepthTestMode
 {
-	kRdrDepthTestMode_None,
-	kRdrDepthTestMode_Less,
-	kRdrDepthTestMode_Equal,
+	None,
+	Less,
+	Equal,
 
-	kRdrDepthTestMode_Count,
+	Count,
 };
 
 struct RdrRasterState
@@ -135,9 +135,9 @@ struct RdrRasterState
 struct RdrSamplerState
 {
 	RdrSamplerState()
-		: cmpFunc(kComparisonFunc_Never), texcoordMode(kRdrTexCoordMode_Wrap), bPointSample(false) {}
+		: cmpFunc((uint)RdrComparisonFunc::Never), texcoordMode((uint)RdrTexCoordMode::Wrap), bPointSample(false) {}
 	RdrSamplerState(const RdrComparisonFunc cmpFunc, const RdrTexCoordMode texcoordMode, const bool bPointSample)
-		: cmpFunc(cmpFunc), texcoordMode(texcoordMode), bPointSample(bPointSample) {}
+		: cmpFunc((uint)cmpFunc), texcoordMode((uint)texcoordMode), bPointSample(bPointSample) {}
 
 	uint cmpFunc : 4;
 	uint texcoordMode : 2;
@@ -156,30 +156,31 @@ struct RdrRenderTargetView
 	ID3D11RenderTargetView* pView;
 };
 
-enum RdrResourceMapMode
+enum class RdrResourceMapMode
 {
-	kRdrResourceMap_Read,
-	kRdrResourceMap_Write,
-	kRdrResourceMap_ReadWrite,
-	kRdrResourceMap_WriteDiscard,
-	kRdrResourceMap_WriteNoOverwrite,
+	Read,
+	Write,
+	ReadWrite,
+	WriteDiscard,
+	WriteNoOverwrite,
 
-	kRdrResourceMap_Count
+	Count
 };
 
-typedef uint RdrCpuAccessFlags;
-enum RdrCpuAccessFlag
+enum class RdrCpuAccessFlags
 {
-	kRdrCpuAccessFlag_Read = 0x1,
-	kRdrCpuAccessFlag_Write = 0x2
+	None = 0x0,
+	Read = 0x1,
+	Write = 0x2
 };
+ENUM_FLAGS(RdrCpuAccessFlags);
 
-enum RdrResourceUsage
+enum class RdrResourceUsage
 {
-	kRdrResourceUsage_Default,
-	kRdrResourceUsage_Immutable,
-	kRdrResourceUsage_Dynamic,
-	kRdrResourceUsage_Staging,
+	Default,
+	Immutable,
+	Dynamic,
+	Staging,
 
-	kRdrResourceUsage_Count
+	Count
 };
