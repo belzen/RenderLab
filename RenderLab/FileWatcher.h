@@ -6,4 +6,6 @@ namespace FileWatcher
 
 	void Init(const char* path);
 	void AddListener(const char* pattern, FileChangedFunc callback);
+
+	void Cleanup();
 }

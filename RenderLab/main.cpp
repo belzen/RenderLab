@@ -10,6 +10,7 @@
 #include "FrameTimer.h"
 #include "debug/DebugConsole.h"
 #include "debug/Debug.h"
+#include "FileWatcher.h"
 
 namespace
 {
@@ -109,6 +110,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 	g_renderer.Init(hWnd, kClientWidth, kClientHeight);
 	DebugConsole::Init(g_renderer);
 
+	FileWatcher::Init("data");
+
 	g_scene.Load(g_renderer, "basic.scene");
 
 	MSG msg;
@@ -181,6 +184,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 	renderThread.join();
 
 	g_renderer.Cleanup();
+	FileWatcher::Cleanup();
 
 	return (int)msg.wParam;
 }
