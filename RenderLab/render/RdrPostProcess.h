@@ -17,8 +17,6 @@ public:
 	void DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, RdrAssetSystems& rAssets);
 
 private:
-	RdrGeoHandle m_hFullScreenQuadGeo;
-	RdrInputLayoutHandle m_hFullScreenQuadLayout;
 	RdrShaderHandle m_hToneMapPs;
 	RdrResourceHandle m_hToneMapConstants;
 

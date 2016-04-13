@@ -24,7 +24,7 @@ public:
 	const RdrShader* pComputeShader;
 
 	RdrTopology eTopology;
-	const RdrInputLayout* pInputLayout;
+	RdrInputLayout inputLayout;
 
 	RdrVertexBuffer vertexBuffers[3];
 	RdrIndexBuffer indexBuffer;

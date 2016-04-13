@@ -995,7 +995,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 		m_pDevContext->PSSetShader(nullptr, nullptr, 0);
 	}
 
-	m_pDevContext->IASetInputLayout(rDrawState.pInputLayout->pInputLayout);
+	m_pDevContext->IASetInputLayout(rDrawState.inputLayout.pInputLayout);
 	m_pDevContext->IASetPrimitiveTopology(getD3DTopology(rDrawState.eTopology));
 
 	m_pDevContext->IASetVertexBuffers(0, 1, &rDrawState.vertexBuffers[0].pBuffer, &rDrawState.vertexStride, &rDrawState.vertexOffset);

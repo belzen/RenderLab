@@ -24,18 +24,6 @@ namespace
 
 void RdrPostProcess::Init(RdrAssetSystems& rAssets)
 {
-	const uint kNumVerts = 6;
-	QuadVertex* pVerts = (QuadVertex*)RdrTransientMem::Alloc(sizeof(QuadVertex) * kNumVerts);
-	pVerts[0].position = Vec2(-1.f,  1.f); pVerts[0].texcoord = Vec2(0.f, 0.f);
-	pVerts[1].position = Vec2( 1.f,  1.f); pVerts[1].texcoord = Vec2(1.f, 0.f);
-	pVerts[2].position = Vec2(-1.f, -1.f); pVerts[2].texcoord = Vec2(0.f, 1.f);
-	pVerts[3].position = Vec2(-1.f, -1.f); pVerts[3].texcoord = Vec2(0.f, 1.f);
-	pVerts[4].position = Vec2( 1.f,  1.f); pVerts[4].texcoord = Vec2(1.f, 0.f);
-	pVerts[5].position = Vec2( 1.f, -1.f); pVerts[5].texcoord = Vec2(1.f, 1.f);
-
-	m_hFullScreenQuadGeo = rAssets.geos.CreateGeo(pVerts, sizeof(QuadVertex), kNumVerts, nullptr, 0, Vec3::kZero);
-	m_hFullScreenQuadLayout = rAssets.shaders.CreateInputLayout(kQuadVertexShader, kQuadVertexDesc, ARRAYSIZE(kQuadVertexDesc));
-
 	m_hToneMapPs = rAssets.shaders.CreatePixelShaderFromFile("p_tonemap.hlsl");
 	m_hToneMapConstants = rAssets.resources.CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapParams), RdrResourceUsage::Default);
 }
@@ -124,14 +112,13 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDr
 		rDrawState.psResources[1] = rAssets.resources.GetResource(m_hToneMapConstants)->resourceView;
 
 		// Input assembly
-		rDrawState.pInputLayout = rAssets.shaders.GetInputLayout(m_hFullScreenQuadLayout);
+		rDrawState.inputLayout.pInputLayout = nullptr;
 		rDrawState.eTopology = RdrTopology::TriangleList;
 
-		const RdrGeometry* pGeo = rAssets.geos.GetGeo(m_hFullScreenQuadGeo);
-		rDrawState.vertexBuffers[0] = *rAssets.geos.GetVertexBuffer(pGeo->hVertexBuffer);
-		rDrawState.vertexStride = pGeo->geoInfo.vertStride;
+		rDrawState.vertexBuffers[0].pBuffer = nullptr;
+		rDrawState.vertexStride = 0;
 		rDrawState.vertexOffset = 0;
-		rDrawState.vertexCount = pGeo->geoInfo.numVerts;
+		rDrawState.vertexCount = 3;
 
 		pRdrContext->Draw(rDrawState);
 

@@ -758,7 +758,7 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrD
 	}
 
 	// Input assembly
-	m_drawState.pInputLayout = m_assets.shaders.GetInputLayout(pDrawOp->graphics.hInputLayout); // todo: layouts per flags
+	m_drawState.inputLayout = *m_assets.shaders.GetInputLayout(pDrawOp->graphics.hInputLayout); // todo: layouts per flags
 	m_drawState.eTopology = RdrTopology::TriangleList;
 
 	m_drawState.vertexBuffers[0] = *m_assets.geos.GetVertexBuffer(pGeo->hVertexBuffer);
