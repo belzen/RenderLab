@@ -20,6 +20,8 @@ public:
 	RdrShaderHandle CreatePixelShaderFromFile(const char* filename);
 	RdrInputLayoutHandle CreateInputLayout(const RdrVertexShader& vertexShader, const RdrVertexInputElement* aVertexElements, const uint numElements);
 
+	void ReloadShader(const char* filename);
+
 	const RdrShader* GetVertexShader(const RdrVertexShader shader);
 	const RdrShader* GetGeometryShader(const RdrGeometryShader shader);
 	const RdrShader* GetComputeShader(const RdrComputeShader eShader);
@@ -46,14 +48,29 @@ private:
 		uint numElements;
 	};
 
+	struct CmdReloadShader
+	{
+		union
+		{
+			RdrShaderHandle hPixelShader;
+			RdrVertexShader vertexShader;
+			RdrGeometryShader geomShader;
+			RdrComputeShader computeShader;
+		};
+		RdrShaderStage eStage;
+	};
+
 	struct FrameState
 	{
 		std::vector<CmdCreatePixelShader> pixelShaderCreates;
 		std::vector<CmdCreateInputLayout> layoutCreates;
+		std::vector<CmdReloadShader> shaderReloads;
 	};
 
 private:
 	RdrContext* m_pRdrContext;
+
+	RdrShader m_errorShaders[(int)RdrShaderStage::Count];
 
 	RdrShader m_vertexShaders[(int)RdrVertexShaderType::Count * (int)RdrShaderFlags::NumCombos];
 	RdrShader m_geometryShaders[(int)RdrGeometryShaderType::Count * (int)RdrShaderFlags::NumCombos];
@@ -63,6 +80,8 @@ private:
 	RdrShaderList      m_pixelShaders;
 
 	RdrInputLayoutList m_inputLayouts;
+
+	ThreadLock m_reloadLock;
 
 	FrameState m_states[2];
 	uint       m_queueState;

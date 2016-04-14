@@ -96,13 +96,13 @@ bool RdrContextD3D11::CompileShader(RdrShaderStage eType, const char* pShaderTex
 	return true;
 }
 
-void* RdrContextD3D11::CreateShader(RdrShaderStage eType, const void* pShaderText, uint textLen)
+void* RdrContextD3D11::CreateShader(RdrShaderStage eStage, const void* pShaderText, uint textLen)
 {
 	HRESULT hr;
 	
 	void* pOutShader = nullptr;
 
-	switch (eType)
+	switch (eStage)
 	{
 	case RdrShaderStage::Vertex:
 		hr = m_pDevice->CreateVertexShader(pShaderText, textLen, nullptr, (ID3D11VertexShader**)&pOutShader);
@@ -122,6 +122,27 @@ void* RdrContextD3D11::CreateShader(RdrShaderStage eType, const void* pShaderTex
 
 	assert(hr == S_OK);
 	return pOutShader;
+}
+
+void RdrContextD3D11::ReleaseShader(RdrShader* pShader)
+{
+	switch (pShader->eStage)
+	{
+	case RdrShaderStage::Vertex:
+		pShader->pVertex->Release();
+		break;
+	case RdrShaderStage::Pixel:
+		pShader->pPixel->Release();
+		break;
+	case RdrShaderStage::Geometry:
+		pShader->pGeometry->Release();
+		break;
+	case RdrShaderStage::Compute:
+		pShader->pCompute->Release();
+		break;
+	default:
+		assert(false);
+	}
 }
 
 RdrInputLayout RdrContextD3D11::CreateInputLayout(const void* pCompiledVertexShader, uint vertexShaderSize, const RdrVertexInputElement* aVertexElements, uint numElements)

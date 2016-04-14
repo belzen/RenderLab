@@ -58,6 +58,8 @@ class RdrContextD3D11 : public RdrContext
 
 	bool CompileShader(RdrShaderStage eType, const char* pShaderText, uint textLen, void** ppOutCompiledData, uint* pOutDataSize);
 	void* CreateShader(RdrShaderStage eType, const void* pCompiledData, uint compiledDataSize);
+	void ReleaseShader(RdrShader* pShader);
+
 	RdrInputLayout CreateInputLayout(const void* pCompiledVertexShader, uint vertexShaderSize, const RdrVertexInputElement* aVertexElements, uint numElements);
 
 	void Draw(const RdrDrawState& rDrawState);

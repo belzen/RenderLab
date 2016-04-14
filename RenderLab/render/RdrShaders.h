@@ -41,6 +41,8 @@ struct RdrShader
 
 	const void* pVertexCompiledData;
 	uint compiledSize;
+
+	RdrShaderStage eStage;
 };
 
 enum class RdrShaderFlags : uint

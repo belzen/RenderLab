@@ -48,6 +48,8 @@ public:
 
 	virtual bool CompileShader(RdrShaderStage eType, const char* pShaderText, uint textLen, void** ppOutCompiledData, uint* pOutDataSize) = 0;
 	virtual void* CreateShader(RdrShaderStage eType, const void* pCompiledData, uint compiledDataSize) = 0;
+	virtual void ReleaseShader(RdrShader* pShader) = 0;
+
 	virtual RdrInputLayout CreateInputLayout(const void* pCompiledVertexShader, uint vertexShaderSize, const RdrVertexInputElement* aVertexElements, uint numElements) = 0;
 
 	virtual void Draw(const RdrDrawState& rDrawState) = 0;

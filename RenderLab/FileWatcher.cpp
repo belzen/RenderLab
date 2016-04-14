@@ -4,30 +4,54 @@
 #include <assert.h>
 #include <thread>
 #include <fileapi.h>
+#include <regex>
 
 namespace
 {
+	struct FileListener
+	{
+		std::regex patternRegex;
+		FileWatcher::FileChangedFunc changedFunc;
+		void* pUserData;
+	};
+
 	struct
 	{
 		std::thread thread;
 		HANDLE hDirectory;
 		OVERLAPPED overlapped;
-		BYTE notifyBuffer[16 * 1024];
+		char notifyBuffer[16 * 1024];
 		char path[MAX_PATH];
+		uint pathLen;
 		bool bTerminate;
 
+		std::vector<FileListener> listeners;
 	} s_fileWatcher;
 
 	void reissueFileListener();
 
 	void CALLBACK notificationCompletion(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
 	{
-		BYTE* pCur = s_fileWatcher.notifyBuffer;
+		char* pCur = s_fileWatcher.notifyBuffer;
+		uint numListeners = (uint)s_fileWatcher.listeners.size();
+
 		while (true)
 		{
 			FILE_NOTIFY_INFORMATION* pInfo = (FILE_NOTIFY_INFORMATION*)pCur;
 
-			// todo: Compare changed file against search patterns, send to callbacks.
+			char relativePath[MAX_PATH];
+			size_t numConverted;
+			wcstombs_s(&numConverted, relativePath, pInfo->FileName, pInfo->FileNameLength / sizeof(wchar_t));
+
+			for (uint i = 0; i < numListeners; ++i)
+			{
+				FileListener& rListener = s_fileWatcher.listeners[i];
+				if (regex_match(relativePath, rListener.patternRegex))
+				{
+					rListener.changedFunc(relativePath, rListener.pUserData);
+				}
+			}
+
 			// todo: File modifications seem to come through here twice...
 
 			if (pInfo->NextEntryOffset == 0)
@@ -73,6 +97,16 @@ namespace
 			SleepEx(INFINITE, true);
 		}
 	}
+
+	void strPrefixChar(std::string& str, char c, const char* prefix)
+	{
+		size_t pos = str.length();
+		while ((pos = str.rfind(c, pos)) != std::string::npos)
+		{
+			str.insert(pos, prefix);
+			--pos;
+		}
+	}
 }
 
 
@@ -81,13 +115,26 @@ void FileWatcher::Init(const char* dataDir)
 	GetCurrentDirectoryA(MAX_PATH, s_fileWatcher.path);
 	strcat_s(s_fileWatcher.path, MAX_PATH, "/");
 	strcat_s(s_fileWatcher.path, MAX_PATH, dataDir);
+	s_fileWatcher.pathLen = (uint)strlen(s_fileWatcher.path);
 
 	s_fileWatcher.thread = std::thread(fileWatcherThreadMain);
 }
 
-void FileWatcher::AddListener(const char* pattern, FileChangedFunc callback)
+void FileWatcher::AddListener(const char* pattern, FileChangedFunc callback, void* pUserData)
 {
-	// todo
+	FileListener listener;
+
+	// Convert file system pattern to regex.
+	std::string patternRegex = pattern;
+	std::replace(patternRegex.begin(), patternRegex.end(), '/', '\\');
+	strPrefixChar(patternRegex, '\\', "\\");
+	strPrefixChar(patternRegex, '.', "\\");
+	strPrefixChar(patternRegex, '*', ".");
+
+	listener.patternRegex = patternRegex;
+	listener.changedFunc = callback;
+	listener.pUserData = pUserData;
+	s_fileWatcher.listeners.push_back(listener);
 }
 
 void FileWatcher::Cleanup()
