@@ -9,8 +9,6 @@
 class RdrContext;
 
 typedef std::map<std::string, RdrShaderHandle> RdrShaderHandleMap; // todo: better map key for this and other caches
-typedef FreeList<RdrShader, 1024> RdrShaderList;
-typedef FreeList<RdrInputLayout, 1024> RdrInputLayoutList;
 
 class RdrShaderSystem
 {

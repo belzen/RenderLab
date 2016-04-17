@@ -8,9 +8,9 @@
 #include "input/CameraInputContext.h"
 #include "Timer.h"
 #include "FrameTimer.h"
-#include "debug/DebugConsole.h"
 #include "debug/Debug.h"
 #include "FileWatcher.h"
+
 
 namespace
 {
@@ -108,7 +108,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 	ShowWindow(hWnd, nCmdShow);
 	g_renderer.Init(hWnd, kClientWidth, kClientHeight);
-	DebugConsole::Init(g_renderer);
+	Debug::Init(g_renderer);
 
 	FileWatcher::Init("data");
 
@@ -150,6 +150,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 		Input::GetActiveContext()->Update(dt);
 
 		g_scene.Update(dt);
+		Debug::Update(dt);
 
 		// Primary render action
 		{
@@ -161,10 +162,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 			g_renderer.BeginPrimaryAction(rCamera, g_scene.GetLightList());
 
 			g_scene.QueueDraw(g_renderer);
-			DebugConsole::QueueDraw(g_renderer);
 
-			// Debug
-			Debug::QueueDebugDisplay(g_renderer, g_scene, frameTimer);
+			Debug::QueueDraw(g_renderer, g_scene, frameTimer);
 
 			g_renderer.EndAction();
 		}

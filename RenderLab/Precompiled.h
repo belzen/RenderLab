@@ -6,6 +6,8 @@
 
 #include <malloc.h>
 #include <assert.h>
+#include <memory>
+#include <DirectXMath.h>
 
 #include "Util.h"
 #include "Types.h"

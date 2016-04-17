@@ -155,16 +155,6 @@ const RdrGeometry* RdrGeoSystem::GetGeo(const RdrGeoHandle hGeo)
 	return m_geos.get(hGeo);
 }
 
-const RdrVertexBuffer* RdrGeoSystem::GetVertexBuffer(const RdrVertexBufferHandle hBuffer)
-{
-	return m_vertexBuffers.get(hBuffer);
-}
-
-const RdrIndexBuffer* RdrGeoSystem::GetIndexBuffer(const RdrIndexBufferHandle hBuffer)
-{
-	return m_indexBuffers.get(hBuffer);
-}
-
 void RdrGeoSystem::ReleaseGeo(const RdrGeoHandle hGeo)
 {
 	CmdRelease cmd;
@@ -211,15 +201,11 @@ void RdrGeoSystem::ProcessCommands()
 			CmdRelease& cmd = state.releases[i];
 			RdrGeometry* pGeo = m_geos.get(cmd.hGeo);
 
-			RdrVertexBuffer* pVertexBuffer = m_vertexBuffers.get(pGeo->hVertexBuffer);
-			m_pRdrContext->ReleaseVertexBuffer(pVertexBuffer);
-			m_vertexBuffers.releaseId(pGeo->hVertexBuffer);
-			pGeo->hVertexBuffer = 0;
+			m_pRdrContext->ReleaseVertexBuffer(pGeo->vertexBuffer);
+			pGeo->vertexBuffer.pBuffer = nullptr;
 
-			RdrIndexBuffer* pIndexBuffer = m_indexBuffers.get(pGeo->hIndexBuffer);
-			m_pRdrContext->ReleaseIndexBuffer(pIndexBuffer);
-			m_indexBuffers.releaseId(pGeo->hIndexBuffer);
-			pGeo->hIndexBuffer = 0;
+			m_pRdrContext->ReleaseIndexBuffer(pGeo->indexBuffer);
+			pGeo->indexBuffer.pBuffer = nullptr;
 
 			m_geos.releaseId(cmd.hGeo);
 		}
@@ -232,20 +218,14 @@ void RdrGeoSystem::ProcessCommands()
 	{
 		CmdUpdate& cmd = state.updates[i];
 		RdrGeometry* pGeo = m_geos.get(cmd.hGeo);
-		if (!pGeo->hVertexBuffer)
+		if (!pGeo->vertexBuffer.pBuffer)
 		{
 			// Creating
 			pGeo->geoInfo = cmd.info;
-
-			RdrVertexBuffer* pVertexBuffer = m_vertexBuffers.alloc();
-			*pVertexBuffer = m_pRdrContext->CreateVertexBuffer(cmd.pVertData, cmd.info.vertStride * cmd.info.numVerts);
-			pGeo->hVertexBuffer = m_vertexBuffers.getId(pVertexBuffer);
-
+			pGeo->vertexBuffer = m_pRdrContext->CreateVertexBuffer(cmd.pVertData, cmd.info.vertStride * cmd.info.numVerts);
 			if (cmd.pIndexData)
 			{
-				RdrIndexBuffer* pIndexBuffer = m_indexBuffers.alloc();
-				*pIndexBuffer = m_pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices);
-				pGeo->hIndexBuffer = m_indexBuffers.getId(pIndexBuffer);
+				pGeo->indexBuffer = m_pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices);
 			}
 		}
 		else

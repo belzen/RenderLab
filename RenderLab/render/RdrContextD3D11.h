@@ -32,15 +32,18 @@ class RdrContextD3D11 : public RdrContext
 	bool IsIdle();
 
 	RdrVertexBuffer CreateVertexBuffer(const void* vertices, int size);
-	void ReleaseVertexBuffer(const RdrVertexBuffer* pBuffer);
+	void ReleaseVertexBuffer(const RdrVertexBuffer& rBuffer);
 
 	RdrIndexBuffer CreateIndexBuffer(const void* indices, int size);
-	void ReleaseIndexBuffer(const RdrIndexBuffer* pBuffer);
+	void ReleaseIndexBuffer(const RdrIndexBuffer& rBuffer);
 
 	bool CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource);
 
 	bool CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage, RdrResource& rResource);
 	bool UpdateStructuredBuffer(const void* pSrcData, RdrResource& rResource);
+
+	void CopyResourceRegion(const RdrResource& rSrcResource, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset);
+	void ReadResource(const RdrResource& rSrcResource, void* pDstData, uint dstDataSize);
 
 	void ReleaseResource(RdrResource& rResource);
 

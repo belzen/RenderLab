@@ -7,6 +7,7 @@
 #include "RdrResourceSystem.h"
 #include "RdrDrawState.h"
 #include "RdrPostProcess.h"
+#include "RdrRequests.h"
 
 class Camera;
 class WorldObject;
@@ -51,6 +52,10 @@ public:
 	RdrResourceSystem& GetResourceSystem();
 	RdrGeoSystem& GetGeoSystem();
 
+	RdrResourceReadbackRequestHandle IssueTextureReadbackRequest(RdrResourceHandle hResource, const IVec3& pixelCoord);
+	RdrResourceReadbackRequestHandle IssueStructuredBufferReadbackRequest(RdrResourceHandle hResource, uint startByteOffset, uint numBytesToRead);
+	void ReleaseResourceReadbackRequest(RdrResourceReadbackRequestHandle hRequest);
+
 private:
 	void DrawPass(const RdrAction& rAction, RdrPass ePass);
 	void CreatePerActionConstants();
@@ -64,6 +69,8 @@ private:
 
 	void DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices);
 	void DispatchCompute(RdrDrawOp* pDrawOp);
+
+	void ProcessReadbackRequests();
 
 	///
 	RdrContext* m_pContext;
@@ -99,6 +106,10 @@ private:
 	int					m_tileCountY;
 
 	RdrPostProcess m_postProcess;
+
+	RdrResourceReadbackRequestList m_readbackRequests; // Average out to a max of 32 requests per frame
+	std::vector<RdrResourceReadbackRequestHandle> m_pendingReadbackRequests;
+	ThreadLock m_readbackLock;
 };
 
 inline int Renderer::GetViewportWidth() const 

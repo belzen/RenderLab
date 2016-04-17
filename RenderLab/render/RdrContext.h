@@ -22,15 +22,18 @@ public:
 	virtual bool IsIdle() = 0;
 
 	virtual RdrVertexBuffer CreateVertexBuffer(const void* vertices, int size) = 0;
-	virtual void ReleaseVertexBuffer(const RdrVertexBuffer* pBuffer) = 0;
+	virtual void ReleaseVertexBuffer(const RdrVertexBuffer& rBuffer) = 0;
 
 	virtual RdrIndexBuffer CreateIndexBuffer(const void* indices, int size) = 0;
-	virtual void ReleaseIndexBuffer(const RdrIndexBuffer* pBuffer) = 0;
+	virtual void ReleaseIndexBuffer(const RdrIndexBuffer& rBuffer) = 0;
 
 	virtual bool CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource) = 0;
 
 	virtual bool CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage, RdrResource& rResource) = 0;
 	virtual bool UpdateStructuredBuffer(const void* pSrcData, RdrResource& rResource) = 0;
+
+	virtual void CopyResourceRegion(const RdrResource& rSrcResource, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset) = 0;
+	virtual void ReadResource(const RdrResource& rSrcResource, void* pDstData, uint dstDataSize) = 0;
 
 	virtual void ReleaseResource(RdrResource& rResource) = 0;
 

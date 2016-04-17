@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RdrDeviceTypes.h"
+#include "FreeList.h"
 
 struct ID3D11Buffer;
 struct ID3D11Texture2D;
@@ -45,7 +46,6 @@ struct RdrUnorderedAccessView
 	};
 };
 
-typedef uint16 RdrResourceHandle;
 struct RdrResource
 {
 	union
@@ -70,7 +70,6 @@ union RdrConstantBufferDeviceObj
 	ID3D11Buffer* pBufferD3D11;
 };
 
-typedef uint16 RdrConstantBufferHandle;
 struct RdrConstantBuffer
 {
 	static inline uint GetRequiredSize(uint size) { return sizeof(Vec4) * (uint)ceilf(size / (float)sizeof(Vec4)); }
@@ -79,3 +78,18 @@ struct RdrConstantBuffer
 	RdrConstantBufferDeviceObj bufferObj;
 	uint size;
 };
+
+
+//////////////////////////////////////////////////////////////////////////
+
+typedef FreeList<RdrResource, 1024> RdrResourceList;
+typedef RdrResourceList::Handle RdrResourceHandle;
+
+typedef FreeList<RdrConstantBuffer, 1024> RdrConstantBufferList;
+typedef RdrConstantBufferList::Handle RdrConstantBufferHandle;
+
+typedef FreeList<RdrRenderTargetView, 128> RdrRenderTargetViewList;
+typedef RdrRenderTargetViewList::Handle RdrRenderTargetViewHandle;
+
+typedef FreeList<RdrDepthStencilView, 128> RdrDepthStencilViewList;
+typedef RdrDepthStencilViewList::Handle RdrDepthStencilViewHandle;

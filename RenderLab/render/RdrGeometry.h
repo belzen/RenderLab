@@ -21,23 +21,25 @@ struct RdrGeoInfo
 	float radius;
 };
 
-typedef uint RdrVertexBufferHandle;
 struct RdrVertexBuffer
 {
 	ID3D11Buffer* pBuffer;
 };
 
-typedef uint RdrIndexBufferHandle;
 struct RdrIndexBuffer
 {
 	ID3D11Buffer* pBuffer;
 };
 
-typedef uint RdrGeoHandle;
 struct RdrGeometry
 {
-	RdrVertexBufferHandle hVertexBuffer;
-	RdrIndexBufferHandle hIndexBuffer;
+	RdrVertexBuffer vertexBuffer;
+	RdrIndexBuffer indexBuffer;
 	RdrGeoInfo geoInfo;
-}; 
+};
 
+
+//////////////////////////////////////////////////////////////////////////
+
+typedef FreeList<RdrGeometry, 1024> RdrGeoList;
+typedef RdrGeoList::Handle RdrGeoHandle;

@@ -8,3 +8,4 @@ typedef Vec4 float4;
 #include "../../data/shaders/v_constants.h"
 #include "../../data/shaders/g_constants.h"
 #include "../../data/shaders/p_constants.h"
+#include "../../data/shaders/c_constants.h"

@@ -3,6 +3,7 @@
 #include "Renderer.h"
 #include "RdrDrawOp.h"
 #include "RdrTransientMem.h"
+#include "RdrResource.h"
 #include <d3d11.h>
 
 namespace

@@ -142,7 +142,12 @@ bool RdrContextD3D11::CreateStructuredBuffer(const void* pSrcData, int numElemen
 	desc.ByteWidth = numElements * elementSize;
 	desc.StructureByteStride = elementSize;
 	desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	if (eUsage == RdrResourceUsage::Dynamic)
+	if (eUsage == RdrResourceUsage::Staging)
+	{
+		desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		desc.BindFlags = 0;
+	}
+	else if (eUsage == RdrResourceUsage::Dynamic)
 	{
 		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
@@ -159,8 +164,13 @@ bool RdrContextD3D11::CreateStructuredBuffer(const void* pSrcData, int numElemen
 
 	HRESULT hr = m_pDevice->CreateBuffer(&desc, (pSrcData ? &data : nullptr), (ID3D11Buffer**)&rResource.pResource);
 	assert(hr == S_OK);
-	hr = m_pDevice->CreateShaderResourceView(rResource.pResource, nullptr, &rResource.resourceView.pViewD3D11);
-	assert(hr == S_OK);
+
+	if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+	{
+		hr = m_pDevice->CreateShaderResourceView(rResource.pResource, nullptr, &rResource.resourceView.pViewD3D11);
+		assert(hr == S_OK);
+	}
+
 	if (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
 	{
 		hr = m_pDevice->CreateUnorderedAccessView(rResource.pResource, nullptr, &rResource.uav.pViewD3D11);
@@ -183,6 +193,30 @@ bool RdrContextD3D11::UpdateStructuredBuffer(const void* pSrcData, RdrResource& 
 	return true;
 }
 
+void RdrContextD3D11::CopyResourceRegion(const RdrResource& rSrcResource, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset)
+{
+	D3D11_BOX box;
+	box.left = srcRegion.left;
+	box.right = srcRegion.left + srcRegion.width;
+	box.top = srcRegion.top;
+	box.bottom = srcRegion.top + srcRegion.height;
+	box.front = srcRegion.front;
+	box.back = srcRegion.front + srcRegion.depth;
+
+	m_pDevContext->CopySubresourceRegion(rDstResource.pResource, 0, dstOffset.x, dstOffset.y, dstOffset.z, rSrcResource.pResource, 0, &box);
+}
+
+void RdrContextD3D11::ReadResource(const RdrResource& rSrcResource, void* pDstData, uint dstDataSize)
+{
+	D3D11_MAPPED_SUBRESOURCE mapped;
+	HRESULT hr = m_pDevContext->Map(rSrcResource.pResource, 0, D3D11_MAP_READ, 0, &mapped);
+	assert(hr == S_OK);
+
+	memcpy(pDstData, mapped.pData, dstDataSize);
+
+	m_pDevContext->Unmap(rSrcResource.pResource, 0);
+}
+
 RdrVertexBuffer RdrContextD3D11::CreateVertexBuffer(const void* vertices, int size)
 {
 	RdrVertexBuffer buffer;
@@ -190,9 +224,9 @@ RdrVertexBuffer RdrContextD3D11::CreateVertexBuffer(const void* vertices, int si
 	return buffer;
 }
 
-void RdrContextD3D11::ReleaseVertexBuffer(const RdrVertexBuffer* pBuffer)
+void RdrContextD3D11::ReleaseVertexBuffer(const RdrVertexBuffer& rBuffer)
 {
-	pBuffer->pBuffer->Release();
+	rBuffer.pBuffer->Release();
 }
 
 RdrIndexBuffer RdrContextD3D11::CreateIndexBuffer(const void* indices, int size)
@@ -202,48 +236,9 @@ RdrIndexBuffer RdrContextD3D11::CreateIndexBuffer(const void* indices, int size)
 	return buffer;
 }
 
-void RdrContextD3D11::ReleaseIndexBuffer(const RdrIndexBuffer* pBuffer)
+void RdrContextD3D11::ReleaseIndexBuffer(const RdrIndexBuffer& rBuffer)
 {
-	pBuffer->pBuffer->Release();
-}
-
-static int GetTexturePitch(const int width, const RdrResourceFormat eFormat)
-{
-	switch (eFormat)
-	{
-	case RdrResourceFormat::R8_UNORM:
-		return width * 1;
-	case RdrResourceFormat::DXT1:
-		return ((width + 3) & ~3) * 2;
-	case RdrResourceFormat::DXT5:
-	case RdrResourceFormat::DXT5_sRGB:
-		return ((width + 3) & ~3) * 4;
-	case RdrResourceFormat::B8G8R8A8_UNORM:
-	case RdrResourceFormat::B8G8R8A8_UNORM_sRGB:
-		return width * 4;
-	default:
-		assert(false);
-		return 0;
-	}
-}
-
-static int GetTextureRows(const int height, const RdrResourceFormat eFormat)
-{
-	switch (eFormat)
-	{
-	case RdrResourceFormat::R8_UNORM:
-		return height;
-	case RdrResourceFormat::DXT1:
-	case RdrResourceFormat::DXT5:
-	case RdrResourceFormat::DXT5_sRGB:
-		return ((height + 3) & ~3) / 4;
-	case RdrResourceFormat::B8G8R8A8_UNORM:
-	case RdrResourceFormat::B8G8R8A8_UNORM_sRGB:
-		return height;
-	default:
-		assert(false);
-		return 0;
-	}
+	rBuffer.pBuffer->Release();
 }
 
 static D3D11_COMPARISON_FUNC getComparisonFuncD3d(const RdrComparisonFunc cmpFunc)
@@ -436,21 +431,31 @@ namespace
 		D3D11_TEXTURE2D_DESC desc = { 0 };
 
 		desc.Usage = getD3DUsage(eUsage);
-		desc.CPUAccessFlags = (desc.Usage == D3D11_USAGE_DYNAMIC) ? D3D11_CPU_ACCESS_WRITE : 0;
 		desc.ArraySize = rTexInfo.arraySize;
 		desc.MiscFlags = 0;
-		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		if (resourceFormatIsDepth(rTexInfo.format))
+		if (desc.Usage == D3D11_USAGE_STAGING)
 		{
-			desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+			desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 		}
 		else
 		{
-			// todo: find out if having all these bindings cause any inefficiencies in D3D
-			if (bCanBindAccessView)
-				desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-			if (eUsage != RdrResourceUsage::Immutable)
-				desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+			if (desc.Usage == D3D11_USAGE_DYNAMIC)
+			{
+				desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			}
+			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			if (resourceFormatIsDepth(rTexInfo.format))
+			{
+				desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+			}
+			else
+			{
+				// todo: find out if having all these bindings cause any inefficiencies in D3D
+				if (bCanBindAccessView)
+					desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+				if (eUsage != RdrResourceUsage::Immutable)
+					desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+			}
 		}
 
 		desc.SampleDesc.Count = rTexInfo.sampleCount;
@@ -463,7 +468,7 @@ namespace
 		HRESULT hr = pDevice->CreateTexture2D(&desc, pData, &rResource.pTexture);
 		assert(hr == S_OK);
 
-		//if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+		if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
 		{
 			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
 			viewDesc.Format = getD3DFormat(rTexInfo.format);
@@ -546,8 +551,8 @@ bool RdrContextD3D11::CreateTexture(const void* pSrcData, const RdrTextureInfo& 
 			for (uint mip = 0; mip < rTexInfo.mipLevels; ++mip)
 			{
 				pData[resIndex].pSysMem = pPos;
-				pData[resIndex].SysMemPitch = GetTexturePitch(mipWidth, rTexInfo.format);
-				pPos += pData[resIndex].SysMemPitch * GetTextureRows(mipHeight, rTexInfo.format);
+				pData[resIndex].SysMemPitch = rdrGetTexturePitch(mipWidth, rTexInfo.format);
+				pPos += pData[resIndex].SysMemPitch * rdrGetTextureRows(mipHeight, rTexInfo.format);
 				mipWidth >>= 1;
 				mipHeight >>= 1;
 				++resIndex;

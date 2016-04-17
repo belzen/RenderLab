@@ -101,38 +101,38 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* filename,
 	return cmd.hResource;
 }
 
-RdrResourceHandle RdrResourceSystem::CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat)
+RdrResourceHandle RdrResourceSystem::CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage)
 {
-	return CreateTextureInternal(width, height, 1, 1, eFormat, 1, false);
+	return CreateTextureInternal(width, height, 1, 1, eFormat, 1, false, eUsage);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTexture2DMS(uint width, uint height, RdrResourceFormat eFormat, uint sampleCount)
 {
-	return CreateTextureInternal(width, height, 1, 1, eFormat, sampleCount, false);
+	return CreateTextureInternal(width, height, 1, 1, eFormat, sampleCount, false, RdrResourceUsage::Default);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat)
 {
-	return CreateTextureInternal(width, height, 1, arraySize, eFormat, 1, false);
+	return CreateTextureInternal(width, height, 1, arraySize, eFormat, 1, false, RdrResourceUsage::Default);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat)
 {
-	return CreateTextureInternal(width, height, 1, 1, eFormat, 1, true);
+	return CreateTextureInternal(width, height, 1, 1, eFormat, 1, true, RdrResourceUsage::Default);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat)
 {
-	return CreateTextureInternal(width, height, 1, arraySize, eFormat, 1, true);
+	return CreateTextureInternal(width, height, 1, arraySize, eFormat, 1, true, RdrResourceUsage::Default);
 }
 
-RdrResourceHandle RdrResourceSystem::CreateTextureInternal(uint width, uint height, uint mipLevels, uint arraySize, RdrResourceFormat eFormat, uint sampleCount, bool bCubemap)
+RdrResourceHandle RdrResourceSystem::CreateTextureInternal(uint width, uint height, uint mipLevels, uint arraySize, RdrResourceFormat eFormat, uint sampleCount, bool bCubemap, RdrResourceUsage eUsage)
 {
 	RdrResource* pResource = m_resources.allocSafe();
 
 	CmdCreateTexture cmd = { 0 };
 	cmd.hResource = m_resources.getId(pResource);
-	cmd.eUsage = RdrResourceUsage::Default;
+	cmd.eUsage = eUsage;
 	cmd.texInfo.format = eFormat;
 	cmd.texInfo.width = width;
 	cmd.texInfo.height = height;

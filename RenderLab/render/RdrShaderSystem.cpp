@@ -228,14 +228,14 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 	{
 		cmd.eStage = RdrShaderStage::Pixel;
 		cmd.hPixelShader = iter->second;
+
+		AutoScopedLock lock(m_reloadLock);
+		m_states[m_queueState].shaderReloads.push_back(cmd);
 	}
 	else
 	{
 		// todo: other shader types
 	}
-
-	AutoScopedLock lock(m_reloadLock);
-	m_states[m_queueState].shaderReloads.push_back(cmd);
 }
 
 RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename)

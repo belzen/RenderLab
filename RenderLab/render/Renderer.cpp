@@ -122,7 +122,7 @@ void Renderer::ApplyDeviceChanges()
 			m_assets.resources.ReleaseRenderTargetView(m_hColorBufferRenderTarget);
 
 		// FP16 color
-		m_hColorBuffer = m_assets.resources.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT);
+		m_hColorBuffer = m_assets.resources.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
 		if (s_msaaLevel > 1)
 		{
 			m_hColorBufferMultisampled = m_assets.resources.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, s_msaaLevel);
@@ -179,7 +179,7 @@ void Renderer::QueueLightCulling()
 	{
 		if (m_hDepthMinMaxTex)
 			m_assets.resources.ReleaseResource(m_hDepthMinMaxTex);
-		m_hDepthMinMaxTex = m_assets.resources.CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT);
+		m_hDepthMinMaxTex = m_assets.resources.CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT, RdrResourceUsage::Default);
 	}
 
 	RdrDrawOp* pDepthOp = RdrDrawOp::Allocate();
@@ -633,6 +633,36 @@ void Renderer::PostFrameSync()
 	RdrTransientMem::FlipState();
 }
 
+void Renderer::ProcessReadbackRequests()
+{
+	AutoScopedLock lock(m_readbackLock);
+
+	uint numRequests = (uint)m_pendingReadbackRequests.size();
+	for (uint i = 0; i < numRequests; ++i)
+	{
+		RdrResourceReadbackRequest* pRequest = m_readbackRequests.get(m_pendingReadbackRequests[i]);
+		if (pRequest->frameCount == 0)
+		{
+			const RdrResource* pSrc = m_assets.resources.GetResource(pRequest->hSrcResource);
+			const RdrResource* pDst = m_assets.resources.GetResource(pRequest->hDstResource);
+			m_pContext->CopyResourceRegion(*pSrc, pRequest->srcRegion, *pDst, IVec3::kZero);
+		}
+		else if (pRequest->frameCount == 3)
+		{
+			// After 2 frames, we can safely read from the resource without stalling.
+			const RdrResource* pDst = m_assets.resources.GetResource(pRequest->hDstResource);
+			m_pContext->ReadResource(*pDst, pRequest->pData, pRequest->dataSize);
+			pRequest->bComplete = true;
+
+			// Remove from pending list
+			m_pendingReadbackRequests.erase(m_pendingReadbackRequests.begin() + i);
+			--i;
+		}
+
+		pRequest->frameCount++;
+	}
+}
+
 void Renderer::DrawFrame()
 {
 	RdrFrameState& rFrameState = GetActiveState();
@@ -640,6 +670,8 @@ void Renderer::DrawFrame()
 	m_assets.shaders.ProcessCommands();
 	m_assets.resources.ProcessCommands();
 	m_assets.geos.ProcessCommands();
+
+	ProcessReadbackRequests();
 
 	if (!m_pContext->IsIdle()) // If the device is idle (probably minimized), don't bother rendering anything.
 	{
@@ -761,14 +793,14 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrD
 	m_drawState.inputLayout = *m_assets.shaders.GetInputLayout(pDrawOp->graphics.hInputLayout); // todo: layouts per flags
 	m_drawState.eTopology = RdrTopology::TriangleList;
 
-	m_drawState.vertexBuffers[0] = *m_assets.geos.GetVertexBuffer(pGeo->hVertexBuffer);
+	m_drawState.vertexBuffers[0] = pGeo->vertexBuffer;
 	m_drawState.vertexStride = pGeo->geoInfo.vertStride;
 	m_drawState.vertexOffset = 0;
 	m_drawState.vertexCount = pGeo->geoInfo.numVerts;
 
-	if (pGeo->hIndexBuffer)
+	if (pGeo->indexBuffer.pBuffer)
 	{
-		m_drawState.indexBuffer = *m_assets.geos.GetIndexBuffer(pGeo->hIndexBuffer);
+		m_drawState.indexBuffer = pGeo->indexBuffer;
 		m_drawState.indexCount = pGeo->geoInfo.numIndices;
 	}
 	else
@@ -808,4 +840,70 @@ void Renderer::DispatchCompute(RdrDrawOp* pDrawOp)
 	m_pContext->DispatchCompute(m_drawState, pDrawOp->compute.threads[0], pDrawOp->compute.threads[1], pDrawOp->compute.threads[2]);
 
 	m_drawState.Reset();
+}
+
+
+RdrResourceReadbackRequestHandle Renderer::IssueTextureReadbackRequest(RdrResourceHandle hResource, const IVec3& pixelCoord)
+{
+	RdrResourceReadbackRequest* pReq = m_readbackRequests.alloc();
+	const RdrResource* pSrcResource = m_assets.resources.GetResource(hResource);
+	pReq->hSrcResource = hResource;
+	pReq->frameCount = 0;
+	pReq->bComplete = false;
+	pReq->srcRegion = RdrBox(pixelCoord.x, pixelCoord.y, 0, 1, 1, 1);
+	pReq->hDstResource = m_assets.resources.CreateTexture2D(1, 1, pSrcResource->texInfo.format, RdrResourceUsage::Staging);
+	pReq->dataSize = rdrGetTexturePitch(1, pSrcResource->texInfo.format);
+	pReq->pData = new char[pReq->dataSize]; // todo: custom heap
+
+	AutoScopedLock lock(m_readbackLock);
+	RdrResourceReadbackRequestHandle handle = m_readbackRequests.getId(pReq);
+	m_pendingReadbackRequests.push_back(handle);
+	return handle;
+}
+
+RdrResourceReadbackRequestHandle Renderer::IssueStructuredBufferReadbackRequest(RdrResourceHandle hResource, uint startByteOffset, uint numBytesToRead)
+{
+	RdrResourceReadbackRequest* pReq = m_readbackRequests.alloc();
+	pReq->hSrcResource = hResource;
+	pReq->frameCount = 0;
+	pReq->bComplete = false;
+	pReq->srcRegion = RdrBox(startByteOffset, 0, 0, numBytesToRead, 1, 1);
+	pReq->hDstResource = m_assets.resources.CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceUsage::Staging);
+	pReq->dataSize = numBytesToRead;
+	pReq->pData = new char[numBytesToRead]; // todo: custom heap
+
+	AutoScopedLock lock(m_readbackLock);
+	RdrResourceReadbackRequestHandle handle = m_readbackRequests.getId(pReq);
+	m_pendingReadbackRequests.push_back(handle);
+	return handle;
+}
+
+void Renderer::ReleaseResourceReadbackRequest(RdrResourceReadbackRequestHandle hRequest)
+{
+	RdrResourceReadbackRequest* pReq = m_readbackRequests.get(hRequest);
+	if (!pReq->bComplete)
+	{
+		AutoScopedLock lock(m_readbackLock);
+
+		uint numReqs = (uint)m_pendingReadbackRequests.size();
+		for (uint i = 0; i < numReqs; ++i)
+		{
+			if (m_pendingReadbackRequests[i] == hRequest)
+			{
+				if (i != numReqs - 1)
+				{
+					// If this isn't the last entry, swap it so that we can just pop the end off the vector.
+					m_pendingReadbackRequests[i] = m_pendingReadbackRequests.back();
+				}
+				m_pendingReadbackRequests.pop_back();
+				break;
+			}
+		}
+	}
+
+	// todo: pool/reuse dest resources.
+	m_assets.resources.ReleaseResource(pReq->hDstResource);
+	SAFE_DELETE(pReq->pData);
+
+	m_readbackRequests.releaseId(hRequest);
 }

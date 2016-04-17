@@ -8,10 +8,6 @@
 class RdrContext;
 
 typedef std::map<std::string, RdrResourceHandle> RdrResourceHandleMap;
-typedef FreeList<RdrResource, 1024> RdrResourceList;
-typedef FreeList<RdrConstantBuffer, 1024> RdrConstantBufferList;
-typedef FreeList<RdrRenderTargetView, 128> RdrRenderTargetViewList;
-typedef FreeList<RdrDepthStencilView, 128> RdrDepthStencilViewList;
 
 class RdrResourceSystem
 {
@@ -22,7 +18,7 @@ public:
 
 	RdrResourceHandle CreateTextureFromFile(const char* filename, bool bIsCubemap, bool bIsSrgb, RdrTextureInfo* pOutInfo);
 
-	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat);
+	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
 	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount);
 	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat);
 
@@ -152,7 +148,7 @@ private:
 		std::vector<RdrConstantBufferHandle>  tempConstantBuffers;
 	};
 
-	RdrResourceHandle CreateTextureInternal(uint width, uint height, uint mipLevels, uint ararySize, RdrResourceFormat eFormat, uint sampleCount, bool bCubemap);
+	RdrResourceHandle CreateTextureInternal(uint width, uint height, uint mipLevels, uint ararySize, RdrResourceFormat eFormat, uint sampleCount, bool bCubemap, RdrResourceUsage eUsage);
 
 private:
 	static const uint kMaxConstantBuffersPerPool = 128;

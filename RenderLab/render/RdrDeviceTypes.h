@@ -102,6 +102,10 @@ enum class RdrResourceFormat
 	Count
 };
 
+int rdrGetTexturePitch(const int width, const RdrResourceFormat eFormat);
+int rdrGetTextureRows(const int height, const RdrResourceFormat eFormat);
+
+
 enum class RdrComparisonFunc
 {
 	Never,
@@ -144,13 +148,11 @@ struct RdrSamplerState
 	uint bPointSample : 1;
 };
 
-typedef uint16 RdrDepthStencilViewHandle;
 struct RdrDepthStencilView
 {
 	ID3D11DepthStencilView* pView;
 };
 
-typedef uint16 RdrRenderTargetViewHandle;
 struct RdrRenderTargetView
 {
 	ID3D11RenderTargetView* pView;
@@ -183,4 +185,19 @@ enum class RdrResourceUsage
 	Staging,
 
 	Count
+};
+
+struct RdrBox
+{
+	RdrBox()
+		: left(0), top(0), front(0), width(0), height(0), depth(0) {}
+	RdrBox(uint left, uint top, uint front, uint width, uint height, uint depth)
+		: left(left), top(top), front(front), width(width), height(height), depth(depth) {}
+
+	uint left;
+	uint top;
+	uint front;
+	uint width;
+	uint height;
+	uint depth;
 };

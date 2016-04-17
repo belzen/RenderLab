@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #define SAFE_DELETE(mem) if ( mem ) { delete mem; }
 
 #define ENUM_FLAGS(enumType) \
@@ -18,3 +20,12 @@
 		lhs = static_cast<enumType>((int)lhs | (int)rhs); \
 		return lhs; \
 	}
+
+struct StringInvariantCompare
+{
+	// Less than operator
+	bool operator() (const std::string& lhs, const std::string& rhs) const
+	{
+		return _stricmp(lhs.c_str(), rhs.c_str()) < 0;
+	}
+};

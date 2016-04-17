@@ -1,3 +1,5 @@
+#ifndef SHADER_P_CONSTANTS_H
+#define SHADER_P_CONSTANTS_H
 
 struct PsPerAction
 {
@@ -6,9 +8,12 @@ struct PsPerAction
 	uint viewWidth;
 };
 
-struct ToneMapParams
+struct ToneMapOutputParams
 {
 	float linearExposure;
-	float white;
-	float2 unused;
+	float whiteSqr;
+	float lumAvg;
+	float unused;
 };
+
+#endif // SHADER_P_CONSTANTS_H

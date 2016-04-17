@@ -7,6 +7,8 @@ template <class T_object, uint16 T_nMaxEntries>
 class FreeList
 {
 public:
+	typedef uint16 Handle;
+
 	FreeList() 
 		: m_nextId(1), m_numFree(0)
 	{
@@ -15,7 +17,7 @@ public:
 
 	inline T_object* alloc()
 	{
-		uint id = 0;
+		Handle id = 0;
 		if (m_numFree > 0)
 		{
 			id = m_freeIdStack[--m_numFree];
@@ -37,13 +39,13 @@ public:
 		return alloc();
 	}
 
-	inline void releaseId(uint16 id)
+	inline void releaseId(Handle id)
 	{
 		m_inUse[id] = false;
 		m_freeIdStack[m_numFree++] = id;
 	}
 
-	inline void releaseIdSafe(uint16 id)
+	inline void releaseIdSafe(Handle id)
 	{
 		AutoScopedLock lock(m_lock);
 		releaseId(id);
@@ -60,21 +62,21 @@ public:
 		releaseId(getId(pObj));
 	}
 
-	inline T_object* get(uint16 id)
+	inline T_object* get(Handle id)
 	{
 		assert(m_inUse[id]);
 		return &m_objects[id];
 	}
 
-	inline const T_object* get(uint16 id) const
+	inline const T_object* get(Handle id) const
 	{
 		assert(m_inUse[id]);
 		return &m_objects[id];
 	}
 
-	inline uint getId(T_object* pObj)
+	inline Handle getId(T_object* pObj)
 	{
-		return (uint)(pObj - m_objects);
+		return (Handle)(pObj - m_objects);
 	}
 
 	inline void AcquireLock()
@@ -89,9 +91,9 @@ public:
 
 private:
 	T_object m_objects[T_nMaxEntries];
-	uint m_freeIdStack[T_nMaxEntries];
+	Handle m_freeIdStack[T_nMaxEntries];
 	bool m_inUse[T_nMaxEntries];
 	ThreadLock m_lock;
-	uint m_nextId;
-	uint m_numFree;
+	Handle m_nextId;
+	Handle m_numFree;
 };

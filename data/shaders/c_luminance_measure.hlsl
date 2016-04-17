@@ -1,15 +1,21 @@
 #include "p_util.hlsli"
 #include "p_constants.h"
+#include "c_constants.h"
 
 // 16x16 tiles, 4 samples each
 #define GroupSizeX 8
 #define GroupSizeY 8
 #define ThreadCount GroupSizeX * GroupSizeY
 
+cbuffer ToneMapInputBuffer : register(b0)
+{
+	ToneMapInputParams cbTonemapInput;
+}
+
 Texture2D texInput : register(t0);
 
 #if STEP_FINAL
-RWStructuredBuffer<ToneMapParams> bufToneMapOutput : register(u0);
+RWStructuredBuffer<ToneMapOutputParams> bufToneMapOutput : register(u0);
 #else
 RWTexture2D<float4> texOutput : register(u0);
 #endif
@@ -65,11 +71,11 @@ void main( uint3 globalId : SV_DispatchThreadID, uint3 groupId : SV_GroupId, uin
 		avgLum = exp2(avgLum);
 
 		float middleGrey = 0.4f; // todo: sky setting
-		float avgLumScaled = middleGrey / avgLum;
+		float avgLumScaled = cbTonemapInput.middleGrey / avgLum;
 
-		float white = 16.f; // todo: sky setting
 		bufToneMapOutput[0].linearExposure = avgLumScaled;
-		bufToneMapOutput[0].white = white * white;
+		bufToneMapOutput[0].whiteSqr = cbTonemapInput.white * cbTonemapInput.white;
+		bufToneMapOutput[0].lumAvg = avgLum;
 #else
 		texOutput[groupId.xy] = grp_logLum[0] / numSamples;
 #endif

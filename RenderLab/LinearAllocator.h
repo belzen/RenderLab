@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 template<size_t AllocatorSizeT>
 class LinearAllocator
 {

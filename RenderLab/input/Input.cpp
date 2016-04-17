@@ -1,6 +1,5 @@
 #include "Precompiled.h"
 #include "Input.h"
-#include <memory.h>
 #include <stack>
 #include "debug\DebugConsole.h"
 

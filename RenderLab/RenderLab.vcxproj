@@ -169,6 +169,7 @@
   <ItemGroup>
     <ClCompile Include="debug\Debug.cpp" />
     <ClCompile Include="debug\DebugConsole.cpp" />
+    <ClCompile Include="debug\PostProcessDebugger.cpp" />
     <ClCompile Include="FileLoader.cpp" />
     <ClCompile Include="FileWatcher.cpp" />
     <ClCompile Include="FrameTimer.cpp" />
@@ -185,6 +186,7 @@
     <ClCompile Include="render\Camera.cpp" />
     <ClCompile Include="render\Color.cpp" />
     <ClCompile Include="render\Font.cpp" />
+    <ClCompile Include="render\RdrDeviceTypes.cpp" />
     <ClCompile Include="render\RdrGeoSystem.cpp" />
     <ClCompile Include="render\Light.cpp" />
     <ClCompile Include="render\Model.cpp" />
@@ -206,10 +208,12 @@
     <ClCompile Include="WorldObject.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\data\shaders\c_constants.h" />
     <ClInclude Include="..\data\shaders\g_constants.h" />
     <ClInclude Include="..\data\shaders\p_constants.h" />
     <ClInclude Include="debug\Debug.h" />
     <ClInclude Include="debug\DebugConsole.h" />
+    <ClInclude Include="debug\PostProcessDebugger.h" />
     <ClInclude Include="FileLoader.h" />
     <ClInclude Include="FileWatcher.h" />
     <ClInclude Include="FrameTimer.h" />
@@ -220,6 +224,7 @@
     <ClInclude Include="json\json-forwards.h" />
     <ClInclude Include="json\json.h" />
     <ClInclude Include="LinearAllocator.h" />
+    <ClInclude Include="math\IVec3.h" />
     <ClInclude Include="math\Maths.h" />
     <ClInclude Include="math\Matrix33.h" />
     <ClInclude Include="math\Matrix44.h" />
@@ -242,6 +247,7 @@
     <ClInclude Include="render\RdrFrameState.h" />
     <ClInclude Include="render\RdrGeometry.h" />
     <ClInclude Include="render\RdrPostProcess.h" />
+    <ClInclude Include="render\RdrRequests.h" />
     <ClInclude Include="render\RdrResource.h" />
     <ClInclude Include="render\RdrShaderConstants.h" />
     <ClInclude Include="render\RdrShaderSystem.h" />

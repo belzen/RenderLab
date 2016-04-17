@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Maths.h"
-
 struct Vec3 : public DirectX::XMFLOAT3
 {
 	static const Vec3 kOrigin;

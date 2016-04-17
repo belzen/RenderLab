@@ -1,5 +1,7 @@
 #pragma once
 
+#include "FreeList.h"
+
 struct ID3D11VertexShader;
 struct ID3D11GeometryShader;
 struct ID3D11PixelShader;
@@ -7,9 +9,6 @@ struct ID3D11ComputeShader;
 struct ID3D10Blob;
 struct ID3D11Device;
 struct ID3D11InputLayout;
-
-typedef uint16 RdrShaderHandle;
-typedef uint16 RdrInputLayoutHandle;
 
 struct RdrInputLayout
 {
@@ -97,3 +96,11 @@ enum class RdrComputeShader
 	Count
 };
 
+
+//////////////////////////////////////////////////////////////////////////
+
+typedef FreeList<RdrShader, 1024> RdrShaderList;
+typedef RdrShaderList::Handle RdrShaderHandle;
+
+typedef FreeList<RdrInputLayout, 1024> RdrInputLayoutList;
+typedef RdrInputLayoutList::Handle RdrInputLayoutHandle;

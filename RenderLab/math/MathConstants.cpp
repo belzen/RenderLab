@@ -18,3 +18,5 @@ const Vec3 Vec3::kUnitY(0.f, 1.f, 0.f);
 const Vec3 Vec3::kUnitZ(0.f, 0.f, 1.f);
 
 const Quaternion Quaternion::kIdentity(0.f, 0.f, 0.f, 1.f);
+
+const IVec3 IVec3::kZero(0, 0, 0);
