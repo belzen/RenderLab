@@ -1,0 +1,5 @@
+{
+	"pixelShader" : "p_sky.hlsl",
+	"textures" : [ "skies/clouds2" ],
+	"needsLighting" : false
+}

@@ -23,9 +23,9 @@ struct TextObject
 
 namespace Font
 {
-	void Init(Renderer& rRenderer);
+	void Init();
 
-	TextObject CreateText(Renderer& rRenderer, const char* text);
+	TextObject CreateText(const char* text);
 
 	void QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const char* text, Color color);
 	void QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const TextObject &rText, Color color);

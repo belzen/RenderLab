@@ -3,10 +3,14 @@
 class Model;
 class Renderer;
 
+class WorldObject;
+typedef FreeList<WorldObject, 1024> WorldObjectList;
+
 class WorldObject
 {
 public:
-	WorldObject(Model* pModel, Vec3 pos, Quaternion orientation, Vec3 scale);
+	static WorldObject* Create(Model* pModel, Vec3 pos, Quaternion orientation, Vec3 scale);
+	void Release();
 
 	inline void SetModel(Model* pModel);
 	inline const Model* GetModel() const;
@@ -24,6 +28,8 @@ public:
 	void QueueDraw(Renderer& rRenderer) const;
 
 private:
+	friend WorldObjectList;
+
 	Model* m_pModel;
 	Vec3 m_position;
 	Vec3 m_scale;

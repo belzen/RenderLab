@@ -8,11 +8,8 @@
 
 class RdrContext;
 
-typedef std::map<std::string, RdrShaderHandle> RdrShaderHandleMap; // todo: better map key for this and other caches
-
-class RdrShaderSystem
+namespace RdrShaderSystem
 {
-public:
 	void Init(RdrContext* pRdrContext);
 
 	RdrShaderHandle CreatePixelShaderFromFile(const char* filename);
@@ -28,59 +25,6 @@ public:
 	const RdrInputLayout* GetInputLayout(const RdrInputLayoutHandle hLayout);
 
 	void FlipState();
-	void ProcessCommands();
+	void ProcessCommands(RdrContext* pRdrContext);
+}
 
-private:
-	struct CmdCreatePixelShader
-	{
-		RdrShaderHandle hShader;
-		char* pShaderText;
-		uint textLen;
-	};
-
-	struct CmdCreateInputLayout
-	{
-		RdrInputLayoutHandle hLayout;
-		RdrVertexShader vertexShader;
-		RdrVertexInputElement vertexElements[16];
-		uint numElements;
-	};
-
-	struct CmdReloadShader
-	{
-		union
-		{
-			RdrShaderHandle hPixelShader;
-			RdrVertexShader vertexShader;
-			RdrGeometryShader geomShader;
-			RdrComputeShader computeShader;
-		};
-		RdrShaderStage eStage;
-	};
-
-	struct FrameState
-	{
-		std::vector<CmdCreatePixelShader> pixelShaderCreates;
-		std::vector<CmdCreateInputLayout> layoutCreates;
-		std::vector<CmdReloadShader> shaderReloads;
-	};
-
-private:
-	RdrContext* m_pRdrContext;
-
-	RdrShader m_errorShaders[(int)RdrShaderStage::Count];
-
-	RdrShader m_vertexShaders[(int)RdrVertexShaderType::Count * (int)RdrShaderFlags::NumCombos];
-	RdrShader m_geometryShaders[(int)RdrGeometryShaderType::Count * (int)RdrShaderFlags::NumCombos];
-	RdrShader m_computeShaders[(int)RdrComputeShader::Count];
-
-	RdrShaderHandleMap m_pixelShaderCache;
-	RdrShaderList      m_pixelShaders;
-
-	RdrInputLayoutList m_inputLayouts;
-
-	ThreadLock m_reloadLock;
-
-	FrameState m_states[2];
-	uint       m_queueState;
-};

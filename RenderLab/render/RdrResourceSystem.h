@@ -7,16 +7,13 @@
 
 class RdrContext;
 
-typedef std::map<std::string, RdrResourceHandle> RdrResourceHandleMap;
-
-class RdrResourceSystem
+namespace RdrResourceSystem
 {
-public:
 	static const uint kPrimaryRenderTargetHandle = 1;
 
-	void Init(RdrContext* pRdrContext);
+	void Init();
 
-	RdrResourceHandle CreateTextureFromFile(const char* filename, bool bIsCubemap, bool bIsSrgb, RdrTextureInfo* pOutInfo);
+	RdrResourceHandle CreateTextureFromFile(const char* filename, RdrTextureInfo* pOutInfo);
 
 	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
 	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount);
@@ -48,128 +45,6 @@ public:
 	const RdrResource* GetResource(const RdrResourceHandle hRes);
 	const RdrConstantBuffer* GetConstantBuffer(const RdrConstantBufferHandle hBuffer);
 
-	void FlipState();
-	void ProcessCommands();
-
-private:
-	struct CmdCreateTexture
-	{
-		RdrResourceHandle hResource;
-		RdrTextureInfo texInfo;
-		RdrResourceUsage eUsage;
-
-		void* pHeaderData; // Pointer to start of texture data when loaded from a file.
-		void* pData; // Pointer to start of raw data.
-		uint dataSize;
-	};
-
-	struct CmdCreateBuffer
-	{
-		RdrResourceHandle hResource;
-		const void* pData;
-		uint elementSize;
-		uint numElements;
-		RdrResourceUsage eUsage;
-	};
-
-	struct CmdUpdateBuffer
-	{
-		RdrResourceHandle hResource;
-		const void* pData;
-	};
-
-	struct CmdReleaseResource
-	{
-		RdrResourceHandle hResource;
-	};
-
-	struct CmdCreateConstantBuffer
-	{
-		RdrConstantBufferHandle hBuffer;
-		RdrCpuAccessFlags cpuAccessFlags;
-		RdrResourceUsage eUsage;
-		const void* pData;
-		uint size;
-		bool bIsTemp;
-	};
-
-	struct CmdUpdateConstantBuffer
-	{
-		RdrConstantBufferHandle hBuffer;
-		const void* pData;
-		bool bIsTemp;
-	};
-
-	struct CmdReleaseConstantBuffer
-	{
-		RdrConstantBufferHandle hBuffer;
-	};
-
-	struct CmdCreateRenderTarget
-	{
-		RdrRenderTargetViewHandle hView;
-		RdrResourceHandle hResource;
-		int arrayStartIndex;
-		int arraySize;
-	};
-
-	struct CmdReleaseRenderTarget
-	{
-		RdrRenderTargetViewHandle hView;
-	};
-
-	struct CmdCreateDepthStencil
-	{
-		RdrDepthStencilViewHandle hView;
-		RdrResourceHandle hResource;
-		int arrayStartIndex;
-		int arraySize;
-	};
-
-	struct CmdReleaseDepthStencil
-	{
-		RdrDepthStencilViewHandle hView;
-	};
-
-	struct FrameState
-	{
-		std::vector<CmdCreateTexture>         textureCreates;
-		std::vector<CmdCreateBuffer>          bufferCreates;
-		std::vector<CmdUpdateBuffer>          bufferUpdates;
-		std::vector<CmdReleaseResource>       resourceReleases;
-		std::vector<CmdCreateConstantBuffer>  constantBufferCreates;
-		std::vector<CmdUpdateConstantBuffer>  constantBufferUpdates;
-		std::vector<CmdReleaseConstantBuffer> constantBufferReleases;
-		std::vector<CmdCreateRenderTarget>    renderTargetCreates;
-		std::vector<CmdReleaseRenderTarget>   renderTargetReleases;
-		std::vector<CmdCreateDepthStencil>    depthStencilCreates;
-		std::vector<CmdReleaseDepthStencil>   depthStencilReleases;
-
-		std::vector<RdrConstantBufferHandle>  tempConstantBuffers;
-	};
-
-	RdrResourceHandle CreateTextureInternal(uint width, uint height, uint mipLevels, uint ararySize, RdrResourceFormat eFormat, uint sampleCount, bool bCubemap, RdrResourceUsage eUsage);
-
-private:
-	static const uint kMaxConstantBuffersPerPool = 128;
-	static const uint kNumConstantBufferPools = 10;
-	struct ConstantBufferPool
-	{
-		RdrConstantBufferHandle ahBuffers[kMaxConstantBuffersPerPool];
-		uint bufferCount;
-	};
-
-	RdrContext* m_pRdrContext;
-
-	RdrResourceHandleMap m_textureCache;
-	RdrResourceList      m_resources;
-
-	RdrConstantBufferList m_constantBuffers;
-	ConstantBufferPool m_constantBufferPools[kNumConstantBufferPools];
-
-	RdrRenderTargetViewList m_renderTargetViews;
-	RdrDepthStencilViewList m_depthStencilViews;
-
-	FrameState m_states[2];
-	uint       m_queueState;
-};
+	void FlipState(RdrContext* pRdrContext);
+	void ProcessCommands(RdrContext* pRdrContext);
+}

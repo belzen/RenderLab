@@ -6,11 +6,25 @@
 #include "render/Model.h"
 #include "render/Font.h"
 #include "json/json.h"
-#include <fstream>
-#include <d3d11.h>
+#include "FileWatcher.h"
+#include "FileLoader.h"
+
+namespace
+{
+	void handleSceneFileChanged(const char* filename, void* pUserData)
+	{
+		/*
+		Scene* pScene = (Scene*)pUserData;
+		if (stricmp(filename, pScene->GetFilename()) == 0)
+		{
+			pScene->Load()
+		}*/
+	}
+}
 
 Scene::Scene()
 {
+	FileWatcher::AddListener("scenes/*.scene", handleSceneFileChanged, this);
 }
 
 static inline Vec3 readVec3(Json::Value& val)
@@ -58,10 +72,9 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 	char fullFilename[MAX_PATH];
 	sprintf_s(fullFilename, "data/scenes/%s", filename);
 
+
 	Json::Value root;
-	std::ifstream sceneFile(fullFilename);
-	Json::Reader jsonReader;
-	jsonReader.parse(sceneFile, root, false);
+	FileLoader::LoadJson(fullFilename, root);
 
 	// Camera
 	{
@@ -77,18 +90,7 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 	// Sky
 	{
 		Json::Value jSky = root.get("sky", Json::Value::null);
-
-		Json::Value jPixel = jSky.get("pixelShader", Json::Value::null);
-		RdrShaderHandle hPixelShader = rRenderer.GetShaderSystem().CreatePixelShaderFromFile(jPixel.asCString());
-
-		Json::Value jModel = jSky.get("model", Json::Value::null);
-		RdrGeoHandle hGeo = rRenderer.GetGeoSystem().CreateGeoFromFile(jModel.asCString(), nullptr);
-
-		Json::Value jTexture = jSky.get("texture", Json::Value::null);
-		std::string texName = jTexture.asString();
-		RdrResourceHandle hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(texName.c_str(), true, true, nullptr);
-
-		m_sky.Init(rRenderer, hGeo, hPixelShader, hTexture);
+		m_sky.LoadFromFile(jSky.asCString());
 	}
 
 	// Lights
@@ -165,31 +167,15 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 			Vec3 pos = readVec3(jObj.get("position", Json::Value::null));
 			Quaternion orientation = readRotation(jObj.get("rotation", Json::Value::null));
 			Vec3 scale = readScale(jObj.get("scale", Json::Value::null));
-
-			Json::Value jPixel = jObj.get("pixelShader", Json::Value::null);
-			RdrShaderHandle hPixelShader = rRenderer.GetShaderSystem().CreatePixelShaderFromFile(jPixel.asCString());
 			
-			Json::Value jModel = jObj.get("model", Json::Value::null);
-			RdrGeoHandle hGeo = rRenderer.GetGeoSystem().CreateGeoFromFile(jModel.asCString(), nullptr);
+			Json::Value jModel = jObj.get("geo", Json::Value::null);
+			RdrGeoHandle hGeo = RdrGeoSystem::CreateGeoFromFile(jModel.asCString(), nullptr);
 
-			Json::Value jTextures = jObj.get("textures", Json::Value::null);
-			int numTextures = jTextures.size();
-			RdrSamplerState samplers[16];
-			RdrResourceHandle hTextures[16];
-			for (int n = 0; n < numTextures; ++n)
-			{
-				Json::Value jTex = jTextures.get(n, Json::Value::null);
+			Json::Value jMaterialName = jObj.get("material", Json::Value::null);
+			const RdrMaterial* pMaterial = RdrMaterial::LoadFromFile(jMaterialName.asCString());
 
-				std::string texName = jTex.get("filename", Json::Value::null).asString();
-				bool bIsSrgb = jTex.get("srgb", Json::Value::null).asBool();
-
-				hTextures[n] = rRenderer.GetResourceSystem().CreateTextureFromFile(texName.c_str(), false, bIsSrgb, nullptr);
-				samplers[n] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
-			}
-
-			// todo: freelists
-			Model* pModel = new Model(rRenderer, hGeo, hPixelShader, samplers, hTextures, numTextures);
-			m_objects.push_back(new WorldObject(pModel, pos, orientation, scale));
+			Model* pModel = Model::Create(hGeo, pMaterial);
+			m_objects.push_back(WorldObject::Create(pModel, pos, orientation, scale));
 		}
 	}
 

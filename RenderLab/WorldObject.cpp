@@ -4,21 +4,34 @@
 #include "render/Renderer.h"
 #include "render/Camera.h"
 
-WorldObject::WorldObject(Model* pModel, Vec3 pos, Quaternion orientation, Vec3 scale)
-	: m_pModel(pModel)
-	, m_position(pos)
-	, m_scale(scale)
-	, m_orientation(orientation)
+namespace
 {
+	WorldObjectList s_worldObjects;
 }
 
+WorldObject* WorldObject::Create(Model* pModel, Vec3 pos, Quaternion orientation, Vec3 scale)
+{
+	WorldObject* pObject = s_worldObjects.allocSafe();
+
+	pObject->m_pModel = pModel;
+	pObject->m_position = pos;
+	pObject->m_scale = scale;
+	pObject->m_orientation = orientation;
+
+	return pObject;
+}
+
+void WorldObject::Release()
+{
+	m_pModel->Release();
+	s_worldObjects.releaseSafe(this);
+}
 
 void WorldObject::QueueDraw(Renderer& rRenderer) const
 {
 	if (m_pModel)
 	{
-		RdrGeoHandle hGeo = m_pModel->GetGeoHandle();
-		float radius = rRenderer.GetGeoSystem().GetGeo(hGeo)->geoInfo.radius * Vec3MaxComponent(m_scale);
+		float radius = m_pModel->GetRadius() * Vec3MaxComponent(m_scale);
 		if (!rRenderer.GetCurrentCamera().CanSee(m_position, radius))
 			return;
 

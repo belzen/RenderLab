@@ -83,28 +83,28 @@ namespace
 	}
 }
 
-void RdrPostProcess::Init(RdrAssetSystems& rAssets)
+void RdrPostProcess::Init()
 {
 	m_debugger.Init(this);
 
-	m_hToneMapPs = rAssets.shaders.CreatePixelShaderFromFile("p_tonemap.hlsl");
-	m_hToneMapOutputConstants = rAssets.resources.CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapOutputParams), RdrResourceUsage::Default);
+	m_hToneMapPs = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl");
+	m_hToneMapOutputConstants = RdrResourceSystem::CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapOutputParams), RdrResourceUsage::Default);
 
 	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ToneMapInputParams));
 	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	pTonemapSettings->white = 16.f;
 	pTonemapSettings->middleGrey = 0.4f;
-	m_hToneMapInputConstants = rAssets.resources.CreateConstantBuffer(pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+	m_hToneMapInputConstants = RdrResourceSystem::CreateConstantBuffer(pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 }
 
-void RdrPostProcess::HandleResize(uint width, uint height, RdrAssetSystems& rAssets)
+void RdrPostProcess::HandleResize(uint width, uint height)
 {
 	// Update luminance measure textures
 	uint i = 0;
 	for (i = 0; i < ARRAYSIZE(m_hLumOutputs); ++i)
 	{
 		if (m_hLumOutputs[i])
-			rAssets.resources.ReleaseResource(m_hLumOutputs[i]);
+			RdrResourceSystem::ReleaseResource(m_hLumOutputs[i]);
 	}
 
 	uint w = width;
@@ -115,12 +115,12 @@ void RdrPostProcess::HandleResize(uint width, uint height, RdrAssetSystems& rAss
 		w = (uint)ceil(w / 16.f);
 		h = (uint)ceil(h / 16.f);
 
-		m_hLumOutputs[i] = rAssets.resources.CreateTexture2D(w, h, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
+		m_hLumOutputs[i] = RdrResourceSystem::CreateTexture2D(w, h, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
 		++i;
 	}
 }
 
-void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, RdrAssetSystems& rAssets)
+void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer)
 {
 	pRdrContext->BeginEvent(L"Post-Process");
 
@@ -142,22 +142,22 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDr
 		uint h = pColorBuffer->texInfo.height / 16;
 
 		const RdrResource* pLumInput = pColorBuffer;
-		const RdrResource* pLumOutput = rAssets.resources.GetResource(m_hLumOutputs[0]);
-		const RdrResource* pTonemapOutput = rAssets.resources.GetResource(m_hToneMapOutputConstants);
+		const RdrResource* pLumOutput = RdrResourceSystem::GetResource(m_hLumOutputs[0]);
+		const RdrResource* pTonemapOutput = RdrResourceSystem::GetResource(m_hToneMapOutputConstants);
 
-		rDrawState.pComputeShader = rAssets.shaders.GetComputeShader(RdrComputeShader::LuminanceMeasure_First);
+		rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::LuminanceMeasure_First);
 		rDrawState.csResources[0] = pLumInput->resourceView;
 		rDrawState.csUavs[0] = pLumOutput->uav;
-		rDrawState.csConstantBuffers[0] = rAssets.resources.GetConstantBuffer(m_hToneMapInputConstants)->bufferObj;
+		rDrawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(m_hToneMapInputConstants)->bufferObj;
 		rDrawState.csConstantBufferCount = 1;
 		pRdrContext->DispatchCompute(rDrawState, w, h, 1);
 
 		uint i = 1;
-		rDrawState.pComputeShader = rAssets.shaders.GetComputeShader(RdrComputeShader::LuminanceMeasure_Mid);
+		rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::LuminanceMeasure_Mid);
 		while (w > 16 || h > 16)
 		{
 			pLumInput = pLumOutput;
-			pLumOutput = rAssets.resources.GetResource(m_hLumOutputs[i]);
+			pLumOutput = RdrResourceSystem::GetResource(m_hLumOutputs[i]);
 
 			rDrawState.csResources[0] = pLumInput->resourceView;
 			rDrawState.csUavs[0] = pLumOutput->uav;
@@ -169,7 +169,7 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDr
 			pRdrContext->DispatchCompute(rDrawState, w, h, 1);
 		}
 
-		rDrawState.pComputeShader = rAssets.shaders.GetComputeShader(RdrComputeShader::LuminanceMeasure_Final);
+		rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::LuminanceMeasure_Final);
 		rDrawState.csUavs[0] = pTonemapOutput->uav;
 		pRdrContext->DispatchCompute(rDrawState, 1, 1, 1);
 
@@ -184,19 +184,19 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDr
 	// todo: compare compute shader performance vs full screen quad
 	pRdrContext->BeginEvent(L"Tonemap");
 	{
-		RdrRenderTargetView renderTarget = rAssets.resources.GetRenderTargetView(RdrResourceSystem::kPrimaryRenderTargetHandle);
+		RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(RdrResourceSystem::kPrimaryRenderTargetHandle);
 		RdrDepthStencilView depthView = { 0 };
 		pRdrContext->SetRenderTargets(1, &renderTarget, depthView);
 
 		// Vertex shader
-		rDrawState.pVertexShader = rAssets.shaders.GetVertexShader(kQuadVertexShader);
+		rDrawState.pVertexShader = RdrShaderSystem::GetVertexShader(kQuadVertexShader);
 
 		// Pixel shader
-		rDrawState.pPixelShader = rAssets.shaders.GetPixelShader(m_hToneMapPs);
+		rDrawState.pPixelShader = RdrShaderSystem::GetPixelShader(m_hToneMapPs);
 		rDrawState.psResources[0] = pColorBuffer->resourceView;
 		rDrawState.psSamplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 		
-		rDrawState.psResources[1] = rAssets.resources.GetResource(m_hToneMapOutputConstants)->resourceView;
+		rDrawState.psResources[1] = RdrResourceSystem::GetResource(m_hToneMapOutputConstants)->resourceView;
 
 		// Input assembly
 		rDrawState.inputLayout.pInputLayout = nullptr;

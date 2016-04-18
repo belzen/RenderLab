@@ -58,29 +58,27 @@ void LightList::AddLight(Light& light)
 
 void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, const Scene& scene)
 {
-	RdrResourceSystem& resourceSystem = rRenderer.GetResourceSystem();
-
 	if (!m_hShadowMapTexArray)
 	{
-		m_hShadowMapTexArray = resourceSystem.CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, RdrResourceFormat::D16);
+		m_hShadowMapTexArray = RdrResourceSystem::CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, RdrResourceFormat::D16);
 		for (int i = 0; i < MAX_SHADOW_MAPS; ++i)
 		{
-			m_shadowMapDepthViews[i] = resourceSystem.CreateDepthStencilView(m_hShadowMapTexArray, i, 1);
+			m_shadowMapDepthViews[i] = RdrResourceSystem::CreateDepthStencilView(m_hShadowMapTexArray, i, 1);
 		}
 	}
 	if (!m_hShadowCubeMapTexArray)
 	{
-		m_hShadowCubeMapTexArray = resourceSystem.CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, RdrResourceFormat::D16);
+		m_hShadowCubeMapTexArray = RdrResourceSystem::CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, RdrResourceFormat::D16);
 
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
 		for (int i = 0; i < MAX_SHADOW_CUBEMAPS; ++i)
 		{
-			m_shadowCubeMapDepthViews[i] = resourceSystem.CreateDepthStencilView(m_hShadowCubeMapTexArray, i * (int)CubemapFace::Count, (int)CubemapFace::Count);
+			m_shadowCubeMapDepthViews[i] = RdrResourceSystem::CreateDepthStencilView(m_hShadowCubeMapTexArray, i * (int)CubemapFace::Count, (int)CubemapFace::Count);
 		}
 #else
 		for (int i = 0; i < MAX_SHADOW_CUBEMAPS * CubemapFace::Count; ++i)
 		{
-			m_shadowCubeMapDepthViews[i] = resourceSystem.CreateDepthStencilView(m_hShadowCubeMapTexArray, i, 1);
+			m_shadowCubeMapDepthViews[i] = RdrResourceSystem::CreateDepthStencilView(m_hShadowCubeMapTexArray, i, 1);
 		}
 #endif
 	}
@@ -174,12 +172,12 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 		{
 			// todo: m_lights isn't threadsafe when queueing a create
 			if (m_hLightListRes)
-				rRenderer.GetResourceSystem().ReleaseResource(m_hLightListRes);
-			m_hLightListRes = rRenderer.GetResourceSystem().CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light), RdrResourceUsage::Dynamic);
+				RdrResourceSystem::ReleaseResource(m_hLightListRes);
+			m_hLightListRes = RdrResourceSystem::CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light), RdrResourceUsage::Dynamic);
 		}
 		else
 		{
-			rRenderer.GetResourceSystem().UpdateStructuredBuffer(m_hLightListRes, m_lights);
+			RdrResourceSystem::UpdateStructuredBuffer(m_hLightListRes, m_lights);
 		}
 
 		ShadowMapData* pShadowData = (ShadowMapData*)RdrTransientMem::Alloc(sizeof(ShadowMapData) * MAX_SHADOW_MAPS);
@@ -198,11 +196,11 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 
 		if (m_hShadowMapDataRes)
 		{
-			resourceSystem.UpdateStructuredBuffer(m_hShadowMapDataRes, pShadowData);
+			RdrResourceSystem::UpdateStructuredBuffer(m_hShadowMapDataRes, pShadowData);
 		}
 		else
 		{
-			m_hShadowMapDataRes = resourceSystem.CreateStructuredBuffer(pShadowData, MAX_SHADOW_MAPS, sizeof(ShadowMapData), RdrResourceUsage::Dynamic);
+			m_hShadowMapDataRes = RdrResourceSystem::CreateStructuredBuffer(pShadowData, MAX_SHADOW_MAPS, sizeof(ShadowMapData), RdrResourceUsage::Dynamic);
 		}
 
 		m_prevLightCount = m_lightCount;

@@ -32,18 +32,16 @@ namespace
 		short glpyhWidths[256];
 		int glyphPixelSize;
 
-		RdrResourceHandle hTexture;
-
 		RdrInputLayoutHandle hInputLayout;
-		RdrShaderHandle hPixelShader;
-	} g_text;
+		RdrMaterial material;
+	} s_text;
 
 	static void loadFontData(const char* filename)
 	{
 		FILE* file;
 		fopen_s(&file, filename, "rb");
 
-		fread(g_text.glpyhWidths, sizeof(short), 256, file);
+		fread(s_text.glpyhWidths, sizeof(short), 256, file);
 
 		fclose(file);
 	}
@@ -56,37 +54,38 @@ namespace
 		op->eType = RdrDrawOpType::Graphics;
 		op->graphics.hGeo = rText.hTextGeo;
 		op->graphics.bFreeGeo = bFreeGeo;
-		op->graphics.hInputLayout = g_text.hInputLayout;
+		op->graphics.hInputLayout = s_text.hInputLayout;
 		op->graphics.vertexShader = kVertexShader;
-		op->graphics.hPixelShaders[(int)RdrShaderMode::Normal] = g_text.hPixelShader;
-		op->samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
-		op->hTextures[0] = g_text.hTexture;
-		op->texCount = 1;
+		op->graphics.pMaterial = &s_text.material;
 
 		uint constantsSize = sizeof(Vec4) * 2;
 		Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 		pConstants[0] = Vec4(color.r, color.g, color.b, color.a);
 		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
-		op->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize);
+		op->graphics.hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
 
 		rRenderer.AddToBucket(op, RdrBucketType::UI);
 	}
 }
 
-void Font::Init(Renderer& rRenderer)
+void Font::Init()
 {
-	const char* filename = "fonts/verdana.dds";
+	const char* filename = "fonts/verdana";
 	loadFontData("data/textures/fonts/verdana.dat");
 
-	RdrTextureInfo texInfo;
-	g_text.hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(filename, false, false, &texInfo);
-	g_text.glyphPixelSize = texInfo.width / 16;
+	s_text.hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_vertexDesc, ARRAYSIZE(s_vertexDesc));
 
-	g_text.hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(kVertexShader, s_vertexDesc, ARRAYSIZE(s_vertexDesc));
-	g_text.hPixelShader = rRenderer.GetShaderSystem().CreatePixelShaderFromFile("p_text.hlsl");
+	s_text.material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_text.hlsl");
+	s_text.material.samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
+
+	RdrTextureInfo texInfo;
+	s_text.material.hTextures[0] = RdrResourceSystem::CreateTextureFromFile(filename, &texInfo);
+	s_text.glyphPixelSize = texInfo.width / 16;
+
+	s_text.material.texCount = 1;
 }
 
-TextObject Font::CreateText(Renderer& rRenderer, const char* text)
+TextObject Font::CreateText(const char* text)
 {
 	int numQuads = 0;
 	int textLen = (int)strlen(text);
@@ -103,7 +102,7 @@ TextObject Font::CreateText(Renderer& rRenderer, const char* text)
 	const float w = 1.f;
 	const float h = 1.f;
 
-	const float padding = 5.f / g_text.glyphPixelSize;
+	const float padding = 5.f / s_text.glyphPixelSize;
 
 	for (int i = 0; i < textLen; ++i)
 	{
@@ -146,10 +145,10 @@ TextObject Font::CreateText(Renderer& rRenderer, const char* text)
 
 			++numQuads;
 
-			float curGlyphHalfWidth = (g_text.glpyhWidths[text[i]] / (float)g_text.glyphPixelSize) * 0.5f;
+			float curGlyphHalfWidth = (s_text.glpyhWidths[text[i]] / (float)s_text.glyphPixelSize) * 0.5f;
 			float nextGlyphHalfWidth = curGlyphHalfWidth;
 			if ( i < textLen - 1 )
-				nextGlyphHalfWidth = (g_text.glpyhWidths[text[i+1]] / (float)g_text.glyphPixelSize) * 0.5f;
+				nextGlyphHalfWidth = (s_text.glpyhWidths[text[i+1]] / (float)s_text.glyphPixelSize) * 0.5f;
 			x += curGlyphHalfWidth + nextGlyphHalfWidth + padding;
 		}
 	}
@@ -158,13 +157,13 @@ TextObject Font::CreateText(Renderer& rRenderer, const char* text)
 	TextObject obj;
 	obj.size.x = size.x;
 	obj.size.y = size.y;
-	obj.hTextGeo = rRenderer.GetGeoSystem().CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, size);
+	obj.hTextGeo = RdrGeoSystem::CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, size);
 	return obj;
 }
 
 void Font::QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const char* text, Color color)
 {
-	TextObject textObj = CreateText(rRenderer, text);
+	TextObject textObj = CreateText(text);
 	queueDrawCommon(rRenderer, pos, size, textObj, true, color);
 }
 

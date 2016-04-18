@@ -1,35 +1,33 @@
 #pragma once
 
 #include "RdrDrawOp.h"
+#include "RdrGeoSystem.h"
 
 class Renderer;
+
+class Model;
+typedef FreeList<Model, 1024> ModelFreeList;
 
 class Model
 {
 public:
-	Model(Renderer& rRenderer, 
-		RdrGeoHandle hGeo,
-		RdrShaderHandle hPixelShader,
-		RdrSamplerState* aSamplers,
-		RdrResourceHandle* ahTextures,
-		int numTextures );
+	static Model* Create(RdrGeoHandle hGeo, const RdrMaterial* pMaterial);
 
-	~Model();
+	void Release();
 
 	void QueueDraw(Renderer& rRenderer, const Matrix44& worldMat);
 
-	RdrGeoHandle GetGeoHandle() const;
+	float GetRadius() const;
 
 private:
-	RdrInputLayoutHandle m_hInputLayout;
-	RdrShaderHandle m_hPixelShader;
+	friend ModelFreeList;
+	Model() {}
+
 	RdrGeoHandle m_hGeo;
-	RdrSamplerState m_samplers[MAX_TEXTURES_PER_DRAW];
-	RdrResourceHandle m_hTextures[MAX_TEXTURES_PER_DRAW];
-	int m_numTextures;
+	const RdrMaterial* m_pMaterial;
 };
 
-inline RdrGeoHandle Model::GetGeoHandle() const
-{ 
-	return m_hGeo; 
+inline float Model::GetRadius() const 
+{
+	return RdrGeoSystem::GetGeo(m_hGeo)->geoInfo.radius;
 }

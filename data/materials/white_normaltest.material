@@ -1,0 +1,5 @@
+{
+	"pixelShader" : "p_model.hlsl",
+	"textures" : ["a_white", "n_test"],
+	"needsLighting" : true
+}

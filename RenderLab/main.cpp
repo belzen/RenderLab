@@ -108,7 +108,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 	ShowWindow(hWnd, nCmdShow);
 	g_renderer.Init(hWnd, kClientWidth, kClientHeight);
-	Debug::Init(g_renderer);
+	Debug::Init();
 
 	FileWatcher::Init("data");
 

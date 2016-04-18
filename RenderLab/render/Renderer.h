@@ -15,13 +15,6 @@ struct RdrDrawOp;
 struct Light;
 class LightList;
 
-struct RdrAssetSystems
-{
-	RdrShaderSystem   shaders;
-	RdrResourceSystem resources;
-	RdrGeoSystem      geos;
-};
-
 class Renderer
 {
 public:
@@ -48,10 +41,6 @@ public:
 	int GetViewportHeight() const;
 	Vec2 GetViewportSize() const;
 
-	RdrShaderSystem& GetShaderSystem();
-	RdrResourceSystem& GetResourceSystem();
-	RdrGeoSystem& GetGeoSystem();
-
 	RdrResourceReadbackRequestHandle IssueTextureReadbackRequest(RdrResourceHandle hResource, const IVec3& pixelCoord);
 	RdrResourceReadbackRequestHandle IssueStructuredBufferReadbackRequest(RdrResourceHandle hResource, uint startByteOffset, uint numBytesToRead);
 	void ReleaseResourceReadbackRequest(RdrResourceReadbackRequestHandle hRequest);
@@ -74,8 +63,6 @@ private:
 
 	///
 	RdrContext* m_pContext;
-
-	RdrAssetSystems m_assets;
 
 	RdrDepthStencilViewHandle m_hPrimaryDepthStencilView;
 	RdrResourceHandle         m_hPrimaryDepthBuffer;
@@ -127,21 +114,6 @@ inline Vec2 Renderer::GetViewportSize() const
 	return m_pCurrentAction ?
 		Vec2(m_pCurrentAction->primaryViewport.width, m_pCurrentAction->primaryViewport.height) :
 		Vec2((float)m_viewWidth, (float)m_viewHeight);
-}
-
-inline RdrShaderSystem& Renderer::GetShaderSystem()
-{ 
-	return m_assets.shaders; 
-}
-
-inline RdrResourceSystem& Renderer::GetResourceSystem()
-{ 
-	return m_assets.resources;
-}
-
-inline RdrGeoSystem& Renderer::GetGeoSystem()
-{ 
-	return m_assets.geos; 
 }
 
 inline RdrFrameState& Renderer::GetQueueState()

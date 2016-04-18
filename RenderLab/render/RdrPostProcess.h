@@ -7,7 +7,6 @@
 class RdrContext;
 class RdrDrawState;
 struct RdrResource;
-struct RdrAssetSystems;
 
 struct RdrPostProcessDbgData
 {
@@ -20,10 +19,10 @@ struct RdrPostProcessDbgData
 class RdrPostProcess
 {
 public:
-	void Init(RdrAssetSystems& rAssets);
+	void Init();
 
-	void HandleResize(uint width, uint height, RdrAssetSystems& rAssets);
-	void DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, RdrAssetSystems& rAssets);
+	void HandleResize(uint width, uint height);
+	void DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
 
 	const RdrPostProcessDbgData& GetDebugData() const;
 

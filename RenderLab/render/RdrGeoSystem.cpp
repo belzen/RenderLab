@@ -5,16 +5,49 @@
 #include "RdrTransientMem.h"
 #include <fstream>
 
-void RdrGeoSystem::Init(RdrContext* pRdrContext)
+namespace
 {
-	m_pRdrContext = pRdrContext;
+	typedef std::map<std::string, RdrGeoHandle> RdrGeoHandleMap;
+
+	struct CmdUpdate
+	{
+		RdrGeoHandle hGeo;
+		const void* pVertData;
+		const uint16* pIndexData;
+		RdrGeoInfo info;
+	};
+
+	struct CmdRelease
+	{
+		RdrGeoHandle hGeo;
+	};
+
+	struct FrameState
+	{
+		std::vector<CmdUpdate> updates;
+		std::vector<CmdRelease> releases;
+	};
+
+	struct
+	{
+		RdrGeoHandleMap geoCache;
+		RdrGeoList      geos;
+
+		FrameState states[2];
+		uint       queueState;
+	} s_geoSystem;
+
+	inline FrameState& getQueueState()
+	{
+		return s_geoSystem.states[s_geoSystem.queueState];
+	}
 }
 
 RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* pOutInfo)
 {
 	// Find geo in cache
-	RdrGeoHandleMap::iterator iter = m_geoCache.find(filename);
-	if (iter != m_geoCache.end())
+	RdrGeoHandleMap::iterator iter = s_geoSystem.geoCache.find(filename);
+	if (iter != s_geoSystem.geoCache.end())
 		return iter->second;
 
 	static const int kReserveSize = 1024;
@@ -25,7 +58,7 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 	std::vector<uint16> tris;
 
 	char fullFilename[MAX_PATH];
-	sprintf_s(fullFilename, "data/geo/%s", filename);
+	sprintf_s(fullFilename, "data/geo/%s.obj", filename);
 	std::ifstream file(fullFilename);
 
 	char line[1024];
@@ -107,10 +140,10 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 	}
 
 
-	RdrGeometry* pGeo = m_geos.allocSafe();
+	RdrGeometry* pGeo = s_geoSystem.geos.allocSafe();
 
 	CmdUpdate cmd;
-	cmd.hGeo = m_geos.getId(pGeo);
+	cmd.hGeo = s_geoSystem.geos.getId(pGeo);
 
 	cmd.info.vertStride = sizeof(Vertex);
 	cmd.info.numVerts = (int)verts.size();
@@ -139,9 +172,9 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 	cmd.info.size = vMax - vMin;
 	cmd.info.radius = Vec3Length(cmd.info.size);
 
-	m_states[m_queueState].updates.push_back(cmd);
+	getQueueState().updates.push_back(cmd);
 
-	m_geoCache.insert(std::make_pair(filename, cmd.hGeo));
+	s_geoSystem.geoCache.insert(std::make_pair(filename, cmd.hGeo));
 
 	if (pOutInfo)
 	{
@@ -152,7 +185,7 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 
 const RdrGeometry* RdrGeoSystem::GetGeo(const RdrGeoHandle hGeo)
 {
-	return m_geos.get(hGeo);
+	return s_geoSystem.geos.get(hGeo);
 }
 
 void RdrGeoSystem::ReleaseGeo(const RdrGeoHandle hGeo)
@@ -160,15 +193,15 @@ void RdrGeoSystem::ReleaseGeo(const RdrGeoHandle hGeo)
 	CmdRelease cmd;
 	cmd.hGeo = hGeo;
 
-	m_states[m_queueState].releases.push_back(cmd);
+	getQueueState().releases.push_back(cmd);
 }
 
 RdrGeoHandle RdrGeoSystem::CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& size)
 {
-	RdrGeometry* pGeo = m_geos.allocSafe();
+	RdrGeometry* pGeo = s_geoSystem.geos.allocSafe();
 
 	CmdUpdate cmd;
-	cmd.hGeo = m_geos.getId(pGeo);
+	cmd.hGeo = s_geoSystem.geos.getId(pGeo);
 	cmd.pVertData = pVertData;
 	cmd.pIndexData = pIndexData;
 	cmd.info.vertStride = vertStride;
@@ -177,55 +210,55 @@ RdrGeoHandle RdrGeoSystem::CreateGeo(const void* pVertData, int vertStride, int 
 	cmd.info.size = size;
 	cmd.info.radius = Vec3Length(size);
 
-	m_states[m_queueState].updates.push_back(cmd);
+	getQueueState().updates.push_back(cmd);
 
 	return cmd.hGeo;
 }
 
 void RdrGeoSystem::FlipState()
 {
-	m_queueState = !m_queueState;
+	s_geoSystem.queueState = !s_geoSystem.queueState;
 }
 
-void RdrGeoSystem::ProcessCommands()
+void RdrGeoSystem::ProcessCommands(RdrContext* pRdrContext)
 {
-	FrameState& state = m_states[!m_queueState];
+	FrameState& state = s_geoSystem.states[!s_geoSystem.queueState];
 	uint numCmds;
 
 	// Frees
-	m_geos.AcquireLock();
+	s_geoSystem.geos.AcquireLock();
 	{
 		numCmds = (uint)state.releases.size();
 		for (uint i = 0; i < numCmds; ++i)
 		{
 			CmdRelease& cmd = state.releases[i];
-			RdrGeometry* pGeo = m_geos.get(cmd.hGeo);
+			RdrGeometry* pGeo = s_geoSystem.geos.get(cmd.hGeo);
 
-			m_pRdrContext->ReleaseVertexBuffer(pGeo->vertexBuffer);
+			pRdrContext->ReleaseVertexBuffer(pGeo->vertexBuffer);
 			pGeo->vertexBuffer.pBuffer = nullptr;
 
-			m_pRdrContext->ReleaseIndexBuffer(pGeo->indexBuffer);
+			pRdrContext->ReleaseIndexBuffer(pGeo->indexBuffer);
 			pGeo->indexBuffer.pBuffer = nullptr;
 
-			m_geos.releaseId(cmd.hGeo);
+			s_geoSystem.geos.releaseId(cmd.hGeo);
 		}
 	}
-	m_geos.ReleaseLock();
+	s_geoSystem.geos.ReleaseLock();
 
 	// Updates
 	numCmds = (uint)state.updates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
 		CmdUpdate& cmd = state.updates[i];
-		RdrGeometry* pGeo = m_geos.get(cmd.hGeo);
+		RdrGeometry* pGeo = s_geoSystem.geos.get(cmd.hGeo);
 		if (!pGeo->vertexBuffer.pBuffer)
 		{
 			// Creating
 			pGeo->geoInfo = cmd.info;
-			pGeo->vertexBuffer = m_pRdrContext->CreateVertexBuffer(cmd.pVertData, cmd.info.vertStride * cmd.info.numVerts);
+			pGeo->vertexBuffer = pRdrContext->CreateVertexBuffer(cmd.pVertData, cmd.info.vertStride * cmd.info.numVerts);
 			if (cmd.pIndexData)
 			{
-				pGeo->indexBuffer = m_pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices);
+				pGeo->indexBuffer = pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices);
 			}
 		}
 		else

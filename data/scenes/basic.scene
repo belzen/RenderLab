@@ -3,12 +3,7 @@
 		"position" : [ -1.0, 3.0, -5.0 ],
 		"rotation" : [ 15.0, 0.0, 0.0 ]
 	},
-	"sky" : {
-		"position" : [ 0.0, 3.0, -5.0 ],
-		"model" : "skydome.obj",
-		"pixelShader" : "p_sky.hlsl",
-		"texture" : "skies/clouds2.dds"
-	},
+	"sky" : "cloudy",
 	"lights" : [
 		{
 			"type" : "directional",
@@ -43,50 +38,20 @@
 			"position" : [ 0.0, 0.0, 0.0 ],
 			"rotation" : [ 0.0, 0.0, 0.0 ],
 			"scale" : [ 150.0, 150.0, 150.0 ],
-			"model" : "plane.obj",
-			"pixelShader" : "p_model.hlsl",
-			"textures" : [
-				{ 
-					"filename" : "c_white.dds", 
-					"srgb" : false
-				},
-				{ 
-					"filename" : "n_flat.dds", 
-					"srgb" : false
-				}
-			]
+			"geo" : "plane",
+			"material" : "white"
 		},
 		{
 			"position" : [ -3.0, 1.5, 0.0 ],
 			"rotation" : [ 0.0, 45.0, 0.0 ],
 			"scale" : [ 1.5, 1.5, 1.5 ],
-			"model" : "sphere.obj",
-			"pixelShader" : "p_model.hlsl",
-			"textures" : [
-				{ 
-					"filename" : "c_white.dds", 
-					"srgb" : false
-				},
-				{ 
-					"filename" : "n_flat.dds", 
-					"srgb" : false
-				}
-			]
+			"geo" : "sphere",
+			"material" : "white"
 		},
 		{
 			"position" : [ 0.0, 1.5, 0.0 ],
-			"model" : "box.obj",
-			"pixelShader" : "p_model.hlsl",
-			"textures" : [
-				{ 
-					"filename" : "c_white.dds", 
-					"srgb" : false
-				},
-				{ 
-					"filename" : "n_test.dds", 
-					"srgb" : false
-				}
-			]
+			"geo" : "box",
+			"material" : "white_normaltest"
 		}
 	]
 

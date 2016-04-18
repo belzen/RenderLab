@@ -5,22 +5,18 @@
 #include "RdrShaders.h"
 
 class Renderer;
+struct RdrMaterial;
 
 class Sky
 {
 public:
 	Sky();
 
-	void Init(Renderer& rRenderer, 
-		RdrGeoHandle hGeo,
-		RdrShaderHandle hPixelShader,
-		RdrResourceHandle hSkyTexture);
+	void LoadFromFile(const char* skyName);
 
 	void QueueDraw(Renderer& rRenderer) const;
 
 private:
 	RdrGeoHandle m_hGeo;
-	RdrInputLayoutHandle m_hInputLayout;
-	RdrShaderHandle m_hPixelShader;
-	RdrResourceHandle m_hSkyTexture;
+	const RdrMaterial* m_pMaterial;
 };

@@ -18,30 +18,29 @@ namespace
 		{ RdrShaderSemantic::Tangent, 0, RdrVertexInputFormat::RGB_F32, 0, 48, RdrVertexInputClass::PerVertex, 0 },
 		{ RdrShaderSemantic::Binormal, 0, RdrVertexInputFormat::RGB_F32, 0, 60, RdrVertexInputClass::PerVertex, 0 }
 	};
+
+	RdrInputLayoutHandle s_hModelInputLayout = 0;
+	ModelFreeList s_models;
 }
 
-Model::Model(Renderer& rRenderer,
-	RdrGeoHandle hGeo,
-	RdrShaderHandle hPixelShader,
-	RdrSamplerState* aSamplers,
-	RdrResourceHandle* ahTextures,
-	int numTextures)
-	: m_hPixelShader(hPixelShader)
-	, m_hGeo(hGeo)
-	, m_numTextures(numTextures)
+Model* Model::Create(RdrGeoHandle hGeo, const RdrMaterial* pMaterial)
 {
-	for (int i = 0; i < numTextures; ++i)
+	Model* pModel = s_models.allocSafe();
+
+	pModel->m_hGeo = hGeo;
+	pModel->m_pMaterial = pMaterial;
+
+	if (!s_hModelInputLayout)
 	{
-		m_samplers[i] = aSamplers[i];
-		m_hTextures[i] = ahTextures[i];
+		s_hModelInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));
 	}
 
-	m_hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));
+	return pModel;
 }
 
-
-Model::~Model()
+void Model::Release()
 {
+	s_models.release(this);
 }
 
 void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat)
@@ -52,21 +51,14 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat)
 	uint constantsSize = sizeof(Vec4) * 4;
 	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	*((Matrix44*)pConstants) = Matrix44Transpose(srcWorldMat);
-	pDrawOp->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize);
+	pDrawOp->graphics.hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
 
-	for (int i = 0; i < m_numTextures; ++i)
-	{
-		pDrawOp->samplers[i] = m_samplers[i];
-		pDrawOp->hTextures[i] = m_hTextures[i];
-	}
-	pDrawOp->texCount = m_numTextures;
+	pDrawOp->graphics.pMaterial = m_pMaterial;
 
-	pDrawOp->graphics.hInputLayout = m_hInputLayout;
+	pDrawOp->graphics.hInputLayout = s_hModelInputLayout;
 	pDrawOp->graphics.vertexShader = kVertexShader;
-	pDrawOp->graphics.hPixelShaders[(int)RdrShaderMode::Normal] = m_hPixelShader;
 
 	pDrawOp->graphics.hGeo = m_hGeo;
-	pDrawOp->graphics.bNeedsLighting = true;
 
 	rRenderer.AddToBucket(pDrawOp, RdrBucketType::Opaque);
 }

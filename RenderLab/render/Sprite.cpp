@@ -22,11 +22,9 @@ namespace
 	};
 }
 
-void Sprite::Init(Renderer& rRenderer, const Vec2 aTexcoords[4], const char* textureName)
+void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 {
-	m_hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(kVertexShader, s_vertexDesc, ARRAYSIZE(s_vertexDesc));
-	m_hPixelShader = rRenderer.GetShaderSystem().CreatePixelShaderFromFile("p_sprite.hlsl");
-	m_hTexture = rRenderer.GetResourceSystem().CreateTextureFromFile(textureName, false, true, nullptr);
+	m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_vertexDesc, ARRAYSIZE(s_vertexDesc));
 
 	SpriteVertex* verts = (SpriteVertex*)RdrTransientMem::Alloc(sizeof(SpriteVertex) * 4);
 	verts[0].position = Vec2(0.f, 0.f);
@@ -46,7 +44,12 @@ void Sprite::Init(Renderer& rRenderer, const Vec2 aTexcoords[4], const char* tex
 	indices[4] = 3;
 	indices[5] = 2;
 
-	m_hGeo = rRenderer.GetGeoSystem().CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, Vec3(1.f, 1.f, 0.0f));
+	m_hGeo = RdrGeoSystem::CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, Vec3(1.f, 1.f, 0.0f));
+
+	m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_sprite.hlsl");
+	m_material.hTextures[0] = RdrResourceSystem::CreateTextureFromFile(textureName, nullptr);
+	m_material.samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
+	m_material.texCount = 1;
 }
 
 void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha)
@@ -57,16 +60,13 @@ void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, 
 	op->graphics.bFreeGeo = false;
 	op->graphics.hInputLayout = m_hInputLayout;
 	op->graphics.vertexShader = kVertexShader;
-	op->graphics.hPixelShaders[(int)RdrShaderMode::Normal] = m_hPixelShader;
-	op->samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
-	op->hTextures[0] = m_hTexture;
-	op->texCount = 1;
+	op->graphics.pMaterial = &m_material;
 
 	uint constantsSize = sizeof(Vec4) * 2;
 	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	pConstants[0] = Vec4(pos.x - rRenderer.GetViewportWidth() * 0.5f, pos.y + rRenderer.GetViewportHeight() * 0.5f, pos.z + 1.f, 0.f);
 	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
-	op->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize);
+	op->graphics.hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
 
 	rRenderer.AddToBucket(op, RdrBucketType::UI);
 }

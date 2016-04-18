@@ -3,6 +3,8 @@
 #include "RdrDrawOp.h"
 #include "RdrTransientMem.h"
 #include "Renderer.h"
+#include "FileLoader.h"
+#include "json/json.h"
 
 namespace
 {
@@ -11,23 +13,39 @@ namespace
 	static const RdrVertexInputElement s_skyVertexDesc[] = {
 		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 }
 	};
+
+	RdrInputLayoutHandle s_hSkyInputLayout = 0;
 }
 
 Sky::Sky()
+	: m_hGeo(0)
+	, m_pMaterial(nullptr)
 {
 
 }
 
-void Sky::Init(Renderer& rRenderer,
-	RdrGeoHandle hGeo,
-	RdrShaderHandle hPixelShader,
-	RdrResourceHandle hSkyTexture)
+void Sky::LoadFromFile(const char* skyName)
 {
-	m_hGeo = hGeo;
-	m_hPixelShader = hPixelShader;
-	m_hSkyTexture = hSkyTexture;
+	char fullFilename[MAX_PATH];
+	sprintf_s(fullFilename, "data/skies/%s.sky", skyName);
 
-	m_hInputLayout = rRenderer.GetShaderSystem().CreateInputLayout(kVertexShader, s_skyVertexDesc, ARRAYSIZE(s_skyVertexDesc));
+	Json::Value jRoot;
+	if (!FileLoader::LoadJson(fullFilename, jRoot))
+	{
+		assert(false);
+		return;
+	}
+
+	Json::Value jModel = jRoot.get("geo", Json::Value::null);
+	m_hGeo = RdrGeoSystem::CreateGeoFromFile(jModel.asCString(), nullptr);
+
+	Json::Value jMaterialName = jRoot.get("material", Json::Value::null);
+	m_pMaterial = RdrMaterial::LoadFromFile(jMaterialName.asCString());
+
+	if (!s_hSkyInputLayout)
+	{
+		s_hSkyInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_skyVertexDesc, ARRAYSIZE(s_skyVertexDesc));
+	}
 }
 
 void Sky::QueueDraw(Renderer& rRenderer) const
@@ -41,18 +59,14 @@ void Sky::QueueDraw(Renderer& rRenderer) const
 	uint constantsSize = sizeof(Vec4) * 4;
 	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
 	*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
-	pDrawOp->graphics.hVsConstants = rRenderer.GetResourceSystem().CreateTempConstantBuffer(pConstants, constantsSize);
+	pDrawOp->graphics.hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
 
-	pDrawOp->samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
-	pDrawOp->hTextures[0] = m_hSkyTexture;
-	pDrawOp->texCount = 1;
+	pDrawOp->graphics.pMaterial = m_pMaterial;
 
-	pDrawOp->graphics.hInputLayout = m_hInputLayout;
+	pDrawOp->graphics.hInputLayout = s_hSkyInputLayout;
 	pDrawOp->graphics.vertexShader = kVertexShader;
-	pDrawOp->graphics.hPixelShaders[(int)RdrShaderMode::Normal] = m_hPixelShader;
 
 	pDrawOp->graphics.hGeo = m_hGeo;
-	pDrawOp->graphics.bNeedsLighting = false;
 
 	rRenderer.AddToBucket(pDrawOp, RdrBucketType::Sky);
 }

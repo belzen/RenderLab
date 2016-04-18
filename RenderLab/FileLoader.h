@@ -1,6 +1,11 @@
 #pragma once
 
+#include "json/json.h"
+
 namespace FileLoader
 {
-	bool Load(const char* filename, void** ppOutData, uint* pOutDataSize);
+	// todo: async load
+	bool Load(const char* filename, char** ppOutData, uint* pOutDataSize);
+
+	bool LoadJson(const char* filename, Json::Value& rOutJsonRoot);
 }

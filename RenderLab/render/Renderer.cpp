@@ -73,15 +73,14 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 	if (!m_pContext->Init(hWnd, width, height))
 		return false;
 
-	m_assets.shaders.Init(m_pContext);
-	m_assets.resources.Init(m_pContext);
-	m_assets.geos.Init(m_pContext);
+	RdrResourceSystem::Init();
+	RdrShaderSystem::Init(m_pContext);
 
 	Resize(width, height);
 	ApplyDeviceChanges();
 
-	Font::Init(*this);
-	m_postProcess.Init(m_assets);
+	Font::Init();
+	m_postProcess.Init();
 
 	return true;
 }
@@ -111,37 +110,37 @@ void Renderer::ApplyDeviceChanges()
 
 		// Release existing resources
 		if (m_hPrimaryDepthStencilView)
-			m_assets.resources.ReleaseDepthStencilView(m_hPrimaryDepthStencilView);
+			RdrResourceSystem::ReleaseDepthStencilView(m_hPrimaryDepthStencilView);
 		if (m_hPrimaryDepthBuffer)
-			m_assets.resources.ReleaseResource(m_hPrimaryDepthBuffer);
+			RdrResourceSystem::ReleaseResource(m_hPrimaryDepthBuffer);
 		if (m_hColorBuffer)
-			m_assets.resources.ReleaseResource(m_hColorBuffer);
+			RdrResourceSystem::ReleaseResource(m_hColorBuffer);
 		if (m_hColorBufferMultisampled)
-			m_assets.resources.ReleaseResource(m_hColorBufferMultisampled);
+			RdrResourceSystem::ReleaseResource(m_hColorBufferMultisampled);
 		if (m_hColorBufferRenderTarget)
-			m_assets.resources.ReleaseRenderTargetView(m_hColorBufferRenderTarget);
+			RdrResourceSystem::ReleaseRenderTargetView(m_hColorBufferRenderTarget);
 
 		// FP16 color
-		m_hColorBuffer = m_assets.resources.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
+		m_hColorBuffer = RdrResourceSystem::CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
 		if (s_msaaLevel > 1)
 		{
-			m_hColorBufferMultisampled = m_assets.resources.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, s_msaaLevel);
-			m_hColorBufferRenderTarget = m_assets.resources.CreateRenderTargetView(m_hColorBufferMultisampled);
+			m_hColorBufferMultisampled = RdrResourceSystem::CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, s_msaaLevel);
+			m_hColorBufferRenderTarget = RdrResourceSystem::CreateRenderTargetView(m_hColorBufferMultisampled);
 		}
 		else
 		{
 			m_hColorBufferMultisampled = 0;
-			m_hColorBufferRenderTarget = m_assets.resources.CreateRenderTargetView(m_hColorBuffer);
+			m_hColorBufferRenderTarget = RdrResourceSystem::CreateRenderTargetView(m_hColorBuffer);
 		}
 
 		// Depth Buffer
-		m_hPrimaryDepthBuffer = m_assets.resources.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::D24_UNORM_S8_UINT, s_msaaLevel);
-		m_hPrimaryDepthStencilView = m_assets.resources.CreateDepthStencilView(m_hPrimaryDepthBuffer);
+		m_hPrimaryDepthBuffer = RdrResourceSystem::CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::D24_UNORM_S8_UINT, s_msaaLevel);
+		m_hPrimaryDepthStencilView = RdrResourceSystem::CreateDepthStencilView(m_hPrimaryDepthBuffer);
 
 		m_viewWidth = m_pendingViewWidth;
 		m_viewHeight = m_pendingViewHeight;
 
-		m_postProcess.HandleResize(m_viewWidth, m_viewHeight, m_assets);
+		m_postProcess.HandleResize(m_viewWidth, m_viewHeight);
 	}
 }
 
@@ -178,8 +177,8 @@ void Renderer::QueueLightCulling()
 	if ( tileCountChanged )
 	{
 		if (m_hDepthMinMaxTex)
-			m_assets.resources.ReleaseResource(m_hDepthMinMaxTex);
-		m_hDepthMinMaxTex = m_assets.resources.CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT, RdrResourceUsage::Default);
+			RdrResourceSystem::ReleaseResource(m_hDepthMinMaxTex);
+		m_hDepthMinMaxTex = RdrResourceSystem::CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT, RdrResourceUsage::Default);
 	}
 
 	RdrDrawOp* pDepthOp = RdrDrawOp::Allocate();
@@ -190,8 +189,8 @@ void Renderer::QueueLightCulling()
 	pDepthOp->compute.threads[2] = 1;
 	pDepthOp->compute.hViews[0] = m_hDepthMinMaxTex;
 	pDepthOp->compute.viewCount = 1;
-	pDepthOp->hTextures[0] = m_hPrimaryDepthBuffer;
-	pDepthOp->texCount = 1;
+	pDepthOp->compute.hTextures[0] = m_hPrimaryDepthBuffer;
+	pDepthOp->compute.texCount = 1;
 
 	Matrix44 viewMtx;
 	Matrix44 invProjMtx;
@@ -210,11 +209,11 @@ void Renderer::QueueLightCulling()
 	}
 	if (m_hDepthMinMaxConstants)
 	{
-		m_assets.resources.UpdateConstantBuffer(m_hDepthMinMaxConstants, pConstants);
+		RdrResourceSystem::UpdateConstantBuffer(m_hDepthMinMaxConstants, pConstants);
 	}
 	else
 	{
-		m_hDepthMinMaxConstants = m_assets.resources.CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+		m_hDepthMinMaxConstants = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	}
 	pDepthOp->compute.hCsConstants = m_hDepthMinMaxConstants;
 
@@ -226,8 +225,8 @@ void Renderer::QueueLightCulling()
 	{
 		const uint kMaxLightsPerTile = 128; // Sync with MAX_LIGHTS_PER_TILE in "light_inc.hlsli"
 		if (m_hTileLightIndices)
-			m_assets.resources.ReleaseResource(m_hTileLightIndices);
-		m_hTileLightIndices = m_assets.resources.CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint), RdrResourceUsage::Default);
+			RdrResourceSystem::ReleaseResource(m_hTileLightIndices);
+		m_hTileLightIndices = RdrResourceSystem::CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint), RdrResourceUsage::Default);
 	}
 
 	RdrDrawOp* pCullOp = RdrDrawOp::Allocate();
@@ -238,9 +237,9 @@ void Renderer::QueueLightCulling()
 	pCullOp->compute.threads[2] = 1;
 	pCullOp->compute.hViews[0] = m_hTileLightIndices;
 	pCullOp->compute.viewCount = 1;
-	pCullOp->hTextures[0] = m_pCurrentAction->lightParams.hLightListRes;
-	pCullOp->hTextures[1] = m_hDepthMinMaxTex;
-	pCullOp->texCount = 2;
+	pCullOp->compute.hTextures[0] = m_pCurrentAction->lightParams.hLightListRes;
+	pCullOp->compute.hTextures[1] = m_hDepthMinMaxTex;
+	pCullOp->compute.texCount = 2;
 
 
 	struct CullingParams // Sync with c_tiledlight_cull.hlsl
@@ -275,11 +274,11 @@ void Renderer::QueueLightCulling()
 
 	if (m_hTileCullConstants)
 	{
-		m_assets.resources.UpdateConstantBuffer(m_hTileCullConstants, pParams);
+		RdrResourceSystem::UpdateConstantBuffer(m_hTileCullConstants, pParams);
 	}
 	else
 	{
-		m_hTileCullConstants = m_assets.resources.CreateConstantBuffer(pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+		m_hTileCullConstants = RdrResourceSystem::CreateConstantBuffer(pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	}
 	pCullOp->compute.hCsConstants = m_hTileCullConstants;
 
@@ -457,7 +456,7 @@ void Renderer::CreateCubemapCaptureConstants(const Vec3& position, const float n
 		pGsConstants->mtxViewProj[f] = Matrix44Transpose(pGsConstants->mtxViewProj[f]);
 	}
 
-	m_pCurrentAction->hPerActionCubemapGs = m_assets.resources.CreateTempConstantBuffer(pGsConstants, constantsSize);
+	m_pCurrentAction->hPerActionCubemapGs = RdrResourceSystem::CreateTempConstantBuffer(pGsConstants, constantsSize);
 }
 
 void Renderer::CreatePerActionConstants()
@@ -478,7 +477,7 @@ void Renderer::CreatePerActionConstants()
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 
-		m_pCurrentAction->hPerActionVs = m_assets.resources.CreateTempConstantBuffer(pVsPerAction, constantsSize);
+		m_pCurrentAction->hPerActionVs = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
 
 		// PS
 		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
@@ -488,7 +487,7 @@ void Renderer::CreatePerActionConstants()
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
 		pPsPerAction->viewWidth = m_viewWidth;
 
-		m_pCurrentAction->hPerActionPs = m_assets.resources.CreateTempConstantBuffer(pPsPerAction, constantsSize);
+		m_pCurrentAction->hPerActionPs = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
 
 	// Ui per-action
@@ -504,7 +503,7 @@ void Renderer::CreatePerActionConstants()
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 
-		m_pCurrentAction->hUiPerActionVs = m_assets.resources.CreateTempConstantBuffer(pVsPerAction, constantsSize);
+		m_pCurrentAction->hUiPerActionVs = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
 	
 		// PS
 		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
@@ -514,7 +513,7 @@ void Renderer::CreatePerActionConstants()
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
 		pPsPerAction->viewWidth = m_viewWidth;
 
-		m_pCurrentAction->hUiPerActionPs = m_assets.resources.CreateTempConstantBuffer(pPsPerAction, constantsSize);
+		m_pCurrentAction->hUiPerActionPs = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
 }
 
@@ -532,7 +531,7 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 	{
 		if (rPass.ahRenderTargets[i])
 		{
-			renderTargets[i] = m_assets.resources.GetRenderTargetView(rPass.ahRenderTargets[i]);
+			renderTargets[i] = RdrResourceSystem::GetRenderTargetView(rPass.ahRenderTargets[i]);
 		}
 		else
 		{
@@ -543,7 +542,7 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 	RdrDepthStencilView depthView = { 0 };
 	if (rPass.hDepthTarget)
 	{
-		depthView = m_assets.resources.GetDepthStencilView(rPass.hDepthTarget);
+		depthView = RdrResourceSystem::GetDepthStencilView(rPass.hDepthTarget);
 	}
 
 	if (rPass.bClearRenderTargets)
@@ -611,7 +610,7 @@ void Renderer::PostFrameSync()
 				RdrDrawOp* pDrawOp = *iter;
 				if (pDrawOp->eType == RdrDrawOpType::Graphics && pDrawOp->graphics.bFreeGeo)
 				{
-					m_assets.geos.ReleaseGeo(pDrawOp->graphics.hGeo);
+					RdrGeoSystem::ReleaseGeo(pDrawOp->graphics.hGeo);
 				}
 
 				RdrDrawOp::Release(pDrawOp);
@@ -627,9 +626,9 @@ void Renderer::PostFrameSync()
 
 	// Swap state
 	m_queueState = !m_queueState;
-	m_assets.resources.FlipState();
-	m_assets.geos.FlipState();
-	m_assets.shaders.FlipState();
+	RdrResourceSystem::FlipState(m_pContext);
+	RdrGeoSystem::FlipState();
+	RdrShaderSystem::FlipState();
 	RdrTransientMem::FlipState();
 }
 
@@ -643,14 +642,14 @@ void Renderer::ProcessReadbackRequests()
 		RdrResourceReadbackRequest* pRequest = m_readbackRequests.get(m_pendingReadbackRequests[i]);
 		if (pRequest->frameCount == 0)
 		{
-			const RdrResource* pSrc = m_assets.resources.GetResource(pRequest->hSrcResource);
-			const RdrResource* pDst = m_assets.resources.GetResource(pRequest->hDstResource);
+			const RdrResource* pSrc = RdrResourceSystem::GetResource(pRequest->hSrcResource);
+			const RdrResource* pDst = RdrResourceSystem::GetResource(pRequest->hDstResource);
 			m_pContext->CopyResourceRegion(*pSrc, pRequest->srcRegion, *pDst, IVec3::kZero);
 		}
 		else if (pRequest->frameCount == 3)
 		{
 			// After 2 frames, we can safely read from the resource without stalling.
-			const RdrResource* pDst = m_assets.resources.GetResource(pRequest->hDstResource);
+			const RdrResource* pDst = RdrResourceSystem::GetResource(pRequest->hDstResource);
 			m_pContext->ReadResource(*pDst, pRequest->pData, pRequest->dataSize);
 			pRequest->bComplete = true;
 
@@ -667,9 +666,9 @@ void Renderer::DrawFrame()
 {
 	RdrFrameState& rFrameState = GetActiveState();
 
-	m_assets.shaders.ProcessCommands();
-	m_assets.resources.ProcessCommands();
-	m_assets.geos.ProcessCommands();
+	RdrShaderSystem::ProcessCommands(m_pContext);
+	RdrResourceSystem::ProcessCommands(m_pContext);
+	RdrGeoSystem::ProcessCommands(m_pContext);
 
 	ProcessReadbackRequests();
 
@@ -702,10 +701,10 @@ void Renderer::DrawFrame()
 			}
 
 			// Resolve multisampled color buffer.
-			const RdrResource* pColorBuffer = m_assets.resources.GetResource(m_hColorBuffer);
+			const RdrResource* pColorBuffer = RdrResourceSystem::GetResource(m_hColorBuffer);
 			if (s_msaaLevel > 1)
 			{
-				const RdrResource* pColorBufferMultisampled = m_assets.resources.GetResource(m_hColorBufferMultisampled);
+				const RdrResource* pColorBufferMultisampled = RdrResourceSystem::GetResource(m_hColorBufferMultisampled);
 				m_pContext->ResolveSurface(*pColorBufferMultisampled, *pColorBuffer);
 
 				rasterState.bEnableMSAA = false;
@@ -713,7 +712,7 @@ void Renderer::DrawFrame()
 			}
 
 			if (rAction.bEnablePostProcessing)
-				m_postProcess.DoPostProcessing(m_pContext, m_drawState, pColorBuffer, m_assets);
+				m_postProcess.DoPostProcessing(m_pContext, m_drawState, pColorBuffer);
 
 			DrawPass(rAction, RdrPass::UI);
 
@@ -728,7 +727,7 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrD
 {
 	const RdrPassData& rPass = rAction.passes[(int)ePass];
 	bool bDepthOnly = (rPass.shaderMode == RdrShaderMode::DepthOnly);
-	const RdrGeometry* pGeo = m_assets.geos.GetGeo(pDrawOp->graphics.hGeo);
+	const RdrGeometry* pGeo = RdrGeoSystem::GetGeo(pDrawOp->graphics.hGeo);
 	RdrShaderFlags shaderFlags = RdrShaderFlags::None;
 
 	// Vertex shader
@@ -739,13 +738,13 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrD
 	}
 	vertexShader.flags |= shaderFlags;
 
-	m_drawState.pVertexShader = m_assets.shaders.GetVertexShader(vertexShader);
+	m_drawState.pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
 
 	RdrConstantBufferHandle hPerActionVs = (ePass == RdrPass::UI) ? rAction.hUiPerActionVs : rAction.hPerActionVs;
-	m_drawState.vsConstantBuffers[0] = m_assets.resources.GetConstantBuffer(hPerActionVs)->bufferObj;
+	m_drawState.vsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->bufferObj;
 	if (pDrawOp->graphics.hVsConstants)
 	{
-		m_drawState.vsConstantBuffers[1] = m_assets.resources.GetConstantBuffer(pDrawOp->graphics.hVsConstants)->bufferObj;
+		m_drawState.vsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pDrawOp->graphics.hVsConstants)->bufferObj;
 		m_drawState.vsConstantBufferCount = 2;
 	}
 	else
@@ -757,40 +756,44 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrD
 	if (rAction.bIsCubemapCapture)
 	{
 		RdrGeometryShader geomShader = { RdrGeometryShaderType::Model_CubemapCapture, shaderFlags };
-		m_drawState.pGeometryShader = m_assets.shaders.GetGeometryShader(geomShader);
-		m_drawState.gsConstantBuffers[0] = m_assets.resources.GetConstantBuffer(rAction.hPerActionCubemapGs)->bufferObj;
+		m_drawState.pGeometryShader = RdrShaderSystem::GetGeometryShader(geomShader);
+		m_drawState.gsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rAction.hPerActionCubemapGs)->bufferObj;
 		m_drawState.gsConstantBufferCount = 1;
 	}
 
 	// Pixel shader
-	m_drawState.pPixelShader = pDrawOp->graphics.hPixelShaders[(int)rPass.shaderMode] ?
-		m_assets.shaders.GetPixelShader(pDrawOp->graphics.hPixelShaders[(int)rPass.shaderMode]) :
-		nullptr;
-	if (m_drawState.pPixelShader)
+	const RdrMaterial* pMaterial = pDrawOp->graphics.pMaterial;
+	if (pMaterial)
 	{
-		for (uint i = 0; i < pDrawOp->texCount; ++i)
+		m_drawState.pPixelShader = pMaterial->hPixelShaders[(int)rPass.shaderMode] ?
+			RdrShaderSystem::GetPixelShader(pMaterial->hPixelShaders[(int)rPass.shaderMode]) :
+			nullptr;
+		if (m_drawState.pPixelShader)
 		{
-			m_drawState.psResources[i] = m_assets.resources.GetResource(pDrawOp->hTextures[i])->resourceView;
-			m_drawState.psSamplers[i] = pDrawOp->samplers[i];
-		}
+			for (uint i = 0; i < pMaterial->texCount; ++i)
+			{
+				m_drawState.psResources[i] = RdrResourceSystem::GetResource(pMaterial->hTextures[i])->resourceView;
+				m_drawState.psSamplers[i] = pMaterial->samplers[i];
+			}
 
-		if (pDrawOp->graphics.bNeedsLighting && !bDepthOnly)
-		{
-			m_drawState.psResources[(int)RdrPsResourceSlots::LightList] = m_assets.resources.GetResource(rLightParams.hLightListRes)->resourceView;
-			m_drawState.psResources[(int)RdrPsResourceSlots::TileLightIds] = m_assets.resources.GetResource(hTileLightIndices)->resourceView;
-			m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMaps] = m_assets.resources.GetResource(rLightParams.hShadowMapTexArray)->resourceView;
-			m_drawState.psResources[(int)RdrPsResourceSlots::ShadowCubeMaps] = m_assets.resources.GetResource(rLightParams.hShadowCubeMapTexArray)->resourceView;
-			m_drawState.psSamplers[(int)RdrPsSamplerSlots::ShadowMap] = RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false);
-			m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMapData] = m_assets.resources.GetResource(rLightParams.hShadowMapDataRes)->resourceView;
-		}
+			if (pMaterial->bNeedsLighting && !bDepthOnly)
+			{
+				m_drawState.psResources[(int)RdrPsResourceSlots::LightList] = RdrResourceSystem::GetResource(rLightParams.hLightListRes)->resourceView;
+				m_drawState.psResources[(int)RdrPsResourceSlots::TileLightIds] = RdrResourceSystem::GetResource(hTileLightIndices)->resourceView;
+				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowMapTexArray)->resourceView;
+				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowCubeMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowCubeMapTexArray)->resourceView;
+				m_drawState.psSamplers[(int)RdrPsSamplerSlots::ShadowMap] = RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false);
+				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMapData] = RdrResourceSystem::GetResource(rLightParams.hShadowMapDataRes)->resourceView;
+			}
 
-		RdrConstantBufferHandle hPerActionPs = (ePass == RdrPass::UI) ? rAction.hUiPerActionPs : rAction.hPerActionPs;
-		m_drawState.psConstantBuffers[0] = m_assets.resources.GetConstantBuffer(rAction.hPerActionPs)->bufferObj;
-		m_drawState.psConstantBufferCount = 1;
+			RdrConstantBufferHandle hPerActionPs = (ePass == RdrPass::UI) ? rAction.hUiPerActionPs : rAction.hPerActionPs;
+			m_drawState.psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rAction.hPerActionPs)->bufferObj;
+			m_drawState.psConstantBufferCount = 1;
+		}
 	}
 
 	// Input assembly
-	m_drawState.inputLayout = *m_assets.shaders.GetInputLayout(pDrawOp->graphics.hInputLayout); // todo: layouts per flags
+	m_drawState.inputLayout = *RdrShaderSystem::GetInputLayout(pDrawOp->graphics.hInputLayout); // todo: layouts per flags
 	m_drawState.eTopology = RdrTopology::TriangleList;
 
 	m_drawState.vertexBuffers[0] = pGeo->vertexBuffer;
@@ -816,23 +819,23 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrD
 
 void Renderer::DispatchCompute(RdrDrawOp* pDrawOp)
 {
-	m_drawState.pComputeShader = m_assets.shaders.GetComputeShader(pDrawOp->compute.shader);
+	m_drawState.pComputeShader = RdrShaderSystem::GetComputeShader(pDrawOp->compute.shader);
 
-	m_drawState.csConstantBuffers[0] = m_assets.resources.GetConstantBuffer(pDrawOp->compute.hCsConstants)->bufferObj;
+	m_drawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(pDrawOp->compute.hCsConstants)->bufferObj;
 	m_drawState.csConstantBufferCount = 1;
 
-	for (uint i = 0; i < pDrawOp->texCount; ++i)
+	for (uint i = 0; i < pDrawOp->compute.texCount; ++i)
 	{
-		if (pDrawOp->hTextures[i])
-			m_drawState.csResources[i] = m_assets.resources.GetResource(pDrawOp->hTextures[i])->resourceView;
+		if (pDrawOp->compute.hTextures[i])
+			m_drawState.csResources[i] = RdrResourceSystem::GetResource(pDrawOp->compute.hTextures[i])->resourceView;
 		else
 			m_drawState.csResources[i].pTypeless = nullptr;
 	}
 
 	for (uint i = 0; i < pDrawOp->compute.viewCount; ++i)
 	{
-		if (pDrawOp->hTextures[i])
-			m_drawState.csUavs[i] = m_assets.resources.GetResource(pDrawOp->compute.hViews[i])->uav;
+		if (pDrawOp->compute.hViews[i])
+			m_drawState.csUavs[i] = RdrResourceSystem::GetResource(pDrawOp->compute.hViews[i])->uav;
 		else
 			m_drawState.csUavs[i].pTypeless = nullptr;
 	}
@@ -846,12 +849,12 @@ void Renderer::DispatchCompute(RdrDrawOp* pDrawOp)
 RdrResourceReadbackRequestHandle Renderer::IssueTextureReadbackRequest(RdrResourceHandle hResource, const IVec3& pixelCoord)
 {
 	RdrResourceReadbackRequest* pReq = m_readbackRequests.alloc();
-	const RdrResource* pSrcResource = m_assets.resources.GetResource(hResource);
+	const RdrResource* pSrcResource = RdrResourceSystem::GetResource(hResource);
 	pReq->hSrcResource = hResource;
 	pReq->frameCount = 0;
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(pixelCoord.x, pixelCoord.y, 0, 1, 1, 1);
-	pReq->hDstResource = m_assets.resources.CreateTexture2D(1, 1, pSrcResource->texInfo.format, RdrResourceUsage::Staging);
+	pReq->hDstResource = RdrResourceSystem::CreateTexture2D(1, 1, pSrcResource->texInfo.format, RdrResourceUsage::Staging);
 	pReq->dataSize = rdrGetTexturePitch(1, pSrcResource->texInfo.format);
 	pReq->pData = new char[pReq->dataSize]; // todo: custom heap
 
@@ -868,7 +871,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueStructuredBufferReadbackRequest(
 	pReq->frameCount = 0;
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(startByteOffset, 0, 0, numBytesToRead, 1, 1);
-	pReq->hDstResource = m_assets.resources.CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceUsage::Staging);
+	pReq->hDstResource = RdrResourceSystem::CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceUsage::Staging);
 	pReq->dataSize = numBytesToRead;
 	pReq->pData = new char[numBytesToRead]; // todo: custom heap
 
@@ -902,7 +905,7 @@ void Renderer::ReleaseResourceReadbackRequest(RdrResourceReadbackRequestHandle h
 	}
 
 	// todo: pool/reuse dest resources.
-	m_assets.resources.ReleaseResource(pReq->hDstResource);
+	RdrResourceSystem::ReleaseResource(pReq->hDstResource);
 	SAFE_DELETE(pReq->pData);
 
 	m_readbackRequests.releaseId(hRequest);
