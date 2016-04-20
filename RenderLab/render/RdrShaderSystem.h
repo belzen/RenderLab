@@ -1,9 +1,6 @@
 #pragma once
 
-#include <map>
-#include <vector>
 #include "RdrShaders.h"
-#include "FreeList.h"
 #include "RdrGeometry.h"
 
 class RdrContext;

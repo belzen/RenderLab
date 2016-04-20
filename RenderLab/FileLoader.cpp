@@ -1,19 +1,22 @@
 #include "Precompiled.h"
 #include "FileLoader.h"
+#include <fstream>
 
 bool FileLoader::Load(const char* filename, char** ppOutData, uint* pOutDataSize)
 {
-	FILE* file;
-	fopen_s(&file, filename, "rb");
+	struct stat fileStats;
+	int res = stat(filename, &fileStats);
+	if (res != 0)
+		return false;
 
-	fseek(file, 0, SEEK_END);
-	int fileSize = ftell(file);
-	fseek(file, 0, SEEK_SET);
+	std::ifstream file(filename, std::ios::binary);
+	if (!file.is_open())
+		return false;
 
+	uint fileSize = fileStats.st_size;
 	char* pFileData = new char[fileSize];
-	fread(pFileData, sizeof(char), fileSize, file);
-	fclose(file);
-
+	file.read(pFileData, fileSize);
+	
 	*ppOutData = pFileData;
 	*pOutDataSize = fileSize;
 

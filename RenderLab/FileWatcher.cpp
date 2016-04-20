@@ -1,7 +1,6 @@
 #include "Precompiled.h"
 #include "FileWatcher.h"
 #include <windows.h>
-#include <assert.h>
 #include <thread>
 #include <fileapi.h>
 #include <regex>
@@ -10,6 +9,7 @@ namespace
 {
 	struct FileListener
 	{
+		FileWatcher::ListenerID id;
 		std::regex patternRegex;
 		FileWatcher::FileChangedFunc changedFunc;
 		void* pUserData;
@@ -25,7 +25,9 @@ namespace
 		uint pathLen;
 		bool bTerminate;
 
+		ThreadLock listenerLock;
 		std::vector<FileListener> listeners;
+		FileWatcher::ListenerID nextListenerId;
 	} s_fileWatcher;
 
 	void reissueFileListener();
@@ -33,7 +35,8 @@ namespace
 	void CALLBACK notificationCompletion(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
 	{
 		char* pCur = s_fileWatcher.notifyBuffer;
-		uint numListeners = (uint)s_fileWatcher.listeners.size();
+
+		AutoScopedLock lock(s_fileWatcher.listenerLock);
 
 		while (true)
 		{
@@ -43,7 +46,7 @@ namespace
 			size_t numConverted;
 			wcstombs_s(&numConverted, relativePath, pInfo->FileName, pInfo->FileNameLength / sizeof(wchar_t));
 
-			for (uint i = 0; i < numListeners; ++i)
+			for (uint i = 0; i < (uint)s_fileWatcher.listeners.size(); ++i)
 			{
 				FileListener& rListener = s_fileWatcher.listeners[i];
 				if (regex_match(relativePath, rListener.patternRegex))
@@ -109,18 +112,18 @@ namespace
 	}
 }
 
-
 void FileWatcher::Init(const char* dataDir)
 {
 	GetCurrentDirectoryA(MAX_PATH, s_fileWatcher.path);
 	strcat_s(s_fileWatcher.path, MAX_PATH, "/");
 	strcat_s(s_fileWatcher.path, MAX_PATH, dataDir);
 	s_fileWatcher.pathLen = (uint)strlen(s_fileWatcher.path);
+	s_fileWatcher.nextListenerId = 1;
 
 	s_fileWatcher.thread = std::thread(fileWatcherThreadMain);
 }
 
-void FileWatcher::AddListener(const char* pattern, FileChangedFunc callback, void* pUserData)
+FileWatcher::ListenerID FileWatcher::AddListener(const char* pattern, FileChangedFunc callback, void* pUserData)
 {
 	FileListener listener;
 
@@ -134,7 +137,28 @@ void FileWatcher::AddListener(const char* pattern, FileChangedFunc callback, voi
 	listener.patternRegex = patternRegex;
 	listener.changedFunc = callback;
 	listener.pUserData = pUserData;
+	listener.id = s_fileWatcher.nextListenerId++;
+
+	AutoScopedLock lock(s_fileWatcher.listenerLock);
 	s_fileWatcher.listeners.push_back(listener);
+
+	return listener.id;
+}
+
+void FileWatcher::RemoveListener(const ListenerID listenerId)
+{
+	AutoScopedLock lock(s_fileWatcher.listenerLock);
+
+	uint numListeners = (uint)s_fileWatcher.listeners.size();
+	for (uint i = 0; i < numListeners; ++i)
+	{
+		FileListener& rListener = s_fileWatcher.listeners[i];
+		if (rListener.id == listenerId)
+		{
+			s_fileWatcher.listeners.erase(s_fileWatcher.listeners.begin() + i);
+			break;
+		}
+	}
 }
 
 void FileWatcher::Cleanup()

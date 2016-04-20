@@ -1,6 +1,5 @@
 #pragma once
 
-#include "FreeList.h"
 #include "RdrResource.h"
 
 struct RdrResourceReadbackRequest

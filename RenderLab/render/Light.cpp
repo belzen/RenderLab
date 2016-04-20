@@ -48,6 +48,59 @@ LightList::LightList()
 
 }
 
+void LightList::Cleanup()
+{
+	for (uint i = 0; i < MAX_SHADOW_MAPS; ++i)
+	{
+		if (m_shadowMapDepthViews[i])
+		{
+			RdrResourceSystem::ReleaseDepthStencilView(m_shadowMapDepthViews[i]);
+			m_shadowMapDepthViews[i] = 0;
+		}
+	}
+
+#if USE_SINGLEPASS_SHADOW_CUBEMAP
+	uint numCubemapViews = MAX_SHADOW_CUBEMAPS;
+#else
+	uint numCubemapViews = MAX_SHADOW_CUBEMAPS * (uint)CubemapFace::Count;
+#endif
+	for (uint i = 0; i < numCubemapViews; ++i)
+	{
+		if (m_shadowCubeMapDepthViews[i])
+		{
+			RdrResourceSystem::ReleaseDepthStencilView(m_shadowCubeMapDepthViews[i]);
+			m_shadowCubeMapDepthViews[i] = 0;
+		}
+	}
+
+	if (m_hLightListRes)
+	{
+		RdrResourceSystem::ReleaseResource(m_hLightListRes);
+		m_hLightListRes = 0;
+	}
+
+	if (m_hShadowMapDataRes)
+	{
+		RdrResourceSystem::ReleaseResource(m_hShadowMapDataRes);
+		m_hShadowMapDataRes = 0;
+	}
+
+	if (m_hShadowMapTexArray)
+	{
+		RdrResourceSystem::ReleaseResource(m_hShadowMapTexArray);
+		m_hShadowMapTexArray = 0;
+	}
+
+	if (m_hShadowCubeMapTexArray)
+	{
+		RdrResourceSystem::ReleaseResource(m_hShadowCubeMapTexArray);
+		m_hShadowCubeMapTexArray = 0;
+	}
+
+	m_prevLightCount = 0;
+	m_lightCount = 0;
+}
+
 void LightList::AddLight(Light& light)
 {
 	assert(m_lightCount < ARRAYSIZE(m_lights));

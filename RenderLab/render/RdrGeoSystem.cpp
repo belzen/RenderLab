@@ -1,6 +1,5 @@
 #include "Precompiled.h"
 #include "RdrGeoSystem.h"
-#include "FileLoader.h"
 #include "RdrContext.h"
 #include "RdrTransientMem.h"
 #include <fstream>
@@ -9,7 +8,7 @@ namespace
 {
 	typedef std::map<std::string, RdrGeoHandle> RdrGeoHandleMap;
 
-	struct CmdUpdate
+	struct GeoCmdUpdate
 	{
 		RdrGeoHandle hGeo;
 		const void* pVertData;
@@ -17,15 +16,15 @@ namespace
 		RdrGeoInfo info;
 	};
 
-	struct CmdRelease
+	struct GeoCmdRelease
 	{
 		RdrGeoHandle hGeo;
 	};
 
-	struct FrameState
+	struct GeoFrameState
 	{
-		std::vector<CmdUpdate> updates;
-		std::vector<CmdRelease> releases;
+		std::vector<GeoCmdUpdate> updates;
+		std::vector<GeoCmdRelease> releases;
 	};
 
 	struct
@@ -33,11 +32,11 @@ namespace
 		RdrGeoHandleMap geoCache;
 		RdrGeoList      geos;
 
-		FrameState states[2];
-		uint       queueState;
+		GeoFrameState states[2];
+		uint          queueState;
 	} s_geoSystem;
 
-	inline FrameState& getQueueState()
+	inline GeoFrameState& getQueueState()
 	{
 		return s_geoSystem.states[s_geoSystem.queueState];
 	}
@@ -142,7 +141,7 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 
 	RdrGeometry* pGeo = s_geoSystem.geos.allocSafe();
 
-	CmdUpdate cmd;
+	GeoCmdUpdate cmd;
 	cmd.hGeo = s_geoSystem.geos.getId(pGeo);
 
 	cmd.info.vertStride = sizeof(Vertex);
@@ -190,7 +189,7 @@ const RdrGeometry* RdrGeoSystem::GetGeo(const RdrGeoHandle hGeo)
 
 void RdrGeoSystem::ReleaseGeo(const RdrGeoHandle hGeo)
 {
-	CmdRelease cmd;
+	GeoCmdRelease cmd;
 	cmd.hGeo = hGeo;
 
 	getQueueState().releases.push_back(cmd);
@@ -200,7 +199,7 @@ RdrGeoHandle RdrGeoSystem::CreateGeo(const void* pVertData, int vertStride, int 
 {
 	RdrGeometry* pGeo = s_geoSystem.geos.allocSafe();
 
-	CmdUpdate cmd;
+	GeoCmdUpdate cmd;
 	cmd.hGeo = s_geoSystem.geos.getId(pGeo);
 	cmd.pVertData = pVertData;
 	cmd.pIndexData = pIndexData;
@@ -222,7 +221,7 @@ void RdrGeoSystem::FlipState()
 
 void RdrGeoSystem::ProcessCommands(RdrContext* pRdrContext)
 {
-	FrameState& state = s_geoSystem.states[!s_geoSystem.queueState];
+	GeoFrameState& state = s_geoSystem.states[!s_geoSystem.queueState];
 	uint numCmds;
 
 	// Frees
@@ -231,7 +230,7 @@ void RdrGeoSystem::ProcessCommands(RdrContext* pRdrContext)
 		numCmds = (uint)state.releases.size();
 		for (uint i = 0; i < numCmds; ++i)
 		{
-			CmdRelease& cmd = state.releases[i];
+			GeoCmdRelease& cmd = state.releases[i];
 			RdrGeometry* pGeo = s_geoSystem.geos.get(cmd.hGeo);
 
 			pRdrContext->ReleaseVertexBuffer(pGeo->vertexBuffer);
@@ -249,7 +248,7 @@ void RdrGeoSystem::ProcessCommands(RdrContext* pRdrContext)
 	numCmds = (uint)state.updates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		CmdUpdate& cmd = state.updates[i];
+		GeoCmdUpdate& cmd = state.updates[i];
 		RdrGeometry* pGeo = s_geoSystem.geos.get(cmd.hGeo);
 		if (!pGeo->vertexBuffer.pBuffer)
 		{

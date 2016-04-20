@@ -1,6 +1,4 @@
 #pragma once
-#include "Types.h"
-#include <assert.h>
 #include "ThreadLock.h"
 
 template <class T_object, uint16 T_nMaxEntries>

@@ -5,76 +5,114 @@
 #include "WorldObject.h"
 #include "render/Model.h"
 #include "render/Font.h"
-#include "json/json.h"
-#include "FileWatcher.h"
-#include "FileLoader.h"
 
 namespace
 {
+	AssetDef s_sceneAssetDef("scenes", "scene");
+
 	void handleSceneFileChanged(const char* filename, void* pUserData)
 	{
-		/*
+		char sceneName[AssetDef::kMaxNameLen];
+		s_sceneAssetDef.ExtractAssetName(filename, sceneName, ARRAYSIZE(sceneName));
+
 		Scene* pScene = (Scene*)pUserData;
-		if (stricmp(filename, pScene->GetFilename()) == 0)
+		if (_stricmp(pScene->GetName(), sceneName) == 0)
 		{
-			pScene->Load()
-		}*/
+			pScene->Reload();
+		}
+	}
+
+
+	static inline Vec3 readVec3(Json::Value& val)
+	{
+		Vec3 vec;
+		vec.x = val.get((uint)0, Json::Value(0.f)).asFloat();
+		vec.y = val.get((uint)1, Json::Value(0.f)).asFloat();
+		vec.z = val.get((uint)2, Json::Value(0.f)).asFloat();
+		return vec;
+	}
+
+	static inline Vec3 readScale(Json::Value& val)
+	{
+		Vec3 vec;
+		vec.x = val.get((uint)0, Json::Value(1.f)).asFloat();
+		vec.y = val.get((uint)1, Json::Value(1.f)).asFloat();
+		vec.z = val.get((uint)2, Json::Value(1.f)).asFloat();
+		return vec;
+	}
+
+	static inline Quaternion readRotation(Json::Value& val)
+	{
+		Vec3 pitchYawRoll;
+		pitchYawRoll.x = val.get((uint)0, Json::Value(0.f)).asFloat();
+		pitchYawRoll.y = val.get((uint)1, Json::Value(0.f)).asFloat();
+		pitchYawRoll.z = val.get((uint)2, Json::Value(0.f)).asFloat();
+
+		return QuaternionPitchYawRoll(
+			Maths::DegToRad(pitchYawRoll.x),
+			Maths::DegToRad(pitchYawRoll.y),
+			Maths::DegToRad(pitchYawRoll.z));
+	}
+
+	static inline Vec3 readPitchYawRoll(Json::Value& val)
+	{
+		Vec3 pitchYawRoll;
+		pitchYawRoll.x = Maths::DegToRad(val.get((uint)0, Json::Value(0.f)).asFloat());
+		pitchYawRoll.y = Maths::DegToRad(val.get((uint)1, Json::Value(0.f)).asFloat());
+		pitchYawRoll.z = Maths::DegToRad(val.get((uint)2, Json::Value(0.f)).asFloat());
+		return pitchYawRoll;
 	}
 }
 
 Scene::Scene()
+	: m_reloadListenerId(0)
+	, m_reloadPending(false)
 {
-	FileWatcher::AddListener("scenes/*.scene", handleSceneFileChanged, this);
+	m_sceneName[0] = 0;
 }
 
-static inline Vec3 readVec3(Json::Value& val)
+void Scene::Cleanup()
 {
-	Vec3 vec;
-	vec.x = val.get((uint)0, Json::Value(0.f)).asFloat();
-	vec.y = val.get((uint)1, Json::Value(0.f)).asFloat();
-	vec.z = val.get((uint)2, Json::Value(0.f)).asFloat();
-	return vec;
+	uint numObjects = (uint)m_objects.size();
+	for (uint i = 0; i < numObjects; ++i)
+	{
+		m_objects[i]->Release();
+	}
+	m_objects.clear();
+
+	m_lights.Cleanup();
+
+	m_sky.Cleanup();
+
+	FileWatcher::RemoveListener(m_reloadListenerId);
+	m_sceneName[0] = 0;
+	m_reloadPending = false;
 }
 
-static inline Vec3 readScale(Json::Value& val)
+void Scene::Reload()
 {
-	Vec3 vec;
-	vec.x = val.get((uint)0, Json::Value(1.f)).asFloat();
-	vec.y = val.get((uint)1, Json::Value(1.f)).asFloat();
-	vec.z = val.get((uint)2, Json::Value(1.f)).asFloat();
-	return vec;
+	m_reloadPending = true;
 }
 
-static inline Quaternion readRotation(Json::Value& val)
+void Scene::Load(const char* sceneName)
 {
-	Vec3 pitchYawRoll;
-	pitchYawRoll.x = val.get((uint)0, Json::Value(0.f)).asFloat();
-	pitchYawRoll.y = val.get((uint)1, Json::Value(0.f)).asFloat();
-	pitchYawRoll.z = val.get((uint)2, Json::Value(0.f)).asFloat();
+	assert(m_sceneName[0] == 0);
+	strcpy_s(m_sceneName, sceneName);
 
-	return QuaternionPitchYawRoll(
-		Maths::DegToRad(pitchYawRoll.x), 
-		Maths::DegToRad(pitchYawRoll.y), 
-		Maths::DegToRad(pitchYawRoll.z));
-}
-
-static inline Vec3 readPitchYawRoll(Json::Value& val)
-{
-	Vec3 pitchYawRoll;
-	pitchYawRoll.x = Maths::DegToRad(val.get((uint)0, Json::Value(0.f)).asFloat());
-	pitchYawRoll.y = Maths::DegToRad(val.get((uint)1, Json::Value(0.f)).asFloat());
-	pitchYawRoll.z = Maths::DegToRad(val.get((uint)2, Json::Value(0.f)).asFloat());
-	return pitchYawRoll;
-}
-
-void Scene::Load(Renderer& rRenderer, const char* filename)
-{
 	char fullFilename[MAX_PATH];
-	sprintf_s(fullFilename, "data/scenes/%s", filename);
+	s_sceneAssetDef.BuildFilename(sceneName, fullFilename, ARRAYSIZE(fullFilename));
 
+	// Listen for changes of the scene file.
+	char filePattern[AssetDef::kMaxNameLen];
+	s_sceneAssetDef.GetFilePattern(filePattern, ARRAYSIZE(filePattern));
+	m_reloadListenerId = FileWatcher::AddListener(filePattern, handleSceneFileChanged, this);
 
 	Json::Value root;
-	FileLoader::LoadJson(fullFilename, root);
+	if (!FileLoader::LoadJson(fullFilename, root))
+	{
+		assert(false);
+		return;
+	}
 
 	// Camera
 	{
@@ -90,7 +128,7 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 	// Sky
 	{
 		Json::Value jSky = root.get("sky", Json::Value::null);
-		m_sky.LoadFromFile(jSky.asCString());
+		m_sky.Load(jSky.asCString());
 	}
 
 	// Lights
@@ -184,6 +222,17 @@ void Scene::Load(Renderer& rRenderer, const char* filename)
 
 void Scene::Update(float dt)
 {
+	if (m_reloadPending)
+	{
+		char sceneName[AssetDef::kMaxNameLen];
+		strcpy_s(sceneName, m_sceneName);
+
+		Cleanup();
+		Load(sceneName);
+		m_reloadPending = false;
+	}
+
+	m_sky.Update(dt);
 }
 
 void Scene::QueueShadowMaps(Renderer& rRenderer, const Camera& rCamera)

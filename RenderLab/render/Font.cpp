@@ -5,9 +5,6 @@
 #include "RdrTransientMem.h"
 #include "Camera.h"
 #include "UI.h"
-#include <d3d11.h>
-#include <xmllite.h>
-#include <shlwapi.h>
 
 #pragma comment(lib, "xmllite.lib")
 #pragma comment(lib, "shlwapi.lib")
@@ -29,7 +26,7 @@ namespace
 
 	struct
 	{
-		short glpyhWidths[256];
+		short glyphWidths[256];
 		int glyphPixelSize;
 
 		RdrInputLayoutHandle hInputLayout;
@@ -38,12 +35,13 @@ namespace
 
 	static void loadFontData(const char* filename)
 	{
-		FILE* file;
-		fopen_s(&file, filename, "rb");
+		char* pFileData;
+		uint fileSize;
+		FileLoader::Load(filename, &pFileData, &fileSize);
+		assert(fileSize == sizeof(s_text.glyphWidths));
 
-		fread(s_text.glpyhWidths, sizeof(short), 256, file);
-
-		fclose(file);
+		memcpy(s_text.glyphWidths, pFileData, fileSize);
+		delete pFileData;
 	}
 
 	void queueDrawCommon(Renderer& rRenderer, const UI::Position& uiPos, float size, const TextObject& rText, bool bFreeGeo, Color color)
@@ -145,10 +143,10 @@ TextObject Font::CreateText(const char* text)
 
 			++numQuads;
 
-			float curGlyphHalfWidth = (s_text.glpyhWidths[text[i]] / (float)s_text.glyphPixelSize) * 0.5f;
+			float curGlyphHalfWidth = (s_text.glyphWidths[text[i]] / (float)s_text.glyphPixelSize) * 0.5f;
 			float nextGlyphHalfWidth = curGlyphHalfWidth;
 			if ( i < textLen - 1 )
-				nextGlyphHalfWidth = (s_text.glpyhWidths[text[i+1]] / (float)s_text.glyphPixelSize) * 0.5f;
+				nextGlyphHalfWidth = (s_text.glyphWidths[text[i+1]] / (float)s_text.glyphPixelSize) * 0.5f;
 			x += curGlyphHalfWidth + nextGlyphHalfWidth + padding;
 		}
 	}

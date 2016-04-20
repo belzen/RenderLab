@@ -40,6 +40,8 @@ Model* Model::Create(RdrGeoHandle hGeo, const RdrMaterial* pMaterial)
 
 void Model::Release()
 {
+	m_hGeo = 0;
+	m_pMaterial = nullptr;
 	s_models.release(this);
 }
 

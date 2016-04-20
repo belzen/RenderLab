@@ -1,9 +1,7 @@
 #include "Precompiled.h"
 #include "RdrContextD3D11.h"
-#include <assert.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
-#include <fstream>
 #include <string>
 
 #pragma comment (lib, "d3dcompiler.lib")

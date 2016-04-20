@@ -2,7 +2,6 @@
 #include "Timer.h"
 #include <wtypesbase.h>
 #include <WinBase.h>
-#include <assert.h>
 
 struct TimerObj
 {

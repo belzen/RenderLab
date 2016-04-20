@@ -9,7 +9,6 @@
 #include "Timer.h"
 #include "FrameTimer.h"
 #include "debug/Debug.h"
-#include "FileWatcher.h"
 
 
 namespace
@@ -112,7 +111,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 	FileWatcher::Init("data");
 
-	g_scene.Load(g_renderer, "basic.scene");
+	g_scene.Load("basic");
 
 	MSG msg;
 	Timer::Handle hTimer = Timer::Create();

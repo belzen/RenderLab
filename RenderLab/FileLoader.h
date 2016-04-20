@@ -1,7 +1,5 @@
 #pragma once
 
-#include "json/json.h"
-
 namespace FileLoader
 {
 	// todo: async load

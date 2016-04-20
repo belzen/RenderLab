@@ -1,6 +1,5 @@
 #include "Precompiled.h"
 #include "RdrDrawOp.h"
-#include "FreeList.h"
 
 namespace
 {

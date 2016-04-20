@@ -1,6 +1,4 @@
 #pragma once
-#include "Types.h"
-#include <assert.h>
 
 template <uint T_nMaxIds>
 class IdSet

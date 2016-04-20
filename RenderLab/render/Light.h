@@ -44,6 +44,8 @@ class LightList
 public:
 	LightList();
 
+	void Cleanup();
+
 	void AddLight(Light& light);
 
 	void PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, const Scene& scene);

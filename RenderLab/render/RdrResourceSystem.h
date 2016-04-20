@@ -1,9 +1,6 @@
 #pragma once
 
-#include <map>
-#include <vector>
 #include "RdrResource.h"
-#include "FreeList.h"
 
 class RdrContext;
 

@@ -167,6 +167,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AssetDef.cpp" />
     <ClCompile Include="debug\Debug.cpp" />
     <ClCompile Include="debug\DebugConsole.cpp" />
     <ClCompile Include="debug\PostProcessDebugger.cpp" />
@@ -191,7 +192,6 @@
     <ClCompile Include="render\Light.cpp" />
     <ClCompile Include="render\Model.cpp" />
     <ClCompile Include="render\RdrFrameState.cpp" />
-    <ClCompile Include="render\RdrContext.cpp" />
     <ClCompile Include="render\RdrContextD3D11.cpp" />
     <ClCompile Include="render\RdrContextD3D11_Shaders.cpp" />
     <ClCompile Include="render\RdrDrawOp.cpp" />
@@ -212,6 +212,7 @@
     <ClInclude Include="..\data\shaders\c_constants.h" />
     <ClInclude Include="..\data\shaders\g_constants.h" />
     <ClInclude Include="..\data\shaders\p_constants.h" />
+    <ClInclude Include="AssetDef.h" />
     <ClInclude Include="debug\Debug.h" />
     <ClInclude Include="debug\DebugConsole.h" />
     <ClInclude Include="debug\PostProcessDebugger.h" />

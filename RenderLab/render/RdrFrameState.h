@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vector>
 #include "RdrDeviceTypes.h"
 #include "RdrResource.h"
 #include "RdrShaders.h"

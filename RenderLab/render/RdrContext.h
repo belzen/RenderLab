@@ -1,11 +1,9 @@
 #pragma once
 
-#include <map>
 #include "RdrDeviceTypes.h"
 #include "RdrGeometry.h"
 #include "RdrShaders.h"
 #include "Math.h"
-#include "FreeList.h"
 #include "Camera.h"
 
 struct RdrDrawOp;
