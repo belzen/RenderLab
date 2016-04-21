@@ -4,9 +4,6 @@
 /TextSDF/Debug/
 /TextSDF/Release/
 /TextSDF/x64/
-/RenderLab/Debug/
-/RenderLab/Release/
-/RenderLab/x64/
 RenderLab.opensdf
 RenderLab.sdf
 *.vcxproj.filters
