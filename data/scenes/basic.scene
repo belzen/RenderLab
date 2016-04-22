@@ -10,7 +10,7 @@
 			"position" : [ 0.0, 0.0, 0.0 ],
 			"direction" : [1.0, -1.0, 1.0 ],
 			"color" : [1.0, 1.0, 1.0],
-			"intensity" : 0.5,
+			"intensity" : 32.5,
 			"castsShadows" : true
 		},
 		{
@@ -18,7 +18,7 @@
 			"position" : [ 0.0, 5.0, -3.0 ],
 			"direction" : [ 0.0, -1.0, 0.0 ],
 			"color" : [1.0, 0.0, 0.0],
-			"intensity" : 15.0,
+			"intensity" : 1675.0,
 			"radius" : 10.0,
 			"innerConeAngle" : 30.0,
 			"outerConeAngle" : 45.0,
@@ -28,7 +28,7 @@
 			"type" : "point",
 			"position" : [ -5.0, 5.0, -3.0 ],
 			"color" : [0.0, 0.0, 1.0],
-			"intensity" : 15.0,
+			"intensity" : 1675.0,
 			"radius" : 10.0,
 			"castsShadows" : true
 		}

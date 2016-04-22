@@ -70,11 +70,10 @@ void main( uint3 globalId : SV_DispatchThreadID, uint3 groupId : SV_GroupId, uin
 		float avgLum = (grp_logLum[0].x + grp_logLum[0].y + grp_logLum[0].z + grp_logLum[0].w) / (4 * numSamples);
 		avgLum = exp2(avgLum);
 
-		float middleGrey = 0.4f; // todo: sky setting
 		float avgLumScaled = cbTonemapInput.middleGrey / avgLum;
 
 		bufToneMapOutput[0].linearExposure = avgLumScaled;
-		bufToneMapOutput[0].whiteSqr = cbTonemapInput.white * cbTonemapInput.white;
+		bufToneMapOutput[0].white = cbTonemapInput.white;
 		bufToneMapOutput[0].lumAvg = avgLum;
 #else
 		texOutput[groupId.xy] = grp_logLum[0] / numSamples;

@@ -548,7 +548,7 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 		{
 			if (renderTargets[i].pView)
 			{
-				const Color clearColor(0.f, 0.f, 0.f, 1.f);
+				const Color clearColor(0.f, 0.f, 0.f, 0.f);
 				m_pContext->ClearRenderTargetView(renderTargets[i], clearColor);
 			}
 		}

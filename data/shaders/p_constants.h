@@ -11,7 +11,7 @@ struct PsPerAction
 struct ToneMapOutputParams
 {
 	float linearExposure;
-	float whiteSqr;
+	float white;
 	float lumAvg;
 	float unused;
 };

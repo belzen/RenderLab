@@ -92,8 +92,8 @@ void RdrPostProcess::Init()
 
 	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ToneMapInputParams));
 	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrTransientMem::AllocAligned(constantsSize, 16);
-	pTonemapSettings->white = 16.f;
-	pTonemapSettings->middleGrey = 0.4f;
+	pTonemapSettings->white = 4.f;
+	pTonemapSettings->middleGrey = 0.7f;
 	m_hToneMapInputConstants = RdrResourceSystem::CreateConstantBuffer(pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 }
 
@@ -123,6 +123,8 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer)
 {
 	pRdrContext->BeginEvent(L"Post-Process");
+
+	pRdrContext->SetBlendState(false);
 
 	m_dbgFrame = (m_dbgFrame + 1) % 3;
 

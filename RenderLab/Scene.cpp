@@ -86,7 +86,6 @@ void Scene::Cleanup()
 
 	FileWatcher::RemoveListener(m_reloadListenerId);
 	m_sceneName[0] = 0;
-	m_reloadPending = false;
 }
 
 void Scene::Reload()
@@ -114,7 +113,8 @@ void Scene::Load(const char* sceneName)
 		return;
 	}
 
-	// Camera
+	// Camera - Skip moving the camera if this is a reload
+	if (!m_reloadPending)
 	{
 		Json::Value jCamera = root.get("camera", Json::Value::null);
 
