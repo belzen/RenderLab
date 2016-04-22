@@ -41,14 +41,15 @@ float4 main(VsOutputSprite input) : SV_TARGET
 	float Lw = getLuminance(color.rgb);
 	float Lwmax = tonemap.white;
 	const float kBias = 0.85f;
-	const float biasPow = log(kBias) / log(0.5f);
+	const float kBiasPow = log(kBias) / log(0.5f);
 	// Ldmax = 100, factors out to 1
-	float Ld = log(Lw + 1.f) / (log10(Lwmax + 1.f) * log(2.f + 8.f * pow(Lw / Lwmax, biasPow)));
+	float Ld = log(Lw + 1.f) / (log10(Lwmax + 1.f) * log(2.f + 8.f * pow(Lw / Lwmax, kBiasPow)));
 
 	color.rgb *= Ld / Lw;
 
 #elif TONEMAP_METHOD == FILMIC
-	color.rgb = applyFilmicTonemap(color.rgb) / applyFilmicTonemap(tonemap.white);
+	const float kExposureBias = 2.f;
+	color.rgb = applyFilmicTonemap(color.rgb * kExposureBias) / applyFilmicTonemap(tonemap.white);
 
 #endif
 
