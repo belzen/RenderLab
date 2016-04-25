@@ -37,6 +37,7 @@ public:
 	RdrSamplerState psSamplers[16];
 
 	RdrShaderResourceView csResources[20];
+	RdrSamplerState csSamplers[16];
 	RdrUnorderedAccessView csUavs[8];
 
 	RdrConstantBufferDeviceObj vsConstantBuffers[16];

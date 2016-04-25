@@ -12,7 +12,7 @@ struct ToneMapOutputParams
 {
 	float linearExposure;
 	float white;
-	float lumAvg;
+	float adaptedLum;
 	float unused;
 };
 

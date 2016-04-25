@@ -90,6 +90,10 @@ enum class RdrComputeShader
 	LuminanceMeasure_First,
 	LuminanceMeasure_Mid,
 	LuminanceMeasure_Final,
+	BloomShrink,
+	Add,
+	BlurHorizontal,
+	BlurVertical,
 
 	Count
 };

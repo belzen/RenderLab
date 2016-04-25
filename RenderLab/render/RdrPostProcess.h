@@ -12,7 +12,7 @@ struct RdrPostProcessDbgData
 {
 	Vec4 lumColor;
 	float linearExposure;
-	float avgLum;
+	float adaptedLum;
 	float lumAtCursor;
 };
 
@@ -27,11 +27,22 @@ public:
 	const RdrPostProcessDbgData& GetDebugData() const;
 
 private:
+	void DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
+	void DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
+	void DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
+
 	RdrShaderHandle m_hToneMapPs;
 	RdrResourceHandle m_hToneMapOutputConstants;
 	RdrConstantBufferHandle m_hToneMapInputConstants;
 
 	RdrResourceHandle m_hLumOutputs[4];
+
+	struct BloomBuffer
+	{
+		RdrResourceHandle hResources[2];
+		RdrConstantBufferHandle hAddConstants;
+	};
+	BloomBuffer m_bloomBuffers[4];
 
 	//////////////////////////////////////////////////////////////////////////
 	// Debug

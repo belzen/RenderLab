@@ -12,12 +12,12 @@ cbuffer ToneMapInputBuffer : register(b0)
 	ToneMapInputParams cbTonemapInput;
 }
 
-Texture2D texInput : register(t0);
+Texture2D<float4> texInput : register(t0);
 
 #if STEP_FINAL
 RWStructuredBuffer<ToneMapOutputParams> bufToneMapOutput : register(u0);
 #else
-RWTexture2D<float4> texOutput : register(u0);
+RWTexture2D<float4> texLumOutput : register(u0);
 #endif
 
 groupshared float4 grp_logLum[GroupSizeX * GroupSizeY];
@@ -27,19 +27,27 @@ void main( uint3 globalId : SV_DispatchThreadID, uint3 groupId : SV_GroupId, uin
 {
 	uint2 samplePos = globalId.xy * 2;
 
+	// TODO: Remove need for multiple shrink steps.  One step can shrink from full-res to small tex (exactly like bloom, need to merge shaders).
+	//			Then a separate shader can do a single pass to find the final average and store it in tonemap output
 #if STEP_ONE
-	float4 lum;
-	lum.x = getLuminance( texInput[samplePos + uint2(0, 0)].rgb );
-	lum.w = getLuminance( texInput[samplePos + uint2(1, 1)].rgb );
-	lum.y = getLuminance( texInput[samplePos + uint2(0, 1)].rgb );
-	lum.z = getLuminance( texInput[samplePos + uint2(0, 1)].rgb );
+	float4 c00 = texInput[samplePos + uint2(0, 0)];
+	float4 c10 = texInput[samplePos + uint2(1, 0)];
+	float4 c01 = texInput[samplePos + uint2(0, 1)];
+	float4 c11 = texInput[samplePos + uint2(1, 1)];
 
+	float4 lum;
+	lum.x = getLuminance(c00.rgb);
+	lum.w = getLuminance(c10.rgb);
+	lum.y = getLuminance(c01.rgb);
+	lum.z = getLuminance(c11.rgb);
+	
 	grp_logLum[localIdx] = log2(lum);
+
 #else
 	float4 lum = texInput[samplePos + uint2(0, 0)];
 	lum += texInput[samplePos + uint2(1, 1)];
 	lum += texInput[samplePos + uint2(0, 1)];
-	lum += texInput[samplePos + uint2(0, 1)];
+	lum += texInput[samplePos + uint2(1, 0)];
 
 	grp_logLum[localIdx] = lum / 4;
 #endif
@@ -70,13 +78,15 @@ void main( uint3 globalId : SV_DispatchThreadID, uint3 groupId : SV_GroupId, uin
 		float avgLum = (grp_logLum[0].x + grp_logLum[0].y + grp_logLum[0].z + grp_logLum[0].w) / (4 * numSamples);
 		avgLum = exp2(avgLum);
 
-		float avgLumScaled = cbTonemapInput.middleGrey / avgLum;
+		// Decay luminance
+		// todo: exp decay should be based on time, right now it's fixed per frame
+		float adaptedLum = bufToneMapOutput[0].adaptedLum + (avgLum - bufToneMapOutput[0].adaptedLum) * (1.f - exp(0.01f * -0.2f));
 
-		bufToneMapOutput[0].linearExposure = avgLumScaled;
+		bufToneMapOutput[0].linearExposure = cbTonemapInput.middleGrey / adaptedLum;
 		bufToneMapOutput[0].white = cbTonemapInput.white;
-		bufToneMapOutput[0].lumAvg = avgLum;
+		bufToneMapOutput[0].adaptedLum = adaptedLum;
 #else
-		texOutput[groupId.xy] = grp_logLum[0] / numSamples;
+		texLumOutput[groupId.xy] = grp_logLum[0] / numSamples;
 #endif
 	}
 }

@@ -10,7 +10,10 @@
 Texture2D texColor : register(t0);
 SamplerState sampColor : register(s0);
 
-StructuredBuffer<ToneMapOutputParams> bufToneMapParams : register(t1);
+Texture2D texBloom : register(t1);
+SamplerState sampBloom : register(s1);
+
+StructuredBuffer<ToneMapOutputParams> bufToneMapParams : register(t2);
 
 float3 applyFilmicTonemap(float3 color)
 {
@@ -31,6 +34,7 @@ float4 main(VsOutputSprite input) : SV_TARGET
 
 	ToneMapOutputParams tonemap = bufToneMapParams[0];
 
+	color.rgb += texBloom.Sample(sampBloom, input.texcoords).rgb;
 	color.rgb *= tonemap.linearExposure;
 
 #if TONEMAP_METHOD == REINHARD

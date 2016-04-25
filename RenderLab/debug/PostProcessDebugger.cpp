@@ -39,7 +39,7 @@ void PostProcessDebugger::QueueDraw(Renderer& rRenderer)
 	const RdrPostProcessDbgData& dbgData = m_pPostProc->GetDebugData();
 
 	UI::Position uiPos(0.f, 0.f, 0.f, UI::AlignmentFlags::Left);
-	sprintf_s(str, "Avg Lum: %f", dbgData.avgLum);
+	sprintf_s(str, "Avg Lum: %f", dbgData.adaptedLum);
 	Font::QueueDraw(rRenderer, uiPos, 20.f, str, Color::kWhite);
 
 	uiPos.y.val += 20.f;

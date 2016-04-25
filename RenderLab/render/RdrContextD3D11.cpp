@@ -1029,6 +1029,13 @@ void RdrContextD3D11::DispatchCompute(const RdrDrawState& rDrawState, uint threa
 		m_pDevContext->CSSetShaderResources(i, 1, &pResource);
 	}
 
+	uint numSamplers = ARRAYSIZE(rDrawState.csSamplers);
+	for (uint i = 0; i < numSamplers; ++i)
+	{
+		ID3D11SamplerState* pSampler = GetSampler(rDrawState.csSamplers[i]);
+		m_pDevContext->CSSetSamplers(i, 1, &pSampler);
+	}
+
 	uint numUavs = ARRAYSIZE(rDrawState.csUavs);
 	for (uint i = 0; i < numUavs; ++i)
 	{

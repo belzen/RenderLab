@@ -33,11 +33,15 @@ namespace
 	static_assert(ARRAYSIZE(kGeometryShaderDefs) == (int)RdrGeometryShaderType::Count, "Missing geometry shader defs!");
 
 	const RdrShaderDef kComputeShaderDefs[] = {
-		{"c_tiled_depth_calc.hlsl", { 0 } },          // RdrComputeShader::TiledDepthMinMax
-		{"c_tiled_light_cull.hlsl", { 0 } },          // RdrComputeShader::TiledLightCull
-		{"c_luminance_measure.hlsl",{ "STEP_ONE", 0 } }, // RdrComputeShader::LuminanceMeasure_First,
-		{"c_luminance_measure.hlsl", { "STEP_MID", 0 } },   // RdrComputeShader::LuminanceMeasure_Mid,
-		{"c_luminance_measure.hlsl", { "STEP_FINAL", 0 } },  // RdrComputeShader::LuminanceMeasure_Final,
+		{ "c_tiled_depth_calc.hlsl",  { 0 } },               // RdrComputeShader::TiledDepthMinMax
+		{ "c_tiled_light_cull.hlsl",  { 0 } },               // RdrComputeShader::TiledLightCull
+		{ "c_luminance_measure.hlsl", { "STEP_ONE", 0 } },   // RdrComputeShader::LuminanceMeasure_First,
+		{ "c_luminance_measure.hlsl", { "STEP_MID", 0 } },   // RdrComputeShader::LuminanceMeasure_Mid,
+		{ "c_luminance_measure.hlsl", { "STEP_FINAL", 0 } }, // RdrComputeShader::LuminanceMeasure_Final,
+		{ "c_bloom_shrink.hlsl",      { 0 } },               // RdrComputeShader::Bloom,
+		{ "c_add.hlsl",               { 0 } },               // RdrComputeShader::Add,
+		{ "c_blur.hlsl",              { "BLUR_HORIZONTAL", 0 } }, // RdrComputeShader::BlurHorizontal,
+		{ "c_blur.hlsl",              { "BLUR_VERTICAL", 0 } },   // RdrComputeShader::BlurVertical,
 	};
 	static_assert(ARRAYSIZE(kComputeShaderDefs) == (int)RdrComputeShader::Count, "Missing compute shader defs!");
 
