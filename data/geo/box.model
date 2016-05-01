@@ -1,0 +1,8 @@
+{
+	"subobjects" : [
+		{
+			"geo" : "box",
+			"material" : "white_normaltest"
+		}
+	]
+}

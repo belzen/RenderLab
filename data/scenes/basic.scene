@@ -38,20 +38,17 @@
 			"position" : [ 0.0, 0.0, 0.0 ],
 			"rotation" : [ 0.0, 0.0, 0.0 ],
 			"scale" : [ 150.0, 150.0, 150.0 ],
-			"geo" : "plane",
-			"material" : "white"
+			"model" : "plane"
 		},
 		{
 			"position" : [ -3.0, 1.5, 0.0 ],
 			"rotation" : [ 0.0, 45.0, 0.0 ],
 			"scale" : [ 1.5, 1.5, 1.5 ],
-			"geo" : "sphere",
-			"material" : "white"
+			"model" : "sphere"
 		},
 		{
 			"position" : [ 0.0, 1.5, 0.0 ],
-			"geo" : "box",
-			"material" : "white_normaltest"
+			"model" : "box"
 		}
 	]
 

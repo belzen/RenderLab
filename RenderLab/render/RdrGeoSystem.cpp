@@ -49,7 +49,15 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 	if (iter != s_geoSystem.geoCache.end())
 		return iter->second;
 
+	struct ObjVertex
+	{
+		int iPos;
+		int iUv;
+		int iNorm;
+	};
+
 	static const int kReserveSize = 1024;
+	std::vector<ObjVertex> objVerts;
 	std::vector<Vertex> verts;
 	std::vector<Vec3> positions;
 	std::vector<Vec3> normals;
@@ -61,9 +69,12 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 	std::ifstream file(fullFilename);
 
 	char line[1024];
+	int lineNum = 0; // for debugging
 
 	while (file.getline(line, 1024))
 	{
+		++lineNum;
+
 		char* context = nullptr;
 		char* tok = strtok_s(line, " ", &context);
 
@@ -96,20 +107,41 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 		else if (strcmp(tok, "f") == 0)
 		{
 			// Face
-			Vec3 tri;
 			for (int i = 0; i < 3; ++i)
 			{
-				int iPos = atoi(strtok_s(nullptr, "/ ", &context)) - 1;
-				int iUV = atoi(strtok_s(nullptr, "/ ", &context)) - 1;
-				int iNorm = atoi(strtok_s(nullptr, "/ ", &context)) - 1;
+				ObjVertex objVert;
+				objVert.iPos = atoi(strtok_s(nullptr, "/ ", &context)) - 1;
+				objVert.iUv = atoi(strtok_s(nullptr, "/ ", &context)) - 1;
+				objVert.iNorm = atoi(strtok_s(nullptr, "/ ", &context)) - 1;
 
-				Vertex vert;
-				vert.position = positions[iPos];
-				vert.texcoord = texcoords[iUV];
-				vert.normal = normals[iNorm];
+				// Find matching vert to re-use.
+				int reuseIndex = -1;
+				for (int v = (int)objVerts.size() - 1; v >= 0; --v)
+				{
+					const ObjVertex& otherVert = objVerts[v];
+					if (otherVert.iPos == objVert.iPos && otherVert.iUv == objVert.iUv && otherVert.iNorm == objVert.iNorm)
+					{
+						reuseIndex = v;
+						break;
+					}
+				}
 
-				tris.push_back((uint16)verts.size());
-				verts.push_back(vert);
+				if (reuseIndex >= 0)
+				{
+					tris.push_back(reuseIndex);
+				}
+				else
+				{
+					tris.push_back((uint16)verts.size());
+
+					Vertex vert;
+					vert.position = positions[objVert.iPos];
+					vert.texcoord = texcoords[objVert.iUv];
+					vert.normal = normals[objVert.iNorm];
+					verts.push_back(vert);
+
+					objVerts.push_back(objVert);
+				}
 			}
 		}
 	}
@@ -169,6 +201,7 @@ RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* filename, RdrGeoInfo* p
 		vMax.z = max(verts[i].position.z, vMax.z);
 	}
 	cmd.info.size = vMax - vMin;
+	cmd.info.center = (vMax + vMin) * 0.5f;
 	cmd.info.radius = Vec3Length(cmd.info.size);
 
 	getQueueState().updates.push_back(cmd);

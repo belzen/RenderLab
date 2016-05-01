@@ -206,13 +206,9 @@ void Scene::Load(const char* sceneName)
 			Quaternion orientation = readRotation(jObj.get("rotation", Json::Value::null));
 			Vec3 scale = readScale(jObj.get("scale", Json::Value::null));
 			
-			Json::Value jModel = jObj.get("geo", Json::Value::null);
-			RdrGeoHandle hGeo = RdrGeoSystem::CreateGeoFromFile(jModel.asCString(), nullptr);
+			Json::Value jModel = jObj.get("model", Json::Value::null);
+			Model* pModel = Model::LoadFromFile(jModel.asCString());
 
-			Json::Value jMaterialName = jObj.get("material", Json::Value::null);
-			const RdrMaterial* pMaterial = RdrMaterial::LoadFromFile(jMaterialName.asCString());
-
-			Model* pModel = Model::Create(hGeo, pMaterial);
 			m_objects.push_back(WorldObject::Create(pModel, pos, orientation, scale));
 		}
 	}

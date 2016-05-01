@@ -1,0 +1,8 @@
+{
+	"subobjects" : [
+		{
+			"geo" : "plane",
+			"material" : "white"
+		}
+	]
+}

@@ -18,6 +18,7 @@ struct RdrGeoInfo
 	int numIndices;
 	uint vertStride;
 	Vec3 size;
+	Vec3 center;
 	float radius;
 };
 

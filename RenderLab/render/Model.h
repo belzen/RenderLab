@@ -11,7 +11,7 @@ typedef FreeList<Model, 1024> ModelFreeList;
 class Model
 {
 public:
-	static Model* Create(RdrGeoHandle hGeo, const RdrMaterial* pMaterial);
+	static Model* LoadFromFile(const char* modelName);
 
 	void Release();
 
@@ -23,11 +23,21 @@ private:
 	friend ModelFreeList;
 	Model() {}
 
-	RdrGeoHandle m_hGeo;
-	const RdrMaterial* m_pMaterial;
+	struct SubObject
+	{
+		RdrGeoHandle hGeo;
+		const RdrMaterial* pMaterial;
+	};
+
+	SubObject m_subObjects[16];
+	int m_subObjectCount;
+
+	float m_radius;
+
+	char m_modelName[AssetDef::kMaxNameLen];
 };
 
 inline float Model::GetRadius() const 
 {
-	return RdrGeoSystem::GetGeo(m_hGeo)->geoInfo.radius;
+	return m_radius;
 }

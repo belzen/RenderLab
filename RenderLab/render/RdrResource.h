@@ -84,7 +84,7 @@ struct RdrConstantBuffer
 typedef FreeList<RdrResource, 1024> RdrResourceList;
 typedef RdrResourceList::Handle RdrResourceHandle;
 
-typedef FreeList<RdrConstantBuffer, 1024> RdrConstantBufferList;
+typedef FreeList<RdrConstantBuffer, 16 * 1024> RdrConstantBufferList;
 typedef RdrConstantBufferList::Handle RdrConstantBufferHandle;
 
 typedef FreeList<RdrRenderTargetView, 128> RdrRenderTargetViewList;
