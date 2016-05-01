@@ -1,4 +1,4 @@
-#include "../3rdparty/DirectXTex/include/DirectXTex.h"
+#include "DirectXTex/include/DirectXTex.h"
 #include <corecrt_wstring.h>
 #include <assert.h>
 
