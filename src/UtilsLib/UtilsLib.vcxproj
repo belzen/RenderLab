@@ -23,6 +23,7 @@
     <ClCompile Include="Error.cpp" />
     <ClCompile Include="FileLoader.cpp" />
     <ClCompile Include="FileWatcher.cpp" />
+    <ClCompile Include="Hash.cpp" />
     <ClCompile Include="json\jsoncpp.cpp" />
     <ClCompile Include="Paths.cpp" />
     <ClCompile Include="Timer.cpp" />
@@ -32,6 +33,7 @@
     <ClInclude Include="Error.h" />
     <ClInclude Include="FileLoader.h" />
     <ClInclude Include="FileWatcher.h" />
+    <ClInclude Include="Hash.h" />
     <ClInclude Include="json\json-forwards.h" />
     <ClInclude Include="json\json.h" />
     <ClInclude Include="Paths.h" />

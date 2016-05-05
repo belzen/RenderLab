@@ -1,10 +1,6 @@
 #pragma once
 #include "../Types.h"
-
-struct SHA1Hash
-{
-	char data[20];
-};
+#include "UtilsLib/Hash.h"
 
 struct BinFileHeader
 {

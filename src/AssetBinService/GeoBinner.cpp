@@ -221,7 +221,7 @@ void GeoBinner::CalcSourceHash(const std::string& srcFilename, SHA1Hash& rOutHas
 	uint srcFileSize;
 	FileLoader::Load(srcFilename.c_str(), &pSrcFileData, &srcFileSize);
 
-	CryptoPP::SHA1().CalculateDigest((byte*)rOutHash.data, (byte*)pSrcFileData, srcFileSize);
+	SHA1Hash::Calculate(pSrcFileData, srcFileSize, rOutHash);
 
 	delete pSrcFileData;
 }
