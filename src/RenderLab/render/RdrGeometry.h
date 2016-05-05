@@ -17,9 +17,8 @@ struct RdrGeoInfo
 	int numVerts;
 	int numIndices;
 	uint vertStride;
-	Vec3 size;
-	Vec3 center;
-	float radius;
+	Vec3 boundsMin;
+	Vec3 boundsMax;
 };
 
 struct RdrVertexBuffer

@@ -34,7 +34,7 @@ namespace
 		int mx, my;
 		Input::GetMousePos(mx, my);
 
-		RdrBox srcRect(mx, my, 0, 1, 1, 1);
+		RdrBox srcRect(max(mx,0), max(my,0), 0, 1, 1, 1);
 		if (!rLumCopyRes.pResource)
 		{
 			RdrTextureInfo info = { 0 };
@@ -127,14 +127,14 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 	// Bloom downsizing textures
 	w = width;
 	h = height;
-	for (i = 0; i < ARRAYSIZE(m_bloomBuffers); ++i)
+	for (i = 0; i < ARRAY_SIZE(m_bloomBuffers); ++i)
 	{
 		BloomBuffer& rBloom = m_bloomBuffers[i];
 
 		w /= 2;
 		h /= 2;
 
-		for (int n = 0; n < ARRAYSIZE(rBloom.hResources); ++n)
+		for (int n = 0; n < ARRAY_SIZE(rBloom.hResources); ++n)
 		{
 			if (rBloom.hResources[n])
 				RdrResourceSystem::ReleaseResource(rBloom.hResources[n]);
@@ -256,7 +256,7 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 	const RdrResource* pInput1 = nullptr;
 	const RdrResource* pInput2 = nullptr;
 	const RdrResource* pOutput = nullptr;
-	for (int i = ARRAYSIZE(m_bloomBuffers) - 1; i >= 0; --i)
+	for (int i = ARRAY_SIZE(m_bloomBuffers) - 1; i >= 0; --i)
 	{
 		uint w = pColorBuffer->texInfo.width / 16;
 		uint h = pColorBuffer->texInfo.height / 16;

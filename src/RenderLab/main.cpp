@@ -6,7 +6,7 @@
 #include "Scene.h"
 #include "input/Input.h"
 #include "input/CameraInputContext.h"
-#include "Timer.h"
+#include "UtilsLib/Timer.h"
 #include "FrameTimer.h"
 #include "debug/Debug.h"
 
@@ -109,9 +109,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 	g_renderer.Init(hWnd, kClientWidth, kClientHeight);
 	Debug::Init();
 
-	FileWatcher::Init("data");
+	FileWatcher::Init(Paths::GetSrcDataDir());
 
-	g_scene.Load("basic");
+	g_scene.Load("sponza");
 
 	MSG msg;
 	Timer::Handle hTimer = Timer::Create();

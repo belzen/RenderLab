@@ -1,5 +1,7 @@
 #pragma once
 
+#include "MathLib/Vec3Math.h"
+
 struct Plane
 {
 	Plane();

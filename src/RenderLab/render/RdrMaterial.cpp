@@ -2,6 +2,7 @@
 #include "RdrMaterial.h"
 #include "RdrShaderSystem.h"
 #include "RdrResourceSystem.h"
+#include "AssetLib/MaterialAsset.h"
 
 namespace
 {
@@ -10,15 +11,18 @@ namespace
 
 	RdrMaterialList s_materials;
 	RdrMaterialMap s_materialCache;
-	AssetDef s_materialAssetDef("materials", "material");
 
 	void loadMaterial(const char* materialName, RdrMaterial* pOutMaterial)
 	{
-		char fullFilename[MAX_PATH];
-		s_materialAssetDef.BuildFilename(materialName, fullFilename, ARRAYSIZE(fullFilename));
+		char fullFilename[FILE_MAX_PATH];
+		MaterialAsset::Definition.BuildFilename(AssetLoc::Src, materialName, fullFilename, ARRAY_SIZE(fullFilename));
 
 		Json::Value root;
-		FileLoader::LoadJson(fullFilename, root);
+		if (!FileLoader::LoadJson(fullFilename, root))
+		{
+			Error("Failed to load material: %s", fullFilename);
+			return;
+		}
 
 		Json::Value jShader = root.get("pixelShader", Json::Value::null);
 		pOutMaterial->hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile(jShader.asCString());
@@ -40,9 +44,9 @@ namespace
 
 const RdrMaterial* RdrMaterial::LoadFromFile(const char* materialName)
 {
-	if (!s_materialAssetDef.HasReloadHandler())
+	if (!MaterialAsset::Definition.HasReloadHandler(AssetLoc::Src))
 	{
-		s_materialAssetDef.SetReloadHandler(RdrMaterial::ReloadMaterial);
+		MaterialAsset::Definition.SetReloadHandler(AssetLoc::Src, RdrMaterial::ReloadMaterial);
 	}
 
 	// Check if the material's already been loaded

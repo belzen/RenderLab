@@ -27,7 +27,7 @@ namespace
 		static const D3D11_PRIMITIVE_TOPOLOGY s_d3dTopology[] = {
 			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,	// kRdrTopology_TriangleList
 		};
-		static_assert(ARRAYSIZE(s_d3dTopology) == (int)RdrTopology::Count, "Missing D3D topologies!");
+		static_assert(ARRAY_SIZE(s_d3dTopology) == (int)RdrTopology::Count, "Missing D3D topologies!");
 		return s_d3dTopology[(int)eTopology];
 	}
 
@@ -46,7 +46,7 @@ namespace
 			DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,	// ResourceFormat::B8G8R8A8_UNORM_sRGB
 			DXGI_FORMAT_R16G16B16A16_FLOAT,		// ResourceFormat::R16G16B16A16_FLOAT
 		};
-		static_assert(ARRAYSIZE(s_d3dFormats) == (int)RdrResourceFormat::Count, "Missing D3D formats!");
+		static_assert(ARRAY_SIZE(s_d3dFormats) == (int)RdrResourceFormat::Count, "Missing D3D formats!");
 		return s_d3dFormats[(int)format];
 	}
 
@@ -65,7 +65,7 @@ namespace
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::B8G8R8A8_UNORM_sRGB
 			DXGI_FORMAT_UNKNOWN,	        // ResourceFormat::R16G16B16A16_FLOAT
 		};
-		static_assert(ARRAYSIZE(s_d3dDepthFormats) == (int)RdrResourceFormat::Count, "Missing D3D depth formats!");
+		static_assert(ARRAY_SIZE(s_d3dDepthFormats) == (int)RdrResourceFormat::Count, "Missing D3D depth formats!");
 		assert(s_d3dDepthFormats[(int)format] != DXGI_FORMAT_UNKNOWN);
 		return s_d3dDepthFormats[(int)format];
 	}
@@ -85,7 +85,7 @@ namespace
 			DXGI_FORMAT_B8G8R8A8_TYPELESS,     // ResourceFormat::B8G8R8A8_UNORM_sRGB
 			DXGI_FORMAT_R16G16B16A16_TYPELESS, // ResourceFormat::R16G16B16A16_FLOAT
 		};
-		static_assert(ARRAYSIZE(s_d3dTypelessFormats) == (int)RdrResourceFormat::Count, "Missing typeless formats!");
+		static_assert(ARRAY_SIZE(s_d3dTypelessFormats) == (int)RdrResourceFormat::Count, "Missing typeless formats!");
 		return s_d3dTypelessFormats[(int)format];
 	}
 
@@ -107,7 +107,7 @@ namespace
 			D3D11_USAGE_DYNAMIC,	// RdrResourceUsage::Dynamic
 			D3D11_USAGE_STAGING,	// RdrResourceUsage::Staging
 		};
-		static_assert(ARRAYSIZE(s_d3dUsage) == (int)RdrResourceUsage::Count, "Missing D3D11 resource usage!");
+		static_assert(ARRAY_SIZE(s_d3dUsage) == (int)RdrResourceUsage::Count, "Missing D3D11 resource usage!");
 		return s_d3dUsage[(int)eUsage];
 	}
 
@@ -253,7 +253,7 @@ static D3D11_COMPARISON_FUNC getComparisonFuncD3d(const RdrComparisonFunc cmpFun
 		D3D11_COMPARISON_GREATER_EQUAL,
 		D3D11_COMPARISON_ALWAYS
 	};
-	static_assert(ARRAYSIZE(cmpFuncD3d) == (int)RdrComparisonFunc::Count, "Missing comparison func");
+	static_assert(ARRAY_SIZE(cmpFuncD3d) == (int)RdrComparisonFunc::Count, "Missing comparison func");
 	return cmpFuncD3d[(int)cmpFunc];
 }
 
@@ -264,7 +264,7 @@ static D3D11_TEXTURE_ADDRESS_MODE getTexCoordModeD3d(const RdrTexCoordMode uvMod
 		D3D11_TEXTURE_ADDRESS_CLAMP,
 		D3D11_TEXTURE_ADDRESS_MIRROR
 	};
-	static_assert(ARRAYSIZE(uvModeD3d) == (int)RdrTexCoordMode::Count, "Missing tex coord mode");
+	static_assert(ARRAY_SIZE(uvModeD3d) == (int)RdrTexCoordMode::Count, "Missing tex coord mode");
 	return uvModeD3d[(int)uvMode];
 }
 
@@ -862,10 +862,34 @@ void RdrContextD3D11::Present()
 		// Set test flag so that we don't waste time presenting until the window is visible again.
 		m_presentFlags |= DXGI_PRESENT_TEST;
 	}
-	else
+	else if (hr == S_OK)
 	{
 		m_presentFlags &= ~DXGI_PRESENT_TEST;
-		assert(hr == S_OK);
+	}
+	else
+	{
+		HRESULT hrRemovedReason = m_pDevice->GetDeviceRemovedReason();
+		switch (hrRemovedReason)
+		{
+		case DXGI_ERROR_DEVICE_HUNG:
+			Error("D3D11 device hung!");
+			break;
+		case DXGI_ERROR_DEVICE_REMOVED:
+			Error("D3D11 device removed!");
+			break;
+		case DXGI_ERROR_DEVICE_RESET:
+			Error("D3D11 device reset!");
+			break;
+		case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
+			Error("D3D11 device internal driver error!");
+			break;
+		case DXGI_ERROR_INVALID_CALL:
+			Error("D3D11 device invalid call!");
+			break;
+		default:
+			Error("Unknown D3D11 device error %d!", hrRemovedReason);
+			break;
+		}
 	}
 }
 
@@ -981,14 +1005,14 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 		m_pDevContext->PSSetShader(rDrawState.pPixelShader->pPixel, nullptr, 0);
 		m_pDevContext->PSSetConstantBuffers(0, rDrawState.psConstantBufferCount, (ID3D11Buffer**)rDrawState.psConstantBuffers);
 
-		uint numResources = ARRAYSIZE(rDrawState.psResources);
+		uint numResources = ARRAY_SIZE(rDrawState.psResources);
 		for (uint i = 0; i < numResources; ++i)
 		{
 			ID3D11ShaderResourceView* pResource = rDrawState.psResources[i].pViewD3D11;
 			m_pDevContext->PSSetShaderResources(i, 1, &pResource);
 		}
 
-		uint numSamplers = ARRAYSIZE(rDrawState.psSamplers);
+		uint numSamplers = ARRAY_SIZE(rDrawState.psSamplers);
 		for (uint i = 0; i < numSamplers; ++i)
 		{
 			ID3D11SamplerState* pSampler = GetSampler(rDrawState.psSamplers[i]);
@@ -1022,21 +1046,21 @@ void RdrContextD3D11::DispatchCompute(const RdrDrawState& rDrawState, uint threa
 
 	m_pDevContext->CSSetConstantBuffers(0, rDrawState.csConstantBufferCount, (ID3D11Buffer**)rDrawState.csConstantBuffers);
 
-	uint numResources = ARRAYSIZE(rDrawState.csResources);
+	uint numResources = ARRAY_SIZE(rDrawState.csResources);
 	for (uint i = 0; i < numResources; ++i)
 	{
 		ID3D11ShaderResourceView* pResource = rDrawState.csResources[i].pViewD3D11;
 		m_pDevContext->CSSetShaderResources(i, 1, &pResource);
 	}
 
-	uint numSamplers = ARRAYSIZE(rDrawState.csSamplers);
+	uint numSamplers = ARRAY_SIZE(rDrawState.csSamplers);
 	for (uint i = 0; i < numSamplers; ++i)
 	{
 		ID3D11SamplerState* pSampler = GetSampler(rDrawState.csSamplers[i]);
 		m_pDevContext->CSSetSamplers(i, 1, &pSampler);
 	}
 
-	uint numUavs = ARRAYSIZE(rDrawState.csUavs);
+	uint numUavs = ARRAY_SIZE(rDrawState.csUavs);
 	for (uint i = 0; i < numUavs; ++i)
 	{
 		ID3D11UnorderedAccessView* pView = rDrawState.csUavs[i].pViewD3D11;

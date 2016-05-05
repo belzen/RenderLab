@@ -46,7 +46,7 @@ namespace
 			"BINORMAL", // RdrShaderSemantic::Binormal
 			"TANGENT"   // RdrShaderSemantic::Tangent
 		};
-		static_assert(ARRAYSIZE(s_d3dSemantics) == (int)RdrShaderSemantic::Count, "Missing D3D11 shader semantic!");
+		static_assert(ARRAY_SIZE(s_d3dSemantics) == (int)RdrShaderSemantic::Count, "Missing D3D11 shader semantic!");
 		return s_d3dSemantics[(int)eSemantic];
 	}
 
@@ -56,7 +56,7 @@ namespace
 			D3D11_INPUT_PER_VERTEX_DATA, // RdrVertexInputClass::PerVertex
 			D3D11_INPUT_PER_INSTANCE_DATA// RdrVertexInputClass::PerInstance
 		};
-		static_assert(ARRAYSIZE(s_d3dClasses) == (int)RdrVertexInputClass::Count, "Missing D3D11 vertex input class!");
+		static_assert(ARRAY_SIZE(s_d3dClasses) == (int)RdrVertexInputClass::Count, "Missing D3D11 vertex input class!");
 		return s_d3dClasses[(int)eClass];
 	}
 
@@ -67,7 +67,7 @@ namespace
 			DXGI_FORMAT_R32G32B32_FLOAT,   // RdrVertexInputFormat::RGB_F32
 			DXGI_FORMAT_R32G32B32A32_FLOAT // RdrVertexInputFormat::RGBA_F32
 		};
-		static_assert(ARRAYSIZE(s_d3dFormats) == (int)RdrVertexInputFormat::Count, "Missing D3D11 vertex input format!");
+		static_assert(ARRAY_SIZE(s_d3dFormats) == (int)RdrVertexInputFormat::Count, "Missing D3D11 vertex input format!");
 		return s_d3dFormats[(int)eFormat];
 	}
 }
@@ -80,7 +80,7 @@ bool RdrContextD3D11::CompileShader(RdrShaderStage eType, const char* pShaderTex
 		"gs_5_0", // RdrShaderStage::Geometry
 		"cs_5_0"  // RdrShaderStage::Compute
 	};
-	static_assert(ARRAYSIZE(s_d3dShaderModels) == (int)RdrShaderStage::Count, "Missing D3D shader models!");
+	static_assert(ARRAY_SIZE(s_d3dShaderModels) == (int)RdrShaderStage::Count, "Missing D3D shader models!");
 
 	ID3D10Blob* pCompiledData = compileShaderD3D(pShaderText, textLen, "main", s_d3dShaderModels[(int)eType]);
 	if (!pCompiledData)

@@ -1,0 +1,13 @@
+{
+	"subobjects" : 
+	[
+		{
+			"geo" : "sponza/sponza_369_0",
+			"material" : "sponza/Material__57"
+		},
+		{
+			"geo" : "sponza/sponza_369_1",
+			"material" : "sponza/vase_round"
+		}
+	]
+}

@@ -5,15 +5,15 @@
 #include "WorldObject.h"
 #include "render/Model.h"
 #include "render/Font.h"
+#include "AssetLib/SceneAsset.h"
 
 namespace
 {
-	AssetDef s_sceneAssetDef("scenes", "scene");
 
 	void handleSceneFileChanged(const char* filename, void* pUserData)
 	{
 		char sceneName[AssetDef::kMaxNameLen];
-		s_sceneAssetDef.ExtractAssetName(filename, sceneName, ARRAYSIZE(sceneName));
+		SceneAsset::Definition.ExtractAssetName(filename, sceneName, ARRAY_SIZE(sceneName));
 
 		Scene* pScene = (Scene*)pUserData;
 		if (_stricmp(pScene->GetName(), sceneName) == 0)
@@ -98,18 +98,18 @@ void Scene::Load(const char* sceneName)
 	assert(m_sceneName[0] == 0);
 	strcpy_s(m_sceneName, sceneName);
 
-	char fullFilename[MAX_PATH];
-	s_sceneAssetDef.BuildFilename(sceneName, fullFilename, ARRAYSIZE(fullFilename));
+	char fullFilename[FILE_MAX_PATH];
+	SceneAsset::Definition.BuildFilename(AssetLoc::Src, sceneName, fullFilename, ARRAY_SIZE(fullFilename));
 
 	// Listen for changes of the scene file.
 	char filePattern[AssetDef::kMaxNameLen];
-	s_sceneAssetDef.GetFilePattern(filePattern, ARRAYSIZE(filePattern));
+	SceneAsset::Definition.GetFilePattern(AssetLoc::Src, filePattern, ARRAY_SIZE(filePattern));
 	m_reloadListenerId = FileWatcher::AddListener(filePattern, handleSceneFileChanged, this);
 
 	Json::Value root;
 	if (!FileLoader::LoadJson(fullFilename, root))
 	{
-		assert(false);
+		Error("Failed to load scene: %s", fullFilename);
 		return;
 	}
 

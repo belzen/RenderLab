@@ -1,0 +1,9 @@
+{
+	"subobjects" : 
+	[
+		{
+			"geo" : "sponza/sponza_03_0",
+			"material" : "sponza/Material__298"
+		}
+	]
+}

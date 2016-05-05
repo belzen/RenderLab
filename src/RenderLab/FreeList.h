@@ -1,5 +1,5 @@
 #pragma once
-#include "ThreadLock.h"
+#include "UtilsLib/ThreadLock.h"
 
 template <class T_object, uint16 T_nMaxEntries>
 class FreeList

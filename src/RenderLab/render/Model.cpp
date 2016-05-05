@@ -5,6 +5,7 @@
 #include "RdrDrawOp.h"
 #include "Renderer.h"
 #include "Camera.h"
+#include "AssetLib/ModelAsset.h"
 
 namespace
 {
@@ -21,14 +22,12 @@ namespace
 
 	RdrInputLayoutHandle s_hModelInputLayout = 0;
 	ModelFreeList s_models;
-
-	AssetDef s_modelAssetDef("geo", "model");
 }
 
 Model* Model::LoadFromFile(const char* modelName)
 {
-	char fullFilename[MAX_PATH];
-	s_modelAssetDef.BuildFilename(modelName, fullFilename, ARRAYSIZE(fullFilename));
+	char fullFilename[FILE_MAX_PATH];
+	ModelAsset::Definition.BuildFilename(AssetLoc::Src, modelName, fullFilename, ARRAY_SIZE(fullFilename));
 
 	Json::Value jRoot;
 	if (!FileLoader::LoadJson(fullFilename, jRoot))
@@ -45,6 +44,8 @@ Model* Model::LoadFromFile(const char* modelName)
 	Json::Value jSubObjectArray = jRoot.get("subobjects", Json::nullValue);
 	pModel->m_subObjectCount = jSubObjectArray.size();
 
+	Vec3 boundsMax = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+	Vec3 boundsMin = { FLT_MAX, FLT_MAX, FLT_MAX };
 	for (int i = 0; i < pModel->m_subObjectCount; ++i)
 	{
 		SubObject& rSubObject = pModel->m_subObjects[i];
@@ -52,7 +53,11 @@ Model* Model::LoadFromFile(const char* modelName)
 		Json::Value jSubObject = jSubObjectArray.get(i, Json::nullValue);
 
 		Json::Value jModel = jSubObject.get("geo", Json::Value::null);
-		rSubObject.hGeo = RdrGeoSystem::CreateGeoFromFile(jModel.asCString(), nullptr);
+
+		RdrGeoInfo geoInfo;
+		rSubObject.hGeo = RdrGeoSystem::CreateGeoFromFile(jModel.asCString(), &geoInfo);
+		boundsMax = Vec3Max(boundsMax, geoInfo.boundsMax);
+		boundsMin = Vec3Min(boundsMin, geoInfo.boundsMin);
 
 		Json::Value jMaterialName = jSubObject.get("material", Json::Value::null);
 		rSubObject.pMaterial = RdrMaterial::LoadFromFile(jMaterialName.asCString());
@@ -60,11 +65,12 @@ Model* Model::LoadFromFile(const char* modelName)
 
 	if (!s_hModelInputLayout)
 	{
-		s_hModelInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));
+		s_hModelInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAY_SIZE(s_modelVertexDesc));
 	}
 
-	// todo: RdrGeoSystem::GetGeo(m_hGeo)->geoInfo.radius;
-	pModel->m_radius = 5.f;
+	float maxLen = Vec3Length(boundsMax);
+	float minLen = Vec3Length(boundsMin);
+	pModel->m_radius = minLen;
 
 	return pModel;
 }

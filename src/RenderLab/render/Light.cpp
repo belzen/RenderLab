@@ -103,7 +103,7 @@ void LightList::Cleanup()
 
 void LightList::AddLight(Light& light)
 {
-	assert(m_lightCount < ARRAYSIZE(m_lights));
+	assert(m_lightCount < ARRAY_SIZE(m_lights));
 
 	m_lights[m_lightCount] = light;
 	++m_lightCount;

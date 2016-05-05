@@ -198,8 +198,8 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 
 	ResCmdCreateTexture cmd = { 0 };
 
-	char filepath[MAX_PATH];
-	sprintf_s(filepath, "data/textures/%s.texture", texName);
+	char filepath[FILE_MAX_PATH];
+	sprintf_s(filepath, "%s/textures/%s.texture", Paths::GetSrcDataDir(), texName);
 
 	// Read in settings from ".texture" file, including the name of the actual image file.
 	Json::Value jRoot;
@@ -210,7 +210,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 	}
 
 	Json::Value jTexFilename = jRoot.get("filename", Json::Value::null);
-	sprintf_s(filepath, "data/textures/%s", jTexFilename.asCString());
+	sprintf_s(filepath, "%s/textures/%s", Paths::GetSrcDataDir(), jTexFilename.asCString());
 
 	bool bIsSrgb = jRoot.get("srgb", false).asBool();
 	bool bIsCubemap = jRoot.get("isCubemap", false).asBool();

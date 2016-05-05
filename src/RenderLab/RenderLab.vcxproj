@@ -98,7 +98,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\;..\..\3rdparty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\;..\..\3rdparty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>
@@ -107,7 +107,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>AssetLib.lib;UtilsLib.lib;MathLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -118,12 +119,13 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>.\;..\..\3rdparty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\;..\..\3rdparty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>AssetLib.lib;UtilsLib.lib;MathLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -135,7 +137,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\;..\..\3rdparty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\;..\..\3rdparty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
@@ -143,7 +145,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>AssetLib.lib;UtilsLib.lib;MathLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -156,36 +159,31 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\;..\..\3rdparty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\;..\..\3rdparty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>AssetLib.lib;UtilsLib.lib;MathLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AssetDef.cpp" />
     <ClCompile Include="debug\Debug.cpp" />
     <ClCompile Include="debug\DebugConsole.cpp" />
     <ClCompile Include="debug\PostProcessDebugger.cpp" />
-    <ClCompile Include="FileLoader.cpp" />
-    <ClCompile Include="FileWatcher.cpp" />
     <ClCompile Include="FrameTimer.cpp" />
     <ClCompile Include="input\CameraInputContext.cpp" />
     <ClCompile Include="input\Input.cpp" />
-    <ClCompile Include="json\jsoncpp.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="math\MathConstants.cpp" />
     <ClCompile Include="Precompiled.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="render\Camera.cpp" />
-    <ClCompile Include="render\Color.cpp" />
     <ClCompile Include="render\Font.cpp" />
     <ClCompile Include="render\RdrDeviceTypes.cpp" />
     <ClCompile Include="render\RdrGeoSystem.cpp" />
@@ -204,7 +202,6 @@
     <ClCompile Include="render\Sprite.cpp" />
     <ClCompile Include="render\RdrResourceSystem.cpp" />
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="Timer.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="WorldObject.cpp" />
   </ItemGroup>
@@ -212,32 +209,18 @@
     <ClInclude Include="..\..\data\shaders\c_constants.h" />
     <ClInclude Include="..\..\data\shaders\g_constants.h" />
     <ClInclude Include="..\..\data\shaders\p_constants.h" />
-    <ClInclude Include="AssetDef.h" />
+    <ClInclude Include="..\Types.h" />
     <ClInclude Include="debug\Debug.h" />
     <ClInclude Include="debug\DebugConsole.h" />
     <ClInclude Include="debug\PostProcessDebugger.h" />
-    <ClInclude Include="FileLoader.h" />
-    <ClInclude Include="FileWatcher.h" />
     <ClInclude Include="FrameTimer.h" />
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="IDSet.h" />
     <ClInclude Include="input\CameraInputContext.h" />
     <ClInclude Include="input\Input.h" />
-    <ClInclude Include="json\json-forwards.h" />
-    <ClInclude Include="json\json.h" />
     <ClInclude Include="LinearAllocator.h" />
-    <ClInclude Include="math\IVec3.h" />
-    <ClInclude Include="math\Maths.h" />
-    <ClInclude Include="math\Matrix33.h" />
-    <ClInclude Include="math\Matrix44.h" />
-    <ClInclude Include="math\Quaternion.h" />
-    <ClInclude Include="math\Vec2.h" />
-    <ClInclude Include="math\Vec3.h" />
-    <ClInclude Include="math\Vec3Math.h" />
-    <ClInclude Include="math\Vec4.h" />
     <ClInclude Include="Precompiled.h" />
     <ClInclude Include="render\Camera.h" />
-    <ClInclude Include="render\Color.h" />
     <ClInclude Include="render\Font.h" />
     <ClInclude Include="render\Light.h" />
     <ClInclude Include="render\Model.h" />
@@ -264,11 +247,7 @@
     <ClInclude Include="Scene.h" />
     <ClInclude Include="shapes\Plane.h" />
     <ClInclude Include="shapes\Rect.h" />
-    <ClInclude Include="ThreadLock.h" />
-    <ClInclude Include="Timer.h" />
-    <ClInclude Include="Types.h" />
     <ClInclude Include="UI.h" />
-    <ClInclude Include="Util.h" />
     <ClInclude Include="WorldObject.h" />
   </ItemGroup>
   <ItemGroup>

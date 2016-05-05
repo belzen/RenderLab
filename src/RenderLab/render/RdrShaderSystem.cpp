@@ -7,7 +7,6 @@
 namespace
 {
 	const char* kShaderFolder = "shaders/";
-	const char* kShaderDataDir = "data/shaders/";
 	const char* kShaderFilePattern = "shaders/*.*";
 
 	const uint kMaxDefines = 16;
@@ -25,12 +24,12 @@ namespace
 		{ "v_sky.hlsl", 0 },    // RdrVertexShaderType::Sky
 		{ "v_screen.hlsl", 0 }, // RdrVertexShaderType::Screen
 	};
-	static_assert(ARRAYSIZE(kVertexShaderDefs) == (int)RdrVertexShaderType::Count, "Missing vertex shader defs!");
+	static_assert(ARRAY_SIZE(kVertexShaderDefs) == (int)RdrVertexShaderType::Count, "Missing vertex shader defs!");
 
 	const RdrShaderDef kGeometryShaderDefs[] = {
 		{ "g_cubemap.hlsl", 0 },  // RdrGeometryShaderType::Model_CubemapCapture
 	};
-	static_assert(ARRAYSIZE(kGeometryShaderDefs) == (int)RdrGeometryShaderType::Count, "Missing geometry shader defs!");
+	static_assert(ARRAY_SIZE(kGeometryShaderDefs) == (int)RdrGeometryShaderType::Count, "Missing geometry shader defs!");
 
 	const RdrShaderDef kComputeShaderDefs[] = {
 		{ "c_tiled_depth_calc.hlsl",  { 0 } },               // RdrComputeShader::TiledDepthMinMax
@@ -43,7 +42,7 @@ namespace
 		{ "c_blur.hlsl",              { "BLUR_HORIZONTAL", 0 } }, // RdrComputeShader::BlurHorizontal,
 		{ "c_blur.hlsl",              { "BLUR_VERTICAL", 0 } },   // RdrComputeShader::BlurVertical,
 	};
-	static_assert(ARRAYSIZE(kComputeShaderDefs) == (int)RdrComputeShader::Count, "Missing compute shader defs!");
+	static_assert(ARRAY_SIZE(kComputeShaderDefs) == (int)RdrComputeShader::Count, "Missing compute shader defs!");
 
 
 	typedef std::map<std::string, RdrShaderHandle> RdrShaderHandleMap; // todo: better map key for this and other caches
@@ -110,8 +109,8 @@ namespace
 	{
 		HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes)
 		{
-			char filename[MAX_PATH];
-			sprintf_s(filename, "%s/%s", kShaderDataDir, pFileName);
+			char filename[FILE_MAX_PATH];
+			sprintf_s(filename, "%s/%s/%s", Paths::GetSrcDataDir(), kShaderFolder, pFileName);
 
 			uint size;
 			char* data;
@@ -136,8 +135,8 @@ namespace
 		ID3D10Blob* pCompiledData;
 		ID3D10Blob* pErrors = nullptr;
 
-		char fullFilename[MAX_PATH];
-		sprintf_s(fullFilename, "%s/%s", kShaderDataDir, filename);
+		char fullFilename[FILE_MAX_PATH];
+		sprintf_s(fullFilename, "%s/%s/%s", Paths::GetSrcDataDir(), kShaderFolder, filename);
 
 		char* pFileData;
 		uint fileSize;

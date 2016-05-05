@@ -6,8 +6,8 @@
 CameraInputContext::CameraInputContext()
 	: m_pCamera(nullptr)
 	, m_moveSpeed(0.0f)
-	, m_maxMoveSpeed(0.1f)
-	, m_accel(0.01f)
+	, m_maxMoveSpeed(1.1f)
+	, m_accel(0.05f)
 {
 
 }

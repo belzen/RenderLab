@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math/Vec3.h"
+#include "MathLib/Vec3.h"
 
 namespace UI
 {

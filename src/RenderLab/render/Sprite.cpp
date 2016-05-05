@@ -23,7 +23,7 @@ namespace
 
 void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 {
-	m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_vertexDesc, ARRAYSIZE(s_vertexDesc));
+	m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_vertexDesc, ARRAY_SIZE(s_vertexDesc));
 
 	SpriteVertex* verts = (SpriteVertex*)RdrTransientMem::Alloc(sizeof(SpriteVertex) * 4);
 	verts[0].position = Vec2(0.f, 0.f);
@@ -43,7 +43,7 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	indices[4] = 3;
 	indices[5] = 2;
 
-	m_hGeo = RdrGeoSystem::CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, Vec3(1.f, 1.f, 0.0f));
+	m_hGeo = RdrGeoSystem::CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, Vec3::kZero, Vec3(1.f, 1.f, 0.0f));
 
 	m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_sprite.hlsl");
 	m_material.hTextures[0] = RdrResourceSystem::CreateTextureFromFile(textureName, nullptr);
