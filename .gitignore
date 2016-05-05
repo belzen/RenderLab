@@ -10,6 +10,7 @@
 *.suo
 /ipch/
 /obj/
+/lib/
 *.pdb
 *.ipdb
 *.iobj
