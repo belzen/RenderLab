@@ -24,4 +24,9 @@ struct BinDataPtr
 	{
 		ptr = (DataT*)(pParentMem + offset);
 	}
+
+	static uint CalcSize(uint numElements)
+	{
+		return numElements * sizeof(DataT);
+	}
 };

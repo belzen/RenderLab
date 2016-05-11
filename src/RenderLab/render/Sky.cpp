@@ -1,7 +1,8 @@
 #include "Precompiled.h"
 #include "Sky.h"
+#include "Model.h"
 #include "RdrDrawOp.h"
-#include "RdrTransientMem.h"
+#include "RdrScratchMem.h"
 #include "Renderer.h"
 #include "AssetLib/SkyAsset.h"
 
@@ -10,7 +11,13 @@ namespace
 	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Sky, RdrShaderFlags::None };
 
 	static const RdrVertexInputElement s_skyVertexDesc[] = {
-		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 }
+		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
+		// todo: Remove all these.  Models need to be more flexible.
+		{ RdrShaderSemantic::Normal, 0, RdrVertexInputFormat::RGB_F32, 0, 12, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Color, 0, RdrVertexInputFormat::RGBA_F32, 0, 24, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Texcoord, 0, RdrVertexInputFormat::RG_F32, 0, 40, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Tangent, 0, RdrVertexInputFormat::RGB_F32, 0, 48, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Binormal, 0, RdrVertexInputFormat::RGB_F32, 0, 60, RdrVertexInputClass::PerVertex, 0 }
 	};
 
 	RdrInputLayoutHandle s_hSkyInputLayout = 0;
@@ -31,7 +38,7 @@ namespace
 }
 
 Sky::Sky()
-	: m_hGeo(0)
+	: m_pModel(nullptr)
 	, m_pMaterial(nullptr)
 	, m_reloadListenerId(0)
 	, m_reloadPending(false)
@@ -41,7 +48,7 @@ Sky::Sky()
 
 void Sky::Cleanup()
 {
-	m_hGeo = 0;
+	m_pModel = nullptr;
 	m_pMaterial = nullptr;
 	m_skyName[0] = 0;
 	FileWatcher::RemoveListener(m_reloadListenerId);
@@ -74,8 +81,8 @@ void Sky::Load(const char* skyName)
 		return;
 	}
 
-	Json::Value jModel = jRoot.get("geo", Json::Value::null);
-	m_hGeo = RdrGeoSystem::CreateGeoFromFile(jModel.asCString(), nullptr);
+	Json::Value jModel = jRoot.get("model", Json::Value::null);
+	m_pModel = Model::LoadFromFile(jModel.asCString());
 
 	Json::Value jMaterialName = jRoot.get("material", Json::Value::null);
 	m_pMaterial = RdrMaterial::LoadFromFile(jMaterialName.asCString());
@@ -113,7 +120,7 @@ void Sky::QueueDraw(Renderer& rRenderer) const
 	Matrix44 mtxWorld = Matrix44Translation(pos);
 
 	uint constantsSize = sizeof(Vec4) * 4;
-	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
+	Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
 	*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
 	pDrawOp->graphics.hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
 
@@ -122,7 +129,7 @@ void Sky::QueueDraw(Renderer& rRenderer) const
 	pDrawOp->graphics.hInputLayout = s_hSkyInputLayout;
 	pDrawOp->graphics.vertexShader = kVertexShader;
 
-	pDrawOp->graphics.hGeo = m_hGeo;
+	pDrawOp->graphics.hGeo = m_pModel->GetSubObject(0).hGeo;
 
 	rRenderer.AddToBucket(pDrawOp, RdrBucketType::Sky);
 }

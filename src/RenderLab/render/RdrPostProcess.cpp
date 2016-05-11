@@ -2,7 +2,7 @@
 #include "RdrPostProcess.h"
 #include "RdrContext.h"
 #include "RdrDrawState.h"
-#include "RdrTransientMem.h"
+#include "RdrScratchMem.h"
 #include "Renderer.h"
 #include "RdrShaderConstants.h"
 #include "input/Input.h"
@@ -99,7 +99,7 @@ void RdrPostProcess::Init()
 	m_hToneMapOutputConstants = RdrResourceSystem::CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapOutputParams), RdrResourceUsage::Default);
 
 	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ToneMapInputParams));
-	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrTransientMem::AllocAligned(constantsSize, 16);
+	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
 	pTonemapSettings->white = 4.f;
 	pTonemapSettings->middleGrey = 0.7f;
 	pTonemapSettings->bloomThreshold = 1.5f;
@@ -144,7 +144,7 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 		if (rBloom.hAddConstants)
 			RdrResourceSystem::ReleaseConstantBuffer(rBloom.hAddConstants);
 		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(AddParams));
-		AddParams* pAddParams = (AddParams*)RdrTransientMem::AllocAligned(constantsSize, 16);
+		AddParams* pAddParams = (AddParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
 		pAddParams->width = (float)w;
 		pAddParams->height = (float)h;
 		rBloom.hAddConstants = RdrResourceSystem::CreateConstantBuffer(pAddParams, sizeof(AddParams), RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);

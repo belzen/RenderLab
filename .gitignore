@@ -18,3 +18,4 @@
 *_debug.exe
 /bin/x64/shaders/
 /bin/Win32/shaders/
+/src/ObjSceneConverter/output

@@ -1,15 +1,13 @@
 #include "Precompiled.h"
 #include "RdrGeoSystem.h"
 #include "RdrContext.h"
-#include "RdrTransientMem.h"
+#include "RdrScratchMem.h"
 #include "AssetLib/BinFile.h"
-#include "AssetLib/GeoAsset.h"
+#include "AssetLib/ModelAsset.h"
 #include <fstream>
 
 namespace
 {
-	typedef std::map<std::string, RdrGeoHandle> RdrGeoHandleMap;
-
 	struct GeoCmdUpdate
 	{
 		RdrGeoHandle hGeo;
@@ -31,8 +29,7 @@ namespace
 
 	struct
 	{
-		RdrGeoHandleMap geoCache;
-		RdrGeoList      geos;
+		RdrGeoList geos;
 
 		GeoFrameState states[2];
 		uint          queueState;
@@ -42,65 +39,6 @@ namespace
 	{
 		return s_geoSystem.states[s_geoSystem.queueState];
 	}
-}
-
-RdrGeoHandle RdrGeoSystem::CreateGeoFromFile(const char* assetName, RdrGeoInfo* pOutInfo)
-{
-	// Find geo in cache
-	RdrGeoHandleMap::iterator iter = s_geoSystem.geoCache.find(assetName);
-	if (iter != s_geoSystem.geoCache.end())
-		return iter->second;
-
-	char fullFilename[FILE_MAX_PATH];
-	GeoAsset::Definition.BuildFilename(AssetLoc::Bin, assetName, fullFilename, ARRAY_SIZE(fullFilename));
-
-	char* pFileData;
-	uint fileSize;
-	FileLoader::Load(fullFilename, &pFileData, &fileSize);
-
-	GeoAsset::BinFile* pGeoBin = GeoAsset::BinFile::FromMem(pFileData);
-
-	// Interleave data
-	Vertex* pVerts = (Vertex*)RdrTransientMem::Alloc(sizeof(Vertex) * pGeoBin->vertCount);
-	for (int i = pGeoBin->vertCount; i >= 0; --i)
-	{
-		Vertex& rVert = pVerts[i];
-		rVert.position = pGeoBin->positions.ptr[i];
-		rVert.texcoord = pGeoBin->texcoords.ptr[i];
-		rVert.normal = pGeoBin->normals.ptr[i];
-		rVert.color = pGeoBin->colors.ptr[i];
-		rVert.tangent = pGeoBin->tangents.ptr[i];
-		rVert.bitangent = pGeoBin->bitangents.ptr[i];
-	}
-
-	RdrGeometry* pGeo = s_geoSystem.geos.allocSafe();
-
-	GeoCmdUpdate cmd;
-	cmd.hGeo = s_geoSystem.geos.getId(pGeo);
-
-	cmd.info.vertStride = sizeof(Vertex);
-	cmd.info.numVerts = pGeoBin->vertCount;
-	cmd.pVertData = pVerts;
-
-	cmd.info.numIndices = pGeoBin->triCount * 3;
-	uint16* pIndexData = (uint16*)RdrTransientMem::Alloc(sizeof(uint16) * cmd.info.numIndices);
-	memcpy(pIndexData, pGeoBin->tris.ptr, sizeof(uint16) * cmd.info.numIndices);
-	cmd.pIndexData = pIndexData;
-
-	cmd.info.boundsMin = pGeoBin->boundsMin;
-	cmd.info.boundsMax = pGeoBin->boundsMax;
-
-	getQueueState().updates.push_back(cmd);
-
-	s_geoSystem.geoCache.insert(std::make_pair(assetName, cmd.hGeo));
-
-	if (pOutInfo)
-	{
-		*pOutInfo = cmd.info;
-	}
-
-	delete pFileData;
-	return cmd.hGeo;
 }
 
 const RdrGeometry* RdrGeoSystem::GetGeo(const RdrGeoHandle hGeo)

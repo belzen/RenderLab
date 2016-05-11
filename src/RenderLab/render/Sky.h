@@ -4,6 +4,7 @@
 #include "RdrResource.h"
 #include "RdrShaders.h"
 
+class Model;
 class Renderer;
 struct RdrMaterial;
 
@@ -25,8 +26,7 @@ public:
 	const char* GetName() const;
 
 private:
-
-	RdrGeoHandle m_hGeo;
+	Model* m_pModel;
 	const RdrMaterial* m_pMaterial;
 	char m_skyName[AssetDef::kMaxNameLen];
 

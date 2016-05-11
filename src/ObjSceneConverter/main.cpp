@@ -1,5 +1,6 @@
 // Super ugly tool to convert an OBJ file containing lots of 
 // objects into a scene and individual model+obj files.
+#include <windows.h>
 #include <fstream>
 #include <vector>
 #include <assert.h>
@@ -34,6 +35,16 @@ struct Object
 	std::vector<SubObject> subobjects;
 	std::string name;
 };
+
+void createDirectoryTreeForFile(const std::string& filename)
+{
+	int endPos = -1;
+	while ((endPos = (int)filename.find_first_of("/\\", endPos + 1)) != std::string::npos)
+	{
+		std::string dir = filename.substr(0, endPos);
+		CreateDirectoryA(dir.c_str(), nullptr);
+	}
+}
 
 int main(int argc, char** argv)
 {
@@ -204,18 +215,19 @@ int main(int argc, char** argv)
 
 		Vec3 center = { (maxExtents.x + minExtents.x) * 0.5f, minExtents.y, (maxExtents.z + minExtents.z) * 0.5f };
 
-		Json::Value jModelRoot(Json::objectValue);
-		Json::Value& jSubobjectArray = jModelRoot["subobjects"] = Json::arrayValue;
+		std::string objFilename = "output/" + obj.name + ".obj";
+		createDirectoryTreeForFile(objFilename);
+
+		std::ofstream objFile(objFilename);
+		assert(objFile.is_open());
+
+		int posCount = 0;
+		int uvCount = 0;
+		int normCount = 0;
+
 		for (unsigned int n = 0; n < obj.subobjects.size(); ++n)
 		{
 			const SubObject& subobj = obj.subobjects[n];
-
-			char geoName[128];
-			sprintf_s(geoName, "%s_%d", obj.name.c_str(), n);
-
-			Json::Value& jSubobject = jSubobjectArray[n] = Json::objectValue;
-			jSubobject["geo"] = sceneName + "/" + geoName;
-			jSubobject["material"] = sceneName + "/" + subobj.material;
 
 			// Build the obj file
 			int posStart = INT_MAX;
@@ -236,12 +248,6 @@ int main(int argc, char** argv)
 				normStart = min(normStart, vert.norm);
 				normEnd = max(normEnd, vert.norm);
 			}
-
-			std::string objFilename = "output/";
-			objFilename += geoName;
-			objFilename += ".obj";
-			std::ofstream objFile(objFilename);
-			assert(objFile.is_open());
 
 			// write positions
 			for (int k = posStart; k <= posEnd; ++k)
@@ -267,6 +273,11 @@ int main(int argc, char** argv)
 				objFile.write(str, strlen(str));
 			}
 
+			// write material to use for this subobject
+			std::string materialName = sceneName + "/" + subobj.material;
+			sprintf_s(str, "usemtl %s\n", materialName.c_str());
+			objFile.write(str, strlen(str));
+
 			// write faces
 			for (unsigned int k = 0; k < subobj.verts.size(); k += 3)
 			{
@@ -274,18 +285,18 @@ int main(int argc, char** argv)
 				const Vertex& vert2 = subobj.verts[k + 1];
 				const Vertex& vert3 = subobj.verts[k + 2];
 				sprintf_s(str, "f %d/%d/%d %d/%d/%d %d/%d/%d\n",
-					(vert1.pos - posStart + 1), (vert1.uv - uvStart + 1), (vert1.norm - normStart + 1),
-					(vert2.pos - posStart + 1), (vert2.uv - uvStart + 1), (vert2.norm - normStart + 1),
-					(vert3.pos - posStart + 1), (vert3.uv - uvStart + 1), (vert3.norm - normStart + 1));
+					posCount + (vert1.pos - posStart + 1), uvCount + (vert1.uv - uvStart + 1), normCount + (vert1.norm - normStart + 1),
+					posCount + (vert2.pos - posStart + 1), uvCount + (vert2.uv - uvStart + 1), normCount + (vert2.norm - normStart + 1),
+					posCount + (vert3.pos - posStart + 1), uvCount + (vert3.uv - uvStart + 1), normCount + (vert3.norm - normStart + 1));
 				objFile.write(str, strlen(str));
 			}
+
+			posCount += (posEnd - posStart) + 1;
+			uvCount += (uvEnd - uvStart) + 1;
+			normCount += (normEnd - normStart) + 1;
 		}
-		
-		// Write model
-		std::string modelFilename = "output/" + obj.name + ".model";
-		std::ofstream modelFile(modelFilename);
-		assert(modelFile.is_open());
-		jsonWriter.write(modelFile, jModelRoot);
+
+		objFile.close();
 
 		// Add instance to scene
 		Json::Value& jObj = jSceneObjects.append(Json::objectValue);

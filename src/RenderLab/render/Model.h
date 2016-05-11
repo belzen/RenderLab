@@ -4,6 +4,10 @@
 #include "RdrGeoSystem.h"
 
 class Renderer;
+namespace ModelAsset
+{
+	struct BinData;
+}
 
 class Model;
 typedef FreeList<Model, 1024> ModelFreeList;
@@ -13,24 +17,30 @@ class Model
 public:
 	static Model* LoadFromFile(const char* modelName);
 
-	void Release();
-
-	void QueueDraw(Renderer& rRenderer, const Matrix44& worldMat);
-
-	float GetRadius() const;
-
-private:
-	friend ModelFreeList;
-	Model() {}
-
 	struct SubObject
 	{
 		RdrGeoHandle hGeo;
 		const RdrMaterial* pMaterial;
 	};
 
+	void Release();
+
+	void QueueDraw(Renderer& rRenderer, const Matrix44& worldMat);
+
+	float GetRadius() const;
+
+	const SubObject& GetSubObject(const uint index) const;
+
+	uint GetNumSubObjects() const;
+
+private:
+	friend ModelFreeList;
+	Model() {}
+
+	ModelAsset::BinData* m_pBinData;
+
 	SubObject m_subObjects[16];
-	int m_subObjectCount;
+	uint m_subObjectCount;
 
 	float m_radius;
 
@@ -40,4 +50,14 @@ private:
 inline float Model::GetRadius() const 
 {
 	return m_radius;
+}
+
+inline const Model::SubObject& Model::GetSubObject(const uint index) const
+{
+	return m_subObjects[index];
+}
+
+inline uint Model::GetNumSubObjects() const
+{
+	return m_subObjectCount;
 }

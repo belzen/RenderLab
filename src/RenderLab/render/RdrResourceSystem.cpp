@@ -1,7 +1,7 @@
 #include "Precompiled.h"
 #include "RdrResourceSystem.h"
 #include "RdrContext.h"
-#include "RdrTransientMem.h"
+#include "RdrScratchMem.h"
 
 #include <DirectXTex/include/DirectXTex.h>
 #include <DirectXTex/include/Dds.h>

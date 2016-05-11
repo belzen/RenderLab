@@ -9,7 +9,7 @@
 #include "debug\DebugConsole.h"
 #include "RdrContextD3D11.h"
 #include "RdrShaderConstants.h"
-#include "RdrTransientMem.h"
+#include "RdrScratchMem.h"
 #include "RdrDrawOp.h"
 
 namespace
@@ -196,7 +196,7 @@ void Renderer::QueueLightCulling()
 	invProjMtx = Matrix44Transpose(invProjMtx);
 
 	uint constantsSize = sizeof(Vec4) * 4;
-	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
+	Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
 	for (int i = 0; i < 4; ++i)
 	{
 		pConstants[i].x = invProjMtx.m[i][0];
@@ -257,7 +257,7 @@ void Renderer::QueueLightCulling()
 	};
 
 	constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(CullingParams));
-	CullingParams* pParams = (CullingParams*)RdrTransientMem::AllocAligned(constantsSize, 16);
+	CullingParams* pParams = (CullingParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
 	pParams->cameraPos = rCamera.GetPosition();
 	pParams->cameraDir = rCamera.GetDirection();
 	pParams->cameraNearDist = rCamera.GetNearDist();
@@ -444,7 +444,7 @@ void Renderer::CreateCubemapCaptureConstants(const Vec3& position, const float n
 	Matrix44 mtxView, mtxProj;
 
 	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(GsCubemapPerAction));
-	GsCubemapPerAction* pGsConstants = (GsCubemapPerAction*)RdrTransientMem::AllocAligned(constantsSize, 16);
+	GsCubemapPerAction* pGsConstants = (GsCubemapPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
 	for (uint f = 0; f < (uint)CubemapFace::Count; ++f)
 	{
 		cam.SetAsCubemapFace(position, (CubemapFace)f, nearDist, farDist);
@@ -469,7 +469,7 @@ void Renderer::CreatePerActionConstants()
 
 		// VS
 		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(VsPerAction));
-		VsPerAction* pVsPerAction = (VsPerAction*)RdrTransientMem::AllocAligned(constantsSize, 16);
+		VsPerAction* pVsPerAction = (VsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
 
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
@@ -478,7 +478,7 @@ void Renderer::CreatePerActionConstants()
 
 		// PS
 		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
-		PsPerAction* pPsPerAction = (PsPerAction*)RdrTransientMem::AllocAligned(constantsSize, 16);
+		PsPerAction* pPsPerAction = (PsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
 
 		pPsPerAction->viewPos = rCamera.GetPosition();
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
@@ -495,7 +495,7 @@ void Renderer::CreatePerActionConstants()
 
 		// VS
 		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(VsPerAction));
-		VsPerAction* pVsPerAction = (VsPerAction*)RdrTransientMem::AllocAligned(constantsSize, 16);
+		VsPerAction* pVsPerAction = (VsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
 
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
@@ -504,7 +504,7 @@ void Renderer::CreatePerActionConstants()
 	
 		// PS
 		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
-		PsPerAction* pPsPerAction = (PsPerAction*)RdrTransientMem::AllocAligned(constantsSize, 16);
+		PsPerAction* pPsPerAction = (PsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
 
 		pPsPerAction->viewPos = Vec3::kOrigin;
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
@@ -626,7 +626,7 @@ void Renderer::PostFrameSync()
 	RdrResourceSystem::FlipState(m_pContext);
 	RdrGeoSystem::FlipState();
 	RdrShaderSystem::FlipState();
-	RdrTransientMem::FlipState();
+	RdrScratchMem::FlipState();
 }
 
 void Renderer::ProcessReadbackRequests()

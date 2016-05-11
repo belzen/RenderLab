@@ -2,7 +2,7 @@
 #include "Font.h"
 #include "Renderer.h"
 #include "RdrDrawOp.h"
-#include "RdrTransientMem.h"
+#include "RdrScratchMem.h"
 #include "Camera.h"
 #include "UI.h"
 
@@ -54,7 +54,7 @@ namespace
 		op->graphics.pMaterial = &s_text.material;
 
 		uint constantsSize = sizeof(Vec4) * 2;
-		Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
+		Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
 		pConstants[0] = Vec4(color.r, color.g, color.b, color.a);
 		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
 		op->graphics.hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
@@ -86,8 +86,8 @@ TextObject Font::CreateText(const char* text)
 	int numQuads = 0;
 	int textLen = (int)strlen(text);
 
-	TextVertex* verts = (TextVertex*)RdrTransientMem::Alloc(sizeof(TextVertex) * textLen * 4);
-	uint16* indices = (uint16*)RdrTransientMem::Alloc(sizeof(uint16) * textLen * 6);
+	TextVertex* verts = (TextVertex*)RdrScratchMem::Alloc(sizeof(TextVertex) * textLen * 4);
+	uint16* indices = (uint16*)RdrScratchMem::Alloc(sizeof(uint16) * textLen * 6);
 
 	float x = 0.0f;
 	float y = 0.0f;

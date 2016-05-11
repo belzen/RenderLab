@@ -3,12 +3,15 @@
 #include <fstream>
 #include <map>
 #include <direct.h>
+#include <assert.h>
 #include "UtilsLib/FileLoader.h"
 #include "UtilsLib/FileWatcher.h"
 #include "UtilsLib/Util.h"
 #include "UtilsLib/Paths.h"
 #include "AssetLib/BinFile.h"
-#include "GeoBinner.h"
+#include "ModelBinner.h"
+#include "TextureBinner.h"
+#include "SceneBinner.h"
 
 typedef std::map<std::string, IAssetBinner*, StringInvariantCompare> AssetBinnerMap;
 AssetBinnerMap g_assetBinners;
@@ -123,7 +126,9 @@ void registerAssetBinner(IAssetBinner* pBinner)
 int main(int argc, char** argv)
 {
 	// Register asset binners
-	registerAssetBinner(new GeoBinner());
+	registerAssetBinner(new ModelBinner());
+	registerAssetBinner(new TextureBinner());
+	registerAssetBinner(new SceneBinner());
 
 	FileWatcher::Init(Paths::GetSrcDataDir());
 	FileWatcher::AddListener(".*", fileChangedCallback, nullptr);

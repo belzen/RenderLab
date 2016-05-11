@@ -1,9 +1,0 @@
-{
-	"subobjects" : 
-	[
-		{
-			"geo" : "sponza/sponza_64_0",
-			"material" : "sponza/arch"
-		}
-	]
-}

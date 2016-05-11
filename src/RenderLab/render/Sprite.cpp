@@ -2,7 +2,7 @@
 #include "Sprite.h"
 #include "Renderer.h"
 #include "RdrDrawOp.h"
-#include "RdrTransientMem.h"
+#include "RdrScratchMem.h"
 #include "RdrResource.h"
 
 namespace
@@ -25,7 +25,7 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 {
 	m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_vertexDesc, ARRAY_SIZE(s_vertexDesc));
 
-	SpriteVertex* verts = (SpriteVertex*)RdrTransientMem::Alloc(sizeof(SpriteVertex) * 4);
+	SpriteVertex* verts = (SpriteVertex*)RdrScratchMem::Alloc(sizeof(SpriteVertex) * 4);
 	verts[0].position = Vec2(0.f, 0.f);
 	verts[0].uv = aTexcoords[0];
 	verts[1].position = Vec2(1.f, 0.f);
@@ -35,7 +35,7 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	verts[3].position = Vec2(1.f, -1.f);
 	verts[3].uv = aTexcoords[3];
 
-	uint16* indices = (uint16*)RdrTransientMem::Alloc(sizeof(uint16) * 6);
+	uint16* indices = (uint16*)RdrScratchMem::Alloc(sizeof(uint16) * 6);
 	indices[0] = 0;
 	indices[1] = 1;
 	indices[2] = 2;
@@ -62,7 +62,7 @@ void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, 
 	op->graphics.pMaterial = &m_material;
 
 	uint constantsSize = sizeof(Vec4) * 2;
-	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
+	Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
 	pConstants[0] = Vec4(pos.x - rRenderer.GetViewportWidth() * 0.5f, pos.y + rRenderer.GetViewportHeight() * 0.5f, pos.z + 1.f, 0.f);
 	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
 	op->graphics.hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);

@@ -1,7 +1,7 @@
 #include "Precompiled.h"
 #include "Model.h"
 #include "RdrContext.h"
-#include "RdrTransientMem.h"
+#include "RdrScratchMem.h"
 #include "RdrDrawOp.h"
 #include "Renderer.h"
 #include "Camera.h"
@@ -22,45 +22,64 @@ namespace
 
 	RdrInputLayoutHandle s_hModelInputLayout = 0;
 	ModelFreeList s_models;
+
+	typedef std::map<std::string, Model*> ModelMap;
+	ModelMap s_modelCache;
 }
 
 Model* Model::LoadFromFile(const char* modelName)
 {
-	char fullFilename[FILE_MAX_PATH];
-	ModelAsset::Definition.BuildFilename(AssetLoc::Src, modelName, fullFilename, ARRAY_SIZE(fullFilename));
+	// Find model in cache
+	ModelMap::iterator iter = s_modelCache.find(modelName);
+	if (iter != s_modelCache.end())
+		return iter->second;
 
-	Json::Value jRoot;
-	if (!FileLoader::LoadJson(fullFilename, jRoot))
-	{
-		assert(false);
-		return nullptr;
-	}
+	char fullFilename[FILE_MAX_PATH];
+	ModelAsset::Definition.BuildFilename(AssetLoc::Bin, modelName, fullFilename, ARRAY_SIZE(fullFilename));
+
+	char* pFileData;
+	uint fileSize;
+	FileLoader::Load(fullFilename, &pFileData, &fileSize);
+
+	ModelAsset::BinData* pBinData = ModelAsset::BinData::FromMem(pFileData);
 
 	Model* pModel = s_models.allocSafe();
+	pModel->m_pBinData = pBinData;
+	pModel->m_subObjectCount = pBinData->subObjectCount;
 
 	assert(pModel->m_modelName[0] == 0);
 	strcpy_s(pModel->m_modelName, modelName);
 
-	Json::Value jSubObjectArray = jRoot.get("subobjects", Json::nullValue);
-	pModel->m_subObjectCount = jSubObjectArray.size();
-
-	Vec3 boundsMax = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-	Vec3 boundsMin = { FLT_MAX, FLT_MAX, FLT_MAX };
-	for (int i = 0; i < pModel->m_subObjectCount; ++i)
+	uint vertAccum = 0;
+	uint indicesAccum = 0;
+	for (uint i = 0; i < pModel->m_subObjectCount; ++i)
 	{
-		SubObject& rSubObject = pModel->m_subObjects[i];
+		const ModelAsset::BinData::SubObject& rBinSubobject = pBinData->subobjects.ptr[i];
+		Vertex* pVerts = (Vertex*)RdrScratchMem::Alloc(sizeof(Vertex) * rBinSubobject.vertCount);
+		uint16* pIndices = (uint16*)RdrScratchMem::Alloc(sizeof(uint16) * rBinSubobject.indexCount);
 
-		Json::Value jSubObject = jSubObjectArray.get(i, Json::nullValue);
+		for (uint k = 0; k < rBinSubobject.indexCount; ++k)
+		{
+			pIndices[k] = pBinData->indices.ptr[indicesAccum + k] - vertAccum;
+		}
 
-		Json::Value jModel = jSubObject.get("geo", Json::Value::null);
+		for (uint k = 0; k < rBinSubobject.vertCount; ++k)
+		{
+			Vertex& rVert = pVerts[k];
+			rVert.position = pBinData->positions.ptr[vertAccum];
+			rVert.texcoord = pBinData->texcoords.ptr[vertAccum];
+			rVert.normal = pBinData->normals.ptr[vertAccum];
+			rVert.color = pBinData->colors.ptr[vertAccum];
+			rVert.tangent = pBinData->tangents.ptr[vertAccum];
+			rVert.bitangent = pBinData->bitangents.ptr[vertAccum];
 
-		RdrGeoInfo geoInfo;
-		rSubObject.hGeo = RdrGeoSystem::CreateGeoFromFile(jModel.asCString(), &geoInfo);
-		boundsMax = Vec3Max(boundsMax, geoInfo.boundsMax);
-		boundsMin = Vec3Min(boundsMin, geoInfo.boundsMin);
+			++vertAccum;
+		}
 
-		Json::Value jMaterialName = jSubObject.get("material", Json::Value::null);
-		rSubObject.pMaterial = RdrMaterial::LoadFromFile(jMaterialName.asCString());
+		pModel->m_subObjects[i].hGeo = RdrGeoSystem::CreateGeo(pVerts, sizeof(Vertex), rBinSubobject.vertCount, pIndices, rBinSubobject.indexCount, rBinSubobject.boundsMin, rBinSubobject.boundsMax);
+		pModel->m_subObjects[i].pMaterial = RdrMaterial::LoadFromFile(rBinSubobject.materialName);
+
+		indicesAccum += rBinSubobject.indexCount;
 	}
 
 	if (!s_hModelInputLayout)
@@ -68,9 +87,11 @@ Model* Model::LoadFromFile(const char* modelName)
 		s_hModelInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAY_SIZE(s_modelVertexDesc));
 	}
 
-	float maxLen = Vec3Length(boundsMax);
-	float minLen = Vec3Length(boundsMin);
+	float maxLen = Vec3Length(pBinData->boundsMax);
+	float minLen = Vec3Length(pBinData->boundsMin);
 	pModel->m_radius = minLen;
+
+	s_modelCache.insert(std::make_pair(modelName, pModel));
 
 	return pModel;
 }
@@ -84,11 +105,11 @@ void Model::Release()
 void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat)
 {
 	uint constantsSize = sizeof(Vec4) * 4;
-	Vec4* pConstants = (Vec4*)RdrTransientMem::AllocAligned(constantsSize, 16);
+	Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
 	*((Matrix44*)pConstants) = Matrix44Transpose(srcWorldMat);
 	RdrConstantBufferHandle hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
 
-	for (int i = 0; i < m_subObjectCount; ++i)
+	for (uint i = 0; i < m_subObjectCount; ++i)
 	{
 		SubObject& rSubObject = m_subObjects[i];
 

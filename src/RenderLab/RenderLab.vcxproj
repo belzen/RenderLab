@@ -194,7 +194,7 @@
     <ClCompile Include="render\RdrContextD3D11_Shaders.cpp" />
     <ClCompile Include="render\RdrDrawOp.cpp" />
     <ClCompile Include="render\RdrMaterial.cpp" />
-    <ClCompile Include="render\RdrTransientMem.cpp" />
+    <ClCompile Include="render\RdrScratchMem.cpp" />
     <ClCompile Include="render\Renderer.cpp" />
     <ClCompile Include="render\RdrShaderSystem.cpp" />
     <ClCompile Include="render\RdrPostProcess.cpp" />
@@ -238,7 +238,7 @@
     <ClInclude Include="render\RdrShaderConstants.h" />
     <ClInclude Include="render\RdrShaderSystem.h" />
     <ClInclude Include="render\RdrResourceSystem.h" />
-    <ClInclude Include="render\RdrTransientMem.h" />
+    <ClInclude Include="render\RdrScratchMem.h" />
     <ClInclude Include="render\Renderer.h" />
     <ClInclude Include="render\RdrShaders.h" />
     <ClInclude Include="render\Sky.h" />

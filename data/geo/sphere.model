@@ -1,8 +1,0 @@
-{
-	"subobjects" : [
-		{
-			"geo" : "sphere",
-			"material" : "white"
-		}
-	]
-}

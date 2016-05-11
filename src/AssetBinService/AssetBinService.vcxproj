@@ -171,12 +171,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="GeoBinner.cpp" />
+    <ClCompile Include="ModelBinner.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SceneBinner.cpp" />
+    <ClCompile Include="TextureBinner.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GeoBinner.h" />
+    <ClInclude Include="ModelBinner.h" />
     <ClInclude Include="IAssetBinner.h" />
+    <ClInclude Include="SceneBinner.h" />
+    <ClInclude Include="TextureBinner.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

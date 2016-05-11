@@ -1,4 +1,4 @@
 {
-	"geo" : "skydome",
+	"model" : "skydome",
 	"material" : "skies/cloudy"
 }

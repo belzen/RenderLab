@@ -1,6 +1,6 @@
 #include "Precompiled.h"
 #include "Light.h"
-#include "RdrTransientMem.h"
+#include "RdrScratchMem.h"
 #include "Renderer.h"
 #include "Scene.h"
 
@@ -233,7 +233,7 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, 
 			RdrResourceSystem::UpdateStructuredBuffer(m_hLightListRes, m_lights);
 		}
 
-		ShadowMapData* pShadowData = (ShadowMapData*)RdrTransientMem::Alloc(sizeof(ShadowMapData) * MAX_SHADOW_MAPS);
+		ShadowMapData* pShadowData = (ShadowMapData*)RdrScratchMem::Alloc(sizeof(ShadowMapData) * MAX_SHADOW_MAPS);
 		for (int i = 0; i < curShadowMapIndex; ++i)
 		{
 			Light& light = m_lights[shadowLights[i]];

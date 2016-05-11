@@ -6,8 +6,6 @@ class RdrContext;
 
 namespace RdrGeoSystem
 {
-	RdrGeoHandle CreateGeoFromFile(const char* filename, RdrGeoInfo* pOutInfo);
-
 	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& boundsMin, const Vec3& boundsMax);
 
 	const RdrGeometry* GetGeo(const RdrGeoHandle hGeo);
