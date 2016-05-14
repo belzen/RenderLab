@@ -25,7 +25,7 @@ struct ShadowData
 #if !LIGHT_DATA_ONLY
 
 static float3 ambient_color = float3(1.f, 1.f, 1.f);
-static float ambient_intensity = 1.0075f;
+static float ambient_intensity = 1.f;
 
 StructuredBuffer<Light> g_lights : register(t16);
 StructuredBuffer<uint> g_tileLightIndices : register(t17);

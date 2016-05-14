@@ -12,16 +12,18 @@ namespace
 
 	void Init()
 	{
+		char binPath[FILE_MAX_PATH];
+
 		char path[FILE_MAX_PATH];
 		GetCurrentDirectoryA(ARRAY_SIZE(path), path);
 		strcat_s(path, "\\");
 
 		while (true)
 		{
-			sprintf_s(s_binDataDir, "%sbin\\data", path);
-			if (GetFileAttributesA(s_binDataDir) != INVALID_FILE_ATTRIBUTES)
+			sprintf_s(binPath, "%sbin", path);
+			if (GetFileAttributesA(binPath) != INVALID_FILE_ATTRIBUTES)
 			{
-				// Set src data dir as well.  This only needs to exist for editing.
+				sprintf_s(s_binDataDir, "%s\\data", binPath);
 				sprintf_s(s_srcDataDir, "%sdata", path);
 				break;
 			}

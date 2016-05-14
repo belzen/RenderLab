@@ -39,7 +39,11 @@ Model* Model::LoadFromFile(const char* modelName)
 
 	char* pFileData;
 	uint fileSize;
-	FileLoader::Load(fullFilename, &pFileData, &fileSize);
+	if (!FileLoader::Load(fullFilename, &pFileData, &fileSize))
+	{
+		Error("Failed to load model: %s", fullFilename);
+		return nullptr;
+	}
 
 	ModelAsset::BinData* pBinData = ModelAsset::BinData::FromMem(pFileData);
 

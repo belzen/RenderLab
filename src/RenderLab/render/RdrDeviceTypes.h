@@ -93,6 +93,7 @@ enum class RdrResourceFormat
 	R16G16_FLOAT,
 	R8_UNORM,
 	DXT1,
+	DXT1_sRGB,
 	DXT5,
 	DXT5_sRGB,
 	B8G8R8A8_UNORM,

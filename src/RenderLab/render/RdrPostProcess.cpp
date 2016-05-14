@@ -102,7 +102,7 @@ void RdrPostProcess::Init()
 	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
 	pTonemapSettings->white = 4.f;
 	pTonemapSettings->middleGrey = 0.7f;
-	pTonemapSettings->bloomThreshold = 1.5f;
+	pTonemapSettings->bloomThreshold = 5.5f; // todo: move to settings
 	m_hToneMapInputConstants = RdrResourceSystem::CreateConstantBuffer(pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 }
 

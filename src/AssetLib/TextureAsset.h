@@ -1,5 +1,6 @@
 #pragma once
 #include "AssetDef.h"
+#include "BinFile.h"
 
 namespace TextureAsset
 {
@@ -8,8 +9,12 @@ namespace TextureAsset
 
 	extern AssetDef Definition;
 
-	struct BinHeader
+	struct BinData
 	{
-		uint unused;
+		static BinData* FromMem(char* pMem);
+
+		bool bIsCubemap;
+		bool bIsSrgb;
+		BinDataPtr<char> ddsData;
 	};
 }

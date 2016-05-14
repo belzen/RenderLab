@@ -11,6 +11,7 @@ int rdrGetTexturePitch(const int width, const RdrResourceFormat eFormat)
 	case RdrResourceFormat::R8_UNORM:
 		return width * 1;
 	case RdrResourceFormat::DXT1:
+	case RdrResourceFormat::DXT1_sRGB:
 		return ((width + 3) & ~3) * 2;
 	case RdrResourceFormat::DXT5:
 	case RdrResourceFormat::DXT5_sRGB:
@@ -34,6 +35,7 @@ int rdrGetTextureRows(const int height, const RdrResourceFormat eFormat)
 	case RdrResourceFormat::B8G8R8A8_UNORM_sRGB:
 		return height;
 	case RdrResourceFormat::DXT1:
+	case RdrResourceFormat::DXT1_sRGB:
 	case RdrResourceFormat::DXT5:
 	case RdrResourceFormat::DXT5_sRGB:
 		return ((height + 3) & ~3) / 4;

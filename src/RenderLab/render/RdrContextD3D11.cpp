@@ -40,6 +40,7 @@ namespace
 			DXGI_FORMAT_R16G16_FLOAT,			// ResourceFormat::R16G16_FLOAT
 			DXGI_FORMAT_R8_UNORM,				// ResourceFormat::R8_UNORM
 			DXGI_FORMAT_BC1_UNORM,				// ResourceFormat::DXT1
+			DXGI_FORMAT_BC1_UNORM_SRGB,			// ResourceFormat::DXT1_sRGB
 			DXGI_FORMAT_BC3_UNORM,				// ResourceFormat::DXT5
 			DXGI_FORMAT_BC3_UNORM_SRGB,			// ResourceFormat::DXT5_sRGB
 			DXGI_FORMAT_B8G8R8A8_UNORM,			// ResourceFormat::B8G8R8A8_UNORM
@@ -59,6 +60,7 @@ namespace
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R16G16_FLOAT
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R8_UNORM
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::DXT1
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::DXT1_sRGB
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::DXT5
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::DXT5_sRGB
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::B8G8R8A8_UNORM
@@ -79,6 +81,7 @@ namespace
 			DXGI_FORMAT_R16G16_TYPELESS,	   // ResourceFormat::R16G16_FLOAT
 			DXGI_FORMAT_R8_TYPELESS,		   // ResourceFormat::R8_UNORM
 			DXGI_FORMAT_BC1_TYPELESS,		   // ResourceFormat::DXT1
+			DXGI_FORMAT_BC1_TYPELESS,		   // ResourceFormat::DXT1_sRGB
 			DXGI_FORMAT_BC3_TYPELESS,		   // ResourceFormat::DXT5
 			DXGI_FORMAT_BC3_TYPELESS,		   // ResourceFormat::DXT5_sRGB
 			DXGI_FORMAT_B8G8R8A8_TYPELESS,	   // ResourceFormat::B8G8R8A8_UNORM
@@ -543,7 +546,6 @@ bool RdrContextD3D11::CreateTexture(const void* pSrcData, const RdrTextureInfo& 
 		pData = (D3D11_SUBRESOURCE_DATA*)_malloca(sliceCount * rTexInfo.mipLevels * sizeof(D3D11_SUBRESOURCE_DATA));
 
 		char* pPos = (char*)pSrcData;
-		assert(rTexInfo.width == rTexInfo.height); // todo: support non-square textures
 		for (uint slice = 0; slice < sliceCount; ++slice)
 		{
 			uint mipWidth = rTexInfo.width;
@@ -552,9 +554,12 @@ bool RdrContextD3D11::CreateTexture(const void* pSrcData, const RdrTextureInfo& 
 			{
 				pData[resIndex].pSysMem = pPos;
 				pData[resIndex].SysMemPitch = rdrGetTexturePitch(mipWidth, rTexInfo.format);
+				pData[resIndex].SysMemSlicePitch = 0;
 				pPos += pData[resIndex].SysMemPitch * rdrGetTextureRows(mipHeight, rTexInfo.format);
-				mipWidth >>= 1;
-				mipHeight >>= 1;
+				if (mipWidth > 1)
+					mipWidth >>= 1;
+				if (mipHeight > 1)
+					mipHeight >>= 1;
 				++resIndex;
 			}
 		}

@@ -20,7 +20,7 @@ SamplerState sampNormals : register(s1);
 
 float4 main(PixelInput input) : SV_TARGET
 {
-	float4 color = texDiffuse.Sample(sampDiffuse, input.texcoords) + input.color;
+	float4 color = texDiffuse.Sample(sampDiffuse, input.texcoords);
 
 	float3 normal = texNormals.Sample(sampNormals, input.texcoords).xyz;
 	normal = (normal * 2.f) - 1.f; // Expand normal range
@@ -32,5 +32,5 @@ float4 main(PixelInput input) : SV_TARGET
 	float3 cameraViewDir = normalize(cbPerAction.viewPos - input.position_ws.xyz);
 
 	float3 litColor = doLighting(input.position_ws, color.rgb, normal, cameraViewDir, input.position.xy, cbPerAction.viewWidth);
-	return float4(litColor, 1);
+	return float4(litColor + 0.001f, 1);
 }

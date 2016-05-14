@@ -58,6 +58,5 @@ float4 main(VsOutputSprite input) : SV_TARGET
 #endif
 
 	color.rgb = pow(color.rgb, 1 / 2.2f);
-
 	return color;
 }

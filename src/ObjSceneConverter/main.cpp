@@ -49,6 +49,7 @@ void createDirectoryTreeForFile(const std::string& filename)
 int main(int argc, char** argv)
 {
 	float scale = 0.1f;
+	float scaleTexV = -1.f;
 
 	std::vector<Object> objects;
 	std::ifstream inputFile(argv[1]);
@@ -106,7 +107,7 @@ int main(int argc, char** argv)
 			// Tex coord
 			Vec2 uv;
 			uv.x = (float)atof(strtok_s(nullptr, " ", &context));
-			uv.y = (float)atof(strtok_s(nullptr, " ", &context));
+			uv.y = (float)atof(strtok_s(nullptr, " ", &context)) * scaleTexV;
 			texcoords.push_back(uv);
 		}
 		else if (strcmp(tok, "f") == 0)

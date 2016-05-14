@@ -2,6 +2,7 @@
 #include "RdrResourceSystem.h"
 #include "RdrContext.h"
 #include "RdrScratchMem.h"
+#include "AssetLib/TextureAsset.h"
 
 #include <DirectXTex/include/DirectXTex.h>
 #include <DirectXTex/include/Dds.h>
@@ -152,6 +153,8 @@ namespace
 			return RdrResourceFormat::R16G16_FLOAT;
 		case DXGI_FORMAT_R8_UNORM:
 			return RdrResourceFormat::R8_UNORM;
+		case DXGI_FORMAT_BC1_UNORM:
+			return bIsSrgb ? RdrResourceFormat::DXT1_sRGB : RdrResourceFormat::DXT1;
 		case DXGI_FORMAT_BC3_UNORM:
 			return bIsSrgb ? RdrResourceFormat::DXT5_sRGB : RdrResourceFormat::DXT5;
 		case DXGI_FORMAT_B8G8R8A8_UNORM:
@@ -199,33 +202,18 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 	ResCmdCreateTexture cmd = { 0 };
 
 	char filepath[FILE_MAX_PATH];
-	sprintf_s(filepath, "%s/textures/%s.texture", Paths::GetSrcDataDir(), texName);
+	TextureAsset::Definition.BuildFilename(AssetLoc::Bin, texName, filepath, ARRAY_SIZE(filepath));
 
-	// Read in settings from ".texture" file, including the name of the actual image file.
-	Json::Value jRoot;
-	if (!FileLoader::LoadJson(filepath, jRoot))
-	{
-		assert(false);
-		return 0;
-	}
-
-	Json::Value jTexFilename = jRoot.get("filename", Json::Value::null);
-	sprintf_s(filepath, "%s/textures/%s", Paths::GetSrcDataDir(), jTexFilename.asCString());
-
-	bool bIsSrgb = jRoot.get("srgb", false).asBool();
-	bool bIsCubemap = jRoot.get("isCubemap", false).asBool();
-
-	// Load the texture image file.
 	if (!FileLoader::Load(filepath, &cmd.pHeaderData, &cmd.dataSize))
 	{
 		assert(false);
 		return 0;
 	}
 
-	char* pPos = (char*)cmd.pHeaderData;
-	
+	TextureAsset::BinData* pBinData = TextureAsset::BinData::FromMem(cmd.pHeaderData);
+
 	DirectX::TexMetadata metadata;
-	DirectX::GetMetadataFromDDSMemory(cmd.pHeaderData, cmd.dataSize, 0, metadata);
+	DirectX::GetMetadataFromDDSMemory(pBinData->ddsData.ptr, cmd.dataSize, 0, metadata);
 
 	// Create new texture info
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
@@ -233,23 +221,20 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 	cmd.hResource = s_resourceSystem.resources.getId(pResource);
 
 	cmd.eUsage = RdrResourceUsage::Immutable;
-	cmd.texInfo.format = getFormatFromDXGI(metadata.format, bIsSrgb);
+	cmd.texInfo.format = getFormatFromDXGI(metadata.format, pBinData->bIsSrgb);
 	cmd.texInfo.width = (uint)metadata.width;
 	cmd.texInfo.height = (uint)metadata.height;
 	cmd.texInfo.mipLevels = (uint)metadata.mipLevels;
 	cmd.texInfo.arraySize = (uint)metadata.arraySize;
-	cmd.texInfo.bCubemap = bIsCubemap;
+	cmd.texInfo.bCubemap = pBinData->bIsCubemap;
 	cmd.texInfo.sampleCount = 1;
 
-	if (bIsCubemap)
+	if (pBinData->bIsCubemap)
 	{
 		cmd.texInfo.arraySize /= 6;
 	}
 
-	pPos += sizeof(DWORD); // magic?
-	pPos += sizeof(DirectX::DDS_HEADER);
-
-	cmd.pData = pPos;
+	cmd.pData = pBinData->ddsData.ptr + sizeof(DWORD) + sizeof(DirectX::DDS_HEADER);
 
 	getQueueState().textureCreates.push_back(cmd);
 

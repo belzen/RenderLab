@@ -10,7 +10,7 @@
 			"position" : [ 0.0, 0.0, 0.0 ],
 			"direction" : [1.0, -1.0, 1.0 ],
 			"color" : [1.0, 1.0, 1.0],
-			"intensity" : 32.5,
+			"intensity" : 16.5,
 			"castsShadows" : true
 		}
 	],

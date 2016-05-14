@@ -1,5 +1,5 @@
 {
 	"pixelShader" : "p_model.hlsl",
-	"textures" : [ "a_white", "n_flat" ],
+	"textures" : [ "sponza/sponza_column_c", "sponza/sponza_column_c_ddn" ],
 	"needsLighting" : true
 }

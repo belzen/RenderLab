@@ -125,6 +125,10 @@ void registerAssetBinner(IAssetBinner* pBinner)
 
 int main(int argc, char** argv)
 {
+	// For DirectXTex WIC
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	assert(hr == S_OK);
+
 	// Register asset binners
 	registerAssetBinner(new ModelBinner());
 	registerAssetBinner(new TextureBinner());
