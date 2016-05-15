@@ -1,27 +1,29 @@
 #include "ModelAsset.h"
 
-AssetDef ModelAsset::Definition("geo", "model");
+using namespace AssetLib;
 
-ModelAsset::BinData* ModelAsset::BinData::FromMem(char* pMem)
+AssetLib::AssetDef AssetLib::g_modelDef("geo", "modelbin", 0x6b64afc, 1);
+
+Model* Model::FromMem(char* pMem)
 {
 	if (((uint*)pMem)[0] == BinFileHeader::kUID)
 	{
 		BinFileHeader* pHeader = (BinFileHeader*)pMem;
-		assert(pHeader->assetUID == ModelAsset::kAssetUID);
+		assert(pHeader->assetUID == g_modelDef.GetAssetUID());
 		pMem += sizeof(BinFileHeader);
 	}
 
-	ModelAsset::BinData* pBin = (ModelAsset::BinData*)pMem;
-	char* pDataMem = pMem + sizeof(ModelAsset::BinData);
+	Model* pModel = (Model*)pMem;
+	char* pDataMem = pMem + sizeof(Model);
 
-	pBin->subobjects.PatchPointer(pDataMem);
-	pBin->positions.PatchPointer(pDataMem);
-	pBin->texcoords.PatchPointer(pDataMem);
-	pBin->normals.PatchPointer(pDataMem);
-	pBin->colors.PatchPointer(pDataMem);
-	pBin->tangents.PatchPointer(pDataMem);
-	pBin->bitangents.PatchPointer(pDataMem);
-	pBin->indices.PatchPointer(pDataMem);
+	pModel->subobjects.PatchPointer(pDataMem);
+	pModel->positions.PatchPointer(pDataMem);
+	pModel->texcoords.PatchPointer(pDataMem);
+	pModel->normals.PatchPointer(pDataMem);
+	pModel->colors.PatchPointer(pDataMem);
+	pModel->tangents.PatchPointer(pDataMem);
+	pModel->bitangents.PatchPointer(pDataMem);
+	pModel->indices.PatchPointer(pDataMem);
 
-	return pBin;
+	return pModel;
 }

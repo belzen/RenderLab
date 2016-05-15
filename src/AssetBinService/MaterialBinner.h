@@ -2,7 +2,7 @@
 
 #include "IAssetBinner.h"
 
-class TextureBinner : public IAssetBinner
+class MaterialBinner : public IAssetBinner
 {
 public:
 	AssetLib::AssetDef& GetAssetDef() const;

@@ -200,17 +200,13 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 		return iter->second;
 
 	ResCmdCreateTexture cmd = { 0 };
-
-	char filepath[FILE_MAX_PATH];
-	TextureAsset::Definition.BuildFilename(AssetLoc::Bin, texName, filepath, ARRAY_SIZE(filepath));
-
-	if (!FileLoader::Load(filepath, &cmd.pHeaderData, &cmd.dataSize))
+	if (!AssetLib::g_textureDef.LoadAsset(texName, &cmd.pHeaderData, &cmd.dataSize))
 	{
 		assert(false);
 		return 0;
 	}
 
-	TextureAsset::BinData* pBinData = TextureAsset::BinData::FromMem(cmd.pHeaderData);
+	AssetLib::Texture* pBinData = AssetLib::Texture::FromMem(cmd.pHeaderData);
 
 	DirectX::TexMetadata metadata;
 	DirectX::GetMetadataFromDDSMemory(pBinData->ddsData.ptr, cmd.dataSize, 0, metadata);

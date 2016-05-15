@@ -2,64 +2,69 @@
 #include "../Types.h"
 #include "UtilsLib/Paths.h"
 
-typedef void (*AssetReloadFunc)(const char* assetName);
-
-enum class AssetLoc
+namespace AssetLib
 {
-	Src,
-	Bin,
+	typedef void(*AssetReloadFunc)(const char* assetName);
 
-	Count
-};
-
-class AssetDef
-{
-public:
-	static const uint kMaxNameLen = 128;
-
-	AssetDef(const char* folder, const char* srcExt);
-
-	void SetReloadHandler(AssetLoc loc, AssetReloadFunc reloadFunc);
-	bool HasReloadHandler(AssetLoc loc) const;
-
-	void ExtractAssetName(const char* relativeFilePath, char* outAssetName, uint maxNameLen) const;
-
-	void BuildFilename(AssetLoc loc, const char* assetName, char* outFilename, uint maxFilenameLen) const;
-
-	void GetFilePattern(AssetLoc loc, char* pOutPattern, uint maxPatternLen);
-
-	const char* GetFolder() const;
-	const char* GetExt(AssetLoc loc) const;
-
-private:
-	static void ReloadSrcCommon(const char* filename, void* pUserData);
-	static void ReloadBinCommon(const char* filename, void* pUserData);
-
-	struct AssetLocData
+	class AssetDef
 	{
-		char fullPath[FILE_MAX_PATH];
-		char ext[32];
-		uint extLen;
-		AssetReloadFunc reloadFunc;
+	public:
+		static const uint kMaxNameLen = 128;
+
+		AssetDef(const char* folder, const char* binExt, uint assetUID, uint binVersion);
+
+		void SetReloadHandler(AssetReloadFunc reloadFunc);
+		bool HasReloadHandler() const;
+
+		void ExtractAssetName(const char* relativeFilePath, char* outAssetName, uint maxNameLen) const;
+
+		void BuildFilename(const char* assetName, char* outFilename, uint maxFilenameLen) const;
+
+		bool LoadAsset(const char* assetName, char** ppOutFileData, uint* pOutFileSize);
+
+		void GetFilePattern(char* pOutPattern, uint maxPatternLen);
+
+		const char* GetFolder() const;
+		const char* GetExt() const;
+
+		uint GetBinVersion() const;
+		uint GetAssetUID() const;
+
+	private:
+		static void ReloadCommon(const char* filename, void* pUserData);
+
+		char m_fullPath[FILE_MAX_PATH];
+		char m_ext[32];
+		uint m_extLen;
+		AssetReloadFunc m_reloadFunc;
+		char m_folder[64];
+		uint m_folderLen;
+		uint m_binVersion;
+		uint m_assetUID;
 	};
 
-	AssetLocData m_locData[(int)AssetLoc::Count];
+	inline bool AssetDef::HasReloadHandler() const
+	{
+		return m_reloadFunc != nullptr;
+	}
 
-	char m_folder[64];
-	uint m_folderLen;
-};
+	inline const char* AssetDef::GetFolder() const
+	{
+		return m_folder;
+	}
 
-inline bool AssetDef::HasReloadHandler(AssetLoc loc) const
-{
-	return m_locData[(int)loc].reloadFunc != nullptr;
-}
+	inline const char* AssetDef::GetExt() const
+	{
+		return m_ext;
+	}
 
-inline const char* AssetDef::GetFolder() const
-{
-	return m_folder;
-}
+	inline uint AssetDef::GetBinVersion() const
+	{
+		return m_binVersion;
+	}
 
-inline const char* AssetDef::GetExt(AssetLoc loc) const
-{
-	return m_locData[(int)loc].ext;
+	inline uint AssetDef::GetAssetUID() const
+	{
+		return m_assetUID;
+	}
 }

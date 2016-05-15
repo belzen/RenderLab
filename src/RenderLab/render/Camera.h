@@ -20,7 +20,7 @@ public:
 	Camera();
 
 	void SetAsPerspective(const Vec3& pos, const Vec3& dir, float fovY, float aspectRatio, float nearDist, float farDist);
-	void SetAsOrtho(const Vec3& pos, const Vec3& dir, float width, float height, float nearDist, float farDist);
+	void SetAsOrtho(const Vec3& pos, const Vec3& dir, float orthoHeight, float nearDist, float farDist);
 	void SetAsCubemapFace(const Vec3& pos, const CubemapFace eFace, float nearDist, float farDist);
 	void SetAsSphere(const Vec3& pos, float nearDist, float farDist);
 
@@ -62,9 +62,9 @@ private:
 	float m_fovY;
 	float m_nearDist;
 	float m_farDist;
-	float m_aspectRatio;
+	float m_aspectRatio; // Width / Height
 
-	Vec2 m_orthoSize;
+	float m_orthoHeight;
 	bool m_isOrtho;
 };
 

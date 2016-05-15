@@ -14,39 +14,36 @@ namespace
 
 	void loadMaterial(const char* materialName, RdrMaterial* pOutMaterial)
 	{
-		char fullFilename[FILE_MAX_PATH];
-		MaterialAsset::Definition.BuildFilename(AssetLoc::Src, materialName, fullFilename, ARRAY_SIZE(fullFilename));
-
-		Json::Value root;
-		if (!FileLoader::LoadJson(fullFilename, root))
+		char* pFileData;
+		uint fileSize;
+		if (!AssetLib::g_materialDef.LoadAsset(materialName, &pFileData, &fileSize))
 		{
-			Error("Failed to load material: %s", fullFilename);
+			assert(false);
 			return;
 		}
 
-		Json::Value jShader = root.get("pixelShader", Json::Value::null);
-		pOutMaterial->hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile(jShader.asCString());
+		AssetLib::Material* pMaterial = AssetLib::Material::FromMem(pFileData);
 
-		Json::Value jNeedsLight = root.get("needsLighting", Json::Value::null);
-		pOutMaterial->bNeedsLighting = jNeedsLight.asBool();
+		pOutMaterial->hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader);
+		pOutMaterial->bNeedsLighting = pMaterial->bNeedsLighting;
+		pOutMaterial->texCount = pMaterial->texCount;
 
-		Json::Value jTextures = root.get("textures", Json::Value::null);
-		int numTextures = pOutMaterial->texCount = jTextures.size();
+		int numTextures = pOutMaterial->texCount;
 		for (int n = 0; n < numTextures; ++n)
 		{
-			Json::Value jTex = jTextures.get(n, Json::Value::null);
-
-			pOutMaterial->hTextures[n] = RdrResourceSystem::CreateTextureFromFile(jTex.asCString(), nullptr);
+			pOutMaterial->hTextures[n] = RdrResourceSystem::CreateTextureFromFile(pMaterial->textures[n], nullptr);
 			pOutMaterial->samplers[n] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
 		}
+
+		delete pFileData;
 	}
 }
 
 const RdrMaterial* RdrMaterial::LoadFromFile(const char* materialName)
 {
-	if (!MaterialAsset::Definition.HasReloadHandler(AssetLoc::Src))
+	if (!AssetLib::g_materialDef.HasReloadHandler())
 	{
-		MaterialAsset::Definition.SetReloadHandler(AssetLoc::Src, RdrMaterial::ReloadMaterial);
+		AssetLib::g_materialDef.SetReloadHandler(RdrMaterial::ReloadMaterial);
 	}
 
 	// Check if the material's already been loaded

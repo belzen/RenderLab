@@ -97,13 +97,7 @@ void RdrPostProcess::Init()
 
 	m_hToneMapPs = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl");
 	m_hToneMapOutputConstants = RdrResourceSystem::CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapOutputParams), RdrResourceUsage::Default);
-
-	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ToneMapInputParams));
-	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
-	pTonemapSettings->white = 4.f;
-	pTonemapSettings->middleGrey = 0.7f;
-	pTonemapSettings->bloomThreshold = 5.5f; // todo: move to settings
-	m_hToneMapInputConstants = RdrResourceSystem::CreateConstantBuffer(pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+	m_hToneMapInputConstants = RdrResourceSystem::CreateConstantBuffer(nullptr, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 }
 
 void RdrPostProcess::HandleResize(uint width, uint height)
@@ -151,9 +145,17 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 	}
 }
 
-void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer)
+void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const AssetLib::PostProcessEffects& rEffects)
 {
 	pRdrContext->BeginEvent(L"Post-Process");
+
+	// Update tonemap constants.
+	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ToneMapInputParams));
+	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
+	pTonemapSettings->white = rEffects.eyeAdaptation.white;
+	pTonemapSettings->middleGrey = rEffects.eyeAdaptation.middleGrey;
+	pTonemapSettings->bloomThreshold = rEffects.bloom.threshold;
+	RdrResourceSystem::UpdateConstantBuffer(m_hToneMapInputConstants, pTonemapSettings);
 
 	pRdrContext->SetBlendState(false);
 

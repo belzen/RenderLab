@@ -2,6 +2,9 @@
 #include "UtilsLib/Util.h"
 #include "UtilsLib/FileWatcher.h"
 #include "UtilsLib/Paths.h"
+#include "UtilsLib/FileLoader.h"
+
+using namespace AssetLib;
 
 namespace 
 {
@@ -18,53 +21,38 @@ namespace
 	}
 }
 
-void AssetDef::ReloadSrcCommon(const char* filename, void* pUserData)
+void AssetDef::ReloadCommon(const char* filename, void* pUserData)
 {
 	AssetDef* pDef = (AssetDef*)pUserData;
 
 	char assetName[AssetDef::kMaxNameLen];
 	pDef->ExtractAssetName(filename, assetName, ARRAY_SIZE(assetName));
 
-	pDef->m_locData[(int)AssetLoc::Src].reloadFunc(assetName);
+	pDef->m_reloadFunc(assetName);
 }
 
-void AssetDef::ReloadBinCommon(const char* filename, void* pUserData)
-{
-	AssetDef* pDef = (AssetDef*)pUserData;
-
-	char assetName[AssetDef::kMaxNameLen];
-	pDef->ExtractAssetName(filename, assetName, ARRAY_SIZE(assetName));
-
-	pDef->m_locData[(int)AssetLoc::Bin].reloadFunc(assetName);
-}
-
-AssetDef::AssetDef(const char* folder, const char* srcExt)
+AssetDef::AssetDef(const char* folder, const char* binExt, uint assetUID, uint binVersion)
+	: m_binVersion(binVersion)
+	, m_assetUID(assetUID)
 {
 	strcpy_s(m_folder, folder);
 	m_folderLen = (uint)strlen(m_folder);
 
-	AssetLocData& rSrcLoc = m_locData[(int)AssetLoc::Src];
-	sprintf_s(rSrcLoc.fullPath, "%s/%s", Paths::GetSrcDataDir(), m_folder);
-	strcpy_s(rSrcLoc.ext, srcExt);
-	rSrcLoc.extLen = (uint)strlen(rSrcLoc.ext);
-
-	AssetLocData& rBinLoc = m_locData[(int)AssetLoc::Bin];
-	sprintf_s(rBinLoc.fullPath, "%s/%s", Paths::GetBinDataDir(), m_folder);
-	sprintf_s(rBinLoc.ext, "%sbin", srcExt);
-	rBinLoc.extLen = (uint)strlen(rBinLoc.ext);
+	sprintf_s(m_fullPath, "%s/%s", Paths::GetBinDataDir(), m_folder);
+	strcpy_s(m_ext, binExt);
+	m_extLen = (uint)strlen(m_ext);
 }
 
-void AssetDef::SetReloadHandler(AssetLoc loc, AssetReloadFunc reloadFunc)
+void AssetDef::SetReloadHandler(AssetReloadFunc reloadFunc)
 {
-	AssetLocData& rLocData = m_locData[(int)loc];
-	if (!rLocData.reloadFunc)
+	if (!m_reloadFunc)
 	{
 		char filePattern[FILE_MAX_PATH];
-		GetFilePattern(loc, filePattern, ARRAY_SIZE(filePattern));
-		FileWatcher::AddListener(filePattern, (loc == AssetLoc::Src) ? ReloadSrcCommon : ReloadBinCommon, this);
+		GetFilePattern(filePattern, ARRAY_SIZE(filePattern));
+		FileWatcher::AddListener(filePattern, ReloadCommon, this);
 	}
 
-	rLocData.reloadFunc = reloadFunc;
+	m_reloadFunc = reloadFunc;
 }
 
 void AssetDef::ExtractAssetName(const char* relativeFilePath, char* outAssetName, uint maxNameLen) const
@@ -74,14 +62,20 @@ void AssetDef::ExtractAssetName(const char* relativeFilePath, char* outAssetName
 	strRemoveExtension(outAssetName);
 }
 
-void AssetDef::BuildFilename(AssetLoc loc, const char* assetName, char* outFilename, uint maxFilenameLen) const
+void AssetDef::BuildFilename(const char* assetName, char* outFilename, uint maxFilenameLen) const
 {
-	const AssetLocData& rLocData = m_locData[(int)loc];
-	sprintf_s(outFilename, maxFilenameLen, "%s/%s.%s", rLocData.fullPath, assetName, rLocData.ext);
+	sprintf_s(outFilename, maxFilenameLen, "%s/%s.%s", m_fullPath, assetName, m_ext);
 }
 
-void AssetDef::GetFilePattern(AssetLoc loc, char* pOutPattern, uint maxPatternLen)
+bool AssetDef::LoadAsset(const char* assetName, char** ppOutFileData, uint* pOutFileSize)
 {
-	const AssetLocData& rLocData = m_locData[(int)loc];
-	sprintf_s(pOutPattern, maxPatternLen, "%s/*.%s", m_folder, rLocData.ext);
+	char filePath[FILE_MAX_PATH];
+	BuildFilename(assetName, filePath, ARRAY_SIZE(filePath));
+
+	return FileLoader::Load(filePath, ppOutFileData, pOutFileSize);
+}
+
+void AssetDef::GetFilePattern(char* pOutPattern, uint maxPatternLen)
+{
+	sprintf_s(pOutPattern, maxPatternLen, "%s/*.%s", m_folder, m_ext);
 }

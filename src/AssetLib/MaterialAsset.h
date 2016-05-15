@@ -1,17 +1,17 @@
 #pragma once
 #include "AssetDef.h"
 
-namespace MaterialAsset
+namespace AssetLib
 {
-	static const uint kBinVersion = 1;
-	static const uint kAssetUID = 0x1f432ed9;
+	extern AssetDef g_materialDef;
 
-	extern AssetDef Definition;
-
-	struct BinHeader
+	struct Material
 	{
-		uint unused;
-	};
+		static Material* FromMem(char* pMem);
 
-	extern AssetDef Definition;
+		char pixelShader[AssetLib::AssetDef::kMaxNameLen];
+		char textures[16][AssetLib::AssetDef::kMaxNameLen];
+		uint texCount;
+		bool bNeedsLighting;
+	};
 }

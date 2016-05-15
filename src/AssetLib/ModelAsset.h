@@ -5,16 +5,13 @@
 #include "MathLib/Vec2.h"
 #include "UtilsLib/Color.h"
 
-namespace ModelAsset
+namespace AssetLib
 {
-	static const uint kBinVersion = 1;
-	static const uint kAssetUID = 0x6b64afc;
+	extern AssetDef g_modelDef;
 
-	extern AssetDef Definition;
-
-	struct BinData
+	struct Model
 	{
-		static BinData* FromMem(char* pMem);
+		static Model* FromMem(char* pMem);
 
 		struct SubObject
 		{

@@ -23,7 +23,7 @@ namespace
 		switch (light.type)
 		{
 		case LightType::Directional:
-			cam.SetAsOrtho(light.position, light.direction, 30, 30, -30.f, 30.f);
+			cam.SetAsOrtho(light.position, light.direction, 100, -300.f, 300.f);
 			break;
 		case LightType::Spot:
 		{
@@ -109,7 +109,7 @@ void LightList::AddLight(Light& light)
 	++m_lightCount;
 }
 
-void LightList::PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, const Scene& scene)
+void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
 {
 	if (!m_hShadowMapTexArray)
 	{

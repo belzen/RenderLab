@@ -4,15 +4,12 @@
 #include <string>
 #include "../Types.h"
 #include "AssetLib/BinFile.h"
+#include "AssetLib/AssetDef.h"
 
 class IAssetBinner
 {
 public:
-	virtual int GetVersion() const = 0;
-
-	virtual int GetAssetUID() const = 0;
-
-	virtual std::string GetBinExtension() const = 0;
+	virtual AssetLib::AssetDef& GetAssetDef() const = 0;
 
 	virtual std::vector<std::string> GetFileTypes() const = 0;
 

@@ -37,6 +37,12 @@ void CameraInputContext::Update(float dt)
 			pitchYawRoll.x = kMaxPitch;
 
 		m_pCamera->SetPitchYawRoll(pitchYawRoll);
+
+		if (Input::IsMouseDown(0))
+		{
+			// Left + Right Mouse button down translate forward
+			forward = 1.f;
+		}
 	}
 
 	// Translation

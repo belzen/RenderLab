@@ -27,7 +27,7 @@ public:
 
 	void BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 	void BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
-	void BeginPrimaryAction(const Camera& rCamera, const LightList* pLights);
+	void BeginPrimaryAction(const Camera& rCamera, const LightList* pLights, const AssetLib::PostProcessEffects& rPostProcEffects);
 	void EndAction();
 
 	void AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);

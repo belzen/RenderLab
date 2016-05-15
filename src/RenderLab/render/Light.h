@@ -2,6 +2,7 @@
 
 #include "Math.h"
 #include "RdrContext.h"
+#include "AssetLib/SceneAsset.h"
 
 struct ID3D11Buffer;
 struct ID3D11UnorderedAccessView;
@@ -13,14 +14,6 @@ class Scene;
 #define MAX_SHADOW_MAPS 10
 #define MAX_SHADOW_CUBEMAPS 2
 #define USE_SINGLEPASS_SHADOW_CUBEMAP 1
-
-enum class LightType
-{
-	Directional,
-	Point,
-	Spot,
-	Environment,
-};
 
 // WARNING - Must match struct in light_inc.hlsli
 struct Light
@@ -48,7 +41,7 @@ public:
 
 	void AddLight(Light& light);
 
-	void PrepareDrawForScene(Renderer& rRenderer, const Camera& rCamera, const Scene& scene);
+	void PrepareDrawForScene(Renderer& rRenderer, const Scene& scene);
 
 	RdrResourceHandle GetShadowMapDataRes() const;
 	RdrResourceHandle GetShadowMapTexArray() const;

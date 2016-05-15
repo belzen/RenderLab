@@ -18,101 +18,113 @@ namespace
 		uint pos = (uint)filename.find_last_of('.');
 		return filename.substr(pos + 1);
 	}
+
+
+	struct SourceTexture
+	{
+		char imagePath[FILE_MAX_PATH];
+		DXGI_FORMAT format;
+		bool bIsSrgb;
+		bool bIsCubemap;
+	};
+
+	bool loadSourceTexture(const std::string srcFilename, SourceTexture& rOutTexture)
+	{
+		Json::Value jRoot;
+		if (!FileLoader::LoadJson(srcFilename.c_str(), jRoot))
+		{
+			assert(false);
+			return false;
+		}
+
+		Json::Value jTexFilename = jRoot.get("filename", Json::Value::null);
+		sprintf_s(rOutTexture.imagePath, "%s/textures/%s", Paths::GetSrcDataDir(), jTexFilename.asCString());
+
+		rOutTexture.bIsSrgb = jRoot.get("srgb", false).asBool();
+		rOutTexture.bIsCubemap = jRoot.get("isCubemap", false).asBool();
+
+		Json::Value jFormat = jRoot.get("format", "DXT5");
+		DXGI_FORMAT format = DXGI_FORMAT_BC3_TYPELESS;
+		if (_stricmp(jFormat.asCString(), "DXT1") == 0)
+		{
+			rOutTexture.format = DXGI_FORMAT_BC1_UNORM;
+		}
+		else if (_stricmp(jFormat.asCString(), "DXT5") == 0)
+		{
+			rOutTexture.format = DXGI_FORMAT_BC3_UNORM;
+		}
+		else if (_stricmp(jFormat.asCString(), "DXT5nm") == 0)
+		{
+			rOutTexture.format = DXGI_FORMAT_BC3_UNORM;
+		}
+
+		return true;
+	}
 }
 
-int TextureBinner::GetVersion() const
+AssetLib::AssetDef& TextureBinner::GetAssetDef() const
 {
-	return TextureAsset::kBinVersion;
-}
-
-int TextureBinner::GetAssetUID() const
-{
-	return TextureAsset::kAssetUID;
-}
-
-std::string TextureBinner::GetBinExtension() const
-{
-	return TextureAsset::Definition.GetExt(AssetLoc::Bin);
+	return AssetLib::g_textureDef;
 }
 
 std::vector<std::string> TextureBinner::GetFileTypes() const
 {
 	std::vector<std::string> types;
-	types.push_back(TextureAsset::Definition.GetExt(AssetLoc::Src));
+	types.push_back("tex");
 	return types;
 }
 
 void TextureBinner::CalcSourceHash(const std::string& srcFilename, SHA1Hash& rOutHash)
 {
-	char* pSrcFileData;
-	uint srcFileSize;
-	FileLoader::Load(srcFilename.c_str(), &pSrcFileData, &srcFileSize);
+	SourceTexture tex;
+	if (!loadSourceTexture(srcFilename, tex))
+		return;
 
-	SHA1Hash::Calculate(pSrcFileData, srcFileSize, rOutHash);
+	char* pImageFileData;
+	uint imageFileSize;
+	if (!FileLoader::Load(tex.imagePath, &pImageFileData, &imageFileSize))
+		return;
 
-	delete pSrcFileData;
+	SHA1HashState* pHash = SHA1Hash::Begin((char*)&tex, sizeof(SourceTexture));
+	SHA1Hash::Update(pHash, pImageFileData, imageFileSize);
+	SHA1Hash::Finish(pHash, rOutHash);
+
+	delete pImageFileData;
 }
 
 bool TextureBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstFile) const
 {
-	// Read in settings from ".texture" file, including the name of the actual image file.
-	Json::Value jRoot;
-	if (!FileLoader::LoadJson(srcFilename.c_str(), jRoot))
-	{
-		assert(false);
-		return 0;
-	}
-
-	char filepath[FILE_MAX_PATH];
-	Json::Value jTexFilename = jRoot.get("filename", Json::Value::null);
-	sprintf_s(filepath, "%s/textures/%s", Paths::GetSrcDataDir(), jTexFilename.asCString());
-
-	bool bIsSrgb = jRoot.get("srgb", false).asBool();
-	bool bIsCubemap = jRoot.get("isCubemap", false).asBool();
-
-	Json::Value jFormat = jRoot.get("format", "DXT5");
-	DXGI_FORMAT format = DXGI_FORMAT_BC3_TYPELESS;
-	if (_stricmp(jFormat.asCString(), "DXT1") == 0)
-	{
-		format = DXGI_FORMAT_BC1_UNORM;
-	}
-	else if (_stricmp(jFormat.asCString(), "DXT5") == 0)
-	{
-		format = DXGI_FORMAT_BC3_UNORM;
-	}
-	else if (_stricmp(jFormat.asCString(), "DXT5nm") == 0)
-	{
-		format = DXGI_FORMAT_BC3_UNORM;
-	}
+	SourceTexture tex;
+	if (!loadSourceTexture(srcFilename, tex))
+		return false;
 
 	// Load the texture image file.
-	char* pFileData;
-	uint fileSize;
-	if (!FileLoader::Load(filepath, &pFileData, &fileSize))
+	char* pImageFileData;
+	uint imageFileSize;
+	if (!FileLoader::Load(tex.imagePath, &pImageFileData, &imageFileSize))
 	{
 		assert(false);
 		return false;
 	}
 
-	TextureAsset::BinData binData;
-	binData.bIsCubemap = bIsCubemap;
-	binData.bIsSrgb = bIsSrgb;
+	AssetLib::Texture binData;
+	binData.bIsCubemap = tex.bIsCubemap;
+	binData.bIsSrgb = tex.bIsSrgb;
 	binData.ddsData.offset = 0;
 
-	dstFile.write((char*)&binData, sizeof(TextureAsset::BinData));
-
+	dstFile.write((char*)&binData, sizeof(AssetLib::Texture));
 
 	DirectX::ScratchImage srcImage;
 	DirectX::ScratchImage compressedImage;
 
 	bool res = true;
-	std::string ext = getFileExtension(filepath);
+	std::string ext = getFileExtension(tex.imagePath);
 	if (_stricmp(ext.c_str(), "tga") == 0)
 	{
 		HRESULT hr;
 
 		DirectX::TexMetadata srcMetadata;
-		hr = DirectX::LoadFromTGAMemory(pFileData, fileSize, &srcMetadata, srcImage);
+		hr = DirectX::LoadFromTGAMemory(pImageFileData, imageFileSize, &srcMetadata, srcImage);
 		assert(hr == S_OK);
 
 		DirectX::ScratchImage mipmaps;
@@ -121,9 +133,9 @@ bool TextureBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstF
 
 		DirectX::ScratchImage compressedImage;
 		DWORD compressFlags = DirectX::TEX_COMPRESS_DEFAULT;
-		if (bIsSrgb)
+		if (tex.bIsSrgb)
 			compressFlags |= DirectX::TEX_COMPRESS_SRGB;
-		hr = DirectX::Compress(mipmaps.GetImages(), mipmaps.GetImageCount(), mipmaps.GetMetadata(), format, compressFlags, 1.f, compressedImage);
+		hr = DirectX::Compress(mipmaps.GetImages(), mipmaps.GetImageCount(), mipmaps.GetMetadata(), tex.format, compressFlags, 1.f, compressedImage);
 		assert(hr == S_OK);
 
 		DirectX::Blob blob;
@@ -135,7 +147,7 @@ bool TextureBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstF
 	}
 	else if (_stricmp(ext.c_str(), "dds") == 0)
 	{
-		dstFile.write(pFileData, fileSize);
+		dstFile.write(pImageFileData, imageFileSize);
 	}
 	else
 	{
@@ -143,6 +155,6 @@ bool TextureBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstF
 		res = false;
 	}
 
-	delete pFileData;
+	delete pImageFileData;
 	return true;
 }

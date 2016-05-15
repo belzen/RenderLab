@@ -28,7 +28,7 @@ public:
 private:
 	Model* m_pModel;
 	const RdrMaterial* m_pMaterial;
-	char m_skyName[AssetDef::kMaxNameLen];
+	char m_skyName[AssetLib::AssetDef::kMaxNameLen];
 
 	FileWatcher::ListenerID m_reloadListenerId;
 	bool m_reloadPending;

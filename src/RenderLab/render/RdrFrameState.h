@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AssetLib/PostProcessEffectsAsset.h"
 #include "RdrDeviceTypes.h"
 #include "RdrResource.h"
 #include "RdrShaders.h"
@@ -50,6 +51,8 @@ struct RdrAction
 	Camera camera;
 
 	Rect primaryViewport;
+
+	AssetLib::PostProcessEffects postProcEffects;
 
 	RdrLightParams lightParams;
 	RdrConstantBufferHandle hPerActionVs;

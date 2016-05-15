@@ -65,6 +65,7 @@ namespace
 
 void Font::Init()
 {
+	// todo: implement font asset & binning
 	char filename[FILE_MAX_PATH];
 	sprintf_s(filename, "%s/textures/fonts/verdana.dat", Paths::GetSrcDataDir());
 	loadFontData(filename);

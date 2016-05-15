@@ -9,7 +9,7 @@ Camera::Camera()
 	, m_fovY(60.f / 180.f * Maths::kPi)
 	, m_nearDist(0.01f)
 	, m_farDist(1000.f)
-	, m_orthoSize(0,0)
+	, m_orthoHeight(0.f)
 	, m_isOrtho(false)
 {
 	SetAspectRatio(1.f);
@@ -27,14 +27,13 @@ void Camera::SetAsPerspective(const Vec3& pos, const Vec3& dir, float fovY, floa
 	SetAspectRatio(aspectRatio);
 }
 
-void Camera::SetAsOrtho(const Vec3& pos, const Vec3& dir, float width, float height, float nearDist, float farDist)
+void Camera::SetAsOrtho(const Vec3& pos, const Vec3& dir, float orthoHeight, float nearDist, float farDist)
 {
 	m_isOrtho = true;
 	m_position = pos;
 	m_direction = dir;
 	m_pitchYawRoll = Vec3::kZero;
-	m_orthoSize.x = width;
-	m_orthoSize.y = height;
+	m_orthoHeight = orthoHeight;
 	m_nearDist = nearDist;
 	m_farDist = farDist;
 	UpdateProjection();
@@ -63,7 +62,7 @@ void Camera::UpdateProjection()
 {
 	if (m_isOrtho)
 	{
-		m_projMatrix = Matrix44OrthographicLH(m_orthoSize.x, m_orthoSize.y, m_nearDist, m_farDist);
+		m_projMatrix = Matrix44OrthographicLH(m_orthoHeight * m_aspectRatio, m_orthoHeight, m_nearDist, m_farDist);
 	}
 	else
 	{
@@ -92,11 +91,21 @@ void Camera::GetMatrices(Matrix44& view, Matrix44& proj) const
 void Camera::UpdateFrustum(void)
 {
 	// Half distances
-	float hNear = tanf(m_fovY / 2.f) * m_nearDist;
-	float wNear = hNear * m_aspectRatio;
-
-	float hFar = tanf(m_fovY / 2.f) * m_farDist;
-	float wFar = hFar * m_aspectRatio;
+	float hNear, wNear;
+	float hFar, wFar;
+	if (m_isOrtho)
+	{
+		hFar = hNear = (m_orthoHeight * 0.5f);
+		wFar = wNear = (m_orthoHeight * 0.5f) * m_aspectRatio;
+	}
+	else
+	{
+		float heightOverDist = tanf(m_fovY / 2.f);
+		hNear = heightOverDist * m_nearDist;
+		wNear = hNear * m_aspectRatio;
+		hFar = heightOverDist * m_farDist;
+		wFar = hFar * m_aspectRatio;
+	}
 
 	Vec3 pos = m_position;
 	Vec3 dir = m_direction;

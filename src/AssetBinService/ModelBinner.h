@@ -5,11 +5,7 @@
 class ModelBinner : public IAssetBinner
 {
 public:
-	int GetVersion() const;
-
-	int GetAssetUID() const;
-
-	std::string GetBinExtension() const;
+	AssetLib::AssetDef& GetAssetDef() const;
 
 	std::vector<std::string> GetFileTypes() const;
 

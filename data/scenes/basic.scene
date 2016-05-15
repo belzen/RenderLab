@@ -4,6 +4,7 @@
 		"rotation" : [ 15.0, 0.0, 0.0 ]
 	},
 	"sky" : "cloudy",
+	"postProcessingEffects" : "default",
 	"lights" : [
 		{
 			"type" : "directional",

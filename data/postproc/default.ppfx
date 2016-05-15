@@ -1,0 +1,13 @@
+{
+	"eyeAdaptation" : 
+	{
+		"white" : 12.5,
+		"middleGrey" : 0.4,
+		"minExposure" : -16.0,
+		"maxExposure" : 16.0
+	},
+	"bloom" : 
+	{
+		"threshold" : 5.5
+	}
+}

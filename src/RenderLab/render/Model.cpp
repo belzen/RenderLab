@@ -34,18 +34,15 @@ Model* Model::LoadFromFile(const char* modelName)
 	if (iter != s_modelCache.end())
 		return iter->second;
 
-	char fullFilename[FILE_MAX_PATH];
-	ModelAsset::Definition.BuildFilename(AssetLoc::Bin, modelName, fullFilename, ARRAY_SIZE(fullFilename));
-
 	char* pFileData;
 	uint fileSize;
-	if (!FileLoader::Load(fullFilename, &pFileData, &fileSize))
+	if (!AssetLib::g_modelDef.LoadAsset(modelName, &pFileData, &fileSize))
 	{
-		Error("Failed to load model: %s", fullFilename);
+		Error("Failed to load model: %s", modelName);
 		return nullptr;
 	}
 
-	ModelAsset::BinData* pBinData = ModelAsset::BinData::FromMem(pFileData);
+	AssetLib::Model* pBinData = AssetLib::Model::FromMem(pFileData);
 
 	Model* pModel = s_models.allocSafe();
 	pModel->m_pBinData = pBinData;
@@ -58,7 +55,7 @@ Model* Model::LoadFromFile(const char* modelName)
 	uint indicesAccum = 0;
 	for (uint i = 0; i < pModel->m_subObjectCount; ++i)
 	{
-		const ModelAsset::BinData::SubObject& rBinSubobject = pBinData->subobjects.ptr[i];
+		const AssetLib::Model::SubObject& rBinSubobject = pBinData->subobjects.ptr[i];
 		Vertex* pVerts = (Vertex*)RdrScratchMem::Alloc(sizeof(Vertex) * rBinSubobject.vertCount);
 		uint16* pIndices = (uint16*)RdrScratchMem::Alloc(sizeof(uint16) * rBinSubobject.indexCount);
 

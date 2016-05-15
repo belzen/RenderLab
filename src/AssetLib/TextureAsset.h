@@ -2,16 +2,13 @@
 #include "AssetDef.h"
 #include "BinFile.h"
 
-namespace TextureAsset
+namespace AssetLib
 {
-	static const uint kBinVersion = 1;
-	static const uint kAssetUID = 0xee1d1f87;
+	extern AssetDef g_textureDef;
 
-	extern AssetDef Definition;
-
-	struct BinData
+	struct Texture
 	{
-		static BinData* FromMem(char* pMem);
+		static Texture* FromMem(char* pMem);
 
 		bool bIsCubemap;
 		bool bIsSrgb;

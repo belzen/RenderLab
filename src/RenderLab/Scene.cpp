@@ -9,58 +9,16 @@
 
 namespace
 {
-
 	void handleSceneFileChanged(const char* filename, void* pUserData)
 	{
-		char sceneName[AssetDef::kMaxNameLen];
-		SceneAsset::Definition.ExtractAssetName(filename, sceneName, ARRAY_SIZE(sceneName));
+		char sceneName[AssetLib::AssetDef::kMaxNameLen];
+		AssetLib::g_sceneDef.ExtractAssetName(filename, sceneName, ARRAY_SIZE(sceneName));
 
 		Scene* pScene = (Scene*)pUserData;
 		if (_stricmp(pScene->GetName(), sceneName) == 0)
 		{
 			pScene->Reload();
 		}
-	}
-
-
-	static inline Vec3 readVec3(Json::Value& val)
-	{
-		Vec3 vec;
-		vec.x = val.get((uint)0, Json::Value(0.f)).asFloat();
-		vec.y = val.get((uint)1, Json::Value(0.f)).asFloat();
-		vec.z = val.get((uint)2, Json::Value(0.f)).asFloat();
-		return vec;
-	}
-
-	static inline Vec3 readScale(Json::Value& val)
-	{
-		Vec3 vec;
-		vec.x = val.get((uint)0, Json::Value(1.f)).asFloat();
-		vec.y = val.get((uint)1, Json::Value(1.f)).asFloat();
-		vec.z = val.get((uint)2, Json::Value(1.f)).asFloat();
-		return vec;
-	}
-
-	static inline Quaternion readRotation(Json::Value& val)
-	{
-		Vec3 pitchYawRoll;
-		pitchYawRoll.x = val.get((uint)0, Json::Value(0.f)).asFloat();
-		pitchYawRoll.y = val.get((uint)1, Json::Value(0.f)).asFloat();
-		pitchYawRoll.z = val.get((uint)2, Json::Value(0.f)).asFloat();
-
-		return QuaternionPitchYawRoll(
-			Maths::DegToRad(pitchYawRoll.x),
-			Maths::DegToRad(pitchYawRoll.y),
-			Maths::DegToRad(pitchYawRoll.z));
-	}
-
-	static inline Vec3 readPitchYawRoll(Json::Value& val)
-	{
-		Vec3 pitchYawRoll;
-		pitchYawRoll.x = Maths::DegToRad(val.get((uint)0, Json::Value(0.f)).asFloat());
-		pitchYawRoll.y = Maths::DegToRad(val.get((uint)1, Json::Value(0.f)).asFloat());
-		pitchYawRoll.z = Maths::DegToRad(val.get((uint)2, Json::Value(0.f)).asFloat());
-		return pitchYawRoll;
 	}
 }
 
@@ -98,96 +56,62 @@ void Scene::Load(const char* sceneName)
 	assert(m_sceneName[0] == 0);
 	strcpy_s(m_sceneName, sceneName);
 
-	char fullFilename[FILE_MAX_PATH];
-	SceneAsset::Definition.BuildFilename(AssetLoc::Src, sceneName, fullFilename, ARRAY_SIZE(fullFilename));
-
-	// Listen for changes of the scene file.
-	char filePattern[AssetDef::kMaxNameLen];
-	SceneAsset::Definition.GetFilePattern(AssetLoc::Src, filePattern, ARRAY_SIZE(filePattern));
-	m_reloadListenerId = FileWatcher::AddListener(filePattern, handleSceneFileChanged, this);
-
-	Json::Value root;
-	if (!FileLoader::LoadJson(fullFilename, root))
+	char* pFileData;
+	uint fileSize;
+	if (!AssetLib::g_sceneDef.LoadAsset(sceneName, &pFileData, &fileSize))
 	{
-		Error("Failed to load scene: %s", fullFilename);
+		assert(false);
 		return;
 	}
+
+	AssetLib::Scene* pSceneData = AssetLib::Scene::FromMem(pFileData);
+
+	// Listen for changes of the scene file.
+	char filePattern[AssetLib::AssetDef::kMaxNameLen];
+	AssetLib::g_sceneDef.GetFilePattern(filePattern, ARRAY_SIZE(filePattern));
+	m_reloadListenerId = FileWatcher::AddListener(filePattern, handleSceneFileChanged, this);
 
 	// Camera - Skip moving the camera if this is a reload
 	if (!m_reloadPending)
 	{
-		Json::Value jCamera = root.get("camera", Json::Value::null);
-
-		Json::Value jPos = jCamera.get("position", Json::Value::null);
-		m_mainCamera.SetPosition(readVec3(jPos));
-
-		Json::Value jRot = jCamera.get("rotation", Json::Value::null);
-		m_mainCamera.SetPitchYawRoll(readPitchYawRoll(jRot));
+		m_mainCamera.SetPosition(pSceneData->camPosition);
+		m_mainCamera.SetPitchYawRoll(pSceneData->camPitchYawRoll);
 	}
 
 	// Sky
+	m_sky.Load(pSceneData->sky);
+
+	// Post-processing effects
 	{
-		Json::Value jSky = root.get("sky", Json::Value::null);
-		m_sky.Load(jSky.asCString());
+		char* pPostProcFileData;
+		uint postProcFileSize;
+		if (!AssetLib::g_postProcessEffectsDef.LoadAsset(pSceneData->postProcessingEffects, &pPostProcFileData, &postProcFileSize))
+		{
+			assert(false);
+			return;
+		}
+
+		m_postProcEffects = *AssetLib::PostProcessEffects::FromMem(pPostProcFileData);
+		delete pPostProcFileData;
 	}
 
 	// Lights
 	{
-		Json::Value jLights = root.get("lights", Json::Value::null);
-		int numLights = jLights.size();
+		uint numLights = pSceneData->lightCount;
 
-		for (int i = 0; i < numLights; ++i)
+		for (uint i = 0; i < numLights; ++i)
 		{
-			Json::Value jLight = jLights.get(i, Json::Value::null);
+			const AssetLib::Light& rLightData = pSceneData->lights.ptr[i];
 
 			Light light;
-
-			Json::Value jType = jLight.get("type", Json::Value::null);
-			const char* typeStr = jType.asCString();
-			if (_stricmp(typeStr, "directional") == 0)
-			{
-				light.type = LightType::Directional;
-
-				light.direction = readVec3(jLight.get("direction", Json::Value::null));
-				light.direction = Vec3Normalize(light.direction);
-			}
-			else if (_stricmp(typeStr, "spot") == 0)
-			{
-				light.type = LightType::Spot;
-
-				light.direction = readVec3(jLight.get("direction", Json::Value::null));
-				light.direction = Vec3Normalize(light.direction);
-
-				float innerConeAngle = jLight.get("innerConeAngle", 0.f).asFloat();
-				light.innerConeAngleCos = cosf((innerConeAngle / 180.f) * Maths::kPi);
-
-				float outerConeAngle = jLight.get("outerConeAngle", 0.f).asFloat();
-				light.outerConeAngleCos = cosf((outerConeAngle / 180.f) * Maths::kPi);
-			}
-			else if (_stricmp(typeStr, "point") == 0)
-			{
-				light.type = LightType::Point;
-			}
-			else
-			{
-				assert(false);
-			}
-
-			light.position = readVec3(jLight.get("position", Json::Value::null));
-
-			light.color = readVec3(jLight.get("color", Json::Value::null));
-			float intensity = jLight.get("intensity", 1.f).asFloat();
-			light.color.x *= intensity;
-			light.color.y *= intensity;
-			light.color.z *= intensity;
-
-			light.radius = jLight.get("radius", 0.f).asFloat();
-			if (light.type == LightType::Directional)
-			{
-				light.radius = FLT_MAX;
-			}
-
-			light.castsShadows = jLight.get("castsShadows", false).asBool();
+			light.type = rLightData.type;
+			light.color = rLightData.color;
+			light.position = rLightData.position;
+			light.direction = rLightData.direction;
+			light.radius = rLightData.radius;
+			light.innerConeAngleCos = rLightData.innerConeAngleCos;
+			light.outerConeAngleCos = rLightData.outerConeAngleCos;
+			light.castsShadows = rLightData.bCastsShadows;
 
 			m_lights.AddLight(light);
 		}
@@ -195,32 +119,26 @@ void Scene::Load(const char* sceneName)
 
 	// Objects
 	{
-		Json::Value jObjects = root.get("objects", Json::Value::null);
-		int numObjects = jObjects.size();
+		uint numObjects = pSceneData->objectCount;
 
-		for (int i = 0; i < numObjects; ++i)
+		for (uint i = 0; i < numObjects; ++i)
 		{
-			Json::Value jObj = jObjects.get(i, Json::Value::null);
-
-			Vec3 pos = readVec3(jObj.get("position", Json::Value::null));
-			Quaternion orientation = readRotation(jObj.get("rotation", Json::Value::null));
-			Vec3 scale = readScale(jObj.get("scale", Json::Value::null));
-			
-			Json::Value jModel = jObj.get("model", Json::Value::null);
-			Model* pModel = Model::LoadFromFile(jModel.asCString());
-
-			m_objects.push_back(WorldObject::Create(pModel, pos, orientation, scale));
+			const AssetLib::Object& rObjectData = pSceneData->objects.ptr[i];
+			Model* pModel = Model::LoadFromFile(rObjectData.model);
+			m_objects.push_back(WorldObject::Create(pModel, rObjectData.position, rObjectData.orientation, rObjectData.scale));
 		}
 	}
 
 	// TODO: quad/oct tree for scene
+
+	delete pFileData;
 }
 
 void Scene::Update(float dt)
 {
 	if (m_reloadPending)
 	{
-		char sceneName[AssetDef::kMaxNameLen];
+		char sceneName[AssetLib::AssetDef::kMaxNameLen];
 		strcpy_s(sceneName, m_sceneName);
 
 		Cleanup();
@@ -231,9 +149,9 @@ void Scene::Update(float dt)
 	m_sky.Update(dt);
 }
 
-void Scene::QueueShadowMaps(Renderer& rRenderer, const Camera& rCamera)
+void Scene::QueueShadowMaps(Renderer& rRenderer)
 {
-	m_lights.PrepareDrawForScene(rRenderer, rCamera, *this);
+	m_lights.PrepareDrawForScene(rRenderer, *this);
 }
 
 void Scene::QueueDraw(Renderer& rRenderer) const

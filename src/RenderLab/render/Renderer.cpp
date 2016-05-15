@@ -288,8 +288,10 @@ void Renderer::BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilViewHa
 
 	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Shadow Map";
-	m_pCurrentAction->camera = rCamera;
 	m_pCurrentAction->primaryViewport = viewport;
+
+	m_pCurrentAction->camera = rCamera;
+	m_pCurrentAction->camera.UpdateFrustum();
 
 	// Setup action passes
 	RdrPassData& rPass = m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
@@ -314,9 +316,11 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilView
 
 	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Shadow Cube Map";
-	m_pCurrentAction->camera.SetAsSphere(pLight->position, 0.1f, viewDist);
 	m_pCurrentAction->bIsCubemapCapture = true;
 	m_pCurrentAction->primaryViewport = viewport;
+
+	m_pCurrentAction->camera.SetAsSphere(pLight->position, 0.1f, viewDist);
+	m_pCurrentAction->camera.UpdateFrustum();
 
 	// Setup action passes
 	RdrPassData& rPass = m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
@@ -334,7 +338,7 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilView
 	CreateCubemapCaptureConstants(pLight->position, 0.1f, pLight->radius * 2.f);
 }
 
-void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLights)
+void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLights, const AssetLib::PostProcessEffects& rPostProcEffects)
 {
 	assert(m_pCurrentAction == nullptr);
 
@@ -350,7 +354,10 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLight
 
 	m_pCurrentAction->camera = rCamera;
 	m_pCurrentAction->camera.SetAspectRatio(m_viewWidth / (float)m_viewHeight);
+	m_pCurrentAction->camera.UpdateFrustum();
+
 	m_pCurrentAction->primaryViewport = viewport;
+	m_pCurrentAction->postProcEffects = rPostProcEffects;
 
 	// Z Prepass
 	RdrPassData* pPass = &m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
@@ -709,7 +716,7 @@ void Renderer::DrawFrame()
 			}
 
 			if (rAction.bEnablePostProcessing)
-				m_postProcess.DoPostProcessing(m_pContext, m_drawState, pColorBuffer);
+				m_postProcess.DoPostProcessing(m_pContext, m_drawState, pColorBuffer, rAction.postProcEffects);
 
 			DrawPass(rAction, RdrPass::UI);
 

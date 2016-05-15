@@ -12,6 +12,9 @@
 #include "ModelBinner.h"
 #include "TextureBinner.h"
 #include "SceneBinner.h"
+#include "SkyBinner.h"
+#include "MaterialBinner.h"
+#include "PostProcessEffectsBinner.h"
 
 typedef std::map<std::string, IAssetBinner*, StringInvariantCompare> AssetBinnerMap;
 AssetBinnerMap g_assetBinners;
@@ -46,14 +49,16 @@ void binAsset(const std::string& filename)
 	AssetBinnerMap::iterator binIter = g_assetBinners.find(ext);
 	if (binIter != g_assetBinners.end())
 	{
-		BinFileHeader header;
-		header.binUID = BinFileHeader::kUID;
-		header.assetUID = binIter->second->GetAssetUID();
-		header.version = binIter->second->GetVersion();
+		AssetLib::AssetDef& rAssetDef = binIter->second->GetAssetDef();
+
+		AssetLib::BinFileHeader header;
+		header.binUID = AssetLib::BinFileHeader::kUID;
+		header.assetUID = rAssetDef.GetAssetUID();
+		header.version = rAssetDef.GetBinVersion();
 		binIter->second->CalcSourceHash(filename, header.srcHash);
 
 		// Determine bin file and create directory tree if necessary.
-		std::string binFilename = Paths::GetBinDataDir() + ("/" + getAssetName(filename) + "." + binIter->second->GetBinExtension());
+		std::string binFilename = Paths::GetBinDataDir() + ("/" + getAssetName(filename) + "." + rAssetDef.GetExt());
 		createDirectoryTreeForFile(binFilename);
 
 		// Compare existing bin file's hash with src data.
@@ -61,8 +66,8 @@ void binAsset(const std::string& filename)
 			std::ifstream existingBinFile(binFilename, std::ios::binary);
 			if (existingBinFile.is_open())
 			{
-				BinFileHeader existingHeader;
-				existingBinFile.read((char*)&existingHeader, sizeof(BinFileHeader));
+				AssetLib::BinFileHeader existingHeader;
+				existingBinFile.read((char*)&existingHeader, sizeof(AssetLib::BinFileHeader));
 
 				if (header.version == existingHeader.version && memcmp(&existingHeader.srcHash, &header.srcHash, sizeof(SHA1Hash)) == 0)
 				{
@@ -133,6 +138,9 @@ int main(int argc, char** argv)
 	registerAssetBinner(new ModelBinner());
 	registerAssetBinner(new TextureBinner());
 	registerAssetBinner(new SceneBinner());
+	registerAssetBinner(new SkyBinner());
+	registerAssetBinner(new MaterialBinner());
+	registerAssetBinner(new PostProcessEffectsBinner());
 
 	FileWatcher::Init(Paths::GetSrcDataDir());
 	FileWatcher::AddListener(".*", fileChangedCallback, nullptr);

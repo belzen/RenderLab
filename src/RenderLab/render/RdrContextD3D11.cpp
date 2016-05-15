@@ -10,7 +10,7 @@
 
 namespace
 {
-	static bool s_useDebugDevice = 1;
+	static bool s_useDebugDevice = 0;
 
 	bool resourceFormatIsDepth(const RdrResourceFormat eFormat)
 	{

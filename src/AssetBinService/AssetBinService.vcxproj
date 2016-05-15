@@ -171,15 +171,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="MaterialBinner.cpp" />
     <ClCompile Include="ModelBinner.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="PostProcessEffectsBinner.cpp" />
     <ClCompile Include="SceneBinner.cpp" />
+    <ClCompile Include="SkyBinner.cpp" />
     <ClCompile Include="TextureBinner.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MaterialBinner.h" />
     <ClInclude Include="ModelBinner.h" />
     <ClInclude Include="IAssetBinner.h" />
+    <ClInclude Include="PostProcessEffectsBinner.h" />
     <ClInclude Include="SceneBinner.h" />
+    <ClInclude Include="SkyBinner.h" />
     <ClInclude Include="TextureBinner.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

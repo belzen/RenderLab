@@ -4,9 +4,9 @@
 #include "RdrGeoSystem.h"
 
 class Renderer;
-namespace ModelAsset
+namespace AssetLib
 {
-	struct BinData;
+	struct Model;
 }
 
 class Model;
@@ -37,14 +37,14 @@ private:
 	friend ModelFreeList;
 	Model() {}
 
-	ModelAsset::BinData* m_pBinData;
+	AssetLib::Model* m_pBinData;
 
 	SubObject m_subObjects[16];
 	uint m_subObjectCount;
 
 	float m_radius;
 
-	char m_modelName[AssetDef::kMaxNameLen];
+	char m_modelName[AssetLib::AssetDef::kMaxNameLen];
 };
 
 inline float Model::GetRadius() const 

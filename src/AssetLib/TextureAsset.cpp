@@ -1,21 +1,23 @@
 #include "TextureAsset.h"
 #include <assert.h>
 
-AssetDef TextureAsset::Definition("textures", "tex");
+using namespace AssetLib;
 
-TextureAsset::BinData* TextureAsset::BinData::FromMem(char* pMem)
+AssetLib::AssetDef AssetLib::g_textureDef("textures", "texbin", 0xee1d1f87, 1);
+
+Texture* Texture::FromMem(char* pMem)
 {
 	if (((uint*)pMem)[0] == BinFileHeader::kUID)
 	{
 		BinFileHeader* pHeader = (BinFileHeader*)pMem;
-		assert(pHeader->assetUID == TextureAsset::kAssetUID);
+		assert(pHeader->assetUID == g_textureDef.GetAssetUID());
 		pMem += sizeof(BinFileHeader);
 	}
 
-	TextureAsset::BinData* pBin = (TextureAsset::BinData*)pMem;
-	char* pDataMem = pMem + sizeof(TextureAsset::BinData);
+	Texture* pTexture = (Texture*)pMem;
+	char* pDataMem = pMem + sizeof(Texture);
 
-	pBin->ddsData.PatchPointer(pDataMem);
+	pTexture->ddsData.PatchPointer(pDataMem);
 
-	return pBin;
+	return pTexture;
 }

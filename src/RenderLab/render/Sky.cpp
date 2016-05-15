@@ -25,8 +25,8 @@ namespace
 
 	void handleSkyFileChanged(const char* filename, void* pUserData)
 	{
-		char skyName[AssetDef::kMaxNameLen];
-		SkyAsset::Definition.ExtractAssetName(filename, skyName, ARRAY_SIZE(skyName));
+		char skyName[AssetLib::AssetDef::kMaxNameLen];
+		AssetLib::g_skyDef.ExtractAssetName(filename, skyName, ARRAY_SIZE(skyName));
 
 		Sky* pSky = (Sky*)pUserData;
 		if (_stricmp(pSky->GetName(), skyName) == 0)
@@ -71,21 +71,17 @@ void Sky::Load(const char* skyName)
 	assert(m_skyName[0] == 0);
 	strcpy_s(m_skyName, skyName);
 
-	char fullFilename[FILE_MAX_PATH];
-	SkyAsset::Definition.BuildFilename(AssetLoc::Src, skyName, fullFilename, ARRAY_SIZE(fullFilename));
-
-	Json::Value jRoot;
-	if (!FileLoader::LoadJson(fullFilename, jRoot))
+	char* pFileData;
+	uint fileSize;
+	if (!AssetLib::g_skyDef.LoadAsset(skyName, &pFileData, &fileSize))
 	{
 		assert(false);
 		return;
 	}
 
-	Json::Value jModel = jRoot.get("model", Json::Value::null);
-	m_pModel = Model::LoadFromFile(jModel.asCString());
-
-	Json::Value jMaterialName = jRoot.get("material", Json::Value::null);
-	m_pMaterial = RdrMaterial::LoadFromFile(jMaterialName.asCString());
+	AssetLib::Sky* pSky = AssetLib::Sky::FromMem(pFileData);
+	m_pModel = Model::LoadFromFile(pSky->model);
+	m_pMaterial = RdrMaterial::LoadFromFile(pSky->material);
 
 	if (!s_hSkyInputLayout)
 	{
@@ -93,16 +89,18 @@ void Sky::Load(const char* skyName)
 	}
 
 	// Listen for changes of the sky file.
-	char filePattern[AssetDef::kMaxNameLen];
-	SkyAsset::Definition.GetFilePattern(AssetLoc::Src, filePattern, ARRAY_SIZE(filePattern));
+	char filePattern[AssetLib::AssetDef::kMaxNameLen];
+	AssetLib::g_skyDef.GetFilePattern(filePattern, ARRAY_SIZE(filePattern));
 	m_reloadListenerId = FileWatcher::AddListener(filePattern, handleSkyFileChanged, this);
+
+	delete pFileData;
 }
 
 void Sky::Update(float dt)
 {
 	if (m_reloadPending)
 	{
-		char skyName[AssetDef::kMaxNameLen];
+		char skyName[AssetLib::AssetDef::kMaxNameLen];
 		strcpy_s(skyName, m_skyName);
 
 		Cleanup();

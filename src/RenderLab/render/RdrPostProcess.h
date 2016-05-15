@@ -7,6 +7,10 @@
 class RdrContext;
 class RdrDrawState;
 struct RdrResource;
+namespace AssetLib
+{
+	struct PostProcessEffects;
+}
 
 struct RdrPostProcessDbgData
 {
@@ -22,7 +26,7 @@ public:
 	void Init();
 
 	void HandleResize(uint width, uint height);
-	void DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
+	void DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const AssetLib::PostProcessEffects& rEffects);
 
 	const RdrPostProcessDbgData& GetDebugData() const;
 

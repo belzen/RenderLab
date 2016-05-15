@@ -20,10 +20,26 @@ namespace
 
 	Renderer g_renderer;
 
-	HANDLE g_hFrameDoneEvent;
-	HANDLE g_hRenderFrameDoneEvent;
+	HANDLE g_hFrameDoneEvent = 0;
+	HANDLE g_hRenderFrameDoneEvent = 0;
 
-	bool g_quitting;
+	bool g_quitting = false;
+	int g_mouseCaptureCount = 0;
+
+	void captureMouse(HWND hWnd)
+	{
+		if (g_mouseCaptureCount == 0)
+			SetCapture(hWnd);
+
+		++g_mouseCaptureCount;
+	}
+
+	void releaseMouse()
+	{
+		--g_mouseCaptureCount;
+		if (g_mouseCaptureCount == 0)
+			ReleaseCapture();
+	}
 }
 
 LRESULT CALLBACK WinProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
@@ -40,24 +56,23 @@ LRESULT CALLBACK WinProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		return 0;
 	case WM_LBUTTONDOWN:
 		Input::SetMouseDown(0, true, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		SetCapture(hWnd);
+		captureMouse(hWnd);
 		return 0;
 	case WM_LBUTTONUP:
 		Input::SetMouseDown(0, false, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		ReleaseCapture();
+		releaseMouse();
 		return 0;
 	case WM_RBUTTONDOWN:
 		Input::SetMouseDown(1, true, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		SetCapture(hWnd);
+		captureMouse(hWnd);
 		return 0;
 	case WM_RBUTTONUP:
 		Input::SetMouseDown(1, false, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		ReleaseCapture();
+		releaseMouse();
 		return 0;
 	case WM_MOUSEMOVE:
 		Input::SetMousePos(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		return 0;
-
 	case WM_SIZE:
 		g_renderer.Resize( LOWORD(lParam), HIWORD(lParam) );
 		return 0;
@@ -153,12 +168,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 
 		// Primary render action
 		{
-			Camera& rCamera = g_scene.GetMainCamera();
-			rCamera.UpdateFrustum();
+			g_scene.QueueShadowMaps(g_renderer);
 
-			g_scene.QueueShadowMaps(g_renderer, rCamera);
-
-			g_renderer.BeginPrimaryAction(rCamera, g_scene.GetLightList());
+			g_renderer.BeginPrimaryAction(g_scene.GetMainCamera(), g_scene.GetLightList(), g_scene.GetPostProcEffects());
 
 			g_scene.QueueDraw(g_renderer);
 

@@ -16,7 +16,7 @@ namespace
 		std::vector<Vec3> bitangents;
 
 		std::vector<uint16> indices;
-		std::vector<ModelAsset::BinData::SubObject> subobjects;
+		std::vector<AssetLib::Model::SubObject> subobjects;
 	};
 
 	struct ObjVertex
@@ -182,7 +182,7 @@ namespace
 		uint totalVertCount = 0;
 		for (int i = 0; i < obj.subobjectStartIndices.size() - 1; ++i)
 		{
-			ModelAsset::BinData::SubObject subobj;
+			AssetLib::Model::SubObject subobj;
 
 			strcpy_s(subobj.materialName, obj.materials[i].c_str());
 			subobj.indexCount = obj.subobjectStartIndices[i + 1] - obj.subobjectStartIndices[i];
@@ -216,7 +216,7 @@ namespace
 
 		assert(totalVertCount == (uint)geo.positions.size());
 
-		ModelAsset::BinData modelBin;
+		AssetLib::Model modelBin;
 		modelBin.totalVertCount = totalVertCount;
 		modelBin.totalIndexCount = (uint)geo.indices.size();
 		modelBin.boundsMin = modelBoundsMin;
@@ -231,7 +231,7 @@ namespace
 		modelBin.bitangents.offset = modelBin.tangents.offset + modelBin.tangents.CalcSize(totalVertCount);
 		modelBin.indices.offset    = modelBin.bitangents.offset + modelBin.bitangents.CalcSize(totalVertCount);
 
-		dstFile.write((char*)&modelBin, sizeof(ModelAsset::BinData));
+		dstFile.write((char*)&modelBin, sizeof(AssetLib::Model));
 		dstFile.write((char*)geo.subobjects.data(), sizeof(geo.subobjects[0]) * geo.subobjects.size());
 		dstFile.write((char*)geo.positions.data(), sizeof(geo.positions[0]) * geo.positions.size());
 		dstFile.write((char*)geo.texcoords.data(), sizeof(geo.texcoords[0]) * geo.texcoords.size());
@@ -245,19 +245,9 @@ namespace
 	}
 }
 
-int ModelBinner::GetVersion() const
+AssetLib::AssetDef& ModelBinner::GetAssetDef() const
 {
-	return ModelAsset::kBinVersion;
-}
-
-int ModelBinner::GetAssetUID() const
-{
-	return ModelAsset::kAssetUID;
-}
-
-std::string ModelBinner::GetBinExtension() const
-{
-	return ModelAsset::Definition.GetExt(AssetLoc::Bin);
+	return AssetLib::g_modelDef;
 }
 
 std::vector<std::string> ModelBinner::GetFileTypes() const

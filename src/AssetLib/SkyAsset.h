@@ -1,15 +1,15 @@
 #pragma once
 #include "AssetDef.h"
 
-namespace SkyAsset
+namespace AssetLib
 {
-	static const uint kBinVersion = 1;
-	static const uint kAssetUID = 0xb2239f27;
+	extern AssetDef g_skyDef;
 
-	extern AssetDef Definition;
-
-	struct BinHeader
+	struct Sky
 	{
-		uint unused;
+		static Sky* FromMem(char* pMem);
+
+		char model[AssetLib::AssetDef::kMaxNameLen];
+		char material[AssetLib::AssetDef::kMaxNameLen];
 	};
 }
