@@ -16,7 +16,7 @@
 *.iobj
 *.ilk
 *_debug.exe
+/bin/win32/
 /bin/data/
-/bin/x64/shaders/
-/bin/Win32/shaders/
+/bin/shaders/
 /src/ObjSceneConverter/output
