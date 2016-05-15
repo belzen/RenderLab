@@ -4,7 +4,7 @@
 
 using namespace AssetLib;
 
-AssetLib::AssetDef AssetLib::g_skyDef("skies", "skybin", 0xb2239f27, 1);
+AssetLib::AssetDef AssetLib::g_skyDef("skies", "skybin", 1);
 
 Sky* Sky::FromMem(char* pMem)
 {

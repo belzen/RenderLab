@@ -3,7 +3,7 @@
 
 using namespace AssetLib;
 
-AssetLib::AssetDef AssetLib::g_postProcessEffectsDef("postproc", "ppfxbin", 0xac919b7e, 1);
+AssetLib::AssetDef AssetLib::g_postProcessEffectsDef("postproc", "ppfxbin", 1);
 
 PostProcessEffects* PostProcessEffects::FromMem(char* pMem)
 {

@@ -11,7 +11,7 @@ namespace AssetLib
 	public:
 		static const uint kMaxNameLen = 128;
 
-		AssetDef(const char* folder, const char* binExt, uint assetUID, uint binVersion);
+		AssetDef(const char* folder, const char* binExt, uint binVersion);
 
 		void SetReloadHandler(AssetReloadFunc reloadFunc);
 		bool HasReloadHandler() const;

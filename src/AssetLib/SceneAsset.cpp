@@ -3,7 +3,7 @@
 
 using namespace AssetLib;
 
-AssetLib::AssetDef AssetLib::g_sceneDef("scenes", "scenebin", 0x10c728ca, 1);
+AssetLib::AssetDef AssetLib::g_sceneDef("scenes", "scenebin", 1);
 
 Scene* Scene::FromMem(char* pMem)
 {

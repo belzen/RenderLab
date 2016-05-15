@@ -8,7 +8,7 @@ using namespace AssetLib;
 
 namespace 
 {
-	void strRemoveExtension(char* str)
+	void cstrRemoveExtension(char* str)
 	{
 		for (int i = (int)strlen(str) - 1; i > 0; --i)
 		{
@@ -18,6 +18,17 @@ namespace
 				return;
 			}
 		}
+	}
+
+	uint cstrHash(const char* str)
+	{
+		uint hash = 0;
+		uint c;
+
+		while (c = *str++)
+			hash = c + (hash << 6) + (hash << 16) - hash;
+
+		return hash;
 	}
 }
 
@@ -31,9 +42,8 @@ void AssetDef::ReloadCommon(const char* filename, void* pUserData)
 	pDef->m_reloadFunc(assetName);
 }
 
-AssetDef::AssetDef(const char* folder, const char* binExt, uint assetUID, uint binVersion)
+AssetDef::AssetDef(const char* folder, const char* binExt, uint binVersion)
 	: m_binVersion(binVersion)
-	, m_assetUID(assetUID)
 {
 	strcpy_s(m_folder, folder);
 	m_folderLen = (uint)strlen(m_folder);
@@ -41,6 +51,8 @@ AssetDef::AssetDef(const char* folder, const char* binExt, uint assetUID, uint b
 	sprintf_s(m_fullPath, "%s/%s", Paths::GetBinDataDir(), m_folder);
 	strcpy_s(m_ext, binExt);
 	m_extLen = (uint)strlen(m_ext);
+
+	m_assetUID = cstrHash(binExt);
 }
 
 void AssetDef::SetReloadHandler(AssetReloadFunc reloadFunc)
@@ -59,7 +71,7 @@ void AssetDef::ExtractAssetName(const char* relativeFilePath, char* outAssetName
 {
 	uint pathLen = (uint)strlen(relativeFilePath);
 	strncpy_s(outAssetName, maxNameLen, relativeFilePath + m_folderLen + 1, pathLen - m_folderLen - 1);
-	strRemoveExtension(outAssetName);
+	cstrRemoveExtension(outAssetName);
 }
 
 void AssetDef::BuildFilename(const char* assetName, char* outFilename, uint maxFilenameLen) const

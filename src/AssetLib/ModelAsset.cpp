@@ -2,7 +2,7 @@
 
 using namespace AssetLib;
 
-AssetLib::AssetDef AssetLib::g_modelDef("geo", "modelbin", 0x6b64afc, 1);
+AssetLib::AssetDef AssetLib::g_modelDef("geo", "modelbin", 1);
 
 Model* Model::FromMem(char* pMem)
 {

@@ -3,7 +3,7 @@
 
 using namespace AssetLib;
 
-AssetLib::AssetDef AssetLib::g_textureDef("textures", "texbin", 0xee1d1f87, 1);
+AssetLib::AssetDef AssetLib::g_textureDef("textures", "texbin", 1);
 
 Texture* Texture::FromMem(char* pMem)
 {
