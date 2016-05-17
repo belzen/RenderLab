@@ -1,14 +1,14 @@
 #pragma once
 
-class ThreadLock
+class ThreadMutex
 {
 public:
-	ThreadLock()
+	ThreadMutex()
 	{
 		InitializeCriticalSection(&m_lock);
 	}
 
-	~ThreadLock()
+	~ThreadMutex()
 	{
 		DeleteCriticalSection(&m_lock);
 	}
@@ -30,7 +30,7 @@ private:
 class AutoScopedLock
 {
 public:
-	AutoScopedLock(ThreadLock& rLock)
+	AutoScopedLock(ThreadMutex& rLock)
 		: m_rLock(rLock)
 	{
 		m_rLock.Lock();
@@ -42,5 +42,5 @@ public:
 	}
 
 private:
-	ThreadLock& m_rLock;
+	ThreadMutex& m_rLock;
 };

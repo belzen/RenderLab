@@ -99,8 +99,9 @@ Model* Model::LoadFromFile(const char* modelName)
 
 void Model::Release()
 {
-	memset(m_subObjects, 0, sizeof(m_subObjects));
-	s_models.release(this);
+	// todo: refcount and free as necessary
+	//memset(m_subObjects, 0, sizeof(m_subObjects));
+	//s_models.release(this);
 }
 
 void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat)

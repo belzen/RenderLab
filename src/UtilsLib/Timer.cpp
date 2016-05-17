@@ -59,3 +59,8 @@ float Timer::GetElapsedSecondsAndReset(Timer::Handle hTimer)
 
 	return fElapsed;
 }
+
+void Timer::Reset(Timer::Handle hTimer)
+{
+	GetElapsedSecondsAndReset(hTimer);
+}

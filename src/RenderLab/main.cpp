@@ -124,7 +124,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 	g_renderer.Init(hWnd, kClientWidth, kClientHeight);
 	Debug::Init();
 
-	FileWatcher::Init(Paths::GetSrcDataDir());
+	FileWatcher::Init(Paths::GetBinDataDir());
 
 	g_scene.Load("sponza");
 

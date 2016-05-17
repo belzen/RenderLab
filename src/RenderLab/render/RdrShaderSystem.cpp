@@ -45,7 +45,7 @@ namespace
 	static_assert(ARRAY_SIZE(kComputeShaderDefs) == (int)RdrComputeShader::Count, "Missing compute shader defs!");
 
 
-	typedef std::map<std::string, RdrShaderHandle> RdrShaderHandleMap; // todo: better map key for this and other caches
+	typedef std::map<std::string, RdrShaderHandle> RdrShaderHandleMap; // todo: replace key with string hash
 
 	struct ShdrCmdCreatePixelShader
 	{
@@ -94,7 +94,7 @@ namespace
 
 		RdrInputLayoutList inputLayouts;
 
-		ThreadLock reloadLock;
+		ThreadMutex reloadMutex;
 
 		ShdrFrameState states[2];
 		uint       queueState;
@@ -285,7 +285,7 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 		cmd.eStage = RdrShaderStage::Pixel;
 		cmd.hPixelShader = iter->second;
 
-		AutoScopedLock lock(s_shaderSystem.reloadLock);
+		AutoScopedLock lock(s_shaderSystem.reloadMutex);
 		getQueueState().shaderReloads.push_back(cmd);
 	}
 	else
@@ -408,7 +408,7 @@ void RdrShaderSystem::ProcessCommands(RdrContext* pRdrContext)
 	}
 
 	{
-		AutoScopedLock lock(s_shaderSystem.reloadLock);
+		AutoScopedLock lock(s_shaderSystem.reloadMutex);
 
 		numCmds = (uint)state.shaderReloads.size();
 		for (uint i = 0; i < numCmds; ++i)

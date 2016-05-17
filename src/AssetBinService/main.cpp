@@ -62,6 +62,7 @@ void binAsset(const std::string& filename)
 		createDirectoryTreeForFile(binFilename);
 
 		// Compare existing bin file's hash with src data.
+		std::string reason;
 		{
 			std::ifstream existingBinFile(binFilename, std::ios::binary);
 			if (existingBinFile.is_open())
@@ -69,13 +70,29 @@ void binAsset(const std::string& filename)
 				AssetLib::BinFileHeader existingHeader;
 				existingBinFile.read((char*)&existingHeader, sizeof(AssetLib::BinFileHeader));
 
-				if (header.version == existingHeader.version && memcmp(&existingHeader.srcHash, &header.srcHash, sizeof(SHA1Hash)) == 0)
+				if (header.version != existingHeader.version)
+				{
+					reason = "Version mismatch:  Got: " + existingHeader.version;
+					reason += " Expected: " + header.version;
+				}
+				else if (memcmp(&existingHeader.srcHash, &header.srcHash, sizeof(SHA1Hash)) != 0)
+				{
+					reason = "Source SHA1 mismatch";
+				}
+				else
 				{
 					// Version and source hashes match, no need to bin.
 					return;
 				}
 			}
+			else
+			{
+				reason = "Bin data does not exist";
+			}
 		}
+
+		printf("\tBinning %s...\n", filename.c_str());
+		printf("\t  Reason: %s\n", reason.c_str());
 
 		// Open bin file for writing and write the new header.
 		std::ofstream binFile(binFilename, std::ios::binary);
@@ -84,12 +101,17 @@ void binAsset(const std::string& filename)
 
 		// Write asset specific bin data.
 		binIter->second->BinAsset(filename, binFile);
+
+		printf("\t  done\n");
 	}
 }
 
 void fileChangedCallback(const char* filename, void* pUserData)
 {
-	// todo: handle file changes
+	std::string filePath = Paths::GetSrcDataDir();
+	filePath += "\\";
+	filePath += filename;
+	binAsset(filePath);
 }
 
 void binAssetsInDirectory(const std::string& directory)
@@ -143,7 +165,7 @@ int main(int argc, char** argv)
 	registerAssetBinner(new PostProcessEffectsBinner());
 
 	FileWatcher::Init(Paths::GetSrcDataDir());
-	FileWatcher::AddListener(".*", fileChangedCallback, nullptr);
+	FileWatcher::AddListener("*.*", fileChangedCallback, nullptr);
 
 	// Validate all assets
 	printf("Pre-processing all source files...\n");
@@ -151,5 +173,5 @@ int main(int argc, char** argv)
 
 	// Run until terminated manually.
 	printf("Listening for file changes...\n");
-	while (true);
+	Sleep(INFINITE);
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "UtilsLib/ThreadLock.h"
+#include "UtilsLib/ThreadMutex.h"
 
 template <class T_object, uint16 T_nMaxEntries>
 class FreeList
@@ -33,7 +33,7 @@ public:
 
 	inline T_object* allocSafe()
 	{
-		AutoScopedLock lock(m_lock);
+		AutoScopedLock lock(m_mutex);
 		return alloc();
 	}
 
@@ -45,7 +45,7 @@ public:
 
 	inline void releaseIdSafe(Handle id)
 	{
-		AutoScopedLock lock(m_lock);
+		AutoScopedLock lock(m_mutex);
 		releaseId(id);
 	}
 
@@ -56,7 +56,7 @@ public:
 
 	inline void releaseSafe(T_object* pObj)
 	{
-		AutoScopedLock lock(m_lock);
+		AutoScopedLock lock(m_mutex);
 		releaseId(getId(pObj));
 	}
 
@@ -79,19 +79,19 @@ public:
 
 	inline void AcquireLock()
 	{
-		m_lock.Lock();
+		m_mutex.Lock();
 	}
 
 	inline void ReleaseLock()
 	{
-		m_lock.Unlock();
+		m_mutex.Unlock();
 	}
 
 private:
 	T_object m_objects[T_nMaxEntries];
 	Handle m_freeIdStack[T_nMaxEntries];
 	bool m_inUse[T_nMaxEntries];
-	ThreadLock m_lock;
+	ThreadMutex m_mutex;
 	Handle m_nextId;
 	Handle m_numFree;
 };

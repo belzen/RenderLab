@@ -9,4 +9,5 @@ namespace Timer
 
 	float GetElapsedSeconds(Handle hTimer);
 	float GetElapsedSecondsAndReset(Handle hTimer);
+	void Reset(Handle hTimer);
 }

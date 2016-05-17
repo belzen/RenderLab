@@ -76,7 +76,7 @@ std::vector<std::string> TextureBinner::GetFileTypes() const
 
 void TextureBinner::CalcSourceHash(const std::string& srcFilename, SHA1Hash& rOutHash)
 {
-	SourceTexture tex;
+	SourceTexture tex = { 0 };
 	if (!loadSourceTexture(srcFilename, tex))
 		return;
 
@@ -94,7 +94,7 @@ void TextureBinner::CalcSourceHash(const std::string& srcFilename, SHA1Hash& rOu
 
 bool TextureBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstFile) const
 {
-	SourceTexture tex;
+	SourceTexture tex = { 0 };
 	if (!loadSourceTexture(srcFilename, tex))
 		return false;
 

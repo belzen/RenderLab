@@ -12,6 +12,8 @@
 #include "RdrScratchMem.h"
 #include "RdrDrawOp.h"
 
+#define ENABLE_DRAWOP_VALIDATION 1
+
 namespace
 {
 	static bool s_wireframe = 0;
@@ -58,6 +60,15 @@ namespace
 		L"UI",				// RdrPass::UI
 	};
 	static_assert(sizeof(s_passNames) / sizeof(s_passNames[0]) == (int)RdrPass::Count, "Missing RdrPass names!");
+
+
+	void validateDrawOp(RdrDrawOp* pDrawOp)
+	{
+		if (pDrawOp->eType == RdrDrawOpType::Graphics)
+		{
+			assert(pDrawOp->graphics.hGeo);
+		}
+	}
 }
 //////////////////////////////////////////////////////
 
@@ -442,6 +453,9 @@ void Renderer::EndAction()
 
 void Renderer::AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType eBucket)
 {
+#if ENABLE_DRAWOP_VALIDATION
+	validateDrawOp(pDrawOp);
+#endif
 	m_pCurrentAction->buckets[(int)eBucket].push_back(pDrawOp);
 }
 
@@ -638,7 +652,7 @@ void Renderer::PostFrameSync()
 
 void Renderer::ProcessReadbackRequests()
 {
-	AutoScopedLock lock(m_readbackLock);
+	AutoScopedLock lock(m_readbackMutex);
 
 	uint numRequests = (uint)m_pendingReadbackRequests.size();
 	for (uint i = 0; i < numRequests; ++i)
@@ -862,7 +876,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueTextureReadbackRequest(RdrResour
 	pReq->dataSize = rdrGetTexturePitch(1, pSrcResource->texInfo.format);
 	pReq->pData = new char[pReq->dataSize]; // todo: custom heap
 
-	AutoScopedLock lock(m_readbackLock);
+	AutoScopedLock lock(m_readbackMutex);
 	RdrResourceReadbackRequestHandle handle = m_readbackRequests.getId(pReq);
 	m_pendingReadbackRequests.push_back(handle);
 	return handle;
@@ -879,7 +893,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueStructuredBufferReadbackRequest(
 	pReq->dataSize = numBytesToRead;
 	pReq->pData = new char[numBytesToRead]; // todo: custom heap
 
-	AutoScopedLock lock(m_readbackLock);
+	AutoScopedLock lock(m_readbackMutex);
 	RdrResourceReadbackRequestHandle handle = m_readbackRequests.getId(pReq);
 	m_pendingReadbackRequests.push_back(handle);
 	return handle;
@@ -890,7 +904,7 @@ void Renderer::ReleaseResourceReadbackRequest(RdrResourceReadbackRequestHandle h
 	RdrResourceReadbackRequest* pReq = m_readbackRequests.get(hRequest);
 	if (!pReq->bComplete)
 	{
-		AutoScopedLock lock(m_readbackLock);
+		AutoScopedLock lock(m_readbackMutex);
 
 		uint numReqs = (uint)m_pendingReadbackRequests.size();
 		for (uint i = 0; i < numReqs; ++i)
