@@ -74,7 +74,7 @@ std::vector<std::string> TextureBinner::GetFileTypes() const
 	return types;
 }
 
-void TextureBinner::CalcSourceHash(const std::string& srcFilename, SHA1Hash& rOutHash)
+void TextureBinner::CalcSourceHash(const std::string& srcFilename, Hashing::SHA1& rOutHash)
 {
 	SourceTexture tex = { 0 };
 	if (!loadSourceTexture(srcFilename, tex))
@@ -85,9 +85,9 @@ void TextureBinner::CalcSourceHash(const std::string& srcFilename, SHA1Hash& rOu
 	if (!FileLoader::Load(tex.imagePath, &pImageFileData, &imageFileSize))
 		return;
 
-	SHA1HashState* pHash = SHA1Hash::Begin((char*)&tex, sizeof(SourceTexture));
-	SHA1Hash::Update(pHash, pImageFileData, imageFileSize);
-	SHA1Hash::Finish(pHash, rOutHash);
+	Hashing::SHA1HashState* pHash = Hashing::SHA1::Begin((char*)&tex, sizeof(SourceTexture));
+	Hashing::SHA1::Update(pHash, pImageFileData, imageFileSize);
+	Hashing::SHA1::Finish(pHash, rOutHash);
 
 	delete pImageFileData;
 }

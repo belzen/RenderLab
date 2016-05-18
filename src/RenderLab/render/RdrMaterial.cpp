@@ -3,10 +3,11 @@
 #include "RdrShaderSystem.h"
 #include "RdrResourceSystem.h"
 #include "AssetLib/MaterialAsset.h"
+#include "UtilsLib/Hash.h"
 
 namespace
 {
-	typedef std::map<std::string, RdrMaterial*, StringInvariantCompare> RdrMaterialMap;
+	typedef std::map<Hashing::StringHash, RdrMaterial*> RdrMaterialMap;
 	typedef FreeList<RdrMaterial, 1024> RdrMaterialList;
 
 	RdrMaterialList s_materials;
@@ -47,7 +48,8 @@ const RdrMaterial* RdrMaterial::LoadFromFile(const char* materialName)
 	}
 
 	// Check if the material's already been loaded
-	RdrMaterialMap::iterator iter = s_materialCache.find(materialName);
+	Hashing::StringHash nameHash = Hashing::HashString(materialName);
+	RdrMaterialMap::iterator iter = s_materialCache.find(nameHash);
 	if (iter != s_materialCache.end())
 		return iter->second;
 
@@ -56,14 +58,15 @@ const RdrMaterial* RdrMaterial::LoadFromFile(const char* materialName)
 
 	loadMaterial(materialName, pMaterial);
 
-	s_materialCache.insert(std::make_pair(materialName, pMaterial));
+	s_materialCache.insert(std::make_pair(nameHash, pMaterial));
 
 	return pMaterial;
 }
 
 void RdrMaterial::ReloadMaterial(const char* materialName)
 {
-	RdrMaterialMap::iterator iter = s_materialCache.find(materialName);
+	Hashing::StringHash nameHash = Hashing::HashString(materialName);
+	RdrMaterialMap::iterator iter = s_materialCache.find(nameHash);
 	if (iter != s_materialCache.end())
 	{
 		loadMaterial(materialName, iter->second);

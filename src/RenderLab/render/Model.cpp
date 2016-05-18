@@ -6,6 +6,7 @@
 #include "Renderer.h"
 #include "Camera.h"
 #include "AssetLib/ModelAsset.h"
+#include "UtilsLib/Hash.h"
 
 namespace
 {
@@ -23,14 +24,15 @@ namespace
 	RdrInputLayoutHandle s_hModelInputLayout = 0;
 	ModelFreeList s_models;
 
-	typedef std::map<std::string, Model*> ModelMap;
+	typedef std::map<Hashing::StringHash, Model*> ModelMap;
 	ModelMap s_modelCache;
 }
 
 Model* Model::LoadFromFile(const char* modelName)
 {
 	// Find model in cache
-	ModelMap::iterator iter = s_modelCache.find(modelName);
+	Hashing::StringHash nameHash = Hashing::HashString(modelName);
+	ModelMap::iterator iter = s_modelCache.find(nameHash);
 	if (iter != s_modelCache.end())
 		return iter->second;
 
@@ -92,7 +94,7 @@ Model* Model::LoadFromFile(const char* modelName)
 	float minLen = Vec3Length(pBinData->boundsMin);
 	pModel->m_radius = minLen;
 
-	s_modelCache.insert(std::make_pair(modelName, pModel));
+	s_modelCache.insert(std::make_pair(nameHash, pModel));
 
 	return pModel;
 }

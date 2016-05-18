@@ -6,6 +6,8 @@
 
 #pragma comment(lib, "bcrypt.lib")
 
+using namespace Hashing;
+
 namespace
 {
 	BCRYPT_ALG_HANDLE s_algorithmSHA1 = 0;
@@ -20,7 +22,7 @@ namespace
 
 }
 
-SHA1HashState* SHA1Hash::Begin()
+SHA1HashState* SHA1::Begin()
 {
 	if (!s_algorithmSHA1)
 		initSHA1();
@@ -32,7 +34,7 @@ SHA1HashState* SHA1Hash::Begin()
 	return hHash;
 }
 
-SHA1HashState* SHA1Hash::Begin(char* pData, uint dataSize)
+SHA1HashState* SHA1::Begin(char* pData, uint dataSize)
 {
 	if (!s_algorithmSHA1)
 		initSHA1();
@@ -45,24 +47,35 @@ SHA1HashState* SHA1Hash::Begin(char* pData, uint dataSize)
 	return hHash;
 }
 
-void SHA1Hash::Update(SHA1HashState* pState, char* pData, uint dataSize)
+void SHA1::Update(SHA1HashState* pState, char* pData, uint dataSize)
 {
 	if (!NT_SUCCESS(BCryptHashData(pState, (unsigned char*)pData, dataSize, 0)))
 		Error("Failed to hash data for SHA1");
 }
 
-void SHA1Hash::Finish(SHA1HashState* pState, SHA1Hash& rOutHash)
+void SHA1::Finish(SHA1HashState* pState, SHA1& rOutHash)
 {
 	if (!NT_SUCCESS(BCryptFinishHash(pState, rOutHash.data, sizeof(rOutHash.data), 0)))
 		Error("Failed to finalize SHA1 hash");
 	BCryptDestroyHash(pState);
 }
 
-void SHA1Hash::Calculate(char* pData, uint dataSize, SHA1Hash& rOutHash)
+void SHA1::Calculate(char* pData, uint dataSize, SHA1& rOutHash)
 {
 	if (!s_algorithmSHA1)
 		initSHA1();
 
 	SHA1HashState* pState = Begin(pData, dataSize);
 	Finish(pState, rOutHash);
+}
+
+StringHash Hashing::HashString(const char* str)
+{
+	uint hash = 0;
+	uint c;
+
+	while (c = *str++)
+		hash = c + (hash << 6) + (hash << 16) - hash;
+
+	return hash;
 }

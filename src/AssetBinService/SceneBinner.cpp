@@ -60,13 +60,13 @@ std::vector<std::string> SceneBinner::GetFileTypes() const
 	return types;
 }
 
-void SceneBinner::CalcSourceHash(const std::string& srcFilename, SHA1Hash& rOutHash)
+void SceneBinner::CalcSourceHash(const std::string& srcFilename, Hashing::SHA1& rOutHash)
 {
 	char* pSrcFileData;
 	uint srcFileSize;
 	FileLoader::Load(srcFilename.c_str(), &pSrcFileData, &srcFileSize);
 
-	SHA1Hash::Calculate(pSrcFileData, srcFileSize, rOutHash);
+	Hashing::SHA1::Calculate(pSrcFileData, srcFileSize, rOutHash);
 
 	delete pSrcFileData;
 }

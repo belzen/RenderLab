@@ -3,6 +3,7 @@
 #include "UtilsLib/FileWatcher.h"
 #include "UtilsLib/Paths.h"
 #include "UtilsLib/FileLoader.h"
+#include "UtilsLib/Hash.h"
 
 using namespace AssetLib;
 
@@ -18,17 +19,6 @@ namespace
 				return;
 			}
 		}
-	}
-
-	uint cstrHash(const char* str)
-	{
-		uint hash = 0;
-		uint c;
-
-		while (c = *str++)
-			hash = c + (hash << 6) + (hash << 16) - hash;
-
-		return hash;
 	}
 }
 
@@ -52,7 +42,7 @@ AssetDef::AssetDef(const char* folder, const char* binExt, uint binVersion)
 	strcpy_s(m_ext, binExt);
 	m_extLen = (uint)strlen(m_ext);
 
-	m_assetUID = cstrHash(binExt);
+	m_assetUID = Hashing::HashString(binExt);
 }
 
 void AssetDef::SetReloadHandler(AssetReloadFunc reloadFunc)

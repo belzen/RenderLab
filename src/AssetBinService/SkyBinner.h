@@ -9,7 +9,7 @@ public:
 
 	std::vector<std::string> GetFileTypes() const;
 
-	void CalcSourceHash(const std::string& srcFilename, SHA1Hash& rOutHash);
+	void CalcSourceHash(const std::string& srcFilename, Hashing::SHA1& rOutHash);
 
 	bool BinAsset(const std::string& srcFilename, std::ofstream& dstFile) const;
 };

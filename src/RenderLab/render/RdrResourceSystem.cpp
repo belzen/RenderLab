@@ -3,6 +3,7 @@
 #include "RdrContext.h"
 #include "RdrScratchMem.h"
 #include "AssetLib/TextureAsset.h"
+#include "UtilsLib/Hash.h"
 
 #include <DirectXTex/include/DirectXTex.h>
 #include <DirectXTex/include/Dds.h>
@@ -11,7 +12,7 @@
 
 namespace
 {
-	typedef std::map<std::string, RdrResourceHandle> RdrResourceHandleMap;
+	typedef std::map<Hashing::StringHash, RdrResourceHandle> RdrResourceHandleMap;
 
 	static const uint kMaxConstantBuffersPerPool = 128;
 	static const uint kNumConstantBufferPools = 10;
@@ -195,7 +196,8 @@ void RdrResourceSystem::Init()
 RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, RdrTextureInfo* pOutInfo)
 {
 	// Find texture in cache
-	RdrResourceHandleMap::iterator iter = s_resourceSystem.textureCache.find(texName);
+	Hashing::StringHash nameHash = Hashing::HashString(texName);
+	RdrResourceHandleMap::iterator iter = s_resourceSystem.textureCache.find(nameHash);
 	if (iter != s_resourceSystem.textureCache.end())
 		return iter->second;
 
@@ -234,7 +236,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 
 	getQueueState().textureCreates.push_back(cmd);
 
-	s_resourceSystem.textureCache.insert(std::make_pair(texName, cmd.hResource));
+	s_resourceSystem.textureCache.insert(std::make_pair(nameHash, cmd.hResource));
 
 	if (pOutInfo)
 	{

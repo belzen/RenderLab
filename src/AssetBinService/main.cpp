@@ -75,7 +75,7 @@ void binAsset(const std::string& filename)
 					reason = "Version mismatch:  Got: " + existingHeader.version;
 					reason += " Expected: " + header.version;
 				}
-				else if (memcmp(&existingHeader.srcHash, &header.srcHash, sizeof(SHA1Hash)) != 0)
+				else if (memcmp(&existingHeader.srcHash, &header.srcHash, sizeof(Hashing::SHA1)) != 0)
 				{
 					reason = "Source SHA1 mismatch";
 				}

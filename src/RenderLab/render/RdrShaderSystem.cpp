@@ -1,8 +1,8 @@
 #include "Precompiled.h"
 #include "RdrShaderSystem.h"
 #include "RdrContext.h"
+#include "UtilsLib/Hash.h"
 #include <d3dcompiler.h>
-#include <string>
 
 namespace
 {
@@ -45,7 +45,7 @@ namespace
 	static_assert(ARRAY_SIZE(kComputeShaderDefs) == (int)RdrComputeShader::Count, "Missing compute shader defs!");
 
 
-	typedef std::map<std::string, RdrShaderHandle> RdrShaderHandleMap; // todo: replace key with string hash
+	typedef std::map<Hashing::StringHash, RdrShaderHandle> RdrShaderHandleMap;
 
 	struct ShdrCmdCreatePixelShader
 	{
@@ -279,7 +279,8 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 {
 	ShdrCmdReloadShader cmd;
 
-	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.find(filename);
+	Hashing::StringHash nameHash = Hashing::HashString(filename);
+	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.find(nameHash);
 	if (iter != s_shaderSystem.pixelShaderCache.end())
 	{
 		cmd.eStage = RdrShaderStage::Pixel;
@@ -297,7 +298,8 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename)
 {
 	// Find shader in cache
-	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.find(filename);
+	Hashing::StringHash nameHash = Hashing::HashString(filename);
+	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.find(nameHash);
 	if (iter != s_shaderSystem.pixelShaderCache.end())
 		return iter->second;
 
@@ -316,7 +318,7 @@ RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename)
 		getQueueState().pixelShaderCreates.push_back(cmd);
 		pBlob->Release();
 
-		s_shaderSystem.pixelShaderCache.insert(std::make_pair(filename, cmd.hShader));
+		s_shaderSystem.pixelShaderCache.insert(std::make_pair(nameHash, cmd.hShader));
 		return cmd.hShader;
 	}
 	else

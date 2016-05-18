@@ -13,7 +13,7 @@ namespace AssetLib
 		uint binUID;
 		uint assetUID;
 		int version;
-		SHA1Hash srcHash;
+		Hashing::SHA1 srcHash;
 	};
 
 	template<typename DataT>
