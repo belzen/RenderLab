@@ -44,7 +44,7 @@ struct RdrShader
 
 enum class RdrShaderFlags : uint
 {
-	None = 0,
+	None			= 0,
 	DepthOnly		= 1 << 1,
 	CubemapCapture	= 1 << 2,
 	AlphaCutout		= 1 << 3,

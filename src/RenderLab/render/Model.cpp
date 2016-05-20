@@ -92,7 +92,7 @@ Model* Model::LoadFromFile(const char* modelName)
 
 	float maxLen = Vec3Length(pBinData->boundsMax);
 	float minLen = Vec3Length(pBinData->boundsMin);
-	pModel->m_radius = minLen;
+	pModel->m_radius = std::max(minLen, maxLen);
 
 	s_modelCache.insert(std::make_pair(nameHash, pModel));
 

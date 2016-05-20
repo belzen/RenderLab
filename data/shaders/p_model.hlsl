@@ -14,7 +14,11 @@ SamplerState sampAlphaMask : register(s2);
 #endif
 
 
+#if DEPTH_ONLY
+void main(VsOutputModel input)
+#else
 float4 main(VsOutputModel input) : SV_TARGET
+#endif
 {
 #if ALPHA_CUTOUT
 	float4 mask = texAlphaMask.Sample(sampAlphaMask, input.texcoords);
@@ -24,9 +28,7 @@ float4 main(VsOutputModel input) : SV_TARGET
 	}
 #endif
 
-#if DEPTH_ONLY
-	return float4(0,0,0,1);
-#else
+#if !DEPTH_ONLY
 	float4 color = texDiffuse.Sample(sampDiffuse, input.texcoords);
 
 	float3 normal = texNormals.Sample(sampNormals, input.texcoords).xyz;
