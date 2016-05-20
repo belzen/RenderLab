@@ -1,5 +1,6 @@
 {
 	"pixelShader" : "p_model.hlsl",
-	"textures" : [ "sponza/sponza_thorn", "sponza/sponza_thorn_ddn" ],
-	"needsLighting" : true
+	"textures" : [ "sponza/sponza_thorn", "sponza/sponza_thorn_ddn", "sponza/sponza_thorn_mask" ],
+	"needsLighting" : true,
+	"alphaCutout" : true
 }

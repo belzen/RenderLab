@@ -38,6 +38,8 @@ VsOutputModel main( VertexInput input )
 
 	output.color = input.color;
 	output.texcoords = input.texcoords;
+#elif ALPHA_CUTOUT
+	output.texcoords = input.texcoords;
 #endif
 
 	return output;

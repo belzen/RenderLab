@@ -4,7 +4,7 @@
 
 using namespace AssetLib;
 
-AssetLib::AssetDef AssetLib::g_materialDef("materials", "matbin", 1);
+AssetLib::AssetDef AssetLib::g_materialDef("materials", "matbin", 2);
 
 Material* Material::FromMem(char* pMem)
 {

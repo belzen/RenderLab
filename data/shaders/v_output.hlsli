@@ -10,6 +10,8 @@ struct VsOutputModel
 	float2 texcoords : TEXCOORD0;
 	float3 tangent : TANGENT;
 	float3 bitangent : BINORMAL;
+#elif ALPHA_CUTOUT
+	float2 texcoords : TEXCOORD0;
 #endif
 };
 

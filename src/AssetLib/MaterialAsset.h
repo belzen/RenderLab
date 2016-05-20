@@ -13,5 +13,6 @@ namespace AssetLib
 		char textures[16][AssetLib::AssetDef::kMaxNameLen];
 		uint texCount;
 		bool bNeedsLighting;
+		bool bAlphaCutout;
 	};
 }

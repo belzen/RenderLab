@@ -1,16 +1,6 @@
 #include "p_common.hlsli"
 #include "light_inc.hlsli"
-
-struct PixelInput
-{
-	float4 position : SV_POSITION;
-	float3 position_ws : POSITION;
-	float3 normal : NORMAL;
-	float4 color : COLOR;
-	float2 texcoords : TEXCOORD0;
-	float3 tangent : TANGENT;
-	float3 bitangent : BINORMAL;
-};
+#include "v_output.hlsli"
 
 Texture2D texDiffuse : register(t0);
 SamplerState sampDiffuse : register(s0);
@@ -18,8 +8,25 @@ SamplerState sampDiffuse : register(s0);
 Texture2D texNormals : register(t1);
 SamplerState sampNormals : register(s1);
 
-float4 main(PixelInput input) : SV_TARGET
+#if ALPHA_CUTOUT
+Texture2D texAlphaMask : register(t2);
+SamplerState sampAlphaMask : register(s2);
+#endif
+
+
+float4 main(VsOutputModel input) : SV_TARGET
 {
+#if ALPHA_CUTOUT
+	float4 mask = texAlphaMask.Sample(sampAlphaMask, input.texcoords);
+	if (mask.x < 0.5f)
+	{
+		discard;
+	}
+#endif
+
+#if DEPTH_ONLY
+	return float4(0,0,0,1);
+#else
 	float4 color = texDiffuse.Sample(sampDiffuse, input.texcoords);
 
 	float3 normal = texNormals.Sample(sampNormals, input.texcoords).xyz;
@@ -31,6 +38,7 @@ float4 main(PixelInput input) : SV_TARGET
 
 	float3 cameraViewDir = normalize(cbPerAction.viewPos - input.position_ws.xyz);
 
-	float3 litColor = doLighting(input.position_ws, color.rgb, normal, cameraViewDir, input.position.xy, cbPerAction.viewWidth);
+	float3 litColor = doLighting(input.position_ws.xyz, color.rgb, normal, cameraViewDir, input.position.xy, cbPerAction.viewWidth);
 	return float4(litColor + 0.001f, 1);
+#endif
 }

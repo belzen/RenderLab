@@ -126,6 +126,10 @@ void Model::QueueDraw(Renderer& rRenderer, const Matrix44& srcWorldMat)
 
 		pDrawOp->graphics.hInputLayout = s_hModelInputLayout;
 		pDrawOp->graphics.vertexShader = kVertexShader;
+		if (rSubObject.pMaterial->bAlphaCutout)
+		{
+			pDrawOp->graphics.vertexShader.flags |= RdrShaderFlags::AlphaCutout;
+		}
 
 		pDrawOp->graphics.hGeo = rSubObject.hGeo;
 

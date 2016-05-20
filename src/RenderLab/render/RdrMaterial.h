@@ -15,4 +15,5 @@ struct RdrMaterial
 	RdrSamplerState samplers[kMaxTextures];
 	uint texCount;
 	bool bNeedsLighting;
+	bool bAlphaCutout;
 };

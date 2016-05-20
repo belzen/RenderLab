@@ -44,12 +44,13 @@ struct RdrShader
 
 enum class RdrShaderFlags : uint
 {
-	None = 0x0,
-	DepthOnly = 0x1,
-	CubemapCapture = 0x2,
+	None = 0,
+	DepthOnly		= 1 << 1,
+	CubemapCapture	= 1 << 2,
+	AlphaCutout		= 1 << 3,
 
 	// Note: Need to switch m_vertexShaders over to a hash table if flag count gets too large.
-	NumCombos = 0x4
+	NumCombos		= 1 << 4
 };
 ENUM_FLAGS(RdrShaderFlags);
 

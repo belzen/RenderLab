@@ -72,7 +72,7 @@ void Font::Init()
 
 	s_text.hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_vertexDesc, ARRAY_SIZE(s_vertexDesc));
 
-	s_text.material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_text.hlsl");
+	s_text.material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_text.hlsl", nullptr, 0);
 	s_text.material.samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
 
 	RdrTextureInfo texInfo;

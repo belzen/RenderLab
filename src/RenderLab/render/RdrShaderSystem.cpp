@@ -190,6 +190,8 @@ namespace
 			aDefines[numDefines++] = "DEPTH_ONLY";
 		if ((flags & RdrShaderFlags::CubemapCapture) != RdrShaderFlags::None)
 			aDefines[numDefines++] = "CUBEMAP_CAPTURE";
+		if ((flags & RdrShaderFlags::AlphaCutout) != RdrShaderFlags::None)
+			aDefines[numDefines++] = "ALPHA_CUTOUT";
 		
 		ID3D10Blob* pPreprocData = preprocessShader(rShaderDef.filename, aDefines, numDefines);
 		assert(pPreprocData);
@@ -295,15 +297,23 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 	}
 }
 
-RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename)
+RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename, const char** aDefines, uint numDefines)
 {
 	// Find shader in cache
-	Hashing::StringHash nameHash = Hashing::HashString(filename);
+	char cacheName[256] = { 0 };
+	strcat_s(cacheName, filename);
+	for (uint i = 0; i < numDefines; ++i)
+	{
+		strcat_s(cacheName, "#");
+		strcat_s(cacheName, aDefines[i]);
+	}
+
+	Hashing::StringHash nameHash = Hashing::HashString(cacheName);
 	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.find(nameHash);
 	if (iter != s_shaderSystem.pixelShaderCache.end())
 		return iter->second;
 
-	ID3D10Blob* pBlob = preprocessShader(filename, nullptr, 0);
+	ID3D10Blob* pBlob = preprocessShader(filename, aDefines, numDefines);
 	if (pBlob)
 	{
 		RdrShader* pShader = s_shaderSystem.pixelShaders.allocSafe();

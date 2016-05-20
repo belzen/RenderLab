@@ -25,8 +25,27 @@ namespace
 
 		AssetLib::Material* pMaterial = AssetLib::Material::FromMem(pFileData);
 
-		pOutMaterial->hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader);
+		// Create default pixel shader
+		const char* defines[2] = { 0 };
+		uint numDefines = 0;
+		if (pMaterial->bAlphaCutout)
+		{
+			defines[0] = "ALPHA_CUTOUT";
+			++numDefines;
+		}
+
+		pOutMaterial->hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
+
+		// Alpha cutout requires a depth-only pixel shader.
+		if (pMaterial->bAlphaCutout)
+		{
+			defines[numDefines] = "DEPTH_ONLY";
+			++numDefines;
+			pOutMaterial->hPixelShaders[(int)RdrShaderMode::DepthOnly] = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
+		}
+
 		pOutMaterial->bNeedsLighting = pMaterial->bNeedsLighting;
+		pOutMaterial->bAlphaCutout = pMaterial->bAlphaCutout;
 		pOutMaterial->texCount = pMaterial->texCount;
 
 		int numTextures = pOutMaterial->texCount;

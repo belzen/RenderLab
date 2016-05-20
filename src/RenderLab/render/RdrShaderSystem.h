@@ -9,7 +9,7 @@ namespace RdrShaderSystem
 {
 	void Init(RdrContext* pRdrContext);
 
-	RdrShaderHandle CreatePixelShaderFromFile(const char* filename);
+	RdrShaderHandle CreatePixelShaderFromFile(const char* filename, const char** aDefines, uint numDefines);
 	RdrInputLayoutHandle CreateInputLayout(const RdrVertexShader& vertexShader, const RdrVertexInputElement* aVertexElements, const uint numElements);
 
 	void ReloadShader(const char* filename);

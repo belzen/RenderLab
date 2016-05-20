@@ -41,8 +41,11 @@ bool MaterialBinner::BinAsset(const std::string& srcFilename, std::ofstream& dst
 	Json::Value jShader = jRoot.get("pixelShader", Json::Value::null);
 	strcpy_s(binData.pixelShader, jShader.asCString());
 
-	Json::Value jNeedsLight = jRoot.get("needsLighting", Json::Value::null);
+	Json::Value jNeedsLight = jRoot.get("needsLighting", false);
 	binData.bNeedsLighting = jNeedsLight.asBool();
+
+	Json::Value jAlphaCutout = jRoot.get("alphaCutout", false);
+	binData.bAlphaCutout = jAlphaCutout.asBool();
 
 	Json::Value jTextures = jRoot.get("textures", Json::Value::null);
 	binData.texCount = jTextures.size();
