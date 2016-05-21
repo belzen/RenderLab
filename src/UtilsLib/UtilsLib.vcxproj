@@ -38,6 +38,7 @@
     <ClInclude Include="json\json.h" />
     <ClInclude Include="Paths.h" />
     <ClInclude Include="ThreadMutex.h" />
+    <ClInclude Include="SizedArray.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Util.h" />
   </ItemGroup>

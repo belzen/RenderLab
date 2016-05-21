@@ -2,6 +2,7 @@
 #include "RdrShaderSystem.h"
 #include "RdrContext.h"
 #include "UtilsLib/Hash.h"
+#include "UtilsLib/SizedArray.h"
 #include <d3dcompiler.h>
 
 namespace
@@ -76,9 +77,9 @@ namespace
 
 	struct ShdrFrameState
 	{
-		std::vector<ShdrCmdCreatePixelShader> pixelShaderCreates;
-		std::vector<ShdrCmdCreateInputLayout> layoutCreates;
-		std::vector<ShdrCmdReloadShader> shaderReloads;
+		SizedArray<ShdrCmdCreatePixelShader, 128> pixelShaderCreates;
+		SizedArray<ShdrCmdCreateInputLayout, 128> layoutCreates;
+		SizedArray<ShdrCmdReloadShader, 128>      shaderReloads;
 	};
 
 	struct
@@ -279,7 +280,8 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 
 void RdrShaderSystem::ReloadShader(const char* filename)
 {
-	ShdrCmdReloadShader cmd;
+	AutoScopedLock lock(s_shaderSystem.reloadMutex);
+	ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
 
 	Hashing::StringHash nameHash = Hashing::HashString(filename);
 	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.find(nameHash);
@@ -287,9 +289,6 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 	{
 		cmd.eStage = RdrShaderStage::Pixel;
 		cmd.hPixelShader = iter->second;
-
-		AutoScopedLock lock(s_shaderSystem.reloadMutex);
-		getQueueState().shaderReloads.push_back(cmd);
 	}
 	else
 	{
@@ -319,13 +318,12 @@ RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename,
 		RdrShader* pShader = s_shaderSystem.pixelShaders.allocSafe();
 		pShader->filename = _strdup(filename);
 
-		ShdrCmdCreatePixelShader cmd;
+		ShdrCmdCreatePixelShader& cmd = getQueueState().pixelShaderCreates.pushSafe();
 		cmd.hShader = s_shaderSystem.pixelShaders.getId(pShader);
 		cmd.textLen = (uint)pBlob->GetBufferSize();
 		cmd.pShaderText = new char[cmd.textLen];
-		memcpy(cmd.pShaderText, pBlob->GetBufferPointer(), cmd.textLen);
 
-		getQueueState().pixelShaderCreates.push_back(cmd);
+		memcpy(cmd.pShaderText, pBlob->GetBufferPointer(), cmd.textLen);
 		pBlob->Release();
 
 		s_shaderSystem.pixelShaderCache.insert(std::make_pair(nameHash, cmd.hShader));
@@ -341,14 +339,12 @@ RdrInputLayoutHandle RdrShaderSystem::CreateInputLayout(const RdrVertexShader& v
 {
 	RdrInputLayout* pLayout = s_shaderSystem.inputLayouts.allocSafe();
 
-	ShdrCmdCreateInputLayout cmd;
+	ShdrCmdCreateInputLayout& cmd = getQueueState().layoutCreates.pushSafe();
 	cmd.hLayout = s_shaderSystem.inputLayouts.getId(pLayout);
 	cmd.vertexShader = vertexShader;
 	cmd.hLayout = s_shaderSystem.inputLayouts.getId(pLayout);
 	cmd.numElements = numElements;
 	memcpy(cmd.vertexElements, aVertexElements, sizeof(RdrVertexInputElement) * numElements);
-
-	getQueueState().layoutCreates.push_back(cmd);
 
 	return cmd.hLayout;
 }

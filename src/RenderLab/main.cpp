@@ -96,8 +96,10 @@ void renderThreadMain()
 	}
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
+//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
+int main(int argc, char** argv)
 {
+	HINSTANCE hInstance = GetModuleHandle(0);
 	HWND hWnd;
 	WNDCLASSEX wc = { 0 };
 	RECT wr = { 0, 0, kClientWidth, kClientHeight };
@@ -120,7 +122,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE , LPSTR , int nCmdShow )
 		wr.right - wr.left, wr.bottom - wr.top,
 		NULL, NULL, hInstance, NULL);
 
-	ShowWindow(hWnd, nCmdShow);
+	ShowWindow(hWnd, 1);
 	g_renderer.Init(hWnd, kClientWidth, kClientHeight);
 	Debug::Init();
 

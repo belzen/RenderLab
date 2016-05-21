@@ -4,7 +4,7 @@
 #include "RdrScratchMem.h"
 #include "AssetLib/BinFile.h"
 #include "AssetLib/ModelAsset.h"
-#include <fstream>
+#include "UtilsLib/SizedArray.h"
 
 namespace
 {
@@ -23,8 +23,8 @@ namespace
 
 	struct GeoFrameState
 	{
-		std::vector<GeoCmdUpdate> updates;
-		std::vector<GeoCmdRelease> releases;
+		SizedArray<GeoCmdUpdate, 1024>  updates;
+		SizedArray<GeoCmdRelease, 1024> releases;
 	};
 
 	struct
@@ -48,17 +48,15 @@ const RdrGeometry* RdrGeoSystem::GetGeo(const RdrGeoHandle hGeo)
 
 void RdrGeoSystem::ReleaseGeo(const RdrGeoHandle hGeo)
 {
-	GeoCmdRelease cmd;
+	GeoCmdRelease& cmd = getQueueState().releases.pushSafe();
 	cmd.hGeo = hGeo;
-
-	getQueueState().releases.push_back(cmd);
 }
 
 RdrGeoHandle RdrGeoSystem::CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices, const Vec3& boundsMin, const Vec3& boundsMax)
 {
 	RdrGeometry* pGeo = s_geoSystem.geos.allocSafe();
 
-	GeoCmdUpdate cmd;
+	GeoCmdUpdate& cmd = getQueueState().updates.pushSafe();
 	cmd.hGeo = s_geoSystem.geos.getId(pGeo);
 	cmd.pVertData = pVertData;
 	cmd.pIndexData = pIndexData;
@@ -67,8 +65,6 @@ RdrGeoHandle RdrGeoSystem::CreateGeo(const void* pVertData, int vertStride, int 
 	cmd.info.numIndices = numIndices;
 	cmd.info.boundsMin = boundsMin;
 	cmd.info.boundsMax = boundsMax;
-
-	getQueueState().updates.push_back(cmd);
 
 	return cmd.hGeo;
 }
