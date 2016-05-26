@@ -15,6 +15,7 @@ struct Light
 struct ShadowData
 {
 	float4x4 mtxViewProj;
+	float partitionEndZ;
 };
 
 #define MAX_SHADOW_MAPS 10
@@ -103,6 +104,7 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 	int numLights = g_tileLightIndices[tileIdx];
 
 	float3 litColor = 0;
+	float viewDepth = dot((pos_ws - cbPerAction.cameraPos), cbPerAction.cameraDir);
 
 	for (int i = 0; i < numLights; ++i)
 	{
@@ -144,7 +146,31 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 		float angularFalloff = saturate( (spotEffect - light.outerConeAngleCos) / coneFalloffRange );
 		angularFalloff = lerp(1.f, angularFalloff, (light.type == 2));
 
-		litColor += (diffuse + specular) * distFalloff * angularFalloff * calcShadowFactor(pos_ws, dirToLight, posToLight, light.radius, light.shadowMapIndex);
+		// Find actual shadow map index
+		int shadowMapIndex = light.shadowMapIndex;
+		if (light.type == 0)
+		{
+			while (viewDepth > g_shadowData[shadowMapIndex].partitionEndZ)
+			{
+				++shadowMapIndex;
+			}
+		}
+
+#if VISUALIZE_CASCADES
+		diffuse = specular = 0;
+		if (light.type == 0)
+		{
+			static const float3 kPartitionColors[4] = {
+				float3(0.f, 1.f, 0.f),
+				float3(1.f, 1.f, 0.f),
+				float3(1.f, 0.f, 0.f),
+				float3(0.f, 0.f, 1.f)
+			};
+			diffuse = specular = kPartitionColors[shadowMapIndex - light.shadowMapIndex] * 10.f;
+		}
+#endif
+
+		litColor += (diffuse + specular) * distFalloff * angularFalloff * calcShadowFactor(pos_ws, dirToLight, posToLight, light.radius, shadowMapIndex);
 	}
 
 	float3 ambient = color * ambient_color * ambient_intensity;

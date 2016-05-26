@@ -194,6 +194,7 @@
     <ClCompile Include="render\RdrContextD3D11_Shaders.cpp" />
     <ClCompile Include="render\RdrDrawOp.cpp" />
     <ClCompile Include="render\RdrMaterial.cpp" />
+    <ClCompile Include="render\RdrPostProcessEffects.cpp" />
     <ClCompile Include="render\RdrScratchMem.cpp" />
     <ClCompile Include="render\Renderer.cpp" />
     <ClCompile Include="render\RdrShaderSystem.cpp" />
@@ -233,6 +234,7 @@
     <ClInclude Include="render\RdrGeometry.h" />
     <ClInclude Include="render\RdrMaterial.h" />
     <ClInclude Include="render\RdrPostProcess.h" />
+    <ClInclude Include="render\RdrPostProcessEffects.h" />
     <ClInclude Include="render\RdrRequests.h" />
     <ClInclude Include="render\RdrResource.h" />
     <ClInclude Include="render\RdrShaderConstants.h" />
@@ -246,6 +248,7 @@
     <ClInclude Include="render\RdrGeoSystem.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="shapes\Plane.h" />
+    <ClInclude Include="shapes\Quad.h" />
     <ClInclude Include="shapes\Rect.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="WorldObject.h" />
@@ -293,6 +296,16 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_depth_partition.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="..\..\data\shaders\c_luminance_measure.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>

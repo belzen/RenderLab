@@ -90,50 +90,65 @@ void Camera::GetMatrices(Matrix44& view, Matrix44& proj) const
 
 void Camera::UpdateFrustum(void)
 {
-	// Half distances
-	float hNear, wNear;
-	float hFar, wFar;
+	Matrix44 viewMtx;
+	Matrix44 projMtx;
+	GetMatrices(viewMtx, projMtx);
+
+	Matrix44 viewProjMtx = Matrix44Multiply(viewMtx, projMtx);
+
+	for (uint i = 0; i < 2; ++i)
+	{
+		m_frustum.planes[2 * i] = Plane(
+			viewProjMtx._14 - viewProjMtx.m[0][i],
+			viewProjMtx._24 - viewProjMtx.m[1][i],
+			viewProjMtx._34 - viewProjMtx.m[2][i],
+			viewProjMtx._44 - viewProjMtx.m[3][i]);
+
+		m_frustum.planes[2 * i + 1] = Plane(
+			viewProjMtx._14 + viewProjMtx.m[0][i],
+			viewProjMtx._24 + viewProjMtx.m[1][i],
+			viewProjMtx._34 + viewProjMtx.m[2][i],
+			viewProjMtx._44 + viewProjMtx.m[3][i]);
+	}
+
+	// Near plane
+	m_frustum.planes[4] = Plane( viewProjMtx._13, viewProjMtx._23, viewProjMtx._33, viewProjMtx._43);
+
+	// Far plane
+	m_frustum.planes[5] = Plane(
+		viewProjMtx._14 - viewProjMtx._13,
+		viewProjMtx._24 - viewProjMtx._23,
+		viewProjMtx._34 - viewProjMtx._33,
+		viewProjMtx._44 - viewProjMtx._43);
+		
+}
+
+Quad Camera::GetFrustumQuad(float depth) const
+{
+	float width, height;
+
 	if (m_isOrtho)
 	{
-		hFar = hNear = (m_orthoHeight * 0.5f);
-		wFar = wNear = (m_orthoHeight * 0.5f) * m_aspectRatio;
+		height = (m_orthoHeight * 0.5f);
 	}
 	else
 	{
-		float heightOverDist = tanf(m_fovY / 2.f);
-		hNear = heightOverDist * m_nearDist;
-		wNear = hNear * m_aspectRatio;
-		hFar = heightOverDist * m_farDist;
-		wFar = hFar * m_aspectRatio;
+		float heightOverDist = tanf(m_fovY);
+		height = heightOverDist * depth;
 	}
 
-	Vec3 pos = m_position;
-	Vec3 dir = m_direction;
+	width = height * m_aspectRatio;
 
-	Vec3 up = Vec3::kUnitY;
-	Vec3 right = Vec3Normalize( Vec3Cross(up, dir) );
-	up = Vec3Normalize( Vec3Cross(dir, right) );
+	Vec3 right = Vec3Normalize(Vec3Cross(Vec3::kUnitY, m_direction));
+	Vec3 up = Vec3Normalize(Vec3Cross(m_direction, right));
+	Vec3 center = m_position + m_direction * depth;
 
-	Vec3 nc = pos + dir * m_nearDist;
-
-	Vec3 ntl = nc - wNear * right + hNear * up;
-	Vec3 ntr = nc + wNear * right + hNear * up;
-	Vec3 nbl = nc - wNear * right - hNear * up;
-	Vec3 nbr = nc + wNear * right - hNear * up;
-
-	Vec3 fc = pos + dir * m_farDist;
-
-	Vec3 ftl = fc - wFar * right + hFar * up;
-	Vec3 ftr = fc + wFar * right + hFar * up;
-	Vec3 fbl = fc - wFar * right - hFar * up;
-	Vec3 fbr = fc + wFar * right - hFar * up;
-
-	m_frustum.planes[0] = Plane(ntr, ntl, nbl); // Near
-	m_frustum.planes[1] = Plane(ftl, ftr, fbl); // Far
-	m_frustum.planes[2] = Plane(ntl, ftl, fbl); // Left
-	m_frustum.planes[3] = Plane(ftr, ntr, nbr); // Right
-	m_frustum.planes[4] = Plane(ntl, ntr, ftl); // Top
-	m_frustum.planes[5] = Plane(nbr, nbl, fbl); // Bottom
+	Quad quad;
+	quad.topLeft = center + up * height - right * width;
+	quad.topRight = center + up * height + right * width;
+	quad.bottomLeft = center - up * height - right * width;
+	quad.bottomRight = center - up * height + right * width;
+	return quad;
 }
 
 bool Camera::CanSee(const Vec3& pos, float radius) const

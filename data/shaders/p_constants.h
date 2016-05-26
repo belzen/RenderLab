@@ -4,7 +4,9 @@
 struct PsPerAction
 {
 	float4x4 mtxInvProj;
-	float3 viewPos;
+	float3 cameraPos;
+	float unused;
+	float3 cameraDir;
 	uint viewWidth;
 };
 

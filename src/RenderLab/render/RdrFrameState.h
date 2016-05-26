@@ -1,6 +1,5 @@
 #pragma once
 
-#include "AssetLib/PostProcessEffectsAsset.h"
 #include "RdrDeviceTypes.h"
 #include "RdrResource.h"
 #include "RdrShaders.h"
@@ -9,6 +8,7 @@
 
 struct RdrDrawOp;
 class LightList;
+class RdrPostProcessEffects;
 
 #define MAX_ACTIONS_PER_FRAME 16
 #define MAX_RENDER_TARGETS 6
@@ -52,7 +52,7 @@ struct RdrAction
 
 	Rect primaryViewport;
 
-	AssetLib::PostProcessEffects postProcEffects;
+	const RdrPostProcessEffects* pPostProcEffects;
 
 	RdrLightParams lightParams;
 	RdrConstantBufferHandle hPerActionVs;

@@ -44,7 +44,7 @@ class RdrContextD3D11 : public RdrContext
 
 	void CopyResourceRegion(const RdrResource& rSrcResource, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset);
 	void ReadResource(const RdrResource& rSrcResource, void* pDstData, uint dstDataSize);
-
+	
 	void ReleaseResource(RdrResource& rResource);
 
 	void ResolveSurface(const RdrResource& rSrc, const RdrResource& rDst);

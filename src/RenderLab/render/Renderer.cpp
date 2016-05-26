@@ -8,6 +8,7 @@
 #include <DXGIFormat.h>
 #include "debug\DebugConsole.h"
 #include "RdrContextD3D11.h"
+#include "RdrPostProcessEffects.h"
 #include "RdrShaderConstants.h"
 #include "RdrScratchMem.h"
 #include "RdrDrawOp.h"
@@ -71,7 +72,6 @@ namespace
 	}
 }
 //////////////////////////////////////////////////////
-
 
 bool Renderer::Init(HWND hWnd, int width, int height)
 {
@@ -349,7 +349,7 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilView
 	CreateCubemapCaptureConstants(pLight->position, 0.1f, pLight->radius * 2.f);
 }
 
-void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLights, const AssetLib::PostProcessEffects& rPostProcEffects)
+void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLights, RdrPostProcessEffects& rPostProcEffects)
 {
 	assert(m_pCurrentAction == nullptr);
 
@@ -368,7 +368,9 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLight
 	m_pCurrentAction->camera.UpdateFrustum();
 
 	m_pCurrentAction->primaryViewport = viewport;
-	m_pCurrentAction->postProcEffects = rPostProcEffects;
+
+	m_pCurrentAction->pPostProcEffects = &rPostProcEffects;
+	rPostProcEffects.PrepareForDraw(*this);
 
 	// Z Prepass
 	RdrPassData* pPass = &m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
@@ -501,7 +503,8 @@ void Renderer::CreatePerActionConstants()
 		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
 		PsPerAction* pPsPerAction = (PsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
 
-		pPsPerAction->viewPos = rCamera.GetPosition();
+		pPsPerAction->cameraPos = rCamera.GetPosition();
+		pPsPerAction->cameraDir = rCamera.GetDirection();
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
 		pPsPerAction->viewWidth = m_viewWidth;
 
@@ -526,8 +529,9 @@ void Renderer::CreatePerActionConstants()
 		// PS
 		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
 		PsPerAction* pPsPerAction = (PsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
-
-		pPsPerAction->viewPos = Vec3::kOrigin;
+		
+		pPsPerAction->cameraPos = Vec3::kOrigin;
+		pPsPerAction->cameraDir = Vec3::kUnitZ;
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
 		pPsPerAction->viewWidth = m_viewWidth;
 
@@ -730,7 +734,7 @@ void Renderer::DrawFrame()
 			}
 
 			if (rAction.bEnablePostProcessing)
-				m_postProcess.DoPostProcessing(m_pContext, m_drawState, pColorBuffer, rAction.postProcEffects);
+				m_postProcess.DoPostProcessing(m_pContext, m_drawState, pColorBuffer, *rAction.pPostProcEffects);
 
 			DrawPass(rAction, RdrPass::UI);
 

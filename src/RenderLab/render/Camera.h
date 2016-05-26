@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Math.h"
+#include "shapes/Quad.h"
 
 enum class CubemapFace
 {
@@ -44,6 +45,8 @@ public:
 	const Vec3& GetDirection(void) const;
 
 	void UpdateFrustum(void);
+	Quad GetFrustumQuad(float depth) const;
+
 	bool CanSee(const Vec3& pos, float radius) const;
 
 private:

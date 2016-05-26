@@ -5,6 +5,7 @@
 struct Plane
 {
 	Plane();
+	Plane(float nx, float ny, float nz, float distance);
 	Plane(const Vec3& pt1, const Vec3& pt2, const Vec3& pt3);
 
 	float Distance(const Vec3& pos) const;
@@ -18,6 +19,15 @@ inline Plane::Plane()
 	, m_distance(0.f)
 {
 
+}
+
+inline Plane::Plane(float nx, float ny, float nz, float distance)
+	: m_normal(nx, ny, nz)
+	, m_distance(distance)
+{
+	float len = Vec3Length(m_normal);
+	m_distance /= len;
+	m_normal /= len;
 }
 
 inline Plane::Plane(const Vec3& pt1, const Vec3& pt2, const Vec3& pt3)

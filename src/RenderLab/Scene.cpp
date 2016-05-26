@@ -91,7 +91,8 @@ void Scene::Load(const char* sceneName)
 			return;
 		}
 
-		m_postProcEffects = *AssetLib::PostProcessEffects::FromMem(pPostProcFileData);
+		m_postProcEffects.Init(AssetLib::PostProcessEffects::FromMem(pPostProcFileData));
+
 		delete pPostProcFileData;
 	}
 

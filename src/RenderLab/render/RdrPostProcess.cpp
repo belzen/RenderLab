@@ -1,5 +1,6 @@
 #include "Precompiled.h"
 #include "RdrPostProcess.h"
+#include "RdrPostProcessEffects.h"
 #include "RdrContext.h"
 #include "RdrDrawState.h"
 #include "RdrScratchMem.h"
@@ -97,7 +98,6 @@ void RdrPostProcess::Init()
 
 	m_hToneMapPs = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", nullptr, 0);
 	m_hToneMapOutputConstants = RdrResourceSystem::CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapOutputParams), RdrResourceUsage::Default);
-	m_hToneMapInputConstants = RdrResourceSystem::CreateConstantBuffer(nullptr, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 }
 
 void RdrPostProcess::HandleResize(uint width, uint height)
@@ -145,17 +145,11 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 	}
 }
 
-void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const AssetLib::PostProcessEffects& rEffects)
+void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrPostProcessEffects& rEffects)
 {
-	pRdrContext->BeginEvent(L"Post-Process");
+	RdrConstantBufferHandle hToneMapInputConstants = rEffects.GetToneMapInputConstants();
 
-	// Update tonemap constants.
-	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ToneMapInputParams));
-	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
-	pTonemapSettings->white = rEffects.eyeAdaptation.white;
-	pTonemapSettings->middleGrey = rEffects.eyeAdaptation.middleGrey;
-	pTonemapSettings->bloomThreshold = rEffects.bloom.threshold;
-	RdrResourceSystem::UpdateConstantBuffer(m_hToneMapInputConstants, pTonemapSettings);
+	pRdrContext->BeginEvent(L"Post-Process");
 
 	pRdrContext->SetBlendState(false);
 
@@ -167,16 +161,16 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDr
 		dbgLuminanceInput(pRdrContext, pColorBuffer, m_lumDebugRes[m_dbgFrame], m_lumDebugRes[dbgReadIdx], m_debugData);
 	}
 
-	DoLuminanceMeasurement(pRdrContext, rDrawState, pColorBuffer);
+	DoLuminanceMeasurement(pRdrContext, rDrawState, pColorBuffer, hToneMapInputConstants);
 
-	DoBloom(pRdrContext, rDrawState, pColorBuffer);
+	DoBloom(pRdrContext, rDrawState, pColorBuffer, hToneMapInputConstants);
 
 	DoTonemap(pRdrContext, rDrawState, pColorBuffer);
 
 	pRdrContext->EndEvent();
 }
 
-void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer)
+void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrConstantBufferHandle hToneMapInputConstants)
 {
 	pRdrContext->BeginEvent(L"Lum Measurement");
 	
@@ -190,7 +184,7 @@ void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawStat
 	rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::LuminanceMeasure_First);
 	rDrawState.csResources[0] = pLumInput->resourceView;
 	rDrawState.csUavs[0] = pLumOutput->uav;
-	rDrawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(m_hToneMapInputConstants)->bufferObj;
+	rDrawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hToneMapInputConstants)->bufferObj;
 	rDrawState.csConstantBufferCount = 1;
 	pRdrContext->DispatchCompute(rDrawState, w, h, 1);
 
@@ -227,7 +221,7 @@ void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawStat
 	pRdrContext->EndEvent();
 }
 
-void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer)
+void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrConstantBufferHandle hToneMapInputConstants)
 {
 	pRdrContext->BeginEvent(L"Bloom");
 
@@ -250,7 +244,7 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 		rDrawState.csUavs[1] = pBloomOutput4->uav;
 		rDrawState.csUavs[2] = pBloomOutput8->uav;
 		rDrawState.csUavs[3] = pBloomOutput16->uav;
-		rDrawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(m_hToneMapInputConstants)->bufferObj;
+		rDrawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hToneMapInputConstants)->bufferObj;
 		rDrawState.csConstantBufferCount = 1;
 		pRdrContext->DispatchCompute(rDrawState, w, h, 1);
 	}

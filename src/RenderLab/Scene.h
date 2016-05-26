@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AssetLib/PostProcessEffectsAsset.h"
+#include "render/RdrPostProcessEffects.h"
 #include "render/RdrContext.h"
 #include "render/Light.h"
 #include "render/Sky.h"
@@ -9,6 +9,7 @@ class Camera;
 class Renderer;
 class WorldObject;
 class RdrContext;
+class RdrPostProcessEffects;
 
 class Scene
 {
@@ -24,7 +25,7 @@ public:
 
 	const LightList* GetLightList() const;
 
-	const AssetLib::PostProcessEffects& GetPostProcEffects() const;
+	RdrPostProcessEffects& GetPostProcEffects();
 
 	Camera& GetMainCamera();
 	const Camera& GetMainCamera() const;
@@ -38,7 +39,7 @@ private:
 	LightList m_lights;
 	Camera m_mainCamera;
 	Sky m_sky;
-	AssetLib::PostProcessEffects m_postProcEffects;
+	RdrPostProcessEffects m_postProcEffects;
 	FileWatcher::ListenerID m_reloadListenerId;
 	char m_sceneName[AssetLib::AssetDef::kMaxNameLen];
 	bool m_reloadPending;
@@ -49,7 +50,7 @@ inline const LightList* Scene::GetLightList() const
 	return &m_lights; 
 }
 
-inline const AssetLib::PostProcessEffects& Scene::GetPostProcEffects() const
+inline RdrPostProcessEffects& Scene::GetPostProcEffects()
 {
 	return m_postProcEffects;
 }

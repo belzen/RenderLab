@@ -27,8 +27,28 @@ void main( uint3 dispatchId : SV_DispatchThreadID, uint3 groupId : SV_GroupID, u
 	float z01 = g_depthTex.Load( uint2(samplePos.x, samplePos.y + 1), 0).x;
 	float z11 = g_depthTex.Load( uint2(samplePos.x + 1, samplePos.y + 1), 0).x;
 
-	float zMin = min(z00, min(z10, min(z01, z11)));
-	float zMax = max(z00, max(z10, max(z01, z11)));
+	float zMin = 1.f;
+	float zMax = 0.f;
+	if (z00 != 1.f)
+	{
+		zMin = min(zMin, z00);
+		zMax = max(zMax, z00);
+	}
+	if (z10 != 1.f)
+	{
+		zMin = min(zMin, z10);
+		zMax = max(zMax, z10);
+	}
+	if (z01 != 1.f)
+	{
+		zMin = min(zMin, z01);
+		zMax = max(zMax, z01);
+	}
+	if (z11 != 1.f)
+	{
+		zMin = min(zMin, z11);
+		zMax = max(zMax, z11);
+	}
 
 	float4 vDepthMin = mul(float4(0.f, 0.f, zMin, 1.f), g_mtxInvProj);
 	grp_zMin[localIdx] = vDepthMin.z / vDepthMin.w;

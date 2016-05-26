@@ -103,15 +103,15 @@ namespace
 		SizedArray<ResCmdCreateBuffer, 1024>          bufferCreates;
 		SizedArray<ResCmdUpdateBuffer, 1024>          bufferUpdates;
 		SizedArray<ResCmdReleaseResource, 1024>       resourceReleases;
-		SizedArray<ResCmdCreateConstantBuffer, 1024>  constantBufferCreates;
-		SizedArray<ResCmdUpdateConstantBuffer, 1024>  constantBufferUpdates;
-		SizedArray<ResCmdReleaseConstantBuffer, 1024> constantBufferReleases;
 		SizedArray<ResCmdCreateRenderTarget, 1024>    renderTargetCreates;
 		SizedArray<ResCmdReleaseRenderTarget, 1024>   renderTargetReleases;
 		SizedArray<ResCmdCreateDepthStencil, 1024>    depthStencilCreates;
 		SizedArray<ResCmdReleaseDepthStencil, 1024>   depthStencilReleases;
 
-		SizedArray<RdrConstantBufferHandle, 1024>     tempConstantBuffers;
+		SizedArray<ResCmdCreateConstantBuffer, 2048>  constantBufferCreates;
+		SizedArray<ResCmdUpdateConstantBuffer, 2048>  constantBufferUpdates;
+		SizedArray<ResCmdReleaseConstantBuffer, 2048> constantBufferReleases;
+		SizedArray<RdrConstantBufferHandle, 2048>     tempConstantBuffers;
 	};
 
 	struct ConstantBufferPool

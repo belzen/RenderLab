@@ -14,6 +14,7 @@ class WorldObject;
 struct RdrDrawOp;
 struct Light;
 class LightList;
+class RdrPostProcessEffects;
 
 class Renderer
 {
@@ -27,7 +28,7 @@ public:
 
 	void BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 	void BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
-	void BeginPrimaryAction(const Camera& rCamera, const LightList* pLights, const AssetLib::PostProcessEffects& rPostProcEffects);
+	void BeginPrimaryAction(const Camera& rCamera, const LightList* pLights, RdrPostProcessEffects& rPostProcEffects);
 	void EndAction();
 
 	void AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);

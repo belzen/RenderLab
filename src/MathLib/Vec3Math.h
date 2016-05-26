@@ -35,6 +35,13 @@ inline Vec3 Vec3TransformNormal(const Vec3& lhs, const Matrix44& rotationMtx)
 	return DirectX::XMVector3TransformNormal(normal, mtx);
 }
 
+inline Vec3 Vec3TransformCoord(const Vec3& lhs, const Matrix44& transformMtx)
+{
+	DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&lhs);
+	DirectX::XMMATRIX mtx = DirectX::XMLoadFloat4x4(&transformMtx);
+	return DirectX::XMVector3TransformCoord(pos, mtx);
+}
+
 inline float Vec3MaxComponent(const Vec3& vec)
 {
 	return std::max(std::max(vec.x, vec.y), vec.z);

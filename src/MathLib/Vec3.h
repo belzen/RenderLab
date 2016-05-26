@@ -72,6 +72,14 @@ inline Vec3 operator * (const Vec3& lhs, float scalar)
 	return Vec3(lhs.x * scalar, lhs.y * scalar, lhs.z * scalar);
 }
 
+inline Vec3& operator *= (Vec3& lhs, float scalar)
+{
+	lhs.x *= scalar;
+	lhs.y *= scalar;
+	lhs.z *= scalar;
+	return lhs;
+}
+
 inline Vec3 operator * (float scalar, const Vec3& rhs)
 {
 	return Vec3(rhs.x * scalar, rhs.y * scalar, rhs.z * scalar);
@@ -80,6 +88,19 @@ inline Vec3 operator * (float scalar, const Vec3& rhs)
 inline Vec3 operator / (const Vec3& lhs, const Vec3& rhs)
 {
 	return Vec3(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z);
+}
+
+inline Vec3 operator / (const Vec3& lhs, float scalar)
+{
+	return Vec3(lhs.x / scalar, lhs.y / scalar, lhs.z / scalar);
+}
+
+inline Vec3& operator /= (Vec3& lhs, float scalar)
+{
+	lhs.x /= scalar;
+	lhs.y /= scalar;
+	lhs.z /= scalar;
+	return lhs;
 }
 
 inline bool operator == (const Vec3& lhs, const Vec3& rhs)

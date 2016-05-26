@@ -38,7 +38,7 @@ float4 main(VsOutputModel input) : SV_TARGET
 	normal = (normal.x * input.tangent) + (normal.y * input.bitangent) + (normal.z * input.normal);
 	normal = normalize(normal);
 
-	float3 cameraViewDir = normalize(cbPerAction.viewPos - input.position_ws.xyz);
+	float3 cameraViewDir = normalize(cbPerAction.cameraPos - input.position_ws.xyz);
 
 	float3 litColor = doLighting(input.position_ws.xyz, color.rgb, normal, cameraViewDir, input.position.xy, cbPerAction.viewWidth);
 	return float4(litColor + 0.001f, 1);
