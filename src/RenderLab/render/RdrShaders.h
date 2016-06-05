@@ -88,9 +88,15 @@ enum class RdrComputeShader
 {
 	TiledDepthMinMax,
 	TiledLightCull,
+
 	LuminanceMeasure_First,
 	LuminanceMeasure_Mid,
 	LuminanceMeasure_Final,
+
+	LuminanceHistogram_Tile,
+	LuminanceHistogram_Merge,
+	LuminanceHistogram_ResponseCurve,
+
 	BloomShrink,
 	Add,
 	BlurHorizontal,

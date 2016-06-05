@@ -23,6 +23,7 @@ struct RdrTextureInfo
 
 struct RdrStructuredBufferInfo
 {
+	RdrResourceFormat eFormat;
 	uint elementSize;
 	uint numElements;
 };

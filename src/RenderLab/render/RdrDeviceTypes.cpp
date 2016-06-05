@@ -10,6 +10,12 @@ int rdrGetTexturePitch(const int width, const RdrResourceFormat eFormat)
 		return width * 8;
 	case RdrResourceFormat::R8_UNORM:
 		return width * 1;
+	case RdrResourceFormat::R16_UINT:
+	case RdrResourceFormat::R16_UNORM:
+	case RdrResourceFormat::R16_FLOAT:
+		return width * 2;
+	case RdrResourceFormat::R32_UINT:
+		return width * 4;
 	case RdrResourceFormat::DXT1:
 	case RdrResourceFormat::DXT1_sRGB:
 		return ((width + 3) & ~3) * 2;

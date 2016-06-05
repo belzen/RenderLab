@@ -95,9 +95,13 @@ namespace
 void RdrPostProcess::Init()
 {
 	m_debugger.Init(this);
+	m_useHistogramToneMap = false;
 
 	m_hToneMapPs = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", nullptr, 0);
 	m_hToneMapOutputConstants = RdrResourceSystem::CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapOutputParams), RdrResourceUsage::Default);
+
+	const char* histogramDefines[] = { "TONEMAP_HISTOGRAM" };
+	m_hToneMapHistogramPs = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", histogramDefines, 1);
 }
 
 void RdrPostProcess::HandleResize(uint width, uint height)
@@ -141,7 +145,39 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 		AddParams* pAddParams = (AddParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
 		pAddParams->width = (float)w;
 		pAddParams->height = (float)h;
-		rBloom.hAddConstants = RdrResourceSystem::CreateConstantBuffer(pAddParams, sizeof(AddParams), RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
+		rBloom.hAddConstants = RdrResourceSystem::CreateConstantBuffer(pAddParams, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
+	}
+
+	if (m_useHistogramToneMap)
+	{
+		uint numTiles = (uint)ceilf(width / 32.f) * (uint)ceilf(height / 16.f); // todo2 - share tile sizes & histogram bin sizes with shader
+		if (m_hToneMapTileHistograms)
+			RdrResourceSystem::ReleaseResource(m_hToneMapTileHistograms);
+		m_hToneMapTileHistograms = RdrResourceSystem::CreateDataBuffer(nullptr, numTiles * 64, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
+	
+		if (m_hToneMapMergedHistogram)
+			RdrResourceSystem::ReleaseResource(m_hToneMapMergedHistogram);
+		m_hToneMapMergedHistogram = RdrResourceSystem::CreateDataBuffer(nullptr, 64, RdrResourceFormat::R32_UINT, RdrResourceUsage::Default);
+
+		if (m_hToneMapHistogramResponseCurve)
+			RdrResourceSystem::ReleaseResource(m_hToneMapHistogramResponseCurve);
+		m_hToneMapHistogramResponseCurve = RdrResourceSystem::CreateDataBuffer(nullptr, 64, RdrResourceFormat::R16_FLOAT, RdrResourceUsage::Default);
+
+
+		if (m_hToneMapHistogramSettings)
+			RdrResourceSystem::ReleaseConstantBuffer(m_hToneMapHistogramSettings);
+		struct Test
+		{
+			float logLuminanceMin;
+			float logLuminanceMax;
+			uint tileCount;
+		};
+		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(Test));
+		Test* pTest = (Test*)RdrScratchMem::AllocAligned(constantsSize, 16);
+		pTest->logLuminanceMin = 0.f;
+		pTest->logLuminanceMax = 3.f;
+		pTest->tileCount = numTiles;
+		m_hToneMapHistogramSettings = RdrResourceSystem::CreateConstantBuffer(pTest, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
 	}
 }
 
@@ -161,7 +197,14 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDr
 		dbgLuminanceInput(pRdrContext, pColorBuffer, m_lumDebugRes[m_dbgFrame], m_lumDebugRes[dbgReadIdx], m_debugData);
 	}
 
-	DoLuminanceMeasurement(pRdrContext, rDrawState, pColorBuffer, hToneMapInputConstants);
+	if (m_useHistogramToneMap)
+	{
+		DoLuminanceHistogram(pRdrContext, rDrawState, pColorBuffer);
+	}
+	else
+	{
+		DoLuminanceMeasurement(pRdrContext, rDrawState, pColorBuffer, hToneMapInputConstants);
+	}
 
 	DoBloom(pRdrContext, rDrawState, pColorBuffer, hToneMapInputConstants);
 
@@ -217,6 +260,45 @@ void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawStat
 		int dbgReadIdx = getDbgReadIndex(m_dbgFrame);
 		dbgTonemapOutput(pRdrContext, pTonemapOutput, m_tonemapDebugRes[m_dbgFrame], m_tonemapDebugRes[dbgReadIdx], m_debugData);
 	}
+
+	pRdrContext->EndEvent();
+}
+
+void RdrPostProcess::DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer)
+{
+	pRdrContext->BeginEvent(L"Lum Histogram");
+
+	uint w = pColorBuffer->texInfo.width / 32;
+	uint h = pColorBuffer->texInfo.height / 16;
+
+	const RdrResource* pLumInput = pColorBuffer;
+	const RdrResource* pTileHistograms = RdrResourceSystem::GetResource(m_hToneMapTileHistograms);
+	const RdrResource* pMergedHistogram = RdrResourceSystem::GetResource(m_hToneMapMergedHistogram);
+	const RdrResource* pResponseCurve = RdrResourceSystem::GetResource(m_hToneMapHistogramResponseCurve);
+	const RdrConstantBuffer* pToneMapParams = RdrResourceSystem::GetConstantBuffer(m_hToneMapHistogramSettings);
+
+	rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::LuminanceHistogram_Tile);
+	rDrawState.csResources[0] = pColorBuffer->resourceView;
+	rDrawState.csUavs[0] = pTileHistograms->uav;
+	rDrawState.csConstantBuffers[0] = pToneMapParams->bufferObj;
+	rDrawState.csConstantBufferCount = 1;
+	pRdrContext->DispatchCompute(rDrawState, w, h, 1);
+
+	rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::LuminanceHistogram_Merge);
+	rDrawState.csResources[0] = pTileHistograms->resourceView;
+	rDrawState.csUavs[0] = pMergedHistogram->uav;
+	rDrawState.csConstantBuffers[0] = pToneMapParams->bufferObj;
+	rDrawState.csConstantBufferCount = 1;
+	pRdrContext->DispatchCompute(rDrawState, (uint)ceilf(2700.f / 1024.f), 1, 1); //todo2 thread counts
+
+	rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::LuminanceHistogram_ResponseCurve);
+	rDrawState.csResources[0] = pMergedHistogram->resourceView;
+	rDrawState.csUavs[0] = pResponseCurve->uav;
+	rDrawState.csConstantBuffers[0] = pToneMapParams->bufferObj;
+	rDrawState.csConstantBufferCount = 1;
+	pRdrContext->DispatchCompute(rDrawState, 1, 1, 1);
+
+	rDrawState.Reset();
 
 	pRdrContext->EndEvent();
 }
@@ -328,12 +410,28 @@ void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState
 	rDrawState.pVertexShader = RdrShaderSystem::GetVertexShader(kScreenVertexShader);
 
 	// Pixel shader
-	rDrawState.pPixelShader = RdrShaderSystem::GetPixelShader(m_hToneMapPs);
-	rDrawState.psResources[0] = pColorBuffer->resourceView;
-	rDrawState.psSamplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
-	rDrawState.psResources[1] = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[1])->resourceView;
-	rDrawState.psSamplers[1] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
-	rDrawState.psResources[2] = RdrResourceSystem::GetResource(m_hToneMapOutputConstants)->resourceView;
+	if (m_useHistogramToneMap)
+	{
+		rDrawState.pPixelShader = RdrShaderSystem::GetPixelShader(m_hToneMapHistogramPs);
+		rDrawState.psResources[0] = pColorBuffer->resourceView;
+		rDrawState.psSamplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+		rDrawState.psResources[1] = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[1])->resourceView;
+		rDrawState.psSamplers[1] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+		rDrawState.psResources[2] = RdrResourceSystem::GetResource(m_hToneMapOutputConstants)->resourceView;
+		rDrawState.psResources[3] = RdrResourceSystem::GetResource(m_hToneMapHistogramResponseCurve)->resourceView;
+
+		rDrawState.psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(m_hToneMapHistogramSettings)->bufferObj;
+		rDrawState.psConstantBufferCount = 1;
+	}
+	else
+	{
+		rDrawState.pPixelShader = RdrShaderSystem::GetPixelShader(m_hToneMapPs);
+		rDrawState.psResources[0] = pColorBuffer->resourceView;
+		rDrawState.psSamplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+		rDrawState.psResources[1] = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[1])->resourceView;
+		rDrawState.psSamplers[1] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+		rDrawState.psResources[2] = RdrResourceSystem::GetResource(m_hToneMapOutputConstants)->resourceView;
+	}
 
 	// Input assembly
 	rDrawState.inputLayout.pInputLayout = nullptr;

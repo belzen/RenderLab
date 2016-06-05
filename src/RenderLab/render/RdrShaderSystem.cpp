@@ -38,6 +38,9 @@ namespace
 		{ "c_luminance_measure.hlsl", { "STEP_ONE", 0 } },   // RdrComputeShader::LuminanceMeasure_First,
 		{ "c_luminance_measure.hlsl", { "STEP_MID", 0 } },   // RdrComputeShader::LuminanceMeasure_Mid,
 		{ "c_luminance_measure.hlsl", { "STEP_FINAL", 0 } }, // RdrComputeShader::LuminanceMeasure_Final,
+		{ "c_luminance_histogram.hlsl",{ "STEP_TILE", 0 } },   // RdrComputeShader::LuminanceHistogram_Tile,
+		{ "c_luminance_histogram.hlsl",{ "STEP_MERGE", 0 } },   // RdrComputeShader::LuminanceHistogram_Merge
+		{ "c_luminance_histogram.hlsl",{ "STEP_CURVE", 0 } }, // RdrComputeShader::LuminanceHistogram_ResponseCurve
 		{ "c_bloom_shrink.hlsl",      { 0 } },               // RdrComputeShader::Bloom,
 		{ "c_add.hlsl",               { 0 } },               // RdrComputeShader::Add,
 		{ "c_blur.hlsl",              { "BLUR_HORIZONTAL", 0 } }, // RdrComputeShader::BlurHorizontal,

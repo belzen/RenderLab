@@ -33,6 +33,7 @@ namespace
 	{
 		RdrResourceHandle hResource;
 		const void* pData;
+		RdrResourceFormat eFormat;
 		uint elementSize;
 		uint numElements;
 		RdrResourceUsage eUsage;
@@ -265,6 +266,21 @@ RdrResourceHandle RdrResourceSystem::CreateTextureCube(uint width, uint height, 
 RdrResourceHandle RdrResourceSystem::CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat)
 {
 	return createTextureInternal(width, height, 1, arraySize, eFormat, 1, true, RdrResourceUsage::Default);
+}
+
+RdrResourceHandle RdrResourceSystem::CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage)
+{
+	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
+
+	ResCmdCreateBuffer& cmd = getQueueState().bufferCreates.pushSafe();
+	cmd.hResource = s_resourceSystem.resources.getId(pResource);
+	cmd.pData = pSrcData;
+	cmd.numElements = numElements;
+	cmd.eFormat = eFormat;
+	cmd.elementSize = 0;
+	cmd.eUsage = eUsage;
+
+	return cmd.hResource;
 }
 
 RdrResourceHandle RdrResourceSystem::CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage)
@@ -551,7 +567,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	{
 		ResCmdUpdateBuffer& cmd = state.bufferUpdates[i];
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
-		pRdrContext->UpdateStructuredBuffer(cmd.pData, *pResource);
+		pRdrContext->UpdateBuffer(cmd.pData, *pResource);
 	}
 
 	// Create buffers
@@ -560,9 +576,19 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	{
 		ResCmdCreateBuffer& cmd = state.bufferCreates[i];
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
+
 		pResource->bufferInfo.elementSize = cmd.elementSize;
 		pResource->bufferInfo.numElements = cmd.numElements;
-		pRdrContext->CreateStructuredBuffer(cmd.pData, cmd.numElements, cmd.elementSize, cmd.eUsage, *pResource);
+		pResource->bufferInfo.eFormat = cmd.eFormat;
+
+		if (cmd.elementSize)
+		{
+			pRdrContext->CreateStructuredBuffer(cmd.pData, cmd.numElements, cmd.elementSize, cmd.eUsage, *pResource);
+		}
+		else
+		{
+			pRdrContext->CreateDataBuffer(cmd.pData, cmd.numElements, cmd.eFormat, cmd.eUsage, *pResource);
+		}
 	}
 
 	// Create render targets

@@ -29,11 +29,18 @@ public:
 
 private:
 	void DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrConstantBufferHandle hToneMapInputConstants);
+	void DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
 	void DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrConstantBufferHandle hToneMapInputConstants);
 	void DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
 
 	RdrShaderHandle m_hToneMapPs;
 	RdrResourceHandle m_hToneMapOutputConstants;
+
+	RdrShaderHandle m_hToneMapHistogramPs;
+	RdrResourceHandle m_hToneMapTileHistograms;
+	RdrResourceHandle m_hToneMapMergedHistogram;
+	RdrResourceHandle m_hToneMapHistogramResponseCurve;
+	RdrConstantBufferHandle m_hToneMapHistogramSettings;
 
 	RdrResourceHandle m_hLumOutputs[4];
 
@@ -51,6 +58,7 @@ private:
 	RdrResource m_lumDebugRes[3];
 	RdrResource m_tonemapDebugRes[3];
 	int m_dbgFrame;
+	bool m_useHistogramToneMap;
 };
 
 inline const RdrPostProcessDbgData& RdrPostProcess::GetDebugData() const

@@ -27,8 +27,9 @@ public:
 
 	virtual bool CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource) = 0;
 
+	virtual bool CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResource& rResource) = 0;
 	virtual bool CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage, RdrResource& rResource) = 0;
-	virtual bool UpdateStructuredBuffer(const void* pSrcData, RdrResource& rResource) = 0;
+	virtual bool UpdateBuffer(const void* pSrcData, RdrResource& rResource) = 0;
 
 	virtual void CopyResourceRegion(const RdrResource& rSrcResource, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset) = 0;
 	virtual void ReadResource(const RdrResource& rSrcResource, void* pDstData, uint dstDataSize) = 0;

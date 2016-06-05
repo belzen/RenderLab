@@ -37,6 +37,9 @@ namespace
 			DXGI_FORMAT_R16_UNORM,				// ResourceFormat::D16
 			DXGI_FORMAT_R24_UNORM_X8_TYPELESS,	// ResourceFormat::D24_UNORM_S8_UINT
 			DXGI_FORMAT_R16_UNORM,				// ResourceFormat::R16_UNORM
+			DXGI_FORMAT_R16_UINT,				// ResourceFormat::R16_UINT
+			DXGI_FORMAT_R16_FLOAT,				// ResourceFormat::R16_FLOAT
+			DXGI_FORMAT_R32_UINT,				// ResourceFormat::R32_UINT
 			DXGI_FORMAT_R16G16_FLOAT,			// ResourceFormat::R16G16_FLOAT
 			DXGI_FORMAT_R8_UNORM,				// ResourceFormat::R8_UNORM
 			DXGI_FORMAT_BC1_UNORM,				// ResourceFormat::DXT1
@@ -58,6 +61,9 @@ namespace
 			DXGI_FORMAT_D16_UNORM,			// ResourceFormat::D16
 			DXGI_FORMAT_D24_UNORM_S8_UINT,	// ResourceFormat::D24_UNORM_S8_UINT
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R16_UNORM
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R16_UINT
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R16_FLOAT
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R32_UINT
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R16G16_FLOAT
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R8_UNORM
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::DXT1
@@ -80,6 +86,9 @@ namespace
 			DXGI_FORMAT_R16_TYPELESS,		   // ResourceFormat::D16
 			DXGI_FORMAT_R24G8_TYPELESS,		   // ResourceFormat::D24_UNORM_S8_UINT
 			DXGI_FORMAT_R16_TYPELESS,		   // ResourceFormat::R16_UNORM
+			DXGI_FORMAT_R16_TYPELESS,		   // ResourceFormat::R16_UINT
+			DXGI_FORMAT_R16_TYPELESS,		   // ResourceFormat::R16_FLOAT
+			DXGI_FORMAT_R32_TYPELESS,          // ResourceFormat::R32_UINT
 			DXGI_FORMAT_R16G16_TYPELESS,	   // ResourceFormat::R16G16_FLOAT
 			DXGI_FORMAT_R8_TYPELESS,		   // ResourceFormat::R8_UNORM
 			DXGI_FORMAT_BC1_TYPELESS,		   // ResourceFormat::DXT1
@@ -139,6 +148,68 @@ namespace
 	}
 }
 
+bool RdrContextD3D11::CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResource& rResource)
+{
+	D3D11_BUFFER_DESC desc = { 0 };
+	D3D11_SUBRESOURCE_DATA data = { 0 };
+
+	desc.Usage = getD3DUsage(eUsage);
+	desc.ByteWidth = numElements * rdrGetTexturePitch(1, eFormat);
+	desc.StructureByteStride = 0;
+	desc.MiscFlags = 0;
+	if (eUsage == RdrResourceUsage::Staging)
+	{
+		desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		desc.BindFlags = 0;
+	}
+	else if (eUsage == RdrResourceUsage::Dynamic)
+	{
+		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	}
+	else
+	{
+		desc.CPUAccessFlags = 0;
+		desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+	}
+
+	data.pSysMem = pSrcData;
+	data.SysMemPitch = 0;
+	data.SysMemSlicePitch = 0;
+
+	HRESULT hr = m_pDevice->CreateBuffer(&desc, (pSrcData ? &data : nullptr), (ID3D11Buffer**)&rResource.pResource);
+	assert(hr == S_OK);
+
+	if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC desc;
+		desc.Buffer.ElementOffset = 0;
+		desc.Buffer.ElementWidth = rdrGetTexturePitch(1, eFormat);
+		desc.Buffer.FirstElement = 0;
+		desc.Buffer.NumElements = numElements;
+		desc.Format = getD3DFormat(eFormat);
+		desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+
+		hr = m_pDevice->CreateShaderResourceView(rResource.pResource, &desc, &rResource.resourceView.pViewD3D11);
+		assert(hr == S_OK);
+	}
+
+	if (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
+	{
+		D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
+		desc.Buffer.FirstElement = 0;
+		desc.Buffer.Flags = 0;
+		desc.Buffer.NumElements = numElements;
+		desc.Format = getD3DFormat(eFormat);
+		desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+
+		hr = m_pDevice->CreateUnorderedAccessView(rResource.pResource, &desc, &rResource.uav.pViewD3D11);
+		assert(hr == S_OK);
+	}
+
+	return true;
+}
+
 bool RdrContextD3D11::CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage, RdrResource& rResource)
 {
 	D3D11_BUFFER_DESC desc = { 0 };
@@ -186,13 +257,20 @@ bool RdrContextD3D11::CreateStructuredBuffer(const void* pSrcData, int numElemen
 	return true;
 }
 
-bool RdrContextD3D11::UpdateStructuredBuffer(const void* pSrcData, RdrResource& rResource)
+bool RdrContextD3D11::UpdateBuffer(const void* pSrcData, RdrResource& rResource)
 {
 	D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
 	HRESULT hr = m_pDevContext->Map(rResource.pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 	assert(hr == S_OK);
 
-	memcpy(mapped.pData, pSrcData, rResource.bufferInfo.elementSize * rResource.bufferInfo.numElements);
+	if (rResource.bufferInfo.elementSize)
+	{
+		memcpy(mapped.pData, pSrcData, rResource.bufferInfo.elementSize * rResource.bufferInfo.numElements);
+	}
+	else
+	{
+		memcpy(mapped.pData, pSrcData, rdrGetTexturePitch(1, rResource.bufferInfo.eFormat) * rResource.bufferInfo.numElements);
+	}
 
 	m_pDevContext->Unmap(rResource.pBuffer, 0);
 

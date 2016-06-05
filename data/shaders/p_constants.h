@@ -18,4 +18,11 @@ struct ToneMapOutputParams
 	float unused;
 };
 
+struct ToneMapHistogramParams
+{
+	float logLuminanceMin;
+	float logLuminanceMax;
+	uint tileCount;
+};
+
 #endif // SHADER_P_CONSTANTS_H

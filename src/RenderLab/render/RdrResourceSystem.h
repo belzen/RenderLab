@@ -19,6 +19,8 @@ namespace RdrResourceSystem
 	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat);
 	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat);
 
+	RdrResourceHandle CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
+
 	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage);
 	RdrResourceHandle UpdateStructuredBuffer(const RdrResourceHandle hResource, const void* pSrcData);
 

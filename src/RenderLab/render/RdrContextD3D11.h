@@ -39,8 +39,9 @@ class RdrContextD3D11 : public RdrContext
 
 	bool CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource);
 
+	bool CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResource& rResource);
 	bool CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage, RdrResource& rResource);
-	bool UpdateStructuredBuffer(const void* pSrcData, RdrResource& rResource);
+	bool UpdateBuffer(const void* pSrcData, RdrResource& rResource);
 
 	void CopyResourceRegion(const RdrResource& rSrcResource, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset);
 	void ReadResource(const RdrResource& rSrcResource, void* pDstData, uint dstDataSize);
