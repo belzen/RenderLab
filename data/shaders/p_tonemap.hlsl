@@ -48,7 +48,7 @@ float4 main(VsOutputSprite input) : SV_TARGET
 #if TONEMAP_HISTOGRAM
 	float logLum = log(getLuminance(color));
 	uint bin = 64 * saturate(logLum - cbHistogram.logLuminanceMin) / (cbHistogram.logLuminanceMax - cbHistogram.logLuminanceMin);
-	color.rgb *= (bin < 64) ? responseCurve[bin] : 1.f; // todo2 - bin should always be in a valid range because of saturate()
+	color.rgb *= (bin < 64) ? responseCurve[bin] : 1.f; // todo - bin should always be in a valid range because of saturate()
 
 #else
 	color.rgb *= tonemap.linearExposure;

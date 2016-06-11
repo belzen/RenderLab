@@ -7,8 +7,11 @@
 #include "Camera.h"
 
 struct RdrDrawOp;
+class Scene;
 class LightList;
 class RdrPostProcessEffects;
+
+typedef std::vector<const RdrDrawOp*> RdrDrawOpBucket;
 
 #define MAX_ACTIONS_PER_FRAME 16
 #define MAX_RENDER_TARGETS 6
@@ -45,9 +48,10 @@ struct RdrAction
 	///
 	LPCWSTR name;
 
-	std::vector<RdrDrawOp*> buckets[(int)RdrBucketType::Count];
+	RdrDrawOpBucket buckets[(int)RdrBucketType::Count];
 	RdrPassData passes[(int)RdrPass::Count];
 
+	const Scene* pScene;
 	Camera camera;
 
 	Rect primaryViewport;

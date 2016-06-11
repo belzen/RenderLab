@@ -49,12 +49,12 @@ public:
 		releaseId(id);
 	}
 
-	inline void release(T_object* pObj)
+	inline void release(const T_object* pObj)
 	{
 		releaseId(getId(pObj));
 	}
 
-	inline void releaseSafe(T_object* pObj)
+	inline void releaseSafe(const T_object* pObj)
 	{
 		AutoScopedLock lock(m_mutex);
 		releaseId(getId(pObj));
@@ -72,7 +72,7 @@ public:
 		return &m_objects[id];
 	}
 
-	inline Handle getId(T_object* pObj)
+	inline Handle getId(const T_object* pObj)
 	{
 		return (Handle)(pObj - m_objects);
 	}

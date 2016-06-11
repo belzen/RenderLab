@@ -150,7 +150,7 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 
 	if (m_useHistogramToneMap)
 	{
-		uint numTiles = (uint)ceilf(width / 32.f) * (uint)ceilf(height / 16.f); // todo2 - share tile sizes & histogram bin sizes with shader
+		uint numTiles = (uint)ceilf(width / 32.f) * (uint)ceilf(height / 16.f); // todo - share tile sizes & histogram bin sizes with shader
 		if (m_hToneMapTileHistograms)
 			RdrResourceSystem::ReleaseResource(m_hToneMapTileHistograms);
 		m_hToneMapTileHistograms = RdrResourceSystem::CreateDataBuffer(nullptr, numTiles * 64, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
@@ -289,7 +289,7 @@ void RdrPostProcess::DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState&
 	rDrawState.csUavs[0] = pMergedHistogram->uav;
 	rDrawState.csConstantBuffers[0] = pToneMapParams->bufferObj;
 	rDrawState.csConstantBufferCount = 1;
-	pRdrContext->DispatchCompute(rDrawState, (uint)ceilf(2700.f / 1024.f), 1, 1); //todo2 thread counts
+	pRdrContext->DispatchCompute(rDrawState, (uint)ceilf(2700.f / 1024.f), 1, 1); //todo thread counts
 
 	rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::LuminanceHistogram_ResponseCurve);
 	rDrawState.csResources[0] = pMergedHistogram->resourceView;

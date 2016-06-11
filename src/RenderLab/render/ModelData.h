@@ -1,21 +1,22 @@
 #pragma once
 
-#include "RdrDrawOp.h"
 #include "RdrGeoSystem.h"
 
-class Renderer;
+struct RdrMaterial;
 namespace AssetLib
 {
 	struct Model;
 }
 
-class Model;
-typedef FreeList<Model, 1024> ModelFreeList;
+class ModelData;
+typedef FreeList<ModelData, 1024> ModelDataFreeList;
 
-class Model
+class ModelData
 {
 public:
-	static Model* LoadFromFile(const char* modelName);
+	static const uint kMaxSubObjects = 16;
+
+	static ModelData* LoadFromFile(const char* modelName);
 
 	struct SubObject
 	{
@@ -25,8 +26,6 @@ public:
 
 	void Release();
 
-	void QueueDraw(Renderer& rRenderer, const Matrix44& worldMat);
-
 	float GetRadius() const;
 
 	const SubObject& GetSubObject(const uint index) const;
@@ -34,12 +33,12 @@ public:
 	uint GetNumSubObjects() const;
 
 private:
-	friend ModelFreeList;
-	Model() {}
+	friend ModelDataFreeList;
+	ModelData() {}
 
 	AssetLib::Model* m_pBinData;
 
-	SubObject m_subObjects[16];
+	SubObject m_subObjects[kMaxSubObjects];
 	uint m_subObjectCount;
 
 	float m_radius;
@@ -47,17 +46,17 @@ private:
 	char m_modelName[AssetLib::AssetDef::kMaxNameLen];
 };
 
-inline float Model::GetRadius() const 
+inline float ModelData::GetRadius() const
 {
 	return m_radius;
 }
 
-inline const Model::SubObject& Model::GetSubObject(const uint index) const
+inline const ModelData::SubObject& ModelData::GetSubObject(const uint index) const
 {
 	return m_subObjects[index];
 }
 
-inline uint Model::GetNumSubObjects() const
+inline uint ModelData::GetNumSubObjects() const
 {
 	return m_subObjectCount;
 }

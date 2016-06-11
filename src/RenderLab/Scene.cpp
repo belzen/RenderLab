@@ -3,7 +3,7 @@
 #include "render/Camera.h"
 #include "render/Renderer.h"
 #include "WorldObject.h"
-#include "render/Model.h"
+#include "render/ModelInstance.h"
 #include "render/Font.h"
 #include "AssetLib/SceneAsset.h"
 
@@ -125,7 +125,7 @@ void Scene::Load(const char* sceneName)
 		for (uint i = 0; i < numObjects; ++i)
 		{
 			const AssetLib::Object& rObjectData = pSceneData->objects.ptr[i];
-			Model* pModel = Model::LoadFromFile(rObjectData.model);
+			ModelInstance* pModel = ModelInstance::Create(rObjectData.model);
 			m_objects.push_back(WorldObject::Create(pModel, rObjectData.position, rObjectData.orientation, rObjectData.scale));
 		}
 	}
@@ -155,11 +155,12 @@ void Scene::QueueShadowMaps(Renderer& rRenderer)
 	m_lights.PrepareDrawForScene(rRenderer, *this);
 }
 
-void Scene::QueueDraw(Renderer& rRenderer) const
+void Scene::PrepareDraw()
 {
 	for (uint i = 0; i < m_objects.size(); ++i)
 	{
-		m_objects[i]->QueueDraw(rRenderer);
+		m_objects[i]->PrepareDraw();
 	}
-	m_sky.QueueDraw(rRenderer);
+	m_sky.PrepareDraw();
+	m_postProcEffects.PrepareDraw();
 }

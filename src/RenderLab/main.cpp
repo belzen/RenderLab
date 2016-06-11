@@ -169,14 +169,14 @@ int main(int argc, char** argv)
 
 		// Primary render action
 		{
+			g_scene.PrepareDraw();
+
 			g_scene.QueueShadowMaps(g_renderer);
 
-			g_renderer.BeginPrimaryAction(g_scene.GetMainCamera(), g_scene.GetLightList(), g_scene.GetPostProcEffects());
-
-			g_scene.QueueDraw(g_renderer);
-
-			Debug::QueueDraw(g_renderer, g_scene, frameTimer);
-
+			g_renderer.BeginPrimaryAction(g_scene.GetMainCamera(), g_scene);
+			{
+				Debug::QueueDraw(g_renderer, g_scene, frameTimer);
+			}
 			g_renderer.EndAction();
 		}
 

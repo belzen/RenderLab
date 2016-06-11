@@ -11,6 +11,8 @@ class WorldObject;
 class RdrContext;
 class RdrPostProcessEffects;
 
+typedef std::vector<WorldObject*> WorldObjectList;
+
 class Scene
 {
 public:
@@ -20,12 +22,18 @@ public:
 	void Load(const char* sceneName);
 
 	void Update(float dt);
+
+	void PrepareDraw();
+
 	void QueueShadowMaps(Renderer& rRenderer);
-	void QueueDraw(Renderer& rRenderer) const;
+
+	const Sky& GetSky() const;
+
+	const WorldObjectList& GetWorldObjects() const;
 
 	const LightList* GetLightList() const;
 
-	RdrPostProcessEffects& GetPostProcEffects();
+	const RdrPostProcessEffects* GetPostProcEffects() const;
 
 	Camera& GetMainCamera();
 	const Camera& GetMainCamera() const;
@@ -35,7 +43,7 @@ public:
 private:
 	void Cleanup();
 
-	std::vector<WorldObject*> m_objects;
+	WorldObjectList m_objects;
 	LightList m_lights;
 	Camera m_mainCamera;
 	Sky m_sky;
@@ -45,14 +53,24 @@ private:
 	bool m_reloadPending;
 };
 
+inline const Sky& Scene::GetSky() const
+{
+	return m_sky;
+}
+
+inline const WorldObjectList& Scene::GetWorldObjects() const
+{
+	return m_objects;
+}
+
 inline const LightList* Scene::GetLightList() const
 { 
 	return &m_lights; 
 }
 
-inline RdrPostProcessEffects& Scene::GetPostProcEffects()
+inline const RdrPostProcessEffects* Scene::GetPostProcEffects() const
 {
-	return m_postProcEffects;
+	return &m_postProcEffects;
 }
 
 inline Camera& Scene::GetMainCamera()

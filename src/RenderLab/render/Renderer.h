@@ -26,9 +26,9 @@ public:
 
 	void ApplyDeviceChanges();
 
-	void BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
-	void BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
-	void BeginPrimaryAction(const Camera& rCamera, const LightList* pLights, RdrPostProcessEffects& rPostProcEffects);
+	void BeginShadowMapAction(const Camera& rCamera, const Scene& rScene, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
+	void BeginShadowCubeMapAction(const Light* pLight, const Scene& rScene, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
+	void BeginPrimaryAction(const Camera& rCamera, const Scene& rScene);
 	void EndAction();
 
 	void AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);
@@ -58,7 +58,7 @@ private:
 	RdrAction* GetNextAction();
 
 	void DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices);
-	void DispatchCompute(RdrDrawOp* pDrawOp);
+	void DispatchCompute(const RdrDrawOp* pDrawOp);
 
 	void ProcessReadbackRequests();
 

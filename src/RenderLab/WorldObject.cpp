@@ -1,15 +1,15 @@
 #include "Precompiled.h"
 #include "WorldObject.h"
-#include "render/Model.h"
+#include "render/ModelInstance.h"
 #include "render/Renderer.h"
 #include "render/Camera.h"
 
 namespace
 {
-	WorldObjectList s_worldObjects;
+	WorldObjectFreeList s_worldObjects;
 }
 
-WorldObject* WorldObject::Create(Model* pModel, Vec3 pos, Quaternion orientation, Vec3 scale)
+WorldObject* WorldObject::Create(ModelInstance* pModel, Vec3 pos, Quaternion orientation, Vec3 scale)
 {
 	WorldObject* pObject = s_worldObjects.allocSafe();
 
@@ -17,6 +17,7 @@ WorldObject* WorldObject::Create(Model* pModel, Vec3 pos, Quaternion orientation
 	pObject->m_position = pos;
 	pObject->m_scale = scale;
 	pObject->m_orientation = orientation;
+	pObject->m_transformChanged = true;
 
 	return pObject;
 }
@@ -27,14 +28,11 @@ void WorldObject::Release()
 	s_worldObjects.releaseSafe(this);
 }
 
-void WorldObject::QueueDraw(Renderer& rRenderer) const
+void WorldObject::PrepareDraw()
 {
 	if (m_pModel)
 	{
-		float radius = m_pModel->GetRadius() * Vec3MaxComponent(m_scale);
-		if (!rRenderer.GetCurrentCamera().CanSee(m_position, radius))
-			return;
-
-		m_pModel->QueueDraw(rRenderer, GetTransform());
+		m_pModel->PrepareDraw(GetTransform(), m_transformChanged);
+		m_transformChanged = false;
 	}
 }

@@ -4,7 +4,7 @@
 
 #define SAFE_DELETE(mem) if ( mem ) { delete mem; }
 
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0])) // TODO: Does this compile out in for loops?
 
 #define ENUM_FLAGS(enumType) \
 	inline enumType operator & (const enumType lhs, const enumType rhs) \

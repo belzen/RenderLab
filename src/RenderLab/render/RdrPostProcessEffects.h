@@ -3,9 +3,6 @@
 #include "AssetLib/PostProcessEffectsAsset.h"
 #include "RdrResource.h"
 
-class Renderer;
-class RdrContext;
-
 class RdrPostProcessEffects
 {
 public:
@@ -13,7 +10,7 @@ public:
 
 	void Init(const AssetLib::PostProcessEffects* pEffects);
 
-	void PrepareForDraw(Renderer& rRenderer);
+	void PrepareDraw();
 
 	RdrConstantBufferHandle GetToneMapInputConstants() const;
 

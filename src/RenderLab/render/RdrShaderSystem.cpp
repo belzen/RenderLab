@@ -85,11 +85,20 @@ namespace
 		SizedArray<ShdrCmdReloadShader, 128>      shaderReloads;
 	};
 
+	struct InputLayoutCache
+	{
+		RdrInputLayoutHandle hInputLayouts[4];
+		Hashing::SHA1 hashes[4];
+		int numLayouts;
+	};
+
 	struct
 	{
 		RdrShader errorShaders[(int)RdrShaderStage::Count];
 
+		InputLayoutCache inputLayoutCaches[(int)RdrVertexShaderType::Count * (int)RdrShaderFlags::NumCombos];
 		RdrShader vertexShaders[(int)RdrVertexShaderType::Count * (int)RdrShaderFlags::NumCombos];
+
 		RdrShader geometryShaders[(int)RdrGeometryShaderType::Count * (int)RdrShaderFlags::NumCombos];
 		RdrShader computeShaders[(int)RdrComputeShader::Count];
 
@@ -342,12 +351,33 @@ RdrInputLayoutHandle RdrShaderSystem::CreateInputLayout(const RdrVertexShader& v
 {
 	RdrInputLayout* pLayout = s_shaderSystem.inputLayouts.allocSafe();
 
+	// Check for cached input layout
+	Hashing::SHA1 hash;
+	Hashing::SHA1::Calculate((char*)aVertexElements, numElements, hash);
+
+	uint shaderIndex = getVertexShaderIndex(vertexShader);
+	InputLayoutCache& rLayoutCache = s_shaderSystem.inputLayoutCaches[shaderIndex];
+	for (int i = 0; i < rLayoutCache.numLayouts; ++i)
+	{
+		if (memcmp(&rLayoutCache.hashes[i], &hash, sizeof(Hashing::SHA1)) == 0)
+		{
+			return rLayoutCache.hInputLayouts[i];
+		}
+	}
+
+	// Layout doesn't already exist, create a new one.
 	ShdrCmdCreateInputLayout& cmd = getQueueState().layoutCreates.pushSafe();
 	cmd.hLayout = s_shaderSystem.inputLayouts.getId(pLayout);
 	cmd.vertexShader = vertexShader;
-	cmd.hLayout = s_shaderSystem.inputLayouts.getId(pLayout);
 	cmd.numElements = numElements;
 	memcpy(cmd.vertexElements, aVertexElements, sizeof(RdrVertexInputElement) * numElements);
+
+	// Add input layout to the cache.
+	assert(rLayoutCache.numLayouts < ARRAY_SIZE(rLayoutCache.hInputLayouts));
+
+	rLayoutCache.hInputLayouts[rLayoutCache.numLayouts] = cmd.hLayout;
+	rLayoutCache.hashes[rLayoutCache.numLayouts] = hash;
+	rLayoutCache.numLayouts++;
 
 	return cmd.hLayout;
 }

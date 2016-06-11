@@ -22,7 +22,7 @@ VsOutputSky main(VertexInput input)
 
 	output.direction = input.position;
 
-	output.position = mul(float4(input.position, 1.f), mtxWorld);
+	output.position = float4(input.position + cbPerAction.cameraPosition, 1);
 	output.position = mul(output.position, cbPerAction.mtxViewProj).xyww;
 
 	return output;

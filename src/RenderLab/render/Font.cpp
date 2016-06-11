@@ -49,6 +49,7 @@ namespace
 		op->eType = RdrDrawOpType::Graphics;
 		op->graphics.hGeo = rText.hTextGeo;
 		op->graphics.bFreeGeo = bFreeGeo;
+		op->graphics.bTempDrawOp = true;
 		op->graphics.hInputLayout = s_text.hInputLayout;
 		op->graphics.vertexShader = kVertexShader;
 		op->graphics.pMaterial = &s_text.material;

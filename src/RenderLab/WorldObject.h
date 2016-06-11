@@ -1,39 +1,42 @@
 #pragma once
 
-class Model;
-class Renderer;
+#include "render/ModelInstance.h"
 
 class WorldObject;
-typedef FreeList<WorldObject, 1024> WorldObjectList;
+typedef FreeList<WorldObject, 1024> WorldObjectFreeList;
 
 class WorldObject
 {
 public:
-	static WorldObject* Create(Model* pModel, Vec3 pos, Quaternion orientation, Vec3 scale);
+	static WorldObject* Create(ModelInstance* pModel, Vec3 pos, Quaternion orientation, Vec3 scale);
 	void Release();
 
-	inline void SetModel(Model* pModel);
-	inline const Model* GetModel() const;
+	void SetModel(ModelInstance* pModel);
+	const ModelInstance* GetModel() const;
 
-	inline const Vec3& GetPosition() const;
-	inline void SetPosition(Vec3 pos);
+	const Vec3& GetPosition() const;
+	void SetPosition(Vec3 pos);
 
-	inline const Quaternion& GetOrientation() const;
+	const Quaternion& GetOrientation() const;
 
-	inline const Vec3& GetScale() const;
-	inline void SetScale(Vec3 scale);
+	const Vec3& GetScale() const;
+	void SetScale(Vec3 scale);
 
-	inline const Matrix44 GetTransform() const;
+	const Matrix44 GetTransform() const;
 
-	void QueueDraw(Renderer& rRenderer) const;
+	float GetRadius() const;
+
+	void PrepareDraw();
 
 private:
-	friend WorldObjectList;
+	friend WorldObjectFreeList;
 
-	Model* m_pModel;
 	Vec3 m_position;
 	Vec3 m_scale;
 	Quaternion m_orientation;
+	bool m_transformChanged;
+
+	ModelInstance* m_pModel;
 };
 
 inline const Matrix44 WorldObject::GetTransform() const
@@ -41,12 +44,12 @@ inline const Matrix44 WorldObject::GetTransform() const
 	return Matrix44Transformation(Vec3::kOrigin, Quaternion::kIdentity, m_scale, Vec3::kOrigin, m_orientation, m_position);
 }
 
-inline void WorldObject::SetModel(Model* pModel)
+inline void WorldObject::SetModel(ModelInstance* pModel)
 {
 	m_pModel = pModel; 
 }
 
-inline const Model* WorldObject::GetModel() const
+inline const ModelInstance* WorldObject::GetModel() const
 { 
 	return m_pModel; 
 }
@@ -58,7 +61,8 @@ inline const Vec3& WorldObject::GetPosition() const
 
 inline void WorldObject::SetPosition(Vec3 pos)
 { 
-	m_position = pos; 
+	m_position = pos;
+	m_transformChanged = true;
 }
 
 inline const Quaternion& WorldObject::GetOrientation() const
@@ -73,5 +77,11 @@ inline const Vec3& WorldObject::GetScale() const
 
 inline void WorldObject::SetScale(Vec3 scale)
 { 
-	m_scale = scale; 
+	m_scale = scale;
+	m_transformChanged = true;
+}
+
+inline float WorldObject::GetRadius() const
+{
+	return m_pModel->GetRadius() * Vec3MaxComponent(m_scale);
 }

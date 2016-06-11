@@ -192,8 +192,7 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
 					float width = (boundsMax.x - boundsMin.x);
 					lightCamera.SetAsOrtho(center, light.direction, std::max(width, height), -500.f, 500.f);
 
-					rRenderer.BeginShadowMapAction(lightCamera, m_shadowMapDepthViews[curShadowMapIndex], viewport);
-					scene.QueueDraw(rRenderer);
+					rRenderer.BeginShadowMapAction(lightCamera, scene, m_shadowMapDepthViews[curShadowMapIndex], viewport);
 					rRenderer.EndAction();
 
 					Matrix44 mtxView;
@@ -227,8 +226,7 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
 			pShadowData[curShadowMapIndex].mtxViewProj = Matrix44Transpose(pShadowData[curShadowMapIndex].mtxViewProj);
 
 			Rect viewport(0.f, 0.f, (float)s_shadowMapSize, (float)s_shadowMapSize);
-			rRenderer.BeginShadowMapAction(lightCamera, m_shadowMapDepthViews[curShadowMapIndex], viewport);
-			scene.QueueDraw(rRenderer);
+			rRenderer.BeginShadowMapAction(lightCamera, scene, m_shadowMapDepthViews[curShadowMapIndex], viewport);
 			rRenderer.EndAction();
 
 			++curShadowMapIndex;
@@ -243,8 +241,7 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
 
 			Rect viewport(0.f, 0.f, (float)s_shadowCubeMapSize, (float)s_shadowCubeMapSize);
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
-			rRenderer.BeginShadowCubeMapAction(&light, m_shadowCubeMapDepthViews[curShadowCubeMapIndex], viewport);
-			scene.QueueDraw(rRenderer);
+			rRenderer.BeginShadowCubeMapAction(&light, scene, m_shadowCubeMapDepthViews[curShadowCubeMapIndex], viewport);
 			rRenderer.EndAction();
 #else
 			for (uint face = 0; face < 6; ++face)

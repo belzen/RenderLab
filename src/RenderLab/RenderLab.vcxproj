@@ -185,10 +185,11 @@
     </ClCompile>
     <ClCompile Include="render\Camera.cpp" />
     <ClCompile Include="render\Font.cpp" />
+    <ClCompile Include="render\ModelInstance.cpp" />
     <ClCompile Include="render\RdrDeviceTypes.cpp" />
     <ClCompile Include="render\RdrGeoSystem.cpp" />
     <ClCompile Include="render\Light.cpp" />
-    <ClCompile Include="render\Model.cpp" />
+    <ClCompile Include="render\ModelData.cpp" />
     <ClCompile Include="render\RdrFrameState.cpp" />
     <ClCompile Include="render\RdrContextD3D11.cpp" />
     <ClCompile Include="render\RdrContextD3D11_Shaders.cpp" />
@@ -224,7 +225,8 @@
     <ClInclude Include="render\Camera.h" />
     <ClInclude Include="render\Font.h" />
     <ClInclude Include="render\Light.h" />
-    <ClInclude Include="render\Model.h" />
+    <ClInclude Include="render\ModelData.h" />
+    <ClInclude Include="render\ModelInstance.h" />
     <ClInclude Include="render\RdrContext.h" />
     <ClInclude Include="render\RdrContextD3D11.h" />
     <ClInclude Include="render\RdrDeviceTypes.h" />
@@ -298,6 +300,20 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="..\..\data\shaders\c_depth_partition.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_luminance_histogram.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>

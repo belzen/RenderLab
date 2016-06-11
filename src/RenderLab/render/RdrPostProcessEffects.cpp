@@ -15,7 +15,7 @@ void RdrPostProcessEffects::Init(const AssetLib::PostProcessEffects* pEffects)
 	m_effects = *pEffects;
 }
 
-void RdrPostProcessEffects::PrepareForDraw(Renderer& rRenderer)
+void RdrPostProcessEffects::PrepareDraw()
 {
 	if (!m_hToneMapInputConstants)
 	{

@@ -1,6 +1,6 @@
 #include "Precompiled.h"
 #include "Sky.h"
-#include "Model.h"
+#include "ModelData.h"
 #include "RdrDrawOp.h"
 #include "RdrScratchMem.h"
 #include "Renderer.h"
@@ -38,7 +38,8 @@ namespace
 }
 
 Sky::Sky()
-	: m_pModel(nullptr)
+	: m_pModelData(nullptr)
+	, m_hVsPerObjectConstantBuffer(0)
 	, m_pMaterial(nullptr)
 	, m_reloadListenerId(0)
 	, m_reloadPending(false)
@@ -48,7 +49,7 @@ Sky::Sky()
 
 void Sky::Cleanup()
 {
-	m_pModel = nullptr;
+	m_pModelData = nullptr;
 	m_pMaterial = nullptr;
 	m_skyName[0] = 0;
 	FileWatcher::RemoveListener(m_reloadListenerId);
@@ -80,7 +81,7 @@ void Sky::Load(const char* skyName)
 	}
 
 	AssetLib::Sky* pSky = AssetLib::Sky::FromMem(pFileData);
-	m_pModel = Model::LoadFromFile(pSky->model);
+	m_pModelData = ModelData::LoadFromFile(pSky->model);
 	m_pMaterial = RdrMaterial::LoadFromFile(pSky->material);
 
 	if (!s_hSkyInputLayout)
@@ -109,25 +110,42 @@ void Sky::Update(float dt)
 	}
 }
 
-void Sky::QueueDraw(Renderer& rRenderer) const
+void Sky::PrepareDraw()
 {
-	RdrDrawOp* pDrawOp = RdrDrawOp::Allocate();
-	pDrawOp->eType = RdrDrawOpType::Graphics;
+	if (!m_hVsPerObjectConstantBuffer)
+	{
+		Matrix44 mtxWorld = Matrix44Translation(Vec3::kZero);
+		uint constantsSize = sizeof(Vec4) * 4;
+		Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
+		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
+		m_hVsPerObjectConstantBuffer = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
+	}
 
-	Vec3 pos = rRenderer.GetCurrentCamera().GetPosition();
-	Matrix44 mtxWorld = Matrix44Translation(pos);
 
-	uint constantsSize = sizeof(Vec4) * 4;
-	Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
-	*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
-	pDrawOp->graphics.hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
+	uint numSubObjects = m_pModelData->GetNumSubObjects();
+	for (uint i = 0; i < numSubObjects; ++i)
+	{
+		const ModelData::SubObject& rSubObject = m_pModelData->GetSubObject(i);
 
-	pDrawOp->graphics.pMaterial = m_pMaterial;
+		if (!m_pSubObjectDrawOps[i])
+		{
+			RdrDrawOp* pDrawOp = m_pSubObjectDrawOps[i] = RdrDrawOp::Allocate();
+			pDrawOp->eType = RdrDrawOpType::Graphics;
 
-	pDrawOp->graphics.hInputLayout = s_hSkyInputLayout;
-	pDrawOp->graphics.vertexShader = kVertexShader;
+			pDrawOp->graphics.hVsConstants = m_hVsPerObjectConstantBuffer;
 
-	pDrawOp->graphics.hGeo = m_pModel->GetSubObject(0).hGeo;
+			pDrawOp->graphics.pMaterial = m_pMaterial;
 
-	rRenderer.AddToBucket(pDrawOp, RdrBucketType::Sky);
+			pDrawOp->graphics.hInputLayout = s_hSkyInputLayout;
+			pDrawOp->graphics.vertexShader = kVertexShader;
+			if (rSubObject.pMaterial->bAlphaCutout)
+			{
+				pDrawOp->graphics.vertexShader.flags |= RdrShaderFlags::AlphaCutout;
+			}
+
+			pDrawOp->graphics.hGeo = rSubObject.hGeo;
+			pDrawOp->graphics.bHasAlpha = false;
+			pDrawOp->graphics.bIsSky = true;
+		}
+	}
 }

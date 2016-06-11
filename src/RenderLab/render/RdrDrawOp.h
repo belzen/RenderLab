@@ -13,12 +13,16 @@ enum class RdrDrawOpType
 struct RdrDrawOp
 {
 	static RdrDrawOp* Allocate();
-	static void Release(RdrDrawOp* pDrawOp);
+	static void QueueRelease(const RdrDrawOp* pDrawOp);
+	static void ProcessReleases();
 
 	union
 	{
 		struct
 		{
+			float center[3];
+			float radius;
+
 			RdrConstantBufferHandle hVsConstants;
 
 			RdrInputLayoutHandle hInputLayout;
@@ -27,7 +31,10 @@ struct RdrDrawOp
 			const RdrMaterial* pMaterial;
 
 			RdrGeoHandle hGeo;
-			bool bFreeGeo;
+			uint8 bFreeGeo : 1;
+			uint8 bHasAlpha : 1;
+			uint8 bIsSky : 1;
+			uint8 bTempDrawOp : 1;
 		} graphics;
 
 		struct

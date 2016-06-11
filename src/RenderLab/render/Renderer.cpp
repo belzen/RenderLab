@@ -1,8 +1,8 @@
 #include "Precompiled.h"
 #include "Renderer.h"
-#include "Model.h"
 #include "Camera.h"
 #include "WorldObject.h"
+#include "ModelInstance.h"
 #include "Light.h"
 #include "Font.h"
 #include <DXGIFormat.h>
@@ -12,6 +12,7 @@
 #include "RdrShaderConstants.h"
 #include "RdrScratchMem.h"
 #include "RdrDrawOp.h"
+#include "Scene.h"
 
 #define ENABLE_DRAWOP_VALIDATION 1
 
@@ -68,6 +69,72 @@ namespace
 		if (pDrawOp->eType == RdrDrawOpType::Graphics)
 		{
 			assert(pDrawOp->graphics.hGeo);
+		}
+	}
+
+	void cullSceneToCamera(const Camera& rCamera, const Scene& rScene, RdrDrawOpBucket& rOpaqueBucket, RdrDrawOpBucket& rAlphaBucket, RdrDrawOpBucket& rSkyBucket)
+	{
+		rOpaqueBucket.clear();
+		rAlphaBucket.clear();
+		rSkyBucket.clear();
+
+		// World Objects
+		const WorldObjectList& objects = rScene.GetWorldObjects();
+		for (int i = (int)objects.size() - 1; i >= 0; --i)
+		{
+			const WorldObject* pObj = objects[i];
+			if (!rCamera.CanSee(pObj->GetPosition(), pObj->GetRadius()))
+				continue;
+			
+			const ModelInstance* pModel = pObj->GetModel();
+			const RdrDrawOp** apDrawOps = pModel->GetDrawOps();
+			uint numDrawOps = pModel->GetNumDrawOps();
+
+			for (uint k = 0; k < numDrawOps; ++k)
+			{
+				const RdrDrawOp* pDrawOp = apDrawOps[k];
+				if (pDrawOp)
+				{
+					if (pDrawOp->graphics.bHasAlpha)
+					{
+						rAlphaBucket.push_back(pDrawOp);
+					}
+					else if (pDrawOp->graphics.bIsSky)
+					{
+						rSkyBucket.push_back(pDrawOp);
+					}
+					else
+					{
+						rOpaqueBucket.push_back(pDrawOp);
+					}
+				}
+			}
+		}
+
+		// Sky
+		{
+			const RdrDrawOp** apDrawOps = rScene.GetSky().GetDrawOps();
+			uint numDrawOps = rScene.GetSky().GetNumDrawOps();
+
+			for (uint k = 0; k < numDrawOps; ++k)
+			{
+				const RdrDrawOp* pDrawOp = apDrawOps[k];
+				if (pDrawOp)
+				{
+					if (pDrawOp->graphics.bHasAlpha)
+					{
+						rAlphaBucket.push_back(pDrawOp);
+					}
+					else if (pDrawOp->graphics.bIsSky)
+					{
+						rSkyBucket.push_back(pDrawOp);
+					}
+					else
+					{
+						rOpaqueBucket.push_back(pDrawOp);
+					}
+				}
+			}
 		}
 	}
 }
@@ -293,13 +360,14 @@ void Renderer::QueueLightCulling()
 	AddToBucket(pCullOp, RdrBucketType::LightCulling);
 }
 
-void Renderer::BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
+void Renderer::BeginShadowMapAction(const Camera& rCamera, const Scene& rScene, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
 {
 	assert(m_pCurrentAction == nullptr);
 
 	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Shadow Map";
 	m_pCurrentAction->primaryViewport = viewport;
+	m_pCurrentAction->pScene = &rScene;
 
 	m_pCurrentAction->camera = rCamera;
 	m_pCurrentAction->camera.UpdateFrustum();
@@ -316,10 +384,15 @@ void Renderer::BeginShadowMapAction(const Camera& rCamera, RdrDepthStencilViewHa
 		rPass.shaderMode = RdrShaderMode::DepthOnly;
 	}
 
+	cullSceneToCamera(m_pCurrentAction->camera, rScene,
+		m_pCurrentAction->buckets[(int)RdrBucketType::Opaque],
+		m_pCurrentAction->buckets[(int)RdrBucketType::Alpha],
+		m_pCurrentAction->buckets[(int)RdrBucketType::Sky]);
+
 	CreatePerActionConstants();
 }
 
-void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
+void Renderer::BeginShadowCubeMapAction(const Light* pLight, const Scene& rScene, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
 {
 	assert(m_pCurrentAction == nullptr);
 
@@ -329,6 +402,7 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilView
 	m_pCurrentAction->name = L"Shadow Cube Map";
 	m_pCurrentAction->bIsCubemapCapture = true;
 	m_pCurrentAction->primaryViewport = viewport;
+	m_pCurrentAction->pScene = &rScene;
 
 	m_pCurrentAction->camera.SetAsSphere(pLight->position, 0.1f, viewDist);
 	m_pCurrentAction->camera.UpdateFrustum();
@@ -345,15 +419,22 @@ void Renderer::BeginShadowCubeMapAction(const Light* pLight, RdrDepthStencilView
 		rPass.hDepthTarget = hDepthView;
 	}
 
+	cullSceneToCamera(m_pCurrentAction->camera, rScene,
+		m_pCurrentAction->buckets[(int)RdrBucketType::Opaque],
+		m_pCurrentAction->buckets[(int)RdrBucketType::Alpha],
+		m_pCurrentAction->buckets[(int)RdrBucketType::Sky]);
+
 	CreatePerActionConstants();
 	CreateCubemapCaptureConstants(pLight->position, 0.1f, pLight->radius * 2.f);
 }
 
-void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLights, RdrPostProcessEffects& rPostProcEffects)
+void Renderer::BeginPrimaryAction(const Camera& rCamera, const Scene& rScene)
 {
 	assert(m_pCurrentAction == nullptr);
 
 	Rect viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);;
+
+	const LightList* pLights = rScene.GetLightList();
 
 	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Primary Action";
@@ -363,14 +444,15 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLight
 	m_pCurrentAction->lightParams.hShadowMapTexArray = pLights->GetShadowMapTexArray();
 	m_pCurrentAction->lightParams.lightCount = pLights->GetLightCount();
 
+	m_pCurrentAction->pScene = &rScene;
+
 	m_pCurrentAction->camera = rCamera;
 	m_pCurrentAction->camera.SetAspectRatio(m_viewWidth / (float)m_viewHeight);
 	m_pCurrentAction->camera.UpdateFrustum();
 
 	m_pCurrentAction->primaryViewport = viewport;
 
-	m_pCurrentAction->pPostProcEffects = &rPostProcEffects;
-	rPostProcEffects.PrepareForDraw(*this);
+	m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
 
 	// Z Prepass
 	RdrPassData* pPass = &m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
@@ -444,6 +526,11 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, const LightList* pLight
 		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 	
+	cullSceneToCamera(m_pCurrentAction->camera, rScene, 
+		m_pCurrentAction->buckets[(int)RdrBucketType::Opaque], 
+		m_pCurrentAction->buckets[(int)RdrBucketType::Alpha], 
+		m_pCurrentAction->buckets[(int)RdrBucketType::Sky]);
+
 	CreatePerActionConstants();
 	QueueLightCulling();
 }
@@ -496,6 +583,7 @@ void Renderer::CreatePerActionConstants()
 
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
+		pVsPerAction->cameraPosition = rCamera.GetPosition();
 
 		m_pCurrentAction->hPerActionVs = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
 
@@ -523,6 +611,7 @@ void Renderer::CreatePerActionConstants()
 
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
+		pVsPerAction->cameraPosition = Vec3::kZero;
 
 		m_pCurrentAction->hUiPerActionVs = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
 	
@@ -593,11 +682,11 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 
 	m_pContext->SetViewport(rPass.viewport);
 
-	std::vector<RdrDrawOp*>::const_iterator opIter = rAction.buckets[(int)s_passBuckets[(int)ePass] ].begin();
-	std::vector<RdrDrawOp*>::const_iterator opEndIter = rAction.buckets[(int)s_passBuckets[(int)ePass] ].end();
+	RdrDrawOpBucket::const_iterator opIter = rAction.buckets[(int)s_passBuckets[(int)ePass] ].begin();
+	RdrDrawOpBucket::const_iterator opEndIter = rAction.buckets[(int)s_passBuckets[(int)ePass] ].end();
 	for ( ; opIter != opEndIter; ++opIter )
 	{
-		RdrDrawOp* pDrawOp = *opIter;
+		const RdrDrawOp* pDrawOp = *opIter;
 		if (pDrawOp->eType == RdrDrawOpType::Compute)
 		{
 			DispatchCompute(pDrawOp);
@@ -625,17 +714,20 @@ void Renderer::PostFrameSync()
 		for (uint iBucket = 0; iBucket < (int)RdrBucketType::Count; ++iBucket)
 		{
 			uint numOps = (uint)rAction.buckets[iBucket].size();
-			std::vector<RdrDrawOp*>::iterator iter = rAction.buckets[iBucket].begin();
-			std::vector<RdrDrawOp*>::iterator endIter = rAction.buckets[iBucket].end();
+			RdrDrawOpBucket::iterator iter = rAction.buckets[iBucket].begin();
+			RdrDrawOpBucket::iterator endIter = rAction.buckets[iBucket].end();
 			for (; iter != endIter; ++iter)
 			{
-				RdrDrawOp* pDrawOp = *iter;
+				const RdrDrawOp* pDrawOp = *iter;
 				if (pDrawOp->eType == RdrDrawOpType::Graphics && pDrawOp->graphics.bFreeGeo)
 				{
 					RdrGeoSystem::ReleaseGeo(pDrawOp->graphics.hGeo);
 				}
-
-				RdrDrawOp::Release(pDrawOp);
+				
+				if (pDrawOp->eType == RdrDrawOpType::Compute || pDrawOp->graphics.bTempDrawOp)
+				{
+					RdrDrawOp::QueueRelease(pDrawOp);
+				}
 			}
 			rAction.buckets[iBucket].clear();
 		}
@@ -652,6 +744,7 @@ void Renderer::PostFrameSync()
 	RdrGeoSystem::FlipState();
 	RdrShaderSystem::FlipState();
 	RdrScratchMem::FlipState();
+	RdrDrawOp::ProcessReleases();
 }
 
 void Renderer::ProcessReadbackRequests()
@@ -839,7 +932,7 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrD
 	m_drawState.Reset();
 }
 
-void Renderer::DispatchCompute(RdrDrawOp* pDrawOp)
+void Renderer::DispatchCompute(const RdrDrawOp* pDrawOp)
 {
 	m_drawState.pComputeShader = RdrShaderSystem::GetComputeShader(pDrawOp->compute.shader);
 
