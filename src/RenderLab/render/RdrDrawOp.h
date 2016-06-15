@@ -20,9 +20,6 @@ struct RdrDrawOp
 	{
 		struct
 		{
-			float center[3];
-			float radius;
-
 			RdrConstantBufferHandle hVsConstants;
 
 			RdrInputLayoutHandle hInputLayout;

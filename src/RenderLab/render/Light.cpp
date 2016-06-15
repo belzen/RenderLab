@@ -6,7 +6,7 @@
 
 namespace
 {
-	static uint s_shadowMapSize = 1024;
+	static uint s_shadowMapSize = 2048;
 	static uint s_shadowCubeMapSize = 512;
 
 	struct ShadowMapData
@@ -108,7 +108,7 @@ void LightList::AddLight(Light& light)
 	++m_lightCount;
 }
 
-void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
+void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax)
 {
 	if (!m_hShadowMapTexArray)
 	{
@@ -140,6 +140,7 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
 	bool changed = false;
 	int curShadowMapIndex = 0;
 	int curShadowCubeMapIndex = 0;
+	int shadowMapsThisFrame = 0;
 
 	// todo: Choose shadow lights based on location and dynamic object movement
 	for (uint i = 0; i < m_lightCount; ++i)
@@ -160,9 +161,8 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
 				light.shadowMapIndex = curShadowMapIndex;
 
 				Rect viewport(0.f, 0.f, (float)s_shadowMapSize, (float)s_shadowMapSize);
-				const Camera& rSceneCamera = scene.GetMainCamera();
-				float zMin = rSceneCamera.GetNearDist();
-				float zMax = rSceneCamera.GetFarDist();
+				float zMin = sceneDepthMin;
+				float zMax = sceneDepthMax;
 				float zDiff = (zMax - zMin);
 
 				float nearDepth = zMin;
@@ -174,13 +174,13 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
 					float zLog = zMin * powf(zMax / zMin, (iPartition + 1) / (float)kNumCascades);
 					float farDepth = lamda * zLog + (1.f - lamda) * zUni;
 
-					Vec3 center = rSceneCamera.GetPosition() + rSceneCamera.GetDirection() * ((farDepth + nearDepth) * 0.5f);
+					Vec3 center = rCamera.GetPosition() + rCamera.GetDirection() * ((farDepth + nearDepth) * 0.5f);
 					Matrix44 lightViewMtx = getLightViewMatrix(center, light.direction);
 
-					Quad nearQuad = rSceneCamera.GetFrustumQuad(nearDepth);
+					Quad nearQuad = rCamera.GetFrustumQuad(nearDepth);
 					QuadTransform(nearQuad, lightViewMtx);
 
-					Quad farQuad = rSceneCamera.GetFrustumQuad(farDepth);
+					Quad farQuad = rCamera.GetFrustumQuad(farDepth);
 					QuadTransform(farQuad, lightViewMtx);
 
 					Vec3 boundsMin(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -192,8 +192,7 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
 					float width = (boundsMax.x - boundsMin.x);
 					lightCamera.SetAsOrtho(center, light.direction, std::max(width, height), -500.f, 500.f);
 
-					rRenderer.BeginShadowMapAction(lightCamera, scene, m_shadowMapDepthViews[curShadowMapIndex], viewport);
-					rRenderer.EndAction();
+					rRenderer.QueueShadowMapPass(lightCamera, m_shadowMapDepthViews[curShadowMapIndex], viewport);
 
 					Matrix44 mtxView;
 					Matrix44 mtxProj;
@@ -202,6 +201,7 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
 					pShadowData[curShadowMapIndex].mtxViewProj = Matrix44Transpose(pShadowData[curShadowMapIndex].mtxViewProj);
 					pShadowData[curShadowMapIndex].partitionEndZ = (iPartition == kNumCascades - 1) ? FLT_MAX : farDepth;
 
+					++shadowMapsThisFrame;
 					++curShadowMapIndex;
 					nearDepth = farDepth;
 				}
@@ -226,9 +226,9 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
 			pShadowData[curShadowMapIndex].mtxViewProj = Matrix44Transpose(pShadowData[curShadowMapIndex].mtxViewProj);
 
 			Rect viewport(0.f, 0.f, (float)s_shadowMapSize, (float)s_shadowMapSize);
-			rRenderer.BeginShadowMapAction(lightCamera, scene, m_shadowMapDepthViews[curShadowMapIndex], viewport);
-			rRenderer.EndAction();
+			rRenderer.QueueShadowMapPass(lightCamera, m_shadowMapDepthViews[curShadowMapIndex], viewport);
 
+			++shadowMapsThisFrame;
 			++curShadowMapIndex;
 		}
 		else if (light.type == LightType::Point && remainingShadowCubeMaps)
@@ -241,21 +241,19 @@ void LightList::PrepareDrawForScene(Renderer& rRenderer, const Scene& scene)
 
 			Rect viewport(0.f, 0.f, (float)s_shadowCubeMapSize, (float)s_shadowCubeMapSize);
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
-			rRenderer.BeginShadowCubeMapAction(&light, scene, m_shadowCubeMapDepthViews[curShadowCubeMapIndex], viewport);
-			rRenderer.EndAction();
+			rRenderer.QueueShadowCubeMapPass(&light, m_shadowCubeMapDepthViews[curShadowCubeMapIndex], viewport);
 #else
 			for (uint face = 0; face < 6; ++face)
 			{
 				lightCamera.SetAsCubemapFace(light.position, (CubemapFace)face, 0.1f, light.radius * 2.f);
-				rRenderer.BeginShadowMapAction(lightCamera, m_shadowCubeMapDepthViews[curShadowCubeMapIndex * 6 + face], viewport);
-				scene.QueueDraw(rRenderer);
-				rRenderer.EndAction();
+				rRenderer.QueueShadowMapPass(lightCamera, m_shadowCubeMapDepthViews[curShadowCubeMapIndex * 6 + face], viewport);
 			}
 #endif
+			++shadowMapsThisFrame;
 			++curShadowCubeMapIndex;
 		}
 
-		if (!remainingShadowMaps && !remainingShadowCubeMaps)
+		if ((shadowMapsThisFrame >= MAX_SHADOW_MAPS_PER_FRAME) || (!remainingShadowMaps && !remainingShadowCubeMaps))
 			break;
 	}
 

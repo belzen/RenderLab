@@ -171,8 +171,6 @@ int main(int argc, char** argv)
 		{
 			g_scene.PrepareDraw();
 
-			g_scene.QueueShadowMaps(g_renderer);
-
 			g_renderer.BeginPrimaryAction(g_scene.GetMainCamera(), g_scene);
 			{
 				Debug::QueueDraw(g_renderer, g_scene, frameTimer);

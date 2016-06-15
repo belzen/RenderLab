@@ -5,6 +5,7 @@
 #include "RdrShaders.h"
 #include "RdrGeometry.h"
 #include "Camera.h"
+#include "Light.h"
 
 struct RdrDrawOp;
 class Scene;
@@ -15,6 +16,13 @@ typedef std::vector<const RdrDrawOp*> RdrDrawOpBucket;
 
 #define MAX_ACTIONS_PER_FRAME 16
 #define MAX_RENDER_TARGETS 6
+
+struct RdrGlobalConstants
+{
+	RdrConstantBufferHandle hVsPerFrame;
+	RdrConstantBufferHandle hPsPerFrame;
+	RdrConstantBufferHandle hGsCubeMap;
+};
 
 struct RdrPassData
 {
@@ -30,6 +38,16 @@ struct RdrPassData
 	bool bEnabled;
 	bool bClearRenderTargets;
 	bool bClearDepthTarget;
+	bool bIsCubeMapCapture;
+};
+
+struct RdrShadowPass
+{
+	RdrPassData               passData;
+	RdrGlobalConstants        constants;
+	RdrDrawOpBucket           drawOps;
+	Camera                    camera;
+	RdrDepthStencilViewHandle hDepthView;
 };
 
 struct RdrLightParams
@@ -51,6 +69,9 @@ struct RdrAction
 	RdrDrawOpBucket buckets[(int)RdrBucketType::Count];
 	RdrPassData passes[(int)RdrPass::Count];
 
+	RdrShadowPass shadowPasses[MAX_SHADOW_MAPS_PER_FRAME];
+	int shadowPassCount;
+
 	const Scene* pScene;
 	Camera camera;
 
@@ -59,12 +80,8 @@ struct RdrAction
 	const RdrPostProcessEffects* pPostProcEffects;
 
 	RdrLightParams lightParams;
-	RdrConstantBufferHandle hPerActionVs;
-	RdrConstantBufferHandle hPerActionPs;
-	RdrConstantBufferHandle hPerActionCubemapGs;
-
-	RdrConstantBufferHandle hUiPerActionVs;
-	RdrConstantBufferHandle hUiPerActionPs;
+	RdrGlobalConstants constants;
+	RdrGlobalConstants uiConstants;
 
 	bool bIsCubemapCapture;
 	bool bEnablePostProcessing;

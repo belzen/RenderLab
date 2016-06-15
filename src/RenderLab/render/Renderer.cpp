@@ -72,11 +72,47 @@ namespace
 		}
 	}
 
-	void cullSceneToCamera(const Camera& rCamera, const Scene& rScene, RdrDrawOpBucket& rOpaqueBucket, RdrDrawOpBucket& rAlphaBucket, RdrDrawOpBucket& rSkyBucket)
+	void cullSceneToCameraForShadows(const Camera& rCamera, const Scene& rScene, RdrDrawOpBucket& rOpaqueBucket)
+	{
+		rOpaqueBucket.clear();
+
+		const WorldObjectList& objects = rScene.GetWorldObjects();
+		for (int i = (int)objects.size() - 1; i >= 0; --i)
+		{
+			const WorldObject* pObj = objects[i];
+			if (!rCamera.CanSee(pObj->GetPosition(), pObj->GetRadius()))
+				continue;
+
+			const ModelInstance* pModel = pObj->GetModel();
+			const RdrDrawOp** apDrawOps = pModel->GetDrawOps();
+			uint numDrawOps = pModel->GetNumDrawOps();
+
+			for (uint k = 0; k < numDrawOps; ++k)
+			{
+				const RdrDrawOp* pDrawOp = apDrawOps[k];
+				if (pDrawOp)
+				{
+					if (!pDrawOp->graphics.bHasAlpha && !pDrawOp->graphics.bIsSky)
+					{
+						rOpaqueBucket.push_back(pDrawOp);
+					}
+				}
+			}
+		}
+	}
+
+	void cullSceneToCamera(const Camera& rCamera, const Scene& rScene, 
+		RdrDrawOpBucket& rOpaqueBucket, RdrDrawOpBucket& rAlphaBucket, RdrDrawOpBucket& rSkyBucket, 
+		float& rOutDepthMin, float& rOutDepthMax)
 	{
 		rOpaqueBucket.clear();
 		rAlphaBucket.clear();
 		rSkyBucket.clear();
+
+		Vec3 camDir = rCamera.GetDirection();
+		Vec3 camPos = rCamera.GetPosition();
+		float depthMin = FLT_MAX;
+		float depthMax = 0.f;
 
 		// World Objects
 		const WorldObjectList& objects = rScene.GetWorldObjects();
@@ -89,6 +125,7 @@ namespace
 			const ModelInstance* pModel = pObj->GetModel();
 			const RdrDrawOp** apDrawOps = pModel->GetDrawOps();
 			uint numDrawOps = pModel->GetNumDrawOps();
+			bool testDepth = true;
 
 			for (uint k = 0; k < numDrawOps; ++k)
 			{
@@ -102,12 +139,27 @@ namespace
 					else if (pDrawOp->graphics.bIsSky)
 					{
 						rSkyBucket.push_back(pDrawOp);
+						testDepth = false;
 					}
 					else
 					{
 						rOpaqueBucket.push_back(pDrawOp);
 					}
 				}
+			}
+
+			if (testDepth)
+			{
+				Vec3 diff = pObj->GetPosition() - camPos;
+				float distSqr = Vec3Dot(camDir, diff);
+				float dist = sqrtf(max(0.f, distSqr));
+				float radius = pObj->GetRadius();
+
+				if (dist -radius < depthMin)
+					depthMin = dist - radius;
+
+				if (dist + radius > depthMax)
+					depthMax = dist + radius;
 			}
 		}
 
@@ -136,8 +188,86 @@ namespace
 				}
 			}
 		}
+
+		rOutDepthMin = max(rCamera.GetNearDist(), depthMin);
+		rOutDepthMax = min(rCamera.GetFarDist(), depthMax);
+	}
+
+	void createPerActionConstants(const Camera& rCamera, const Rect& rViewport, RdrGlobalConstants& rConstants)
+	{
+		Matrix44 mtxView;
+		Matrix44 mtxProj;
+
+		rCamera.GetMatrices(mtxView, mtxProj);
+
+		// VS
+		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(VsPerAction));
+		VsPerAction* pVsPerAction = (VsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
+
+		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
+		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
+		pVsPerAction->cameraPosition = rCamera.GetPosition();
+
+		rConstants.hVsPerFrame = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
+
+		// PS
+		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
+		PsPerAction* pPsPerAction = (PsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
+
+		pPsPerAction->cameraPos = rCamera.GetPosition();
+		pPsPerAction->cameraDir = rCamera.GetDirection();
+		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
+		pPsPerAction->viewWidth = (uint)rViewport.width;
+
+		rConstants.hPsPerFrame = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
+	}
+
+	void createUiConstants(const Rect& rViewport, RdrGlobalConstants& rConstants)
+	{
+		Matrix44 mtxView = Matrix44::kIdentity;
+		Matrix44 mtxProj = DirectX::XMMatrixOrthographicLH((float)rViewport.width, (float)rViewport.height, 0.01f, 1000.f);
+
+		// VS
+		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(VsPerAction));
+		VsPerAction* pVsPerAction = (VsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
+
+		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
+		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
+		pVsPerAction->cameraPosition = Vec3::kZero;
+
+		rConstants.hVsPerFrame = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
+
+		// PS
+		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
+		PsPerAction* pPsPerAction = (PsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
+
+		pPsPerAction->cameraPos = Vec3::kOrigin;
+		pPsPerAction->cameraDir = Vec3::kUnitZ;
+		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
+		pPsPerAction->viewWidth = (uint)rViewport.width;
+
+		rConstants.hPsPerFrame = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
+	}
+
+	RdrConstantBufferHandle createCubemapCaptureConstants(const Vec3& position, const float nearDist, const float farDist)
+	{
+		Camera cam;
+		Matrix44 mtxView, mtxProj;
+
+		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(GsCubemapPerAction));
+		GsCubemapPerAction* pGsConstants = (GsCubemapPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
+		for (uint f = 0; f < (uint)CubemapFace::Count; ++f)
+		{
+			cam.SetAsCubemapFace(position, (CubemapFace)f, nearDist, farDist);
+			cam.GetMatrices(mtxView, mtxProj);
+			pGsConstants->mtxViewProj[f] = Matrix44Multiply(mtxView, mtxProj);
+			pGsConstants->mtxViewProj[f] = Matrix44Transpose(pGsConstants->mtxViewProj[f]);
+		}
+
+		return RdrResourceSystem::CreateTempConstantBuffer(pGsConstants, constantsSize);
 	}
 }
+
 //////////////////////////////////////////////////////
 
 bool Renderer::Init(HWND hWnd, int width, int height)
@@ -360,89 +490,74 @@ void Renderer::QueueLightCulling()
 	AddToBucket(pCullOp, RdrBucketType::LightCulling);
 }
 
-void Renderer::BeginShadowMapAction(const Camera& rCamera, const Scene& rScene, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
+void Renderer::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
 {
-	assert(m_pCurrentAction == nullptr);
+	assert(m_pCurrentAction);
+	assert(m_pCurrentAction->shadowPassCount + 1 < MAX_SHADOW_MAPS_PER_FRAME);
 
-	m_pCurrentAction = GetNextAction();
-	m_pCurrentAction->name = L"Shadow Map";
-	m_pCurrentAction->primaryViewport = viewport;
-	m_pCurrentAction->pScene = &rScene;
+	RdrShadowPass& rShadowPass = m_pCurrentAction->shadowPasses[m_pCurrentAction->shadowPassCount];
+	m_pCurrentAction->shadowPassCount++;
 
-	m_pCurrentAction->camera = rCamera;
-	m_pCurrentAction->camera.UpdateFrustum();
+	rShadowPass.camera = rCamera;
+	rShadowPass.camera.UpdateFrustum();
 
 	// Setup action passes
-	RdrPassData& rPass = m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
+	RdrPassData& rPassData = rShadowPass.passData;
 	{
-		rPass.viewport = viewport;
-		rPass.bEnabled = true;
-		rPass.hDepthTarget = hDepthView;
-		rPass.bClearDepthTarget = true;
-		rPass.depthTestMode = RdrDepthTestMode::Less;
-		rPass.bAlphaBlend = false;
-		rPass.shaderMode = RdrShaderMode::DepthOnly;
+		rPassData.viewport = viewport;
+		rPassData.bEnabled = true;
+		rPassData.hDepthTarget = hDepthView;
+		rPassData.bClearDepthTarget = true;
+		rPassData.depthTestMode = RdrDepthTestMode::Less;
+		rPassData.bAlphaBlend = false;
+		rPassData.shaderMode = RdrShaderMode::DepthOnly;
 	}
 
-	cullSceneToCamera(m_pCurrentAction->camera, rScene,
-		m_pCurrentAction->buckets[(int)RdrBucketType::Opaque],
-		m_pCurrentAction->buckets[(int)RdrBucketType::Alpha],
-		m_pCurrentAction->buckets[(int)RdrBucketType::Sky]);
+	cullSceneToCameraForShadows(rCamera, *m_pCurrentAction->pScene, rShadowPass.drawOps);
 
-	CreatePerActionConstants();
+	createPerActionConstants(rCamera, viewport, rShadowPass.constants);
 }
 
-void Renderer::BeginShadowCubeMapAction(const Light* pLight, const Scene& rScene, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
+void Renderer::QueueShadowCubeMapPass(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
 {
-	assert(m_pCurrentAction == nullptr);
+	assert(m_pCurrentAction);
+	assert(m_pCurrentAction->shadowPassCount + 1 < MAX_SHADOW_MAPS_PER_FRAME);
+
+	RdrShadowPass& rShadowPass = m_pCurrentAction->shadowPasses[m_pCurrentAction->shadowPassCount];
+	m_pCurrentAction->shadowPassCount++;
 
 	float viewDist = pLight->radius * 2.f;
-
-	m_pCurrentAction = GetNextAction();
-	m_pCurrentAction->name = L"Shadow Cube Map";
-	m_pCurrentAction->bIsCubemapCapture = true;
-	m_pCurrentAction->primaryViewport = viewport;
-	m_pCurrentAction->pScene = &rScene;
-
-	m_pCurrentAction->camera.SetAsSphere(pLight->position, 0.1f, viewDist);
-	m_pCurrentAction->camera.UpdateFrustum();
+	rShadowPass.camera.SetAsSphere(pLight->position, 0.1f, viewDist);
+	rShadowPass.camera.UpdateFrustum();
 
 	// Setup action passes
-	RdrPassData& rPass = m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
+	RdrPassData& rPassData = rShadowPass.passData;
 	{
-		rPass.viewport = viewport;
-		rPass.bEnabled = true;
-		rPass.bAlphaBlend = false;
-		rPass.shaderMode = RdrShaderMode::DepthOnly;
-		rPass.depthTestMode = RdrDepthTestMode::Less;
-		rPass.bClearDepthTarget = true;
-		rPass.hDepthTarget = hDepthView;
+		rPassData.viewport = viewport;
+		rPassData.bEnabled = true;
+		rPassData.bAlphaBlend = false;
+		rPassData.shaderMode = RdrShaderMode::DepthOnly;
+		rPassData.depthTestMode = RdrDepthTestMode::Less;
+		rPassData.bClearDepthTarget = true;
+		rPassData.hDepthTarget = hDepthView;
+		rPassData.bIsCubeMapCapture = true;
 	}
 
-	cullSceneToCamera(m_pCurrentAction->camera, rScene,
-		m_pCurrentAction->buckets[(int)RdrBucketType::Opaque],
-		m_pCurrentAction->buckets[(int)RdrBucketType::Alpha],
-		m_pCurrentAction->buckets[(int)RdrBucketType::Sky]);
+	cullSceneToCameraForShadows(rShadowPass.camera, *m_pCurrentAction->pScene, rShadowPass.drawOps);
 
-	CreatePerActionConstants();
-	CreateCubemapCaptureConstants(pLight->position, 0.1f, pLight->radius * 2.f);
+	createPerActionConstants(rShadowPass.camera, viewport, rShadowPass.constants);
+	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(pLight->position, 0.1f, pLight->radius * 2.f);
 }
 
-void Renderer::BeginPrimaryAction(const Camera& rCamera, const Scene& rScene)
+void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 {
 	assert(m_pCurrentAction == nullptr);
 
 	Rect viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);;
 
-	const LightList* pLights = rScene.GetLightList();
 
 	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Primary Action";
-	m_pCurrentAction->lightParams.hLightListRes = pLights->GetLightListRes();
-	m_pCurrentAction->lightParams.hShadowMapDataRes = pLights->GetShadowMapDataRes();
-	m_pCurrentAction->lightParams.hShadowCubeMapTexArray = pLights->GetShadowCubeMapTexArray();
-	m_pCurrentAction->lightParams.hShadowMapTexArray = pLights->GetShadowMapTexArray();
-	m_pCurrentAction->lightParams.lightCount = pLights->GetLightCount();
 
 	m_pCurrentAction->pScene = &rScene;
 
@@ -525,13 +640,27 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, const Scene& rScene)
 		pPass->depthTestMode = RdrDepthTestMode::None;
 		pPass->shaderMode = RdrShaderMode::Normal;
 	}
-	
+
+	float sceneDepthMin, sceneDepthMax;
 	cullSceneToCamera(m_pCurrentAction->camera, rScene, 
 		m_pCurrentAction->buckets[(int)RdrBucketType::Opaque], 
 		m_pCurrentAction->buckets[(int)RdrBucketType::Alpha], 
-		m_pCurrentAction->buckets[(int)RdrBucketType::Sky]);
+		m_pCurrentAction->buckets[(int)RdrBucketType::Sky], 
+		sceneDepthMin, sceneDepthMax);
 
-	CreatePerActionConstants();
+	createPerActionConstants(m_pCurrentAction->camera, viewport, m_pCurrentAction->constants);
+	createUiConstants(viewport, m_pCurrentAction->uiConstants);
+
+	// Lighting
+	LightList& rLights = rScene.GetLightList();
+	rLights.PrepareDraw(*this, m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax);
+
+	m_pCurrentAction->lightParams.hLightListRes = rLights.GetLightListRes();
+	m_pCurrentAction->lightParams.hShadowMapDataRes = rLights.GetShadowMapDataRes();
+	m_pCurrentAction->lightParams.hShadowCubeMapTexArray = rLights.GetShadowCubeMapTexArray();
+	m_pCurrentAction->lightParams.hShadowMapTexArray = rLights.GetShadowMapTexArray();
+	m_pCurrentAction->lightParams.lightCount = rLights.GetLightCount();
+
 	QueueLightCulling();
 }
 
@@ -546,86 +675,6 @@ void Renderer::AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType eBucket)
 	validateDrawOp(pDrawOp);
 #endif
 	m_pCurrentAction->buckets[(int)eBucket].push_back(pDrawOp);
-}
-
-void Renderer::CreateCubemapCaptureConstants(const Vec3& position, const float nearDist, const float farDist)
-{
-	Camera cam;
-	Matrix44 mtxView, mtxProj;
-
-	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(GsCubemapPerAction));
-	GsCubemapPerAction* pGsConstants = (GsCubemapPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
-	for (uint f = 0; f < (uint)CubemapFace::Count; ++f)
-	{
-		cam.SetAsCubemapFace(position, (CubemapFace)f, nearDist, farDist);
-		cam.GetMatrices(mtxView, mtxProj);
-		pGsConstants->mtxViewProj[f] = Matrix44Multiply(mtxView, mtxProj);
-		pGsConstants->mtxViewProj[f] = Matrix44Transpose(pGsConstants->mtxViewProj[f]);
-	}
-
-	m_pCurrentAction->hPerActionCubemapGs = RdrResourceSystem::CreateTempConstantBuffer(pGsConstants, constantsSize);
-}
-
-void Renderer::CreatePerActionConstants()
-{
-	const Camera& rCamera = m_pCurrentAction->camera;
-
-	Matrix44 mtxView;
-	Matrix44 mtxProj;
-
-	// Per-action
-	{
-		rCamera.GetMatrices(mtxView, mtxProj);
-
-		// VS
-		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(VsPerAction));
-		VsPerAction* pVsPerAction = (VsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
-
-		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
-		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
-		pVsPerAction->cameraPosition = rCamera.GetPosition();
-
-		m_pCurrentAction->hPerActionVs = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
-
-		// PS
-		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
-		PsPerAction* pPsPerAction = (PsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
-
-		pPsPerAction->cameraPos = rCamera.GetPosition();
-		pPsPerAction->cameraDir = rCamera.GetDirection();
-		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
-		pPsPerAction->viewWidth = m_viewWidth;
-
-		m_pCurrentAction->hPerActionPs = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
-	}
-
-	// Ui per-action
-	if ( m_pCurrentAction->passes[(int)RdrPass::UI].bEnabled)
-	{
-		mtxView = Matrix44::kIdentity;
-		mtxProj = DirectX::XMMatrixOrthographicLH((float)m_viewWidth, (float)m_viewHeight, 0.01f, 1000.f);
-
-		// VS
-		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(VsPerAction));
-		VsPerAction* pVsPerAction = (VsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
-
-		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
-		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
-		pVsPerAction->cameraPosition = Vec3::kZero;
-
-		m_pCurrentAction->hUiPerActionVs = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
-	
-		// PS
-		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
-		PsPerAction* pPsPerAction = (PsPerAction*)RdrScratchMem::AllocAligned(constantsSize, 16);
-		
-		pPsPerAction->cameraPos = Vec3::kOrigin;
-		pPsPerAction->cameraDir = Vec3::kUnitZ;
-		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
-		pPsPerAction->viewWidth = m_viewWidth;
-
-		m_pCurrentAction->hUiPerActionPs = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
-	}
 }
 
 void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
@@ -693,7 +742,77 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 		}
 		else
 		{
-			DrawGeo(rAction, ePass, pDrawOp, rAction.lightParams, m_hTileLightIndices);
+			const RdrGlobalConstants& rGlobalConstants = (ePass == RdrPass::UI) ? rAction.uiConstants : rAction.constants;
+			DrawGeo(rPass, rGlobalConstants, pDrawOp, rAction.lightParams, m_hTileLightIndices);
+		}
+	}
+
+	m_pContext->EndEvent();
+}
+
+void Renderer::DrawShadowPass(const RdrShadowPass& rShadowPass)
+{
+	const RdrPassData& rPassData = rShadowPass.passData;
+	m_pContext->BeginEvent(rPassData.bIsCubeMapCapture ? L"Shadow Cube Map" : L"Shadow Map");
+
+	RdrRenderTargetView renderTargets[MAX_RENDER_TARGETS];
+	for (uint i = 0; i < MAX_RENDER_TARGETS; ++i)
+	{
+		if (rPassData.ahRenderTargets[i])
+		{
+			renderTargets[i] = RdrResourceSystem::GetRenderTargetView(rPassData.ahRenderTargets[i]);
+		}
+		else
+		{
+			renderTargets[i].pView = nullptr;
+		}
+	}
+
+	RdrDepthStencilView depthView = { 0 };
+	if (rPassData.hDepthTarget)
+	{
+		depthView = RdrResourceSystem::GetDepthStencilView(rPassData.hDepthTarget);
+	}
+
+	if (rPassData.bClearRenderTargets)
+	{
+		for (uint i = 0; i < MAX_RENDER_TARGETS; ++i)
+		{
+			if (renderTargets[i].pView)
+			{
+				const Color clearColor(0.f, 0.f, 0.f, 0.f);
+				m_pContext->ClearRenderTargetView(renderTargets[i], clearColor);
+			}
+		}
+	}
+
+	if (rPassData.bClearDepthTarget)
+	{
+		m_pContext->ClearDepthStencilView(depthView, true, 1.f, true, 0);
+	}
+
+	// Clear resource bindings to avoid input/output binding errors
+	m_pContext->PSClearResources();
+
+	m_pContext->SetRenderTargets(MAX_RENDER_TARGETS, renderTargets, depthView);
+	m_pContext->SetDepthStencilState(rPassData.depthTestMode);
+	m_pContext->SetBlendState(rPassData.bAlphaBlend);
+
+	m_pContext->SetViewport(rPassData.viewport);
+
+	RdrLightParams lightParams;
+	RdrDrawOpBucket::const_iterator opIter = rShadowPass.drawOps.begin();
+	RdrDrawOpBucket::const_iterator opEndIter = rShadowPass.drawOps.end();
+	for (; opIter != opEndIter; ++opIter)
+	{
+		const RdrDrawOp* pDrawOp = *opIter;
+		if (pDrawOp->eType == RdrDrawOpType::Compute)
+		{
+			DispatchCompute(pDrawOp);
+		}
+		else
+		{
+			DrawGeo(rPassData, rShadowPass.constants, pDrawOp, lightParams, 0);
 		}
 	}
 
@@ -794,6 +913,11 @@ void Renderer::DrawFrame()
 			RdrAction& rAction = rFrameState.actions[iAction];
 			m_pContext->BeginEvent(rAction.name);
 
+			for (int iShadow = 0; iShadow < rAction.shadowPassCount; ++iShadow)
+			{
+				DrawShadowPass(rAction.shadowPasses[iShadow]);
+			}
+
 			RdrRasterState rasterState;
 			rasterState.bEnableMSAA = (s_msaaLevel > 1);
 			rasterState.bEnableScissor = false;
@@ -838,9 +962,8 @@ void Renderer::DrawFrame()
 	m_pContext->Present();
 }
 
-void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices)
+void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlobalConstants, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices)
 {
-	const RdrPassData& rPass = rAction.passes[(int)ePass];
 	bool bDepthOnly = (rPass.shaderMode == RdrShaderMode::DepthOnly);
 	const RdrGeometry* pGeo = RdrGeoSystem::GetGeo(pDrawOp->graphics.hGeo);
 	RdrShaderFlags shaderFlags = RdrShaderFlags::None;
@@ -855,7 +978,7 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrD
 
 	m_drawState.pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
 
-	RdrConstantBufferHandle hPerActionVs = (ePass == RdrPass::UI) ? rAction.hUiPerActionVs : rAction.hPerActionVs;
+	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerFrame;
 	m_drawState.vsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->bufferObj;
 	if (pDrawOp->graphics.hVsConstants)
 	{
@@ -868,11 +991,11 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrD
 	}
 
 	// Geom shader
-	if (rAction.bIsCubemapCapture)
+	if (rPass.bIsCubeMapCapture)
 	{
 		RdrGeometryShader geomShader = { RdrGeometryShaderType::Model_CubemapCapture, shaderFlags };
 		m_drawState.pGeometryShader = RdrShaderSystem::GetGeometryShader(geomShader);
-		m_drawState.gsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rAction.hPerActionCubemapGs)->bufferObj;
+		m_drawState.gsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hGsCubeMap)->bufferObj;
 		m_drawState.gsConstantBufferCount = 1;
 	}
 
@@ -901,8 +1024,7 @@ void Renderer::DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrD
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMapData] = RdrResourceSystem::GetResource(rLightParams.hShadowMapDataRes)->resourceView;
 			}
 
-			RdrConstantBufferHandle hPerActionPs = (ePass == RdrPass::UI) ? rAction.hUiPerActionPs : rAction.hPerActionPs;
-			m_drawState.psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rAction.hPerActionPs)->bufferObj;
+			m_drawState.psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsPerFrame)->bufferObj;
 			m_drawState.psConstantBufferCount = 1;
 		}
 	}

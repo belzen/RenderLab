@@ -47,7 +47,7 @@ int getTileId(in float2 screenPos, in uint screenWidth)
 
 float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float3 posToLight, in float lightRadius, in uint shadowMapIndex)
 {
-	const float bias = 0.004f;
+	const float bias = 0.002f;
 	if (shadowMapIndex >= MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS)
 	{
 		return 1.f;
@@ -87,7 +87,17 @@ float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float3 posToLig
 			}
 			return vis;
 #else
-			return texShadowMaps.SampleCmpLevelZero(sampShadowMaps, float3(uv.xy, shadowMapIndex), lightDepthValue).x;
+			// 16-tap PCF
+			float sum = 0.f;
+			for (float y = -1.5f; y < 1.5f; y += 1.f)
+			{
+				for (float x = -1.5f; x < 1.5f; x += 1.f)
+				{
+					float2 offset = float2(x, y) / float2(2048.f, 2048.f); // todo: remove hard-coded texture size
+					sum += texShadowMaps.SampleCmpLevelZero(sampShadowMaps, float3(uv.xy + offset, shadowMapIndex), lightDepthValue).x;
+				}
+			}
+			return sum / 16.f;
 #endif
 
 		}
@@ -156,8 +166,9 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 			}
 		}
 
+		float shadowFactor = calcShadowFactor(pos_ws, dirToLight, posToLight, light.radius, shadowMapIndex);
+
 #if VISUALIZE_CASCADES
-		diffuse = specular = 0;
 		if (light.type == 0)
 		{
 			static const float3 kPartitionColors[4] = {
@@ -166,11 +177,12 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 				float3(1.f, 0.f, 0.f),
 				float3(0.f, 0.f, 1.f)
 			};
-			diffuse = specular = kPartitionColors[shadowMapIndex - light.shadowMapIndex] * 10.f;
+			diffuse *= kPartitionColors[shadowMapIndex - light.shadowMapIndex];
+			specular *= kPartitionColors[shadowMapIndex - light.shadowMapIndex];
 		}
 #endif
 
-		litColor += (diffuse + specular) * distFalloff * angularFalloff * calcShadowFactor(pos_ws, dirToLight, posToLight, light.radius, shadowMapIndex);
+		litColor += (diffuse + specular) * distFalloff * angularFalloff * shadowFactor;
 	}
 
 	float3 ambient = color * ambient_color * ambient_intensity;

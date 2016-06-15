@@ -25,13 +25,11 @@ public:
 
 	void PrepareDraw();
 
-	void QueueShadowMaps(Renderer& rRenderer);
-
 	const Sky& GetSky() const;
 
 	const WorldObjectList& GetWorldObjects() const;
 
-	const LightList* GetLightList() const;
+	LightList& GetLightList();
 
 	const RdrPostProcessEffects* GetPostProcEffects() const;
 
@@ -63,9 +61,9 @@ inline const WorldObjectList& Scene::GetWorldObjects() const
 	return m_objects;
 }
 
-inline const LightList* Scene::GetLightList() const
+inline LightList& Scene::GetLightList()
 { 
-	return &m_lights; 
+	return m_lights; 
 }
 
 inline const RdrPostProcessEffects* Scene::GetPostProcEffects() const

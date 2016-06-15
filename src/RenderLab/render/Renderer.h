@@ -26,10 +26,11 @@ public:
 
 	void ApplyDeviceChanges();
 
-	void BeginShadowMapAction(const Camera& rCamera, const Scene& rScene, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
-	void BeginShadowCubeMapAction(const Light* pLight, const Scene& rScene, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
-	void BeginPrimaryAction(const Camera& rCamera, const Scene& rScene);
+	void BeginPrimaryAction(const Camera& rCamera, Scene& rScene);
 	void EndAction();
+
+	void QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
+	void QueueShadowCubeMapPass(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 
 	void AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);
 
@@ -48,8 +49,7 @@ public:
 
 private:
 	void DrawPass(const RdrAction& rAction, RdrPass ePass);
-	void CreatePerActionConstants();
-	void CreateCubemapCaptureConstants(const Vec3& position, const float nearDist, const float farDist);
+	void DrawShadowPass(const RdrShadowPass& rPass);
 	void QueueLightCulling();
 
 	RdrFrameState& GetQueueState();
@@ -57,7 +57,7 @@ private:
 
 	RdrAction* GetNextAction();
 
-	void DrawGeo(const RdrAction& rAction, const RdrPass ePass, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices);
+	void DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlobalConstants, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices);
 	void DispatchCompute(const RdrDrawOp* pDrawOp);
 
 	void ProcessReadbackRequests();

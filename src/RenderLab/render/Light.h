@@ -11,6 +11,7 @@ class Renderer;
 class Camera;
 class Scene;
 
+#define MAX_SHADOW_MAPS_PER_FRAME 10
 #define MAX_SHADOW_MAPS 10
 #define MAX_SHADOW_CUBEMAPS 2
 #define USE_SINGLEPASS_SHADOW_CUBEMAP 1
@@ -41,7 +42,7 @@ public:
 
 	void AddLight(Light& light);
 
-	void PrepareDrawForScene(Renderer& rRenderer, const Scene& scene);
+	void PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax);
 
 	RdrResourceHandle GetShadowMapDataRes() const;
 	RdrResourceHandle GetShadowMapTexArray() const;

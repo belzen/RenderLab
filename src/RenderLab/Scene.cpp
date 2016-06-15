@@ -150,11 +150,6 @@ void Scene::Update(float dt)
 	m_sky.Update(dt);
 }
 
-void Scene::QueueShadowMaps(Renderer& rRenderer)
-{
-	m_lights.PrepareDrawForScene(rRenderer, *this);
-}
-
 void Scene::PrepareDraw()
 {
 	for (uint i = 0; i < m_objects.size(); ++i)
