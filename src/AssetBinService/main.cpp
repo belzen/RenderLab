@@ -36,7 +36,7 @@ std::string getAssetName(const std::string& srcFilename)
 void createDirectoryTreeForFile(const std::string& filename)
 {
 	int endPos = -1;
-	while ( (endPos = (int)filename.find_first_of("/\\", endPos + 1)) != std::string::npos)
+	while ((endPos = (int)filename.find_first_of("/\\", endPos + 1)) != std::string::npos)
 	{
 		std::string dir = filename.substr(0, endPos);
 		CreateDirectoryA(dir.c_str(), nullptr);
@@ -46,6 +46,17 @@ void createDirectoryTreeForFile(const std::string& filename)
 void binAsset(const std::string& filename)
 {
 	std::string ext = getFileExtension(filename);
+
+	// Shader special case.  Just copy the file.
+	if (ext.compare("h") == 0 || ext.compare("hlsli") == 0 || ext.compare("hlsl") == 0)
+	{
+		std::string binFilename = Paths::GetBinDataDir() + ("/" + getAssetName(filename) + "." + ext);
+		createDirectoryTreeForFile(binFilename);
+		CopyFileA(filename.c_str(), binFilename.c_str(), false);
+		printf("\tCopied shader %s\n", filename.c_str());
+		return;
+	}
+
 	AssetBinnerMap::iterator binIter = g_assetBinners.find(ext);
 	if (binIter != g_assetBinners.end())
 	{

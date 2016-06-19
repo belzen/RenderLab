@@ -10,6 +10,11 @@ inline Vec3 Vec3Normalize(const Vec3& dir)
 	return Vec3(dir.x / len, dir.y / len, dir.z / len);
 }
 
+inline Vec3 Vec3Abs(const Vec3& vec)
+{
+	return Vec3(abs(vec.x), abs(vec.y), abs(vec.z));
+}
+
 inline float Vec3Dot(const Vec3& lhs, const Vec3& rhs)
 {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;

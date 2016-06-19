@@ -1,32 +1,18 @@
-
-#define LIGHT_DATA_ONLY 1
-#include "light_inc.hlsli"
+#include "light_types.h"
 
 cbuffer CullingParams : register(b0)
 {
-	float3 cameraPos;
-	float fovY;
-
-	float3 cameraDir;
-	float aspectRatio;
-
-	float cameraNearDist;
-	float cameraFarDist;
-	float2 screenSize;
-
-	uint lightCount;
-	uint tileCountX;
-	uint tileCountY;
+	TiledLightCullingParams cbCullParams;
 };
 
-StructuredBuffer<Light> g_lights : register(t0);
+StructuredBuffer<ShaderLight> g_lights : register(t0);
 Texture2D<float2> g_depthMinMax : register(t1);
 
-RWStructuredBuffer<uint> g_tileLightIndices : register(u0);
+RWBuffer<uint> g_tileLightIndices : register(u0);
 
 struct Frustum
 {
-	float4 planes[4]; // Left, right, top, bottom.
+	float4 planes[6];
 };
 
 float4 planeFromPoints(float3 pt1, float3 pt2, float3 pt3)
@@ -40,99 +26,89 @@ float4 planeFromPoints(float3 pt1, float3 pt2, float3 pt3)
 	return float4(n.xyz, -d);
 }
 
-// TODO: Faster to convert light bounds to screen space and aabb cull?
-void constructFrustum(uint tileId, float2 zMinMax, out Frustum frustum)
+void constructFrustum(uint2 tileId, float2 zMinMax, out Frustum frustum)
 {
-	int tileX = tileId % tileCountX;
-	int tileY = (tileId / tileCountY);
-
 	// Half widths
-	float hNear = tan(fovY * 0.5f) * cameraNearDist;
-	float wNear = hNear * aspectRatio;
+	float hNear = tan(cbCullParams.fovY * 0.5f) * cbCullParams.cameraNearDist;
+	float wNear = hNear * cbCullParams.aspectRatio;
 	
-	float hNearTile = hNear * (TILE_SIZE / screenSize.y);
-	float wNearTile = wNear * (TILE_SIZE / screenSize.x);
+	float hNearTile = hNear * (float(TILEDLIGHTING_TILE_SIZE) / cbCullParams.screenSize.y);
+	float wNearTile = wNear * (float(TILEDLIGHTING_TILE_SIZE) / cbCullParams.screenSize.x);
 
-	float hFar = tan(fovY * 0.5f) * cameraFarDist;
-	float wFar = hFar * aspectRatio;
-	float hFarTile = hFar * (TILE_SIZE / screenSize.y);
-	float wFarTile = wFar * (TILE_SIZE / screenSize.x);
+	float hFar = tan(cbCullParams.fovY * 0.5f) * cbCullParams.cameraFarDist;
+	float wFar = hFar * cbCullParams.aspectRatio;
+	float hFarTile = hFar * (float(TILEDLIGHTING_TILE_SIZE) / cbCullParams.screenSize.y);
+	float wFarTile = wFar * (float(TILEDLIGHTING_TILE_SIZE) / cbCullParams.screenSize.x);
 
 	float3 up = float3(0.f, 1.f, 0.f);
-	float3 right = normalize( cross(up, cameraDir) );
-	up = normalize( cross(cameraDir, right) );
+	float3 right = float3(1.f, 0.f, 0.f);
 
-
-	float3 nc = cameraPos + cameraDir * cameraNearDist;
+	float3 nc = float3(0.f, 0.f, cbCullParams.cameraNearDist);
 	float3 ntl = nc - (wNear * right) 
-		+ (right * tileX * wNearTile * 2.f)
-		+ (hNear * up) +
-		- (up * tileY * hNearTile * 2.f);
+		+ (right * tileId.x * wNearTile * 2.f)
+		+ (hNear * up)
+		- (up * tileId.y * hNearTile * 2.f);
 	float3 ntr = ntl + wNearTile * right * 2.f;
 	float3 nbl = ntl - hNearTile * up * 2.f;
 	float3 nbr = nbl + wNearTile * right * 2.f;
 
-	float3 fc = cameraPos + cameraDir * cameraFarDist;
-	float3 ftl = fc - (wFarTile * right)
-		+ (right * tileX * wFarTile * 2.f)
-		+ (hFarTile * up) +
-		-(up * tileY * hFarTile * 2.f);
+	float3 fc = float3(0.f, 0.f, cbCullParams.cameraFarDist);
+	float3 ftl = fc - (wFar * right)
+		+ (right * tileId.x * wFarTile * 2.f)
+		+ (hFar * up)
+		- (up * tileId.y * hFarTile * 2.f);
 	float3 ftr = ftl + wFarTile * right * 2.f;
 	float3 fbl = ftl - hFarTile * up * 2.f;
 	float3 fbr = fbl + wFarTile * right * 2.f;
 
 	frustum.planes[0] = planeFromPoints(ntl, ftl, fbl); // Left
-	frustum.planes[1] = planeFromPoints(ftr, ntr, nbr); // Right
+	frustum.planes[1] = planeFromPoints(ftr, ntr, fbr); // Right - This is weird.  Using nbr for the third coord (instead of fbr) causes broken tiles.
 	frustum.planes[2] = planeFromPoints(ntl, ntr, ftl); // Top
 	frustum.planes[3] = planeFromPoints(nbr, nbl, fbl); // Bottom
+	frustum.planes[4] = float4(0.f, 0.f, 1.f, -zMinMax.x); // Front
+	frustum.planes[5] = float4(0.f, 0.f, -1.f, zMinMax.y); // Back
 }
 
-int overlapFrustum(in Frustum frustum, in Light light)
+int overlapFrustum(in Frustum frustum, in ShaderLight light)
 {
-	int above = 0;
+	int inFrustum = 1;
 
-	for (int i = 0; i < 4; ++i)
+	float4 lightPos = mul(float4(light.position, 1), cbCullParams.mtxView);
+
+	for (int i = 0; i < 6; ++i)
 	{
-		float dist = dot(frustum.planes[i].xyz, light.position) + frustum.planes[i].w;
-		above = above || (dist + light.radius) >= 0.f;
+		float dist = dot(frustum.planes[i], lightPos);
+		inFrustum = inFrustum && (dist + light.radius) >= 0.f;
 	}
 
-	return above;
+	return inFrustum;
 }
-
-int overlapDepth(in float2 zMinMax, in Light light)
-{
-	float3 viewPos = light.position - cameraPos;
-	float d = dot(cameraDir, viewPos);
-	return (d + light.radius >= zMinMax.x) && (d - light.radius <= zMinMax.y);
-}
-
 
 [numthreads(1, 1, 1)]
 void main( uint3 groupId : SV_GroupID )
 {
-	int tileId = groupId.x + groupId.y * tileCountX;
+	uint tileIdx = groupId.x + groupId.y * cbCullParams.tileCountX;
 
 	float2 zMinMax = g_depthMinMax.Load( uint3(groupId.xy, 0) );
 
 	// create frustum
 	Frustum frustum;
-	constructFrustum(tileId, zMinMax, frustum);
+	constructFrustum(groupId.xy, zMinMax, frustum);
 
 	uint tileLightCount = 0;
-	for (uint i = 0; i < lightCount; ++i)
+	for (uint i = 0; i < cbCullParams.lightCount; ++i)
 	{
-		if ( overlapFrustum(frustum, g_lights[i]) && overlapDepth(zMinMax, g_lights[i]) )
+		if ( overlapFrustum(frustum, g_lights[i]))
 		{
 			// add light to tile's light list
-			g_tileLightIndices[tileId * MAX_LIGHTS_PER_TILE + tileLightCount + 1] = i;
+			g_tileLightIndices[tileIdx * TILEDLIGHTING_MAX_LIGHTS_PER + tileLightCount + 1] = i;
 			++tileLightCount;
-			if (tileLightCount >= MAX_LIGHTS_PER_TILE - 1)
+			if (tileLightCount >= TILEDLIGHTING_MAX_LIGHTS_PER - 1)
 				break;
 		}
 	}
 
 	// todo: multi-threaded culling?
 
-	g_tileLightIndices[tileId * MAX_LIGHTS_PER_TILE] = tileLightCount;
+	g_tileLightIndices[tileIdx * TILEDLIGHTING_MAX_LIGHTS_PER] = tileLightCount;
 }

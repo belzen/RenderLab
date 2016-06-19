@@ -7,7 +7,9 @@ struct PsPerAction
 	float3 cameraPos;
 	float unused;
 	float3 cameraDir;
-	uint viewWidth;
+	float unused2;
+	uint2 viewSize;
+	float2 unused3;
 };
 
 struct ToneMapOutputParams

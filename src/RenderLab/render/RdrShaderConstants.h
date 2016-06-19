@@ -1,6 +1,7 @@
 #pragma once
 
 typedef Matrix44 float4x4;
+typedef UVec2 uint2;
 typedef Vec2 float2;
 typedef Vec3 float3;
 typedef Vec4 float4;

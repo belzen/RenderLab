@@ -13,17 +13,29 @@
 #include "RdrScratchMem.h"
 #include "RdrDrawOp.h"
 #include "Scene.h"
+#include "../../data/shaders/light_types.h"
 
 #define ENABLE_DRAWOP_VALIDATION 1
 
 namespace
 {
+	// Hidden global reference to the Renderer for debug commands.
+	// There should only ever be one renderer, but I don't want every system to be
+	// able to access it through a singleton or other global pattern.
+	// This keeps the global ref containined to only this file.
+	static Renderer* g_pRenderer = nullptr;
+
 	static bool s_wireframe = 0;
 	static int s_msaaLevel = 2;
 
-	void setWireframeEnabled(DebugCommandArg *args, int numArgs)
+	void cmdSetWireframeEnabled(DebugCommandArg *args, int numArgs)
 	{
 		s_wireframe = (args[0].val.num != 0.f);
+	}
+
+	void cmdSetLightingMethod(DebugCommandArg *args, int numArgs)
+	{
+		g_pRenderer->SetLightingMethod((RdrLightingMethod)(int)args[0].val.num);
 	}
 
 	enum class RdrPsResourceSlots
@@ -217,7 +229,8 @@ namespace
 		pPsPerAction->cameraPos = rCamera.GetPosition();
 		pPsPerAction->cameraDir = rCamera.GetDirection();
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
-		pPsPerAction->viewWidth = (uint)rViewport.width;
+		pPsPerAction->viewSize.x = (uint)rViewport.width;
+		pPsPerAction->viewSize.y = (uint)rViewport.height;
 
 		rConstants.hPsPerFrame = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
@@ -244,7 +257,8 @@ namespace
 		pPsPerAction->cameraPos = Vec3::kOrigin;
 		pPsPerAction->cameraDir = Vec3::kUnitZ;
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
-		pPsPerAction->viewWidth = (uint)rViewport.width;
+		pPsPerAction->viewSize.x = (uint)rViewport.width;
+		pPsPerAction->viewSize.y = (uint)rViewport.height;
 
 		rConstants.hPsPerFrame = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
@@ -272,13 +286,22 @@ namespace
 
 bool Renderer::Init(HWND hWnd, int width, int height)
 {
-	DebugConsole::RegisterCommand("wireframe", setWireframeEnabled, DebugCommandArgType::Number);
+	assert(g_pRenderer == nullptr);
+	g_pRenderer = this;
+
+	DebugConsole::RegisterCommand("wireframe", cmdSetWireframeEnabled, DebugCommandArgType::Number);
+	DebugConsole::RegisterCommand("lightingMethod", cmdSetLightingMethod, DebugCommandArgType::Number);
 
 	m_pContext = new RdrContextD3D11();
 	if (!m_pContext->Init(hWnd, width, height))
 		return false;
 
 	RdrResourceSystem::Init();
+
+	// Set default lighting method before initialized shaders so global defines can be applied first.
+	m_eLightingMethod = RdrLightingMethod::Clustered;
+	SetLightingMethod(m_eLightingMethod);
+
 	RdrShaderSystem::Init(m_pContext);
 
 	Resize(width, height);
@@ -361,19 +384,86 @@ RdrAction* Renderer::GetNextAction()
 	return &state.actions[state.numActions++];
 }
 
-void Renderer::QueueLightCulling()
+void Renderer::SetLightingMethod(RdrLightingMethod eLightingMethod)
+{
+	m_ePendingLightingMethod = eLightingMethod;
+	RdrShaderSystem::SetGlobalShaderDefine("CLUSTERED_LIGHTING", (eLightingMethod == RdrLightingMethod::Clustered));
+}
+
+void Renderer::QueueClusteredLightCulling()
 {
 	const Camera& rCamera = m_pCurrentAction->camera;
 
-	const int kTilePixelSize = 16;
-	int tileCountX = (m_viewWidth + (kTilePixelSize-1)) / kTilePixelSize;
-	int tileCountY = (m_viewHeight + (kTilePixelSize - 1)) / kTilePixelSize;
+	int clusterCountX = (m_viewWidth + (CLUSTEREDLIGHTING_TILE_SIZE - 1)) / CLUSTEREDLIGHTING_TILE_SIZE;
+	int clusterCountY = (m_viewHeight + (CLUSTEREDLIGHTING_TILE_SIZE - 1)) / CLUSTEREDLIGHTING_TILE_SIZE;
+	int clusterCountZ = CLUSTEREDLIGHTING_DEPTH_SLICES;
+	bool clusterCountChanged = false;
+
+	if (m_clusteredLightData.clusterCountX != clusterCountX || clusterCountY != clusterCountY)
+	{
+		m_clusteredLightData.clusterCountX = clusterCountX;
+		m_clusteredLightData.clusterCountY = clusterCountY;
+		clusterCountChanged = true;
+	}
+
+	//////////////////////////////////////
+	// Light culling
+	if (clusterCountChanged)
+	{
+		if (m_clusteredLightData.hLightIndices)
+			RdrResourceSystem::ReleaseResource(m_clusteredLightData.hLightIndices);
+		m_clusteredLightData.hLightIndices = RdrResourceSystem::CreateDataBuffer(nullptr, clusterCountX * clusterCountY * clusterCountZ * CLUSTEREDLIGHTING_MAX_LIGHTS_PER, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
+	}
+
+	RdrDrawOp* pCullOp = RdrDrawOp::Allocate();
+	pCullOp->eType = RdrDrawOpType::Compute;
+	pCullOp->compute.shader = RdrComputeShader::ClusteredLightCull;
+	pCullOp->compute.threads[0] = clusterCountX;
+	pCullOp->compute.threads[1] = clusterCountY;
+	pCullOp->compute.threads[2] = clusterCountZ;
+	pCullOp->compute.hViews[0] = m_clusteredLightData.hLightIndices;
+	pCullOp->compute.viewCount = 1;
+	pCullOp->compute.hTextures[0] = m_pCurrentAction->lightParams.hLightListRes;
+	pCullOp->compute.hTextures[1] = m_tiledLightData.hDepthMinMaxTex;
+	pCullOp->compute.texCount = 2;
+
+	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ClusteredLightCullingParams));
+	ClusteredLightCullingParams* pParams = (ClusteredLightCullingParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
+	rCamera.GetViewMatrix(pParams->mtxView);
+	pParams->mtxView = Matrix44Transpose(pParams->mtxView);
+	pParams->screenSize = GetViewportSize();
+	pParams->fovY = rCamera.GetFieldOfViewY();
+	pParams->aspectRatio = rCamera.GetAspectRatio();
+	pParams->lightCount = m_pCurrentAction->lightParams.lightCount;
+	pParams->clusterCountX = clusterCountX;
+	pParams->clusterCountY = clusterCountY;
+	pParams->clusterCountZ = clusterCountZ;
+
+	if (m_clusteredLightData.hCullConstants)
+	{
+		RdrResourceSystem::UpdateConstantBuffer(m_clusteredLightData.hCullConstants, pParams);
+	}
+	else
+	{
+		m_clusteredLightData.hCullConstants = RdrResourceSystem::CreateConstantBuffer(pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+	}
+	pCullOp->compute.hCsConstants = m_clusteredLightData.hCullConstants;
+
+	AddToBucket(pCullOp, RdrBucketType::LightCulling);
+}
+
+void Renderer::QueueTiledLightCulling()
+{
+	const Camera& rCamera = m_pCurrentAction->camera;
+
+	int tileCountX = (m_viewWidth + (TILEDLIGHTING_TILE_SIZE - 1)) / TILEDLIGHTING_TILE_SIZE;
+	int tileCountY = (m_viewHeight + (TILEDLIGHTING_TILE_SIZE - 1)) / TILEDLIGHTING_TILE_SIZE;
 	bool tileCountChanged = false;
 
-	if (m_tileCountX != tileCountX || m_tileCountY != tileCountY)
+	if (m_tiledLightData.tileCountX != tileCountX || m_tiledLightData.tileCountY != tileCountY)
 	{
-		m_tileCountX = tileCountX;
-		m_tileCountY = tileCountY;
+		m_tiledLightData.tileCountX = tileCountX;
+		m_tiledLightData.tileCountY = tileCountY;
 		tileCountChanged = true;
 	}
 
@@ -381,9 +471,9 @@ void Renderer::QueueLightCulling()
 	// Depth min max
 	if ( tileCountChanged )
 	{
-		if (m_hDepthMinMaxTex)
-			RdrResourceSystem::ReleaseResource(m_hDepthMinMaxTex);
-		m_hDepthMinMaxTex = RdrResourceSystem::CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT, RdrResourceUsage::Default);
+		if (m_tiledLightData.hDepthMinMaxTex)
+			RdrResourceSystem::ReleaseResource(m_tiledLightData.hDepthMinMaxTex);
+		m_tiledLightData.hDepthMinMaxTex = RdrResourceSystem::CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT, RdrResourceUsage::Default);
 	}
 
 	RdrDrawOp* pDepthOp = RdrDrawOp::Allocate();
@@ -392,7 +482,7 @@ void Renderer::QueueLightCulling()
 	pDepthOp->compute.threads[0] = tileCountX;
 	pDepthOp->compute.threads[1] = tileCountY;
 	pDepthOp->compute.threads[2] = 1;
-	pDepthOp->compute.hViews[0] = m_hDepthMinMaxTex;
+	pDepthOp->compute.hViews[0] = m_tiledLightData.hDepthMinMaxTex;
 	pDepthOp->compute.viewCount = 1;
 	pDepthOp->compute.hTextures[0] = m_hPrimaryDepthBuffer;
 	pDepthOp->compute.texCount = 1;
@@ -412,15 +502,15 @@ void Renderer::QueueLightCulling()
 		pConstants[i].z = invProjMtx.m[i][2];
 		pConstants[i].w = invProjMtx.m[i][3];
 	}
-	if (m_hDepthMinMaxConstants)
+	if (m_tiledLightData.hDepthMinMaxConstants)
 	{
-		RdrResourceSystem::UpdateConstantBuffer(m_hDepthMinMaxConstants, pConstants);
+		RdrResourceSystem::UpdateConstantBuffer(m_tiledLightData.hDepthMinMaxConstants, pConstants);
 	}
 	else
 	{
-		m_hDepthMinMaxConstants = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+		m_tiledLightData.hDepthMinMaxConstants = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	}
-	pDepthOp->compute.hCsConstants = m_hDepthMinMaxConstants;
+	pDepthOp->compute.hCsConstants = m_tiledLightData.hDepthMinMaxConstants;
 
 	AddToBucket(pDepthOp, RdrBucketType::LightCulling);
 
@@ -428,10 +518,9 @@ void Renderer::QueueLightCulling()
 	// Light culling
 	if ( tileCountChanged )
 	{
-		const uint kMaxLightsPerTile = 128; // Sync with MAX_LIGHTS_PER_TILE in "light_inc.hlsli"
-		if (m_hTileLightIndices)
-			RdrResourceSystem::ReleaseResource(m_hTileLightIndices);
-		m_hTileLightIndices = RdrResourceSystem::CreateStructuredBuffer(nullptr, tileCountX * tileCountY * kMaxLightsPerTile, sizeof(uint), RdrResourceUsage::Default);
+		if (m_tiledLightData.hLightIndices)
+			RdrResourceSystem::ReleaseResource(m_tiledLightData.hLightIndices);
+		m_tiledLightData.hLightIndices = RdrResourceSystem::CreateDataBuffer(nullptr, tileCountX * tileCountY * TILEDLIGHTING_MAX_LIGHTS_PER, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
 	}
 
 	RdrDrawOp* pCullOp = RdrDrawOp::Allocate();
@@ -440,34 +529,16 @@ void Renderer::QueueLightCulling()
 	pCullOp->compute.threads[0] = tileCountX;
 	pCullOp->compute.threads[1] = tileCountY;
 	pCullOp->compute.threads[2] = 1;
-	pCullOp->compute.hViews[0] = m_hTileLightIndices;
+	pCullOp->compute.hViews[0] = m_tiledLightData.hLightIndices;
 	pCullOp->compute.viewCount = 1;
 	pCullOp->compute.hTextures[0] = m_pCurrentAction->lightParams.hLightListRes;
-	pCullOp->compute.hTextures[1] = m_hDepthMinMaxTex;
+	pCullOp->compute.hTextures[1] = m_tiledLightData.hDepthMinMaxTex;
 	pCullOp->compute.texCount = 2;
 
-
-	struct CullingParams // Sync with c_tiledlight_cull.hlsl
-	{
-		Vec3 cameraPos;
-		float fovY;
-
-		Vec3 cameraDir;
-		float aspectRatio;
-
-		float cameraNearDist;
-		float cameraFarDist;
-		Vec2 screenSize;
-
-		uint lightCount;
-		uint tileCountX;
-		uint tileCountY;
-	};
-
-	constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(CullingParams));
-	CullingParams* pParams = (CullingParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
-	pParams->cameraPos = rCamera.GetPosition();
-	pParams->cameraDir = rCamera.GetDirection();
+	constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(TiledLightCullingParams));
+	TiledLightCullingParams* pParams = (TiledLightCullingParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
+	rCamera.GetViewMatrix(pParams->mtxView);
+	pParams->mtxView = Matrix44Transpose(pParams->mtxView);
 	pParams->cameraNearDist = rCamera.GetNearDist();
 	pParams->cameraFarDist = rCamera.GetFarDist();
 	pParams->screenSize = GetViewportSize();
@@ -477,15 +548,15 @@ void Renderer::QueueLightCulling()
 	pParams->tileCountX = tileCountX;
 	pParams->tileCountY = tileCountY;
 
-	if (m_hTileCullConstants)
+	if (m_tiledLightData.hCullConstants)
 	{
-		RdrResourceSystem::UpdateConstantBuffer(m_hTileCullConstants, pParams);
+		RdrResourceSystem::UpdateConstantBuffer(m_tiledLightData.hCullConstants, pParams);
 	}
 	else
 	{
-		m_hTileCullConstants = RdrResourceSystem::CreateConstantBuffer(pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+		m_tiledLightData.hCullConstants = RdrResourceSystem::CreateConstantBuffer(pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	}
-	pCullOp->compute.hCsConstants = m_hTileCullConstants;
+	pCullOp->compute.hCsConstants = m_tiledLightData.hCullConstants;
 
 	AddToBucket(pCullOp, RdrBucketType::LightCulling);
 }
@@ -661,7 +732,14 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 	m_pCurrentAction->lightParams.hShadowMapTexArray = rLights.GetShadowMapTexArray();
 	m_pCurrentAction->lightParams.lightCount = rLights.GetLightCount();
 
-	QueueLightCulling();
+	if (m_eLightingMethod == RdrLightingMethod::Clustered)
+	{
+		QueueClusteredLightCulling();
+	}
+	else
+	{
+		QueueTiledLightCulling();
+	}
 }
 
 void Renderer::EndAction()
@@ -731,6 +809,10 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 
 	m_pContext->SetViewport(rPass.viewport);
 
+	const RdrResourceHandle hLightIndicesBuffer = (m_eLightingMethod == RdrLightingMethod::Clustered) 
+		? m_clusteredLightData.hLightIndices 
+		: m_tiledLightData.hLightIndices;
+
 	RdrDrawOpBucket::const_iterator opIter = rAction.buckets[(int)s_passBuckets[(int)ePass] ].begin();
 	RdrDrawOpBucket::const_iterator opEndIter = rAction.buckets[(int)s_passBuckets[(int)ePass] ].end();
 	for ( ; opIter != opEndIter; ++opIter )
@@ -743,7 +825,7 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 		else
 		{
 			const RdrGlobalConstants& rGlobalConstants = (ePass == RdrPass::UI) ? rAction.uiConstants : rAction.constants;
-			DrawGeo(rPass, rGlobalConstants, pDrawOp, rAction.lightParams, m_hTileLightIndices);
+			DrawGeo(rPass, rGlobalConstants, pDrawOp, rAction.lightParams, hLightIndicesBuffer);
 		}
 	}
 
@@ -864,6 +946,8 @@ void Renderer::PostFrameSync()
 	RdrShaderSystem::FlipState();
 	RdrScratchMem::FlipState();
 	RdrDrawOp::ProcessReleases();
+
+	m_eLightingMethod = m_ePendingLightingMethod;
 }
 
 void Renderer::ProcessReadbackRequests()

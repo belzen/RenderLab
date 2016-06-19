@@ -89,6 +89,8 @@ enum class RdrComputeShader
 	TiledDepthMinMax,
 	TiledLightCull,
 
+	ClusteredLightCull,
+
 	LuminanceMeasure_First,
 	LuminanceMeasure_Mid,
 	LuminanceMeasure_Final,

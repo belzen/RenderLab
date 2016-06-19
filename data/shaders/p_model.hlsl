@@ -40,7 +40,7 @@ float4 main(VsOutputModel input) : SV_TARGET
 
 	float3 cameraViewDir = normalize(cbPerAction.cameraPos - input.position_ws.xyz);
 
-	float3 litColor = doLighting(input.position_ws.xyz, color.rgb, normal, cameraViewDir, input.position.xy, cbPerAction.viewWidth);
+	float3 litColor = doLighting(input.position_ws.xyz, color.rgb, normal, cameraViewDir, input.position.xy, cbPerAction.viewSize);
 	return float4(litColor + 0.001f, 1);
 #endif
 }

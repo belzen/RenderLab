@@ -127,7 +127,7 @@ int main(int argc, char** argv)
 
 	FileWatcher::Init(Paths::GetBinDataDir());
 
-	g_scene.Load("sponza");
+	g_scene.Load("basic");
 
 	MSG msg;
 	Timer::Handle hTimer = Timer::Create();

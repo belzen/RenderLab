@@ -27,6 +27,7 @@ public:
 
 	void UpdateProjection();
 	void GetMatrices(Matrix44& view, Matrix44& proj) const;
+	void GetViewMatrix(Matrix44& rOutView) const;
 
 	float GetAspectRatio() const;
 	void SetAspectRatio(float aspectRatio);

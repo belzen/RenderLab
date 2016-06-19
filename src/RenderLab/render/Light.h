@@ -3,6 +3,8 @@
 #include "Math.h"
 #include "RdrContext.h"
 #include "AssetLib/SceneAsset.h"
+#include "RdrShaderTypes.h"
+#include "../../data/shaders/light_types.h"
 
 struct ID3D11Buffer;
 struct ID3D11UnorderedAccessView;
@@ -12,8 +14,6 @@ class Camera;
 class Scene;
 
 #define MAX_SHADOW_MAPS_PER_FRAME 10
-#define MAX_SHADOW_MAPS 10
-#define MAX_SHADOW_CUBEMAPS 2
 #define USE_SINGLEPASS_SHADOW_CUBEMAP 1
 
 // WARNING - Must match struct in light_inc.hlsli

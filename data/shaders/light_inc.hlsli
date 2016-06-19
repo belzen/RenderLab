@@ -1,49 +1,17 @@
-struct Light
-{
-	int type;
-	float3 position;
-	float3 direction;
-	float radius;
-	float3 color;
-	float innerConeAngleCos; // Cosine of angle where light begins to fall off
-	float outerConeAngleCos; // No more light
-	uint castsShadows;
-	uint shadowMapIndex;
-};
-
-// todo: Store Light in constant buffer, it's way faster https://developer.nvidia.com/content/how-about-constant-buffers
-struct ShadowData
-{
-	float4x4 mtxViewProj;
-	float partitionEndZ;
-};
-
-#define MAX_SHADOW_MAPS 10
-#define MAX_SHADOW_CUBEMAPS 2
-#define MAX_LIGHTS_PER_TILE 128
-#define TILE_SIZE 16.f
-
-#if !LIGHT_DATA_ONLY
+#include "light_types.h"
 
 static float3 ambient_color = float3(1.f, 1.f, 1.f);
 static float ambient_intensity = 1.f;
 
-StructuredBuffer<Light> g_lights : register(t16);
-StructuredBuffer<uint> g_tileLightIndices : register(t17);
+StructuredBuffer<ShaderLight> g_lights : register(t16);
+Buffer<uint> g_lightIndices : register(t17);
 
-StructuredBuffer<ShadowData> g_shadowData : register(t18);
+StructuredBuffer<ShaderShadowData> g_shadowData : register(t18);
 
 Texture2DArray texShadowMaps : register(t14);
 TextureCubeArray texShadowCubemaps : register(t15);
 SamplerComparisonState sampShadowMaps : register(s15);
 
-int getTileId(in float2 screenPos, in uint screenWidth)
-{
-	float tileX = floor(screenPos.x / TILE_SIZE);
-	float tileY = floor(screenPos.y / TILE_SIZE);
-	float numTileX = ceil(screenWidth / TILE_SIZE);
-	return tileX + tileY * numTileX;
-}
 
 float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float3 posToLight, in float lightRadius, in uint shadowMapIndex)
 {
@@ -108,17 +76,61 @@ float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float3 posToLig
 	}
 }
 
-float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3 viewDir, in float2 screenPos, in uint screenWidth)
+uint getClusterId(in float2 screenPos, in uint2 screenSize, in float depth)
 {
-	int tileIdx = getTileId(screenPos, screenWidth) * MAX_LIGHTS_PER_TILE;
-	int numLights = g_tileLightIndices[tileIdx];
+	uint clusterX = screenPos.x / CLUSTEREDLIGHTING_TILE_SIZE;
+	uint clusterY = screenPos.y / CLUSTEREDLIGHTING_TILE_SIZE;
+	uint numClusterX = ceil(screenSize.x / float(CLUSTEREDLIGHTING_TILE_SIZE));
+	uint numClusterY = ceil(screenSize.y / float(CLUSTEREDLIGHTING_TILE_SIZE));
 
-	float3 litColor = 0;
+	uint clusterZ = 0;
+	float maxDepth = CLUSTEREDLIGHTING_SPECIAL_NEAR_DEPTH;
+	while (clusterZ < CLUSTEREDLIGHTING_DEPTH_SLICES && depth > maxDepth)
+	{
+		clusterZ++;
+		maxDepth = CLUSTEREDLIGHTING_SPECIAL_NEAR_DEPTH * pow(CLUSTEREDLIGHTING_MAX_DEPTH / CLUSTEREDLIGHTING_SPECIAL_NEAR_DEPTH, clusterZ / (CLUSTEREDLIGHTING_DEPTH_SLICES - 1.f));
+	}
+
+	return clusterX + clusterY * numClusterX + clusterZ * numClusterX * numClusterY;
+}
+
+uint getTileId(in float2 screenPos, in uint screenWidth)
+{
+	uint tileX = screenPos.x / TILEDLIGHTING_TILE_SIZE;
+	uint tileY = screenPos.y / TILEDLIGHTING_TILE_SIZE;
+	uint numTileX = ceil(screenWidth / float(TILEDLIGHTING_TILE_SIZE));
+	return tileX + tileY * numTileX;
+}
+
+uint getLightListIndex(in float2 screenPos, in uint2 screenSize, float depth)
+{
+#if CLUSTERED_LIGHTING
+	return getClusterId(screenPos, screenSize, depth) * CLUSTEREDLIGHTING_MAX_LIGHTS_PER;
+#else
+	return getTileId(screenPos, screenSize.x) * TILEDLIGHTING_MAX_LIGHTS_PER;
+#endif
+}
+
+float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3 viewDir, in float2 screenPos, in uint2 screenSize)
+{
 	float viewDepth = dot((pos_ws - cbPerAction.cameraPos), cbPerAction.cameraDir);
+	float3 litColor = 0;
 
+	int startIdx = getLightListIndex(screenPos, screenSize, viewDepth);
+	int numLights = g_lightIndices[startIdx];
+
+#if VISUALIZE_LIGHT_LIST
+	if (numLights == 1)
+		litColor.r = 1.f;
+	else if (numLights == 2)
+		litColor.g = 1.f;
+	else if (numLights == 3)
+		litColor.b = 1.f;
+
+#else // VISUALIZE_LIGHT_LIST
 	for (int i = 0; i < numLights; ++i)
 	{
-		Light light = g_lights[ g_tileLightIndices[tileIdx + i + 1] ];
+		ShaderLight light = g_lights[g_lightIndices[startIdx + i + 1]];
 
 		float3 posToLight = light.position - pos_ws;
 		float lightDist = length(posToLight);
@@ -153,7 +165,7 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 		// Spot light angular falloff
 		float spotEffect = dot(light.direction, -dirToLight); //angle
 		float coneFalloffRange = max((light.innerConeAngleCos - light.outerConeAngleCos), 0.00001f);
-		float angularFalloff = saturate( (spotEffect - light.outerConeAngleCos) / coneFalloffRange );
+		float angularFalloff = saturate((spotEffect - light.outerConeAngleCos) / coneFalloffRange);
 		angularFalloff = lerp(1.f, angularFalloff, (light.type == 2));
 
 		// Find actual shadow map index
@@ -184,9 +196,8 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 
 		litColor += (diffuse + specular) * distFalloff * angularFalloff * shadowFactor;
 	}
+#endif // VISUALIZE_LIGHT_LIST
 
 	float3 ambient = color * ambient_color * ambient_intensity;
 	return ambient + litColor;
 }
-
-#endif

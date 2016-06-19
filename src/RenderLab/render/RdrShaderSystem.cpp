@@ -4,6 +4,7 @@
 #include "UtilsLib/Hash.h"
 #include "UtilsLib/SizedArray.h"
 #include <d3dcompiler.h>
+#include "debug/DebugConsole.h"
 
 namespace
 {
@@ -33,16 +34,17 @@ namespace
 	static_assert(ARRAY_SIZE(kGeometryShaderDefs) == (int)RdrGeometryShaderType::Count, "Missing geometry shader defs!");
 
 	const RdrShaderDef kComputeShaderDefs[] = {
-		{ "c_tiled_depth_calc.hlsl",  { 0 } },               // RdrComputeShader::TiledDepthMinMax
-		{ "c_tiled_light_cull.hlsl",  { 0 } },               // RdrComputeShader::TiledLightCull
-		{ "c_luminance_measure.hlsl", { "STEP_ONE", 0 } },   // RdrComputeShader::LuminanceMeasure_First,
-		{ "c_luminance_measure.hlsl", { "STEP_MID", 0 } },   // RdrComputeShader::LuminanceMeasure_Mid,
-		{ "c_luminance_measure.hlsl", { "STEP_FINAL", 0 } }, // RdrComputeShader::LuminanceMeasure_Final,
-		{ "c_luminance_histogram.hlsl",{ "STEP_TILE", 0 } },   // RdrComputeShader::LuminanceHistogram_Tile,
-		{ "c_luminance_histogram.hlsl",{ "STEP_MERGE", 0 } },   // RdrComputeShader::LuminanceHistogram_Merge
+		{ "c_tiled_depth_calc.hlsl",  { 0 } },                // RdrComputeShader::TiledDepthMinMax
+		{ "c_tiled_light_cull.hlsl",  { 0 } },                // RdrComputeShader::TiledLightCull
+		{ "c_clustered_light_cull.hlsl",{ 0 } },              // RdrComputeShader::ClusteredLightCull
+		{ "c_luminance_measure.hlsl", { "STEP_ONE", 0 } },    // RdrComputeShader::LuminanceMeasure_First,
+		{ "c_luminance_measure.hlsl", { "STEP_MID", 0 } },    // RdrComputeShader::LuminanceMeasure_Mid,
+		{ "c_luminance_measure.hlsl", { "STEP_FINAL", 0 } },  // RdrComputeShader::LuminanceMeasure_Final,
+		{ "c_luminance_histogram.hlsl",{ "STEP_TILE", 0 } },  // RdrComputeShader::LuminanceHistogram_Tile,
+		{ "c_luminance_histogram.hlsl",{ "STEP_MERGE", 0 } }, // RdrComputeShader::LuminanceHistogram_Merge
 		{ "c_luminance_histogram.hlsl",{ "STEP_CURVE", 0 } }, // RdrComputeShader::LuminanceHistogram_ResponseCurve
-		{ "c_bloom_shrink.hlsl",      { 0 } },               // RdrComputeShader::Bloom,
-		{ "c_add.hlsl",               { 0 } },               // RdrComputeShader::Add,
+		{ "c_bloom_shrink.hlsl",      { 0 } },                // RdrComputeShader::Bloom,
+		{ "c_add.hlsl",               { 0 } },                // RdrComputeShader::Add,
 		{ "c_blur.hlsl",              { "BLUR_HORIZONTAL", 0 } }, // RdrComputeShader::BlurHorizontal,
 		{ "c_blur.hlsl",              { "BLUR_VERTICAL", 0 } },   // RdrComputeShader::BlurVertical,
 	};
@@ -71,8 +73,8 @@ namespace
 		union
 		{
 			RdrShaderHandle hPixelShader;
-			RdrVertexShader vertexShader;
-			RdrGeometryShader geomShader;
+			RdrVertexShaderType vertexShader;
+			RdrGeometryShaderType geomShader;
 			RdrComputeShader computeShader;
 		};
 		RdrShaderStage eStage;
@@ -111,6 +113,11 @@ namespace
 
 		ShdrFrameState states[2];
 		uint       queueState;
+
+		// Defines that are auto-applied to all shaders.
+		std::vector<std::string> globalShaderDefines;
+
+		bool bInitialized;
 	} s_shaderSystem;
 
 	inline ShdrFrameState& getQueueState()
@@ -164,6 +171,12 @@ namespace
 			macroDefines[i].Definition = "1";
 		}
 
+		for (uint i = 0; i < s_shaderSystem.globalShaderDefines.size(); ++i)
+		{
+			macroDefines[numDefines + i].Name = s_shaderSystem.globalShaderDefines[i].c_str();
+			macroDefines[i].Definition = "1";
+		}
+
 		IncludeHandler include;
 		hr = D3DPreprocess(pFileData, fileSize, nullptr, macroDefines, &include, &pCompiledData, &pErrors);
 		if (hr != S_OK)
@@ -213,6 +226,7 @@ namespace
 		bool res = pRdrContext->CompileShader(eStage, pShaderText, (uint)pPreprocData->GetBufferSize(), &pCompiledData, &compiledDataSize);
 		assert(res);
 
+		rOutShader.filename = rShaderDef.filename;
 		rOutShader.pTypeless = pRdrContext->CreateShader(eStage, pCompiledData, compiledDataSize);
 		rOutShader.eStage = eStage;
 		if (eStage == RdrShaderStage::Vertex)
@@ -248,10 +262,51 @@ namespace
 	{
 		return (uint)shader;
 	}
+
+	void processShaderReload(RdrShaderStage eStage, RdrShader* pShader, RdrShader& rErrorShader, RdrContext* pRdrContext)
+	{
+		// Free the old shader object if it wasn't the error shader.
+		if (pShader->pTypeless != rErrorShader.pTypeless)
+		{
+			pRdrContext->ReleaseShader(pShader);
+		}
+
+		ID3D10Blob* pBlob = preprocessShader(pShader->filename, nullptr, 0);
+		if (pBlob)
+		{
+			uint textLen = (uint)pBlob->GetBufferSize();
+			char* pShaderText = new char[textLen];
+			memcpy(pShaderText, pBlob->GetBufferPointer(), textLen);
+
+			void* pCompiledData;
+			uint compiledDataSize;
+			bool succeeded = pRdrContext->CompileShader(eStage, pShaderText, textLen, &pCompiledData, &compiledDataSize);
+			if (succeeded)
+			{
+				pShader->pTypeless = pRdrContext->CreateShader(eStage, pCompiledData, compiledDataSize);
+				delete pCompiledData;
+			}
+			else
+			{
+				pShader->pTypeless = rErrorShader.pTypeless;
+			}
+
+			delete pShaderText;
+			pBlob->Release();
+		}
+	}
+
+	void cmdSetGlobalShaderDefine(DebugCommandArg* args, int numArgs)
+	{
+		RdrShaderSystem::SetGlobalShaderDefine(args[0].val.str, (args[0].val.num != 0.f));
+	}
 }
 
 void RdrShaderSystem::Init(RdrContext* pRdrContext)
 {
+	// Debug commands
+	DebugConsole::RegisterCommand("SetGlobalShaderDefine", cmdSetGlobalShaderDefine, DebugCommandArgType::String, DebugCommandArgType::Number);
+
 	//////////////////////////////////////
 	// Load default shaders.
 	for (int vs = 0; vs < (uint)RdrVertexShaderType::Count; ++vs)
@@ -288,23 +343,120 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 	createDefaultShader(pRdrContext, RdrShaderStage::Pixel, errorPixelShader, RdrShaderFlags::None, s_shaderSystem.errorShaders[(int)RdrShaderStage::Pixel]);
 
 	FileWatcher::AddListener(kShaderFilePattern, handleShaderFileChanged, nullptr);
+
+	s_shaderSystem.bInitialized = true;
 }
 
 void RdrShaderSystem::ReloadShader(const char* filename)
 {
 	AutoScopedLock lock(s_shaderSystem.reloadMutex);
-	ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
 
 	Hashing::StringHash nameHash = Hashing::HashString(filename);
 	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.find(nameHash);
 	if (iter != s_shaderSystem.pixelShaderCache.end())
 	{
+		ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
+		cmd.eStage = RdrShaderStage::Pixel;
+		cmd.hPixelShader = iter->second;
+		return;
+	}
+
+	for (int i = 0; i < (int)RdrVertexShaderType::Count; ++i)
+	{
+		if (_stricmp(filename, kVertexShaderDefs[i].filename) == 0)
+		{
+			ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
+			cmd.eStage = RdrShaderStage::Vertex;
+			cmd.vertexShader = (RdrVertexShaderType)i;
+			return;
+		}
+	}
+
+	for (int i = 0; i < (int)RdrComputeShader::Count; ++i)
+	{
+		if (_stricmp(filename, kComputeShaderDefs[i].filename) == 0)
+		{
+			ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
+			cmd.eStage = RdrShaderStage::Compute;
+			cmd.computeShader = (RdrComputeShader)i;
+			return;
+		}
+	}
+
+	for (int i = 0; i < (int)RdrGeometryShaderType::Count; ++i)
+	{
+		if (_stricmp(filename, kGeometryShaderDefs[i].filename) == 0)
+		{
+			ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
+			cmd.eStage = RdrShaderStage::Geometry;
+			cmd.geomShader = (RdrGeometryShaderType)i;
+			return;
+		}
+	}
+
+	// Couldn't find any specific shader... This is most likely a header file.  Just reload all shaders
+	ReloadAllShaders();
+}
+
+void RdrShaderSystem::ReloadAllShaders()
+{
+	if (!s_shaderSystem.bInitialized)
+		return;
+
+	for (int i = 0; i < (int)RdrVertexShaderType::Count; ++i)
+	{
+		ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
+		cmd.eStage = RdrShaderStage::Vertex;
+		cmd.vertexShader = (RdrVertexShaderType)i;
+	}
+	for (int i = 0; i < (int)RdrComputeShader::Count; ++i)
+	{
+		ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
+		cmd.eStage = RdrShaderStage::Compute;
+		cmd.computeShader = (RdrComputeShader)i;
+	}
+	for (int i = 0; i < (int)RdrGeometryShaderType::Count; ++i)
+	{
+		ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
+		cmd.eStage = RdrShaderStage::Geometry;
+		cmd.geomShader = (RdrGeometryShaderType)i;
+	}
+
+	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.begin();
+	for (; iter != s_shaderSystem.pixelShaderCache.end(); ++iter)
+	{
+		ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
 		cmd.eStage = RdrShaderStage::Pixel;
 		cmd.hPixelShader = iter->second;
 	}
+}
+
+void RdrShaderSystem::SetGlobalShaderDefine(const char* define, bool enable)
+{
+	auto iter = s_shaderSystem.globalShaderDefines.begin();
+	for (; iter != s_shaderSystem.globalShaderDefines.end(); ++iter)
+	{
+		if (strcmp(define, iter->c_str()) == 0)
+		{
+			break;
+		}
+	}
+
+	if (enable)
+	{
+		if (iter == s_shaderSystem.globalShaderDefines.end())
+		{
+			s_shaderSystem.globalShaderDefines.push_back(define);
+			ReloadAllShaders();
+		}
+	}
 	else
 	{
-		// todo: other shader types
+		if (iter != s_shaderSystem.globalShaderDefines.end())
+		{
+			s_shaderSystem.globalShaderDefines.erase(iter);
+			ReloadAllShaders();
+		}
 	}
 }
 
@@ -462,47 +614,39 @@ void RdrShaderSystem::ProcessCommands(RdrContext* pRdrContext)
 			switch (cmd.eStage)
 			{
 			case RdrShaderStage::Pixel:
-				pShader = s_shaderSystem.pixelShaders.get(cmd.hPixelShader);
+				{
+					pShader = s_shaderSystem.pixelShaders.get(cmd.hPixelShader);
+					processShaderReload(cmd.eStage, pShader, rErrorShader, pRdrContext);
+				}
 				break;
 			case RdrShaderStage::Vertex:
-				pShader = &s_shaderSystem.vertexShaders[getVertexShaderIndex(cmd.vertexShader)];
+				{
+					RdrVertexShader vertexShader;
+					vertexShader.eType = cmd.vertexShader;
+					for (uint flags = 0; flags < (uint)RdrShaderFlags::NumCombos; ++flags)
+					{
+						vertexShader.flags = (RdrShaderFlags)flags;
+						pShader = &s_shaderSystem.vertexShaders[getVertexShaderIndex(vertexShader)];
+						processShaderReload(cmd.eStage, pShader, rErrorShader, pRdrContext);
+					}
+				}
 				break;
 			case RdrShaderStage::Geometry:
-				pShader = &s_shaderSystem.geometryShaders[getGeometryShaderIndex(cmd.geomShader)];
+				{
+					RdrGeometryShader geomShader;
+					geomShader.eType = cmd.geomShader;
+					for (uint flags = 0; flags < (uint)RdrShaderFlags::NumCombos; ++flags)
+					{
+						geomShader.flags = (RdrShaderFlags)flags;
+						pShader = &s_shaderSystem.geometryShaders[getGeometryShaderIndex(geomShader)];
+						processShaderReload(cmd.eStage, pShader, rErrorShader, pRdrContext);
+					}
+				}
 				break;
 			case RdrShaderStage::Compute:
 				pShader = &s_shaderSystem.computeShaders[getComputeShaderIndex(cmd.computeShader)];
+				processShaderReload(cmd.eStage, pShader, rErrorShader, pRdrContext);
 				break;
-			}
-
-			// Free the old shader object if it wasn't the error shader.
-			if (pShader->pTypeless != rErrorShader.pTypeless)
-			{
-				pRdrContext->ReleaseShader(pShader);
-			}
-
-			ID3D10Blob* pBlob = preprocessShader(pShader->filename, nullptr, 0);
-			if (pBlob)
-			{
-				uint textLen = (uint)pBlob->GetBufferSize();
-				char* pShaderText = new char[textLen];
-				memcpy(pShaderText, pBlob->GetBufferPointer(), textLen);
-
-				void* pCompiledData;
-				uint compiledDataSize;
-				bool succeeded = pRdrContext->CompileShader(cmd.eStage, pShaderText, textLen, &pCompiledData, &compiledDataSize);
-				if (succeeded)
-				{
-					pShader->pTypeless = pRdrContext->CreateShader(cmd.eStage, pCompiledData, compiledDataSize);
-					delete pCompiledData;
-				}
-				else
-				{
-					pShader->pTypeless = rErrorShader.pTypeless;
-				}
-
-				delete pShaderText;
-				pBlob->Release();
 			}
 		}
 	}

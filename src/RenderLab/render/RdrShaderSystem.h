@@ -13,6 +13,9 @@ namespace RdrShaderSystem
 	RdrInputLayoutHandle CreateInputLayout(const RdrVertexShader& vertexShader, const RdrVertexInputElement* aVertexElements, const uint numElements);
 
 	void ReloadShader(const char* filename);
+	void ReloadAllShaders();
+
+	void SetGlobalShaderDefine(const char* define, bool enable);
 
 	const RdrShader* GetVertexShader(const RdrVertexShader shader);
 	const RdrShader* GetGeometryShader(const RdrGeometryShader shader);

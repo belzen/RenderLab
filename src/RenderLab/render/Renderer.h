@@ -16,6 +16,31 @@ struct Light;
 class LightList;
 class RdrPostProcessEffects;
 
+enum class RdrLightingMethod
+{
+	Tiled,
+	Clustered
+};
+
+struct RdrTiledLightingData
+{
+	RdrResourceHandle       hLightIndices;
+	RdrConstantBufferHandle hDepthMinMaxConstants;
+	RdrConstantBufferHandle hCullConstants;
+	RdrResourceHandle	    hDepthMinMaxTex;
+	int					    tileCountX;
+	int					    tileCountY;
+};
+
+struct RdrClusteredLightingData
+{
+	RdrResourceHandle       hLightIndices;
+	RdrConstantBufferHandle hCullConstants;
+	int					    clusterCountX;
+	int					    clusterCountY;
+	int					    clusterCountZ;
+};
+
 class Renderer
 {
 public:
@@ -47,10 +72,13 @@ public:
 	RdrResourceReadbackRequestHandle IssueStructuredBufferReadbackRequest(RdrResourceHandle hResource, uint startByteOffset, uint numBytesToRead);
 	void ReleaseResourceReadbackRequest(RdrResourceReadbackRequestHandle hRequest);
 
+	void SetLightingMethod(RdrLightingMethod eLightingMethod);
+
 private:
 	void DrawPass(const RdrAction& rAction, RdrPass ePass);
 	void DrawShadowPass(const RdrShadowPass& rPass);
-	void QueueLightCulling();
+	void QueueTiledLightCulling();
+	void QueueClusteredLightCulling();
 
 	RdrFrameState& GetQueueState();
 	RdrFrameState& GetActiveState();
@@ -79,19 +107,15 @@ private:
 
 	RdrAction* m_pCurrentAction;
 
-	RdrResourceHandle m_hTileLightIndices;
-
 	int m_viewWidth;
 	int m_viewHeight;
 	int m_pendingViewWidth;
 	int m_pendingViewHeight;
 
-	// Forward+ lighting
-	RdrConstantBufferHandle m_hDepthMinMaxConstants;
-	RdrConstantBufferHandle m_hTileCullConstants;
-	RdrResourceHandle	m_hDepthMinMaxTex;
-	int					m_tileCountX;
-	int					m_tileCountY;
+	RdrLightingMethod m_ePendingLightingMethod;
+	RdrLightingMethod m_eLightingMethod;
+	RdrTiledLightingData m_tiledLightData;
+	RdrClusteredLightingData m_clusteredLightData;
 
 	RdrPostProcess m_postProcess;
 

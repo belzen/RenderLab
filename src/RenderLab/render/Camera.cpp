@@ -76,7 +76,7 @@ void Camera::SetAspectRatio(float aspectRatio)
 	UpdateProjection();
 }
 
-void Camera::GetMatrices(Matrix44& view, Matrix44& proj) const
+void Camera::GetViewMatrix(Matrix44& rOutView) const
 {
 	Vec3 upDir = Vec3::kUnitY;
 	if (m_direction.y > 0.99f)
@@ -84,7 +84,12 @@ void Camera::GetMatrices(Matrix44& view, Matrix44& proj) const
 	else if (m_direction.y < -0.99f)
 		upDir = Vec3::kUnitZ;
 
-	view = Matrix44LookToLH(m_position, m_direction, upDir);
+	rOutView = Matrix44LookToLH(m_position, m_direction, upDir);
+}
+
+void Camera::GetMatrices(Matrix44& view, Matrix44& proj) const
+{
+	GetViewMatrix(view);
 	proj = m_projMatrix;
 }
 
