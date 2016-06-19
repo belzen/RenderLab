@@ -124,7 +124,7 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 		litColor.r = 1.f;
 	else if (numLights == 2)
 		litColor.g = 1.f;
-	else if (numLights == 3)
+	else if (numLights >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER - 1)
 		litColor.b = 1.f;
 
 #else // VISUALIZE_LIGHT_LIST

@@ -1,5 +1,9 @@
 #include "light_types.h"
 
+#define THREAD_COUNT_X 8
+#define THREAD_COUNT_Y 8
+#define THREAD_COUNT_TOTAL (THREAD_COUNT_X * THREAD_COUNT_Y)
+
 cbuffer CullingParams : register(b0)
 {
 	TiledLightCullingParams cbCullParams;
@@ -84,31 +88,46 @@ int overlapFrustum(in Frustum frustum, in ShaderLight light)
 	return inFrustum;
 }
 
-[numthreads(1, 1, 1)]
-void main( uint3 groupId : SV_GroupID )
-{
-	uint tileIdx = groupId.x + groupId.y * cbCullParams.tileCountX;
+groupshared uint grp_tileLightCount = 0;
 
+[numthreads(THREAD_COUNT_X, THREAD_COUNT_Y, 1)]
+void main( uint3 groupId : SV_GroupID, uint localIdx : SV_GroupIndex)
+{
+	if (localIdx == 0)
+	{
+		grp_tileLightCount = 0;
+	}
+
+	uint tileIdx = groupId.x + groupId.y * cbCullParams.tileCountX;
 	float2 zMinMax = g_depthMinMax.Load( uint3(groupId.xy, 0) );
 
 	// create frustum
 	Frustum frustum;
 	constructFrustum(groupId.xy, zMinMax, frustum);
 
-	uint tileLightCount = 0;
-	for (uint i = 0; i < cbCullParams.lightCount; ++i)
+	for (uint i = localIdx; i < cbCullParams.lightCount; i += THREAD_COUNT_TOTAL)
 	{
-		if ( overlapFrustum(frustum, g_lights[i]))
+		if (overlapFrustum(frustum, g_lights[i]))
 		{
-			// add light to tile's light list
-			g_tileLightIndices[tileIdx * TILEDLIGHTING_MAX_LIGHTS_PER + tileLightCount + 1] = i;
-			++tileLightCount;
-			if (tileLightCount >= TILEDLIGHTING_MAX_LIGHTS_PER - 1)
+			// add light to light list
+			uint lightIndex;
+			InterlockedAdd(grp_tileLightCount, 1, lightIndex);
+
+			if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER - 1)
+			{
+				// Make sure we're not over the light limit before writing to the buffer.
+				// The light count is still incremented, but is clamped to the max before writing.
 				break;
+			}
+
+			g_tileLightIndices[tileIdx * TILEDLIGHTING_MAX_LIGHTS_PER + lightIndex + 1] = i;
 		}
 	}
 
-	// todo: multi-threaded culling?
+	GroupMemoryBarrierWithGroupSync();
 
-	g_tileLightIndices[tileIdx * TILEDLIGHTING_MAX_LIGHTS_PER] = tileLightCount;
+	if (localIdx == 0)
+	{
+		g_tileLightIndices[tileIdx * TILEDLIGHTING_MAX_LIGHTS_PER] = min(grp_tileLightCount, TILEDLIGHTING_MAX_LIGHTS_PER - 1);
+	}
 }

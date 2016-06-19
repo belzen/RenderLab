@@ -1014,10 +1014,12 @@ void Renderer::DrawFrame()
 			RdrAction& rAction = rFrameState.actions[iAction];
 			m_pContext->BeginEvent(rAction.name);
 
+			m_profiler.BeginSection(RdrProfileSection::Shadows);
 			for (int iShadow = 0; iShadow < rAction.shadowPassCount; ++iShadow)
 			{
 				DrawShadowPass(rAction.shadowPasses[iShadow]);
 			}
+			m_profiler.EndSection();
 
 			RdrRasterState rasterState;
 			rasterState.bEnableMSAA = (s_msaaLevel > 1);

@@ -9,6 +9,7 @@ class RdrContext;
 enum class RdrProfileSection
 {
 	Frame,
+	Shadows,
 	ZPrepass,
 	LightCulling,
 	Opaque,

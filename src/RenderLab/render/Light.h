@@ -51,7 +51,7 @@ public:
 	uint GetLightCount() const;
 
 private:
-	Light m_lights[1024];
+	Light m_lights[2048];
 	uint m_lightCount;
 	uint m_prevLightCount;
 

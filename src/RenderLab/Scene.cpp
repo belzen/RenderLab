@@ -20,6 +20,26 @@ namespace
 			pScene->Reload();
 		}
 	}
+
+	uint s_stressTestLights = 0;
+	void spawnLightStressTest(LightList& rLightList)
+	{
+		for (float x = -150.f; x < 150.f; x += 8.f)
+		{
+			for (float y = -150.f; y < 150.f; y += 8.f)
+			{
+				Light light;
+				light.type = LightType::Point;
+				light.color = Vec3(800.f, 0.f, 0.f);
+				light.position.x = x;
+				light.position.y = 5.f;
+				light.position.z = y;
+				light.radius = 16.f;
+				light.castsShadows = false;
+				rLightList.AddLight(light);
+			}
+		}
+	}
 }
 
 Scene::Scene()
@@ -99,7 +119,6 @@ void Scene::Load(const char* sceneName)
 	// Lights
 	{
 		uint numLights = pSceneData->lightCount;
-
 		for (uint i = 0; i < numLights; ++i)
 		{
 			const AssetLib::Light& rLightData = pSceneData->lights.ptr[i];
@@ -115,6 +134,11 @@ void Scene::Load(const char* sceneName)
 			light.castsShadows = rLightData.bCastsShadows;
 
 			m_lights.AddLight(light);
+		}
+
+		if (s_stressTestLights)
+		{
+			spawnLightStressTest(m_lights);
 		}
 	}
 

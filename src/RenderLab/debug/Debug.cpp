@@ -104,6 +104,10 @@ void Debug::QueueDraw(Renderer& rRenderer, const Scene& rScene, const FrameTimer
 		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
+		sprintf_s(line, "  Shadows: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Shadows));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
 		sprintf_s(line, "  Z-Prepass: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::ZPrepass));
 		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
 
