@@ -49,6 +49,11 @@ inline Vec2 operator / (const Vec2& lhs, const Vec2& rhs)
 	return Vec2(lhs.x / rhs.x, lhs.y / rhs.y);
 }
 
+inline Vec2 operator / (const Vec2& lhs, const float rhs)
+{
+	return Vec2(lhs.x / rhs, lhs.y / rhs);
+}
+
 inline bool operator == (const Vec2& lhs, const Vec2& rhs)
 {
 	return lhs.x == rhs.x && lhs.y == rhs.y;

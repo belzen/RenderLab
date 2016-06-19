@@ -442,8 +442,13 @@ void Renderer::QueueClusteredLightCulling()
 
 	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ClusteredLightCullingParams));
 	ClusteredLightCullingParams* pParams = (ClusteredLightCullingParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
-	rCamera.GetViewMatrix(pParams->mtxView);
+
+	Matrix44 mtxProj;
+	rCamera.GetMatrices(pParams->mtxView, mtxProj);
+
 	pParams->mtxView = Matrix44Transpose(pParams->mtxView);
+	pParams->proj_11 = mtxProj._11;
+	pParams->proj_22 = mtxProj._22;
 	pParams->screenSize = GetViewportSize();
 	pParams->fovY = rCamera.GetFieldOfViewY();
 	pParams->aspectRatio = rCamera.GetAspectRatio();
@@ -550,8 +555,13 @@ void Renderer::QueueTiledLightCulling()
 
 	constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(TiledLightCullingParams));
 	TiledLightCullingParams* pParams = (TiledLightCullingParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
-	rCamera.GetViewMatrix(pParams->mtxView);
+	
+	Matrix44 mtxProj;
+	rCamera.GetMatrices(pParams->mtxView, mtxProj);
+
 	pParams->mtxView = Matrix44Transpose(pParams->mtxView);
+	pParams->proj_11 = mtxProj._11;
+	pParams->proj_22 = mtxProj._22;
 	pParams->cameraNearDist = rCamera.GetNearDist();
 	pParams->cameraFarDist = rCamera.GetFarDist();
 	pParams->screenSize = GetViewportSize();

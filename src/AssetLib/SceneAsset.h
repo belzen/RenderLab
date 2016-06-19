@@ -4,7 +4,7 @@
 #include "MathLib/Vec3.h"
 #include "MathLib/Quaternion.h"
 
-enum class LightType
+enum class LightType : int
 {
 	Directional,
 	Point,

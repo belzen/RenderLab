@@ -16,23 +16,6 @@ class Scene;
 #define MAX_SHADOW_MAPS_PER_FRAME 10
 #define USE_SINGLEPASS_SHADOW_CUBEMAP 1
 
-// WARNING - Must match struct in light_inc.hlsli
-struct Light
-{
-	LightType type;
-	Vec3 position;
-	Vec3 direction;
-	float radius;
-	Vec3 color;
-
-	// Spot light only
-	float innerConeAngleCos; // Cosine of angle where light begins to fall off
-	float outerConeAngleCos; // No more light
-
-	uint castsShadows;
-	uint shadowMapIndex;
-};
-
 class LightList
 {
 public:

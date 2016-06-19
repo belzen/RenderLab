@@ -3,7 +3,7 @@
 static float3 ambient_color = float3(1.f, 1.f, 1.f);
 static float ambient_intensity = 1.f;
 
-StructuredBuffer<ShaderLight> g_lights : register(t16);
+StructuredBuffer<Light> g_lights : register(t16);
 Buffer<uint> g_lightIndices : register(t17);
 
 StructuredBuffer<ShaderShadowData> g_shadowData : register(t18);
@@ -124,13 +124,13 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 		litColor.r = 1.f;
 	else if (numLights == 2)
 		litColor.g = 1.f;
-	else if (numLights >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER - 1)
-		litColor.b = 1.f;
+	else if (numLights >= 3)
+		litColor.b = 55.f;
 
 #else // VISUALIZE_LIGHT_LIST
 	for (int i = 0; i < numLights; ++i)
 	{
-		ShaderLight light = g_lights[g_lightIndices[startIdx + i + 1]];
+		Light light = g_lights[g_lightIndices[startIdx + i + 1]];
 
 		float3 posToLight = light.position - pos_ws;
 		float lightDist = length(posToLight);

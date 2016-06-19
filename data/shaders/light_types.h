@@ -1,17 +1,25 @@
 #ifndef LIGHT_TYPES_H
 #define LIGHT_TYPES_H
 
-struct ShaderLight
+struct Light
 {
+#if __cplusplus
+	LightType type;
+#else
 	int type;
+#endif
 	float3 position;
+
 	float3 direction;
 	float radius;
+
 	float3 color;
 	float innerConeAngleCos; // Cosine of angle where light begins to fall off
+
 	float outerConeAngleCos; // No more light
-	uint castsShadows;
 	uint shadowMapIndex;
+	uint castsShadows;
+	float unused;
 };
 
 struct ShaderShadowData
@@ -23,6 +31,10 @@ struct ShaderShadowData
 struct ClusteredLightCullingParams
 {
 	float4x4 mtxView;
+
+	float proj_11;
+	float proj_22;
+	float2 unused;
 
 	float fovY;
 	float aspectRatio;
@@ -44,7 +56,8 @@ struct TiledLightCullingParams
 	float cameraFarDist;
 
 	float2 screenSize;
-	float2 unused;
+	float proj_11;
+	float proj_22;
 
 	uint lightCount;
 	uint tileCountX;

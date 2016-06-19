@@ -9,7 +9,7 @@ cbuffer CullingParams : register(b0)
 	TiledLightCullingParams cbCullParams;
 };
 
-StructuredBuffer<ShaderLight> g_lights : register(t0);
+StructuredBuffer<Light> g_lights : register(t0);
 Texture2D<float2> g_depthMinMax : register(t1);
 
 RWBuffer<uint> g_tileLightIndices : register(u0);
@@ -32,38 +32,31 @@ float4 planeFromPoints(float3 pt1, float3 pt2, float3 pt3)
 
 void constructFrustum(uint2 tileId, float2 zMinMax, out Frustum frustum)
 {
-	// Half widths
-	float hNear = tan(cbCullParams.fovY * 0.5f) * cbCullParams.cameraNearDist;
-	float wNear = hNear * cbCullParams.aspectRatio;
-	
-	float hNearTile = hNear * (float(TILEDLIGHTING_TILE_SIZE) / cbCullParams.screenSize.y);
-	float wNearTile = wNear * (float(TILEDLIGHTING_TILE_SIZE) / cbCullParams.screenSize.x);
+	// Get the non-rounded number of tiles on the screen.  
+	// This is necessary for screens that are not divisible by the tile size.
+	// We're converting from NDC space to view space, so we need the actual visible tile on the screen, not the rounded number.
+	float2 actualScreenTiles = cbCullParams.screenSize / TILEDLIGHTING_TILE_SIZE;
 
-	float hFar = tan(cbCullParams.fovY * 0.5f) * cbCullParams.cameraFarDist;
-	float wFar = hFar * cbCullParams.aspectRatio;
-	float hFarTile = hFar * (float(TILEDLIGHTING_TILE_SIZE) / cbCullParams.screenSize.y);
-	float wFarTile = wFar * (float(TILEDLIGHTING_TILE_SIZE) / cbCullParams.screenSize.x);
+	// Convert from NDC [-1, 1] space to view space.
+	float nearMinX = -(1 - 2.0f / actualScreenTiles.x * (tileId.x - 0)) * zMinMax.x / cbCullParams.proj_11;
+	float nearMaxX = -(1 - 2.0f / actualScreenTiles.x * (tileId.x + 1)) * zMinMax.x / cbCullParams.proj_11;
+	float nearMinY = (1 - 2.0f / actualScreenTiles.y * (tileId.y + 1)) * zMinMax.x / cbCullParams.proj_22;
+	float nearMaxY = (1 - 2.0f / actualScreenTiles.y * (tileId.y + 0)) * zMinMax.x / cbCullParams.proj_22;
 
-	float3 up = float3(0.f, 1.f, 0.f);
-	float3 right = float3(1.f, 0.f, 0.f);
+	float farMinX = -(1 - 2.0f / actualScreenTiles.x * (tileId.x - 0)) * zMinMax.y / cbCullParams.proj_11;
+	float farMaxX = -(1 - 2.0f / actualScreenTiles.x * (tileId.x + 1)) * zMinMax.y / cbCullParams.proj_11;
+	float farMinY = (1 - 2.0f / actualScreenTiles.y * (tileId.y + 1)) * zMinMax.y / cbCullParams.proj_22;
+	float farMaxY = (1 - 2.0f / actualScreenTiles.y * (tileId.y + 0)) * zMinMax.y / cbCullParams.proj_22;
 
-	float3 nc = float3(0.f, 0.f, cbCullParams.cameraNearDist);
-	float3 ntl = nc - (wNear * right) 
-		+ (right * tileId.x * wNearTile * 2.f)
-		+ (hNear * up)
-		- (up * tileId.y * hNearTile * 2.f);
-	float3 ntr = ntl + wNearTile * right * 2.f;
-	float3 nbl = ntl - hNearTile * up * 2.f;
-	float3 nbr = nbl + wNearTile * right * 2.f;
+	float3 nbl = float3(nearMinX, nearMinY, zMinMax.x);
+	float3 ntl = float3(nearMinX, nearMaxY, zMinMax.x);
+	float3 nbr = float3(nearMaxX, nearMinY, zMinMax.x);
+	float3 ntr = float3(nearMaxX, nearMaxY, zMinMax.x);
 
-	float3 fc = float3(0.f, 0.f, cbCullParams.cameraFarDist);
-	float3 ftl = fc - (wFar * right)
-		+ (right * tileId.x * wFarTile * 2.f)
-		+ (hFar * up)
-		- (up * tileId.y * hFarTile * 2.f);
-	float3 ftr = ftl + wFarTile * right * 2.f;
-	float3 fbl = ftl - hFarTile * up * 2.f;
-	float3 fbr = fbl + wFarTile * right * 2.f;
+	float3 fbl = float3(farMinX, farMinY, zMinMax.y);
+	float3 ftl = float3(farMinX, farMaxY, zMinMax.y);
+	float3 fbr = float3(farMaxX, farMinY, zMinMax.y);
+	float3 ftr = float3(farMaxX, farMaxY, zMinMax.y);
 
 	frustum.planes[0] = planeFromPoints(ntl, ftl, fbl); // Left
 	frustum.planes[1] = planeFromPoints(ftr, ntr, fbr); // Right - This is weird.  Using nbr for the third coord (instead of fbr) causes broken tiles.
@@ -73,7 +66,7 @@ void constructFrustum(uint2 tileId, float2 zMinMax, out Frustum frustum)
 	frustum.planes[5] = float4(0.f, 0.f, -1.f, zMinMax.y); // Back
 }
 
-int overlapFrustum(in Frustum frustum, in ShaderLight light)
+int overlapFrustum(in Frustum frustum, in Light light)
 {
 	int inFrustum = 1;
 
@@ -113,7 +106,7 @@ void main( uint3 groupId : SV_GroupID, uint localIdx : SV_GroupIndex)
 			uint lightIndex;
 			InterlockedAdd(grp_tileLightCount, 1, lightIndex);
 
-			if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER - 1)
+			if (lightIndex >= TILEDLIGHTING_MAX_LIGHTS_PER - 1)
 			{
 				// Make sure we're not over the light limit before writing to the buffer.
 				// The light count is still incremented, but is clamped to the max before writing.
