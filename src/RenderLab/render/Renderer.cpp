@@ -75,6 +75,17 @@ namespace
 	};
 	static_assert(sizeof(s_passNames) / sizeof(s_passNames[0]) == (int)RdrPass::Count, "Missing RdrPass names!");
 
+	// Profile sections for passes
+	static const RdrProfileSection s_passProfileSections[] =
+	{
+		RdrProfileSection::ZPrepass,		// RdrPass::ZPrepass
+		RdrProfileSection::LightCulling,	// RdrPass::LightCulling
+		RdrProfileSection::Opaque,			// RdrPass::Opaque
+		RdrProfileSection::Sky,				// RdrPass::Sky
+		RdrProfileSection::Alpha,			// RdrPass::Alpha
+		RdrProfileSection::UI,				// RdrPass::UI
+	};
+	static_assert(sizeof(s_passProfileSections) / sizeof(s_passProfileSections[0]) == (int)RdrPass::Count, "Missing RdrPass profile sections!");
 
 	void validateDrawOp(RdrDrawOp* pDrawOp)
 	{
@@ -296,6 +307,8 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 	if (!m_pContext->Init(hWnd, width, height))
 		return false;
 
+	m_profiler.Init(m_pContext);
+
 	RdrResourceSystem::Init();
 
 	// Set default lighting method before initialized shaders so global defines can be applied first.
@@ -316,7 +329,7 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 void Renderer::Cleanup()
 {
 	// todo: flip frame to finish resource frees.
-
+	m_profiler.Cleanup();
 	m_pContext->Release();
 	delete m_pContext;
 }
@@ -762,6 +775,7 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 	if (!rPass.bEnabled)
 		return;
 
+	m_profiler.BeginSection(s_passProfileSections[(int)ePass]);
 	m_pContext->BeginEvent(s_passNames[(int)ePass]);
 
 	RdrRenderTargetView renderTargets[MAX_RENDER_TARGETS];
@@ -830,6 +844,7 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 	}
 
 	m_pContext->EndEvent();
+	m_profiler.EndSection();
 }
 
 void Renderer::DrawShadowPass(const RdrShadowPass& rShadowPass)
@@ -992,6 +1007,8 @@ void Renderer::DrawFrame()
 
 	if (!m_pContext->IsIdle()) // If the device is idle (probably minimized), don't bother rendering anything.
 	{
+		m_profiler.BeginFrame();
+
 		for (uint iAction = 0; iAction < rFrameState.numActions; ++iAction)
 		{
 			RdrAction& rAction = rFrameState.actions[iAction];
@@ -1035,12 +1052,18 @@ void Renderer::DrawFrame()
 			}
 
 			if (rAction.bEnablePostProcessing)
+			{
+				m_profiler.BeginSection(RdrProfileSection::PostProcessing);
 				m_postProcess.DoPostProcessing(m_pContext, m_drawState, pColorBuffer, *rAction.pPostProcEffects);
+				m_profiler.EndSection();
+			}
 
 			DrawPass(rAction, RdrPass::UI);
 
 			m_pContext->EndEvent();
 		}
+
+		m_profiler.EndFrame();
 	}
 
 	m_pContext->Present();

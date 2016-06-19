@@ -86,17 +86,50 @@ void Debug::QueueDraw(Renderer& rRenderer, const Scene& rScene, const FrameTimer
 
 	// FPS and position display
 	{
-		char fpsStr[32];
-		sprintf_s(fpsStr, "%.2f (%.2f ms)", rFrameTimer.GetFps(), 1000.f / rFrameTimer.GetFps());
+		char line[32];
+		sprintf_s(line, "%.2f (%.2f ms)", rFrameTimer.GetFps(), 1000.f / rFrameTimer.GetFps());
 
 		UI::Position uiPos(UI::Coord(1.f, UI::Units::Percentage), 0.f, 0.f, UI::AlignmentFlags::Right);
-		Font::QueueDraw(rRenderer, uiPos, 20.f, fpsStr, Color::kWhite);
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
 
 		const Vec3& camPos = rScene.GetMainCamera().GetPosition();
-		char cameraStr[32];
 		uiPos.y.val = 20.f;
-		sprintf_s(cameraStr, "%.2f, %.2f, %.2f", camPos.x, camPos.y, camPos.z);
-		Font::QueueDraw(rRenderer, uiPos, 20.f, cameraStr, Color::kWhite);
+		sprintf_s(line, "%.2f, %.2f, %.2f", camPos.x, camPos.y, camPos.z);
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		const RdrProfiler& rProfiler = rRenderer.GetProfiler();
+		
+		uiPos.y.val += 20.f;
+		sprintf_s(line, "GPU Frame: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Frame));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
+		sprintf_s(line, "  Z-Prepass: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::ZPrepass));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
+		sprintf_s(line, "  Light Cull: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::LightCulling));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
+		sprintf_s(line, "  Opaque: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Opaque));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
+		sprintf_s(line, "  Alpha: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Alpha));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
+		sprintf_s(line, "  Sky: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Sky));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
+		sprintf_s(line, "  Post-Proc: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::PostProcessing));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
+		sprintf_s(line, "  UI: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::UI));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
 	}
 
 

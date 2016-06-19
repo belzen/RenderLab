@@ -8,6 +8,7 @@
 #include "RdrDrawState.h"
 #include "RdrPostProcess.h"
 #include "RdrRequests.h"
+#include "RdrProfiler.h"
 
 class Camera;
 class WorldObject;
@@ -74,6 +75,8 @@ public:
 
 	void SetLightingMethod(RdrLightingMethod eLightingMethod);
 
+	const RdrProfiler& GetProfiler();
+
 private:
 	void DrawPass(const RdrAction& rAction, RdrPass ePass);
 	void DrawShadowPass(const RdrShadowPass& rPass);
@@ -92,6 +95,8 @@ private:
 
 	///
 	RdrContext* m_pContext;
+
+	RdrProfiler m_profiler;
 
 	RdrDepthStencilViewHandle m_hPrimaryDepthStencilView;
 	RdrResourceHandle         m_hPrimaryDepthBuffer;
@@ -149,4 +154,9 @@ inline RdrFrameState& Renderer::GetQueueState()
 inline RdrFrameState& Renderer::GetActiveState()
 { 
 	return m_frameStates[!m_queueState]; 
+}
+
+inline const RdrProfiler& Renderer::GetProfiler()
+{
+	return m_profiler;
 }

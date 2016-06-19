@@ -1174,3 +1174,63 @@ void RdrContextD3D11::PSClearResources()
 	ID3D11ShaderResourceView* resourceViews[16] = { 0 };
 	m_pDevContext->PSSetShaderResources(0, 16, resourceViews);
 }
+
+RdrQuery RdrContextD3D11::CreateQuery(RdrQueryType eType)
+{
+	RdrQuery query;
+
+	D3D11_QUERY_DESC desc;
+	desc.MiscFlags = 0;
+
+	switch (eType)
+	{
+	case RdrQueryType::Timestamp:
+		desc.Query = D3D11_QUERY_TIMESTAMP;
+		break;
+	case RdrQueryType::Disjoint:
+		desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+		break;
+	}
+
+	m_pDevice->CreateQuery(&desc, &query.pQueryD3D11);
+	return query;
+}
+
+void RdrContextD3D11::ReleaseQuery(RdrQuery& rQuery)
+{
+	if (rQuery.pQueryD3D11)
+	{
+		rQuery.pQueryD3D11->Release();
+		rQuery.pQueryD3D11 = nullptr;
+	}
+}
+
+void RdrContextD3D11::BeginQuery(RdrQuery& rQuery)
+{
+	m_pDevContext->Begin(rQuery.pQueryD3D11);
+}
+
+void RdrContextD3D11::EndQuery(RdrQuery& rQuery)
+{
+	m_pDevContext->End(rQuery.pQueryD3D11);
+}
+
+uint64 RdrContextD3D11::GetTimestampQueryData(RdrQuery& rQuery)
+{
+	uint64 timestamp;
+	HRESULT hr = m_pDevContext->GetData(rQuery.pQueryD3D11, &timestamp, sizeof(timestamp), 0);
+	assert(hr == S_OK);
+	return timestamp;
+}
+
+RdrQueryDisjointData RdrContextD3D11::GetDisjointQueryData(RdrQuery& rQuery)
+{
+	RdrQueryDisjointData data;
+
+	D3D11_QUERY_DATA_TIMESTAMP_DISJOINT d3dData;
+	while ( m_pDevContext->GetData(rQuery.pQueryD3D11, &d3dData, sizeof(d3dData), 0) != S_OK) ;
+
+	data.frequency = d3dData.Frequency;
+	data.isDisjoint = !!d3dData.Disjoint;
+	return data;
+}

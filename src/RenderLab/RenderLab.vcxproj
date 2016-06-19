@@ -196,6 +196,7 @@
     <ClCompile Include="render\RdrDrawOp.cpp" />
     <ClCompile Include="render\RdrMaterial.cpp" />
     <ClCompile Include="render\RdrPostProcessEffects.cpp" />
+    <ClCompile Include="render\RdrProfiler.cpp" />
     <ClCompile Include="render\RdrScratchMem.cpp" />
     <ClCompile Include="render\Renderer.cpp" />
     <ClCompile Include="render\RdrShaderSystem.cpp" />
@@ -238,6 +239,7 @@
     <ClInclude Include="render\RdrMaterial.h" />
     <ClInclude Include="render\RdrPostProcess.h" />
     <ClInclude Include="render\RdrPostProcessEffects.h" />
+    <ClInclude Include="render\RdrProfiler.h" />
     <ClInclude Include="render\RdrRequests.h" />
     <ClInclude Include="render\RdrResource.h" />
     <ClInclude Include="render\RdrShaderConstants.h" />

@@ -4,6 +4,7 @@ struct ID3D11DepthStencilView;
 struct ID3D11RenderTargetView;
 struct ID3D11SamplerState;
 struct ID3D11Buffer;
+struct ID3D11Query;
 
 enum class RdrShaderSemantic
 {
@@ -205,4 +206,25 @@ struct RdrBox
 	uint width;
 	uint height;
 	uint depth;
+};
+
+enum class RdrQueryType : uint
+{
+	Timestamp,
+	Disjoint
+};
+
+struct RdrQueryDisjointData
+{
+	uint64 frequency;
+	bool isDisjoint;
+};
+
+struct RdrQuery
+{
+	union
+	{
+		ID3D11Query* pQueryD3D11;
+		void* pTypeless;
+	};
 };
