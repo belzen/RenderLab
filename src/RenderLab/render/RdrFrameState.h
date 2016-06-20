@@ -52,11 +52,16 @@ struct RdrShadowPass
 
 struct RdrLightParams
 {
-	RdrResourceHandle hLightListRes;
+	RdrConstantBufferHandle hDirectionalLightsCb;
+	RdrResourceHandle hSpotLightListRes;
+	RdrResourceHandle hPointLightListRes;
+
 	RdrResourceHandle hShadowMapDataRes;
 	RdrResourceHandle hShadowMapTexArray;
 	RdrResourceHandle hShadowCubeMapTexArray;
-	uint lightCount;
+
+	uint spotLightCount;
+	uint pointLightCount;
 };
 
 struct RdrAction

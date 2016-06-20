@@ -38,13 +38,15 @@ namespace
 		g_pRenderer->SetLightingMethod((RdrLightingMethod)(int)args[0].val.num);
 	}
 
+
 	enum class RdrPsResourceSlots
 	{
 		ShadowMaps = 14,
 		ShadowCubeMaps = 15,
-		LightList = 16,
-		TileLightIds = 17,
-		ShadowMapData = 18,
+		SpotLightList = 16,
+		PointLightList = 17,
+		TileLightIds = 18,
+		ShadowMapData = 19,
 	};
 
 	enum class RdrPsSamplerSlots
@@ -425,7 +427,7 @@ void Renderer::QueueClusteredLightCulling()
 	{
 		if (m_clusteredLightData.hLightIndices)
 			RdrResourceSystem::ReleaseResource(m_clusteredLightData.hLightIndices);
-		m_clusteredLightData.hLightIndices = RdrResourceSystem::CreateDataBuffer(nullptr, clusterCountX * clusterCountY * clusterCountZ * CLUSTEREDLIGHTING_MAX_LIGHTS_PER, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
+		m_clusteredLightData.hLightIndices = RdrResourceSystem::CreateDataBuffer(nullptr, clusterCountX * clusterCountY * clusterCountZ * CLUSTEREDLIGHTING_BLOCK_SIZE, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
 	}
 
 	RdrDrawOp* pCullOp = RdrDrawOp::Allocate();
@@ -436,8 +438,8 @@ void Renderer::QueueClusteredLightCulling()
 	pCullOp->compute.threads[2] = clusterCountZ;
 	pCullOp->compute.hViews[0] = m_clusteredLightData.hLightIndices;
 	pCullOp->compute.viewCount = 1;
-	pCullOp->compute.hTextures[0] = m_pCurrentAction->lightParams.hLightListRes;
-	pCullOp->compute.hTextures[1] = m_tiledLightData.hDepthMinMaxTex;
+	pCullOp->compute.hTextures[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
+	pCullOp->compute.hTextures[1] = m_pCurrentAction->lightParams.hPointLightListRes;
 	pCullOp->compute.texCount = 2;
 
 	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ClusteredLightCullingParams));
@@ -452,10 +454,11 @@ void Renderer::QueueClusteredLightCulling()
 	pParams->screenSize = GetViewportSize();
 	pParams->fovY = rCamera.GetFieldOfViewY();
 	pParams->aspectRatio = rCamera.GetAspectRatio();
-	pParams->lightCount = m_pCurrentAction->lightParams.lightCount;
 	pParams->clusterCountX = clusterCountX;
 	pParams->clusterCountY = clusterCountY;
 	pParams->clusterCountZ = clusterCountZ;
+	pParams->spotLightCount = m_pCurrentAction->lightParams.spotLightCount;
+	pParams->pointLightCount = m_pCurrentAction->lightParams.pointLightCount;
 
 	if (m_clusteredLightData.hCullConstants)
 	{
@@ -538,7 +541,7 @@ void Renderer::QueueTiledLightCulling()
 	{
 		if (m_tiledLightData.hLightIndices)
 			RdrResourceSystem::ReleaseResource(m_tiledLightData.hLightIndices);
-		m_tiledLightData.hLightIndices = RdrResourceSystem::CreateDataBuffer(nullptr, tileCountX * tileCountY * TILEDLIGHTING_MAX_LIGHTS_PER, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
+		m_tiledLightData.hLightIndices = RdrResourceSystem::CreateDataBuffer(nullptr, tileCountX * tileCountY * TILEDLIGHTING_BLOCK_SIZE, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
 	}
 
 	RdrDrawOp* pCullOp = RdrDrawOp::Allocate();
@@ -549,9 +552,10 @@ void Renderer::QueueTiledLightCulling()
 	pCullOp->compute.threads[2] = 1;
 	pCullOp->compute.hViews[0] = m_tiledLightData.hLightIndices;
 	pCullOp->compute.viewCount = 1;
-	pCullOp->compute.hTextures[0] = m_pCurrentAction->lightParams.hLightListRes;
-	pCullOp->compute.hTextures[1] = m_tiledLightData.hDepthMinMaxTex;
-	pCullOp->compute.texCount = 2;
+	pCullOp->compute.hTextures[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
+	pCullOp->compute.hTextures[1] = m_pCurrentAction->lightParams.hPointLightListRes;
+	pCullOp->compute.hTextures[2] = m_tiledLightData.hDepthMinMaxTex;
+	pCullOp->compute.texCount = 3;
 
 	constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(TiledLightCullingParams));
 	TiledLightCullingParams* pParams = (TiledLightCullingParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
@@ -567,7 +571,8 @@ void Renderer::QueueTiledLightCulling()
 	pParams->screenSize = GetViewportSize();
 	pParams->fovY = rCamera.GetFieldOfViewY();
 	pParams->aspectRatio = rCamera.GetAspectRatio();
-	pParams->lightCount = m_pCurrentAction->lightParams.lightCount;
+	pParams->spotLightCount = m_pCurrentAction->lightParams.spotLightCount;
+	pParams->pointLightCount = m_pCurrentAction->lightParams.pointLightCount;
 	pParams->tileCountX = tileCountX;
 	pParams->tileCountY = tileCountY;
 
@@ -749,11 +754,14 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 	LightList& rLights = rScene.GetLightList();
 	rLights.PrepareDraw(*this, m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax);
 
-	m_pCurrentAction->lightParams.hLightListRes = rLights.GetLightListRes();
+	m_pCurrentAction->lightParams.hDirectionalLightsCb = rLights.GetDirectionalLightListCb();
+	m_pCurrentAction->lightParams.hSpotLightListRes = rLights.GetSpotLightListRes();
+	m_pCurrentAction->lightParams.hPointLightListRes = rLights.GetPointLightListRes();
+	m_pCurrentAction->lightParams.spotLightCount = rLights.GetSpotLightCount();
+	m_pCurrentAction->lightParams.pointLightCount = rLights.GetPointLightCount();
 	m_pCurrentAction->lightParams.hShadowMapDataRes = rLights.GetShadowMapDataRes();
 	m_pCurrentAction->lightParams.hShadowCubeMapTexArray = rLights.GetShadowCubeMapTexArray();
 	m_pCurrentAction->lightParams.hShadowMapTexArray = rLights.GetShadowMapTexArray();
-	m_pCurrentAction->lightParams.lightCount = rLights.GetLightCount();
 
 	if (m_eLightingMethod == RdrLightingMethod::Clustered)
 	{
@@ -1133,18 +1141,23 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlob
 				m_drawState.psSamplers[i] = pMaterial->samplers[i];
 			}
 
+			m_drawState.psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsPerFrame)->bufferObj;
+			m_drawState.psConstantBufferCount++;
+
 			if (pMaterial->bNeedsLighting && !bDepthOnly)
 			{
-				m_drawState.psResources[(int)RdrPsResourceSlots::LightList] = RdrResourceSystem::GetResource(rLightParams.hLightListRes)->resourceView;
+				m_drawState.psConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(rLightParams.hDirectionalLightsCb)->bufferObj;
+				m_drawState.psConstantBufferCount++;
+
+				m_drawState.psResources[(int)RdrPsResourceSlots::SpotLightList] = RdrResourceSystem::GetResource(rLightParams.hSpotLightListRes)->resourceView;
+				m_drawState.psResources[(int)RdrPsResourceSlots::PointLightList] = RdrResourceSystem::GetResource(rLightParams.hPointLightListRes)->resourceView;
+
 				m_drawState.psResources[(int)RdrPsResourceSlots::TileLightIds] = RdrResourceSystem::GetResource(hTileLightIndices)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowMapTexArray)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowCubeMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowCubeMapTexArray)->resourceView;
 				m_drawState.psSamplers[(int)RdrPsSamplerSlots::ShadowMap] = RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false);
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMapData] = RdrResourceSystem::GetResource(rLightParams.hShadowMapDataRes)->resourceView;
 			}
-
-			m_drawState.psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsPerFrame)->bufferObj;
-			m_drawState.psConstantBufferCount = 1;
 		}
 	}
 

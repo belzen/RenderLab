@@ -9,8 +9,9 @@ cbuffer CullingParams : register(b0)
 	TiledLightCullingParams cbCullParams;
 };
 
-StructuredBuffer<Light> g_lights : register(t0);
-Texture2D<float2> g_depthMinMax : register(t1);
+StructuredBuffer<SpotLight> g_spotLights : register(t0);
+StructuredBuffer<PointLight> g_pointLights : register(t1);
+Texture2D<float2> g_depthMinMax : register(t2);
 
 RWBuffer<uint> g_tileLightIndices : register(u0);
 
@@ -66,22 +67,24 @@ void constructFrustum(uint2 tileId, float2 zMinMax, out Frustum frustum)
 	frustum.planes[5] = float4(0.f, 0.f, -1.f, zMinMax.y); // Back
 }
 
-int overlapFrustum(in Frustum frustum, in Light light)
+int overlapFrustum(in Frustum frustum, in float3 lightWorldPos, in float lightRadius)
 {
 	int inFrustum = 1;
 
-	float4 lightPos = mul(float4(light.position, 1), cbCullParams.mtxView);
+	float4 lightViewPos = mul(float4(lightWorldPos, 1), cbCullParams.mtxView);
 
 	for (int i = 0; i < 6; ++i)
 	{
-		float dist = dot(frustum.planes[i], lightPos);
-		inFrustum = inFrustum && (dist + light.radius) >= 0.f;
+		float dist = dot(frustum.planes[i], lightViewPos);
+		inFrustum = inFrustum && (dist + lightRadius) >= 0.f;
 	}
 
 	return inFrustum;
 }
 
-groupshared uint grp_tileLightCount = 0;
+groupshared uint grp_tileLightCount;
+groupshared uint grp_spotLightCount;
+groupshared uint grp_pointLightCount;
 
 [numthreads(THREAD_COUNT_X, THREAD_COUNT_Y, 1)]
 void main( uint3 groupId : SV_GroupID, uint localIdx : SV_GroupIndex)
@@ -89,31 +92,59 @@ void main( uint3 groupId : SV_GroupID, uint localIdx : SV_GroupIndex)
 	if (localIdx == 0)
 	{
 		grp_tileLightCount = 0;
+		grp_spotLightCount = 0;
+		grp_pointLightCount = 0;
 	}
 
-	uint tileIdx = groupId.x + groupId.y * cbCullParams.tileCountX;
+	uint tileIdx = (groupId.x + groupId.y * cbCullParams.tileCountX) * TILEDLIGHTING_BLOCK_SIZE;
 	float2 zMinMax = g_depthMinMax.Load( uint3(groupId.xy, 0) );
 
 	// create frustum
 	Frustum frustum;
 	constructFrustum(groupId.xy, zMinMax, frustum);
 
-	for (uint i = localIdx; i < cbCullParams.lightCount; i += THREAD_COUNT_TOTAL)
+	uint i;
+	for (i = localIdx; i < cbCullParams.spotLightCount; i += THREAD_COUNT_TOTAL)
 	{
-		if (overlapFrustum(frustum, g_lights[i]))
+		SpotLight light = g_spotLights[i];
+		if (overlapFrustum(frustum, light.position, light.radius))
 		{
 			// add light to light list
 			uint lightIndex;
 			InterlockedAdd(grp_tileLightCount, 1, lightIndex);
 
-			if (lightIndex >= TILEDLIGHTING_MAX_LIGHTS_PER - 1)
+			if (lightIndex >= TILEDLIGHTING_MAX_LIGHTS_PER)
 			{
 				// Make sure we're not over the light limit before writing to the buffer.
 				// The light count is still incremented, but is clamped to the max before writing.
 				break;
 			}
 
-			g_tileLightIndices[tileIdx * TILEDLIGHTING_MAX_LIGHTS_PER + lightIndex + 1] = i;
+			InterlockedAdd(grp_spotLightCount, 1);
+			g_tileLightIndices[tileIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
+		}
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	for (i = localIdx; i < cbCullParams.pointLightCount; i += THREAD_COUNT_TOTAL)
+	{
+		PointLight light = g_pointLights[i];
+		if (overlapFrustum(frustum, light.position, light.radius))
+		{
+			// add light to light list
+			uint lightIndex;
+			InterlockedAdd(grp_tileLightCount, 1, lightIndex);
+
+			if (lightIndex >= TILEDLIGHTING_MAX_LIGHTS_PER)
+			{
+				// Make sure we're not over the light limit before writing to the buffer.
+				// The light count is still incremented, but is clamped to the max before writing.
+				break;
+			}
+
+			InterlockedAdd(grp_pointLightCount, 1);
+			g_tileLightIndices[tileIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
 		}
 	}
 
@@ -121,6 +152,7 @@ void main( uint3 groupId : SV_GroupID, uint localIdx : SV_GroupIndex)
 
 	if (localIdx == 0)
 	{
-		g_tileLightIndices[tileIdx * TILEDLIGHTING_MAX_LIGHTS_PER] = min(grp_tileLightCount, TILEDLIGHTING_MAX_LIGHTS_PER - 1);
+		g_tileLightIndices[tileIdx + 0] = grp_spotLightCount;
+		g_tileLightIndices[tileIdx + 1] = grp_pointLightCount;
 	}
 }

@@ -18,7 +18,9 @@ cbuffer CullingParams : register(b0)
 	ClusteredLightCullingParams cbCullParams;
 };
 
-StructuredBuffer<Light> g_lights : register(t0);
+StructuredBuffer<SpotLight> g_spotLights : register(t0);
+StructuredBuffer<PointLight> g_pointLights : register(t1);
+
 RWBuffer<uint> g_clusterLightIndices : register(u0);
 
 struct Frustum
@@ -28,10 +30,6 @@ struct Frustum
 	float4 farMinXMaxXMinYMaxY;
 	float3 center;
 	float2 minMaxZ;
-};
-
-struct AABB
-{
 	float3 min;
 	float3 max;
 };
@@ -47,7 +45,7 @@ float4 planeFromPoints(float3 pt1, float3 pt2, float3 pt3)
 	return float4(n.xyz, -d);
 }
 
-void constructFrustum(uint3 clusterId, out Frustum frustum, out AABB bounds)
+void constructFrustum(uint3 clusterId, out Frustum frustum)
 {
 	float depthMin = 0.1f;
 	float depthMax = CLUSTEREDLIGHTING_SPECIAL_NEAR_DEPTH;
@@ -91,12 +89,12 @@ void constructFrustum(uint3 clusterId, out Frustum frustum, out AABB bounds)
 	frustum.planes[4] = float4(0.f, 0.f, 1.f, -depthMin); // Front
 	frustum.planes[5] = float4(0.f, 0.f, -1.f, depthMax); // Back
 
-	bounds.min = min(nbl, fbl);
-	bounds.max = max(ntr, ftr);
+	frustum.min = min(nbl, fbl);
+	frustum.max = max(ntr, ftr);
 
 	frustum.nearMinXMaxXMinYMaxY = float4(nbl.x, nbr.x, nbl.y, ntl.y);
 	frustum.farMinXMaxXMinYMaxY = float4(fbl.x, fbr.x, fbl.y, ftl.y);
-	frustum.center = (bounds.min + bounds.max) * 0.5f;
+	frustum.center = (frustum.min + frustum.max) * 0.5f;
 	frustum.minMaxZ = float2(depthMin, depthMax);
 }
 
@@ -115,23 +113,23 @@ float calcDistance(float val, float minVal, float maxVal)
 	return 0;
 }
 
-int overlapAABB(in AABB bounds, in Light light)
+int overlapAABB(in Frustum frustum, in float3 lightWorldPos, in float lightRadius)
 {
-	float4 lightPos = mul(float4(light.position, 1), cbCullParams.mtxView);
+	float4 lightViewPos = mul(float4(lightWorldPos, 1), cbCullParams.mtxView);
 
-	float distSqr = calcDistance(lightPos.x, bounds.min.x, bounds.max.x);
-	distSqr += calcDistance(lightPos.y, bounds.min.y, bounds.max.y);
-	distSqr += calcDistance(lightPos.z, bounds.min.z, bounds.max.z);
+	float distSqr = calcDistance(lightViewPos.x, frustum.min.x, frustum.max.x);
+	distSqr += calcDistance(lightViewPos.y, frustum.min.y, frustum.max.y);
+	distSqr += calcDistance(lightViewPos.z, frustum.min.z, frustum.max.z);
 
-	return (distSqr < light.radius * light.radius);
+	return (distSqr < lightRadius * lightRadius);
 }
 
 
-int testFrustumSeparatingAxis(in Frustum frustum, in Light light)
+int testFrustumSeparatingAxis(in Frustum frustum, in float3 lightWorldPos, in float lightRadius)
 {
-	float4 lightPos = mul(float4(light.position, 1), cbCullParams.mtxView);
+	float4 lightViewPos = mul(float4(lightWorldPos, 1), cbCullParams.mtxView);
 
-	float3 clusterToLight = frustum.center - lightPos.xyz;
+	float3 clusterToLight = frustum.center - lightViewPos.xyz;
 	float3 normal = normalize(clusterToLight);
 
 	//http://www.jonmanatee.com/blog/2015/1/20/improved-spotlight-culling-for-clustered-forward-shading.html
@@ -148,48 +146,72 @@ int testFrustumSeparatingAxis(in Frustum frustum, in Light light)
 
 	float dist = min(min1, min2);*/
 
-	float3 pt = float3(frustum.nearMinXMaxXMinYMaxY.x, frustum.nearMinXMaxXMinYMaxY.z, frustum.minMaxZ.x) - lightPos.xyz;
+	float3 pt = float3(frustum.nearMinXMaxXMinYMaxY.x, frustum.nearMinXMaxXMinYMaxY.z, frustum.minMaxZ.x) - lightViewPos.xyz;
 	float minDist = dot(normal, pt);
 
-	pt = float3(frustum.nearMinXMaxXMinYMaxY.y, frustum.nearMinXMaxXMinYMaxY.z, frustum.minMaxZ.x) - lightPos.xyz;
+	pt = float3(frustum.nearMinXMaxXMinYMaxY.y, frustum.nearMinXMaxXMinYMaxY.z, frustum.minMaxZ.x) - lightViewPos.xyz;
 	minDist = min(minDist, dot(normal, pt));
 
-	pt = float3(frustum.nearMinXMaxXMinYMaxY.x, frustum.nearMinXMaxXMinYMaxY.w, frustum.minMaxZ.x) - lightPos.xyz;
+	pt = float3(frustum.nearMinXMaxXMinYMaxY.x, frustum.nearMinXMaxXMinYMaxY.w, frustum.minMaxZ.x) - lightViewPos.xyz;
 	minDist = min(minDist, dot(normal, pt));
 
-	pt = float3(frustum.nearMinXMaxXMinYMaxY.y, frustum.nearMinXMaxXMinYMaxY.w, frustum.minMaxZ.x) - lightPos.xyz;
+	pt = float3(frustum.nearMinXMaxXMinYMaxY.y, frustum.nearMinXMaxXMinYMaxY.w, frustum.minMaxZ.x) - lightViewPos.xyz;
 	minDist = min(minDist, dot(normal, pt));
 
-	pt = float3(frustum.farMinXMaxXMinYMaxY.x, frustum.farMinXMaxXMinYMaxY.z, frustum.minMaxZ.y) - lightPos.xyz;
+	pt = float3(frustum.farMinXMaxXMinYMaxY.x, frustum.farMinXMaxXMinYMaxY.z, frustum.minMaxZ.y) - lightViewPos.xyz;
 	minDist = min(minDist, dot(normal, pt));
 
-	pt = float3(frustum.farMinXMaxXMinYMaxY.y, frustum.farMinXMaxXMinYMaxY.z, frustum.minMaxZ.y) - lightPos.xyz;
+	pt = float3(frustum.farMinXMaxXMinYMaxY.y, frustum.farMinXMaxXMinYMaxY.z, frustum.minMaxZ.y) - lightViewPos.xyz;
 	minDist = min(minDist, dot(normal, pt));
 
-	pt = float3(frustum.farMinXMaxXMinYMaxY.x, frustum.farMinXMaxXMinYMaxY.w, frustum.minMaxZ.y) - lightPos.xyz;
+	pt = float3(frustum.farMinXMaxXMinYMaxY.x, frustum.farMinXMaxXMinYMaxY.w, frustum.minMaxZ.y) - lightViewPos.xyz;
 	minDist = min(minDist, dot(normal, pt));
 
-	pt = float3(frustum.farMinXMaxXMinYMaxY.y, frustum.farMinXMaxXMinYMaxY.w, frustum.minMaxZ.y) - lightPos.xyz;
+	pt = float3(frustum.farMinXMaxXMinYMaxY.y, frustum.farMinXMaxXMinYMaxY.w, frustum.minMaxZ.y) - lightViewPos.xyz;
 	minDist = min(minDist, dot(normal, pt));
 
-	return minDist < light.radius;
+	return minDist < lightRadius;
 }
 
-int overlapFrustum(in Frustum frustum, in Light light)
+int overlapFrustum(in Frustum frustum, in float3 lightWorldPos, in float lightRadius)
 {
-	float4 lightPos = mul(float4(light.position, 1), cbCullParams.mtxView);
+	float4 lightViewPos = mul(float4(lightWorldPos, 1), cbCullParams.mtxView);
 
 	int inFrustum = 1;
 	for (int i = 0; i < 6; ++i)
 	{
-		float dist = dot(frustum.planes[i], lightPos);
-		inFrustum = inFrustum && (dist + light.radius) >= 0.f;
+		float dist = dot(frustum.planes[i], lightViewPos);
+		inFrustum = inFrustum && (dist + lightRadius) >= 0.f;
 	}
 
 	return inFrustum;
 }
 
-groupshared uint grp_clusterLightCount = 0;
+bool cullLightNear(in Frustum frustum, in float3 lightWorldPos, in float lightRadius)
+{
+#if NEAR_CULLING_MODE == CULL_AABB
+	return (overlapAABB(frustum, lightWorldPos, lightRadius));
+#elif NEAR_CULLING_MODE == CULL_FRUSTUM_SEPARATING_AXIS
+	return (testFrustumSeparatingAxis(frustum, lightWorldPos, lightRadius));
+#else
+	return (overlapFrustum(frustum, lightWorldPos, lightRadius));
+#endif
+}
+
+bool cullLightFar(in Frustum frustum, in float3 lightWorldPos, in float lightRadius)
+{
+#if FAR_CULLING_MODE == CULL_AABB
+	return (overlapAABB(frustum, lightWorldPos, lightRadius));
+#elif FAR_CULLING_MODE == CULL_FRUSTUM_SEPARATING_AXIS
+	return (testFrustumSeparatingAxis(frustum, lightWorldPos, lightRadius));
+#else
+	return (overlapFrustum(frustum, lightWorldPos, lightRadius));
+#endif
+}
+
+groupshared uint grp_clusterLightCount;
+groupshared uint grp_spotLightCount;
+groupshared uint grp_pointLightCount;
 
 [numthreads(THREAD_COUNT_X, THREAD_COUNT_Y, THREAD_COUNT_Z)]
 void main(uint3 groupId : SV_GroupID, uint localIdx : SV_GroupIndex)
@@ -197,69 +219,110 @@ void main(uint3 groupId : SV_GroupID, uint localIdx : SV_GroupIndex)
 	if (localIdx == 0)
 	{
 		grp_clusterLightCount = 0;
+		grp_spotLightCount = 0;
+		grp_pointLightCount = 0;
 	}
 
-	int clusterIdx = groupId.x + groupId.y * cbCullParams.clusterCountX + groupId.z * cbCullParams.clusterCountX * cbCullParams.clusterCountY;
+	uint i;
+	int clusterIdx = (groupId.x + groupId.y * cbCullParams.clusterCountX + groupId.z * cbCullParams.clusterCountX * cbCullParams.clusterCountY);
+	clusterIdx *= CLUSTEREDLIGHTING_BLOCK_SIZE;
 
 	// create frustum
-	AABB bounds;
 	Frustum frustum;
-	constructFrustum(groupId, frustum, bounds);
+	constructFrustum(groupId, frustum);
 
 	// Split culling mode based on cluster depth.
 	// Closer to the camera it's more effective to use AABB or frustum separating axis,
 	// but further away when the frustums are larger, we get fewer false positives with a basic frustum test.
 	if (groupId.z <= 8)
 	{
-		for (uint i = localIdx; i < cbCullParams.lightCount; i += THREAD_COUNT_TOTAL)
+		for (i = localIdx; i < cbCullParams.spotLightCount; i += THREAD_COUNT_TOTAL)
 		{
-#if NEAR_CULLING_MODE == CULL_AABB
-			if (overlapAABB(bounds, g_lights[i]))
-#elif NEAR_CULLING_MODE == CULL_FRUSTUM_SEPARATING_AXIS
-			if (testFrustumSeparatingAxis(frustum, g_lights[i]))
-#else
-			if (overlapFrustum(frustum, g_lights[i]))
-#endif
+			SpotLight light = g_spotLights[i];
+			if (cullLightNear(frustum, light.position, light.radius))
 			{
 				// add light to light list
 				uint lightIndex;
 				InterlockedAdd(grp_clusterLightCount, 1, lightIndex);
 
-				if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER - 1)
+				if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER)
 				{
 					// Make sure we're not over the light limit before writing to the buffer.
 					// The light count is still incremented, but is clamped to the max before writing.
 					break;
 				}
 
-				g_clusterLightIndices[clusterIdx * CLUSTEREDLIGHTING_MAX_LIGHTS_PER + lightIndex + 1] = i;
+				InterlockedAdd(grp_spotLightCount, 1);
+				g_clusterLightIndices[clusterIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
+			}
+		}
+
+		GroupMemoryBarrierWithGroupSync();
+
+		for (i = localIdx; i < cbCullParams.pointLightCount; i += THREAD_COUNT_TOTAL)
+		{
+			PointLight light = g_pointLights[i];
+			if (cullLightNear(frustum, light.position, light.radius))
+			{
+				// add light to light list
+				uint lightIndex;
+				InterlockedAdd(grp_clusterLightCount, 1, lightIndex);
+
+				if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER)
+				{
+					// Make sure we're not over the light limit before writing to the buffer.
+					// The light count is still incremented, but is clamped to the max before writing.
+					break;
+				}
+
+				InterlockedAdd(grp_pointLightCount, 1);
+				g_clusterLightIndices[clusterIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
 			}
 		}
 	}
 	else
 	{
-		for (uint i = localIdx; i < cbCullParams.lightCount; i += THREAD_COUNT_TOTAL)
+		for (i = localIdx; i < cbCullParams.spotLightCount; i += THREAD_COUNT_TOTAL)
 		{
-#if FAR_CULLING_MODE == CULL_AABB
-			if (overlapAABB(bounds, g_lights[i]))
-#elif FAR_CULLING_MODE == CULL_FRUSTUM_SEPARATING_AXIS
-			if (testFrustumSeparatingAxis(frustum, g_lights[i]))
-#else
-			if (overlapFrustum(frustum, g_lights[i]))
-#endif
+			SpotLight light = g_spotLights[i];
+			if (cullLightFar(frustum, light.position, light.radius))
 			{
 				// add light to light list
 				uint lightIndex;
 				InterlockedAdd(grp_clusterLightCount, 1, lightIndex);
 
-				if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER - 1)
+				if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER)
 				{
 					// Make sure we're not over the light limit before writing to the buffer.
 					// The light count is still incremented, but is clamped to the max before writing.
 					break;
 				}
 
-				g_clusterLightIndices[clusterIdx * CLUSTEREDLIGHTING_MAX_LIGHTS_PER + lightIndex + 1] = i;
+				InterlockedAdd(grp_spotLightCount, 1);
+				g_clusterLightIndices[clusterIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
+			}
+		}
+
+		GroupMemoryBarrierWithGroupSync();
+
+		for (i = localIdx; i < cbCullParams.pointLightCount; i += THREAD_COUNT_TOTAL)
+		{
+			PointLight light = g_pointLights[i];
+			if (cullLightFar(frustum, light.position, light.radius))
+			{
+				// add light to light list
+				uint lightIndex;
+				InterlockedAdd(grp_clusterLightCount, 1, lightIndex);
+
+				if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER)
+				{
+					// Make sure we're not over the light limit before writing to the buffer.
+					// The light count is still incremented, but is clamped to the max before writing.
+					break;
+				}
+
+				InterlockedAdd(grp_pointLightCount, 1);
+				g_clusterLightIndices[clusterIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
 			}
 		}
 	}
@@ -268,6 +331,7 @@ void main(uint3 groupId : SV_GroupID, uint localIdx : SV_GroupIndex)
 
 	if (localIdx == 0)
 	{
-		g_clusterLightIndices[clusterIdx * CLUSTEREDLIGHTING_MAX_LIGHTS_PER] = min(grp_clusterLightCount, CLUSTEREDLIGHTING_MAX_LIGHTS_PER - 1);
+		g_clusterLightIndices[clusterIdx + 0] = grp_spotLightCount;
+		g_clusterLightIndices[clusterIdx + 1] = grp_pointLightCount;
 	}
 }

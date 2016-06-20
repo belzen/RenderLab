@@ -16,6 +16,23 @@ class Scene;
 #define MAX_SHADOW_MAPS_PER_FRAME 10
 #define USE_SINGLEPASS_SHADOW_CUBEMAP 1
 
+struct Light
+{
+	LightType type;
+	float3 position;
+
+	float3 direction;
+	float radius;
+
+	float3 color;
+	float innerConeAngleCos; // Cosine of angle where light begins to fall off
+
+	float outerConeAngleCos; // No more light
+	uint shadowMapIndex;
+	uint castsShadows;
+	float unused;
+};
+
 class LightList
 {
 public:
@@ -30,15 +47,27 @@ public:
 	RdrResourceHandle GetShadowMapDataRes() const;
 	RdrResourceHandle GetShadowMapTexArray() const;
 	RdrResourceHandle GetShadowCubeMapTexArray() const;
-	RdrResourceHandle GetLightListRes() const;
+
+	RdrResourceHandle GetSpotLightListRes() const;
+	RdrResourceHandle GetPointLightListRes() const;
+	RdrConstantBufferHandle GetDirectionalLightListCb() const;
+
 	uint GetLightCount() const;
+	uint GetSpotLightCount() const;
+	uint GetPointLightCount() const;
 
 private:
 	Light m_lights[2048];
 	uint m_lightCount;
 	uint m_prevLightCount;
 
-	RdrResourceHandle m_hLightListRes;
+	RdrConstantBufferHandle m_hDirectionalLightListCb;
+	RdrResourceHandle m_hSpotLightListRes;
+	RdrResourceHandle m_hPointLightListRes;
+
+	uint m_numSpotLights;
+	uint m_numPointLights;
+
 	RdrResourceHandle m_hShadowMapDataRes;
 	RdrResourceHandle m_hShadowMapTexArray;
 	RdrResourceHandle m_hShadowCubeMapTexArray;
@@ -65,9 +94,29 @@ inline RdrResourceHandle LightList::GetShadowCubeMapTexArray() const
 	return m_hShadowCubeMapTexArray; 
 }
 
-inline RdrResourceHandle LightList::GetLightListRes() const
+inline RdrResourceHandle LightList::GetSpotLightListRes() const
 { 
-	return m_hLightListRes; 
+	return m_hSpotLightListRes; 
+}
+
+inline RdrResourceHandle LightList::GetPointLightListRes() const
+{
+	return m_hPointLightListRes;
+}
+
+inline RdrConstantBufferHandle LightList::GetDirectionalLightListCb() const
+{
+	return m_hDirectionalLightListCb;
+}
+
+inline uint LightList::GetSpotLightCount() const
+{
+	return m_numSpotLights;
+}
+
+inline uint LightList::GetPointLightCount() const
+{
+	return m_numPointLights;
 }
 
 inline uint LightList::GetLightCount() const

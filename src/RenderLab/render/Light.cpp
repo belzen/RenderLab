@@ -72,10 +72,22 @@ void LightList::Cleanup()
 		}
 	}
 
-	if (m_hLightListRes)
+	if (m_hSpotLightListRes)
 	{
-		RdrResourceSystem::ReleaseResource(m_hLightListRes);
-		m_hLightListRes = 0;
+		RdrResourceSystem::ReleaseResource(m_hSpotLightListRes);
+		m_hSpotLightListRes = 0;
+	}
+
+	if (m_hPointLightListRes)
+	{
+		RdrResourceSystem::ReleaseResource(m_hPointLightListRes);
+		m_hPointLightListRes = 0;
+	}
+
+	if (m_hDirectionalLightListCb)
+	{
+		RdrResourceSystem::ReleaseConstantBuffer(m_hDirectionalLightListCb);
+		m_hDirectionalLightListCb = 0;
 	}
 
 	if (m_hShadowMapDataRes)
@@ -260,16 +272,78 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const fl
 	changed = changed || (m_prevLightCount != m_lightCount);
 	if (changed)
 	{
-		if (m_prevLightCount != m_lightCount)
+		// todo2 size/resize buffers appropriately
+		DirectionalLightList* pDirectionalList = (DirectionalLightList*)RdrScratchMem::Alloc(sizeof(DirectionalLightList));
+		SpotLight* pSpotLights = (SpotLight*)RdrScratchMem::Alloc(sizeof(SpotLight) * 2048);
+		PointLight* pPointLights = (PointLight*)RdrScratchMem::Alloc(sizeof(PointLight) * 2048);
+
+		uint numDirectionalLights = 0;
+		m_numSpotLights = 0;
+		m_numPointLights = 0;
+
+		for (uint i = 0; i < m_lightCount; ++i)
 		{
-			// todo: m_lights isn't threadsafe when queueing a create
-			if (m_hLightListRes)
-				RdrResourceSystem::ReleaseResource(m_hLightListRes);
-			m_hLightListRes = RdrResourceSystem::CreateStructuredBuffer(m_lights, m_lightCount, sizeof(Light), RdrResourceUsage::Dynamic);
+			Light& light = m_lights[i];
+			switch (light.type)
+			{
+			case LightType::Directional:
+			{
+				DirectionalLight& rDirLight = pDirectionalList->lights[numDirectionalLights++];
+				rDirLight.direction = light.direction;
+				rDirLight.color = light.color;
+				rDirLight.shadowMapIndex = light.shadowMapIndex;
+			}
+			break;
+			case LightType::Point:
+			{
+				PointLight& rPointLight = pPointLights[m_numPointLights++];
+				rPointLight.color = light.color;
+				rPointLight.radius = light.radius;
+				rPointLight.position = light.position;
+				rPointLight.shadowMapIndex = light.shadowMapIndex;
+			}
+			break;
+			case LightType::Spot:
+			{
+				SpotLight& rSpotLight = pSpotLights[m_numSpotLights++];
+				rSpotLight.color = light.color;
+				rSpotLight.direction = light.direction;
+				rSpotLight.radius = light.radius;
+				rSpotLight.innerConeAngleCos = light.innerConeAngleCos;
+				rSpotLight.outerConeAngleCos = light.outerConeAngleCos;
+				rSpotLight.position = light.position;
+				rSpotLight.shadowMapIndex = light.shadowMapIndex;
+			}
+			break;
+			}
+		}
+
+		if (!m_hSpotLightListRes)
+		{
+			m_hSpotLightListRes = RdrResourceSystem::CreateStructuredBuffer(pSpotLights, 2048, sizeof(SpotLight), RdrResourceUsage::Dynamic);
 		}
 		else
 		{
-			RdrResourceSystem::UpdateStructuredBuffer(m_hLightListRes, m_lights);
+			RdrResourceSystem::UpdateStructuredBuffer(m_hSpotLightListRes, pSpotLights);
+		}
+
+		if (!m_hPointLightListRes)
+		{
+			m_hPointLightListRes = RdrResourceSystem::CreateStructuredBuffer(pPointLights, 2048, sizeof(PointLight), RdrResourceUsage::Dynamic);
+		}
+		else
+		{
+			RdrResourceSystem::UpdateStructuredBuffer(m_hPointLightListRes, pPointLights);
+		}
+
+		pDirectionalList->numLights = numDirectionalLights;
+		if (!m_hDirectionalLightListCb)
+		{
+			m_hDirectionalLightListCb = RdrResourceSystem::CreateConstantBuffer(pDirectionalList, sizeof(DirectionalLightList), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+		}
+		else
+		{
+			RdrResourceSystem::UpdateConstantBuffer(m_hDirectionalLightListCb, pDirectionalList);
 		}
 
 		if (m_hShadowMapDataRes)
