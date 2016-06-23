@@ -131,10 +131,10 @@ bool SceneBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstFil
 				rLight.direction = Vec3Normalize(rLight.direction);
 
 				float innerConeAngle = jLight.get("innerConeAngle", 0.f).asFloat();
-				rLight.innerConeAngleCos = cosf((innerConeAngle / 180.f) * Maths::kPi);
+				rLight.innerConeAngle = Maths::DegToRad(innerConeAngle);
 
 				float outerConeAngle = jLight.get("outerConeAngle", 0.f).asFloat();
-				rLight.outerConeAngleCos = cosf((outerConeAngle / 180.f) * Maths::kPi);
+				rLight.outerConeAngle = Maths::DegToRad(outerConeAngle);
 			}
 			else if (_stricmp(typeStr, "point") == 0)
 			{

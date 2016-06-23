@@ -129,8 +129,8 @@ void Scene::Load(const char* sceneName)
 			light.position = rLightData.position;
 			light.direction = rLightData.direction;
 			light.radius = rLightData.radius;
-			light.innerConeAngleCos = rLightData.innerConeAngleCos;
-			light.outerConeAngleCos = rLightData.outerConeAngleCos;
+			light.innerConeAngle = rLightData.innerConeAngle;
+			light.outerConeAngle = rLightData.outerConeAngle;
 			light.castsShadows = rLightData.bCastsShadows;
 
 			m_lights.AddLight(light);

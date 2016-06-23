@@ -152,7 +152,7 @@ namespace
 	ID3D10Blob* preprocessShader(const char* filename, const char** aDefines, uint numDefines)
 	{
 		HRESULT hr;
-		ID3D10Blob* pCompiledData;
+		ID3D10Blob* pCompiledData = nullptr;
 		ID3D10Blob* pErrors = nullptr;
 
 		char fullFilename[FILE_MAX_PATH];

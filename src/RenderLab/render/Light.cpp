@@ -230,7 +230,7 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const fl
 			Matrix44 mtxView;
 			Matrix44 mtxProj;
 
-			float angle = acosf(light.outerConeAngleCos) + Maths::DegToRad(5.f);
+			float angle = light.outerConeAngle + Maths::DegToRad(5.f);
 			lightCamera.SetAsPerspective(light.position, light.direction, angle * 2.f, 1.f, 0.1f, 1000.f);
 			lightCamera.GetMatrices(mtxView, mtxProj);
 
@@ -309,8 +309,9 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const fl
 				rSpotLight.color = light.color;
 				rSpotLight.direction = light.direction;
 				rSpotLight.radius = light.radius;
-				rSpotLight.innerConeAngleCos = light.innerConeAngleCos;
-				rSpotLight.outerConeAngleCos = light.outerConeAngleCos;
+				rSpotLight.innerConeAngleCos = cosf(light.innerConeAngle);
+				rSpotLight.outerConeAngleCos = cosf(light.outerConeAngle);
+				rSpotLight.outerConeAngle = light.outerConeAngle;
 				rSpotLight.position = light.position;
 				rSpotLight.shadowMapIndex = light.shadowMapIndex;
 			}

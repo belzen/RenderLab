@@ -19,18 +19,14 @@ class Scene;
 struct Light
 {
 	LightType type;
-	float3 position;
-
-	float3 direction;
+	Vec3 position;
+	Vec3 direction;
+	Vec3 color;
 	float radius;
-
-	float3 color;
-	float innerConeAngleCos; // Cosine of angle where light begins to fall off
-
-	float outerConeAngleCos; // No more light
+	float innerConeAngle; // Angle where light begins to fall off
+	float outerConeAngle; // No more light
 	uint shadowMapIndex;
 	uint castsShadows;
-	float unused;
 };
 
 class LightList

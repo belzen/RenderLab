@@ -29,7 +29,8 @@ struct SpotLight
 	uint shadowMapIndex;
 
 	float radius;
-	float3 unused;
+	float outerConeAngle;
+	float2 unused;
 };
 
 struct PointLight

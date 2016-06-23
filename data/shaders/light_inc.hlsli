@@ -153,18 +153,6 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 	uint numSpotLights = g_lightIndices[lightListIdx++];
 	uint numPointLights = g_lightIndices[lightListIdx++];
 
-#if VISUALIZE_LIGHT_LIST
-
-	uint numLights = numSpotLights + numPointLights;
-	if (numLights == 1)
-		litColor.r = 1.f;
-	else if (numLights == 2)
-		litColor.g = 1.f;
-	else if (numLights >= 3)
-		litColor.b = 55.f;
-
-#else // VISUALIZE_LIGHT_LIST
-
 	uint i;
 	float3 diffuse = 0;
 	float3 specular = 0;
@@ -232,7 +220,16 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 
 	litColor = diffuse * color + specular;
 
+#if VISUALIZE_LIGHT_LIST
+	uint numLights = numSpotLights + numPointLights;
+	if (numLights == 1)
+		litColor *= float3(1.f, 0.f, 0.f);
+	else if (numLights == 2)
+		litColor *= float3(0.f, 1.f, 0.f);
+	else if (numLights >= 3)
+		litColor *= float3(0.f, 0.f, 1.f);
 #endif // VISUALIZE_LIGHT_LIST
+
 
 	float3 ambient = color * ambient_color * ambient_intensity;
 	return ambient + litColor;

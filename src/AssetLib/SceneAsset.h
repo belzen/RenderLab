@@ -18,16 +18,17 @@ namespace AssetLib
 
 	struct Light
 	{
+		LightType type;
+
 		Vec3 position;
 		Vec3 direction;
 		Vec3 color;
 		float radius;
 
 		// Spot light only
-		float innerConeAngleCos; // Cosine of angle where light begins to fall off
-		float outerConeAngleCos; // No more light
+		float innerConeAngle; // Angle where light begins to fall off
+		float outerConeAngle; // No more light
 
-		LightType type;
 		bool bCastsShadows;
 	};
 
