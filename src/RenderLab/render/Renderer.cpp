@@ -1074,7 +1074,7 @@ void Renderer::DrawFrame()
 			if (rAction.bEnablePostProcessing)
 			{
 				m_profiler.BeginSection(RdrProfileSection::PostProcessing);
-				m_postProcess.DoPostProcessing(m_pContext, m_drawState, pColorBuffer, *rAction.pPostProcEffects);
+				m_postProcess.DoPostProcessing(*rAction.pInputManager, m_pContext, m_drawState, pColorBuffer, *rAction.pPostProcEffects);
 				m_profiler.EndSection();
 			}
 

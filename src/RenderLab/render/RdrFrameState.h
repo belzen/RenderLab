@@ -6,11 +6,13 @@
 #include "RdrGeometry.h"
 #include "Camera.h"
 #include "Light.h"
+#include "shapes\Rect.h"
 
 struct RdrDrawOp;
 class Scene;
 class LightList;
 class RdrPostProcessEffects;
+class InputManager;
 
 typedef std::vector<const RdrDrawOp*> RdrDrawOpBucket;
 
@@ -90,6 +92,9 @@ struct RdrAction
 
 	bool bIsCubemapCapture;
 	bool bEnablePostProcessing;
+
+	// Debugging data
+	const InputManager* pInputManager;
 };
 
 struct RdrFrameState

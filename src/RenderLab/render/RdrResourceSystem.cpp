@@ -173,6 +173,8 @@ namespace
 		RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
 		ResCmdCreateTexture& cmd = getQueueState().textureCreates.pushSafe();
+		memset(&cmd, 0, sizeof(cmd));
+
 		cmd.hResource = s_resourceSystem.resources.getId(pResource);
 		cmd.eUsage = eUsage;
 		cmd.texInfo.format = eFormat;
@@ -202,6 +204,8 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 		return iter->second;
 
 	ResCmdCreateTexture& cmd = getQueueState().textureCreates.pushSafe();
+	memset(&cmd, 0, sizeof(cmd));
+
 	if (!AssetLib::g_textureDef.LoadAsset(texName, &cmd.pHeaderData, &cmd.dataSize))
 	{
 		assert(false);

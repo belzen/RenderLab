@@ -30,10 +30,10 @@ namespace
 		return dbgReadIdx;
 	}
 
-	void dbgLuminanceInput(RdrContext* pRdrContext, const RdrResource* pColorBuffer, RdrResource& rLumCopyRes, RdrResource& rLumReadRes, RdrPostProcessDbgData& rOutData)
+	void dbgLuminanceInput(const InputManager& rInputManager, RdrContext* pRdrContext, const RdrResource* pColorBuffer, RdrResource& rLumCopyRes, RdrResource& rLumReadRes, RdrPostProcessDbgData& rOutData)
 	{
 		int mx, my;
-		Input::GetMousePos(mx, my);
+		rInputManager.GetMousePos(mx, my);
 
 		RdrBox srcRect(max(mx,0), max(my,0), 0, 1, 1, 1);
 		if (!rLumCopyRes.pResource)
@@ -181,7 +181,7 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 	}
 }
 
-void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrPostProcessEffects& rEffects)
+void RdrPostProcess::DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrPostProcessEffects& rEffects)
 {
 	RdrConstantBufferHandle hToneMapInputConstants = rEffects.GetToneMapInputConstants();
 
@@ -194,7 +194,7 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDr
 	if (m_debugger.IsActive())
 	{
 		int dbgReadIdx = getDbgReadIndex(m_dbgFrame);
-		dbgLuminanceInput(pRdrContext, pColorBuffer, m_lumDebugRes[m_dbgFrame], m_lumDebugRes[dbgReadIdx], m_debugData);
+		dbgLuminanceInput(rInputManager, pRdrContext, pColorBuffer, m_lumDebugRes[m_dbgFrame], m_lumDebugRes[dbgReadIdx], m_debugData);
 	}
 
 	if (m_useHistogramToneMap)

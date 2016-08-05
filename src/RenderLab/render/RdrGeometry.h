@@ -1,6 +1,8 @@
 #pragma once
 
 #include "RdrResource.h"
+#include "MathLib\Maths.h"
+#include "UtilsLib\Color.h"
 
 struct Vertex
 {

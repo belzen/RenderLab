@@ -80,7 +80,7 @@ void Debug::Update(float dt)
 	}
 }
 
-void Debug::QueueDraw(Renderer& rRenderer, const Scene& rScene, const FrameTimer& rFrameTimer)
+void Debug::QueueDraw(Renderer& rRenderer, const Camera& rCamera, const FrameTimer& rFrameTimer)
 {
 	DebugConsole::QueueDraw(rRenderer);
 
@@ -92,7 +92,7 @@ void Debug::QueueDraw(Renderer& rRenderer, const Scene& rScene, const FrameTimer
 		UI::Position uiPos(UI::Coord(1.f, UI::Units::Percentage), 0.f, 0.f, UI::AlignmentFlags::Right);
 		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
 
-		const Vec3& camPos = rScene.GetMainCamera().GetPosition();
+		const Vec3& camPos = rCamera.GetPosition();
 		uiPos.y.val = 20.f;
 		sprintf_s(line, "%.2f, %.2f, %.2f", camPos.x, camPos.y, camPos.z);
 		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);

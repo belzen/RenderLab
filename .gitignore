@@ -1,7 +1,6 @@
 /.vs/
 *.opensdf
 *.sdf
-*.vcxproj.filters
 *.vcxproj.user
 *.opendb
 *.vc.db

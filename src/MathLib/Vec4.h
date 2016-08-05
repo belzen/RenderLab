@@ -1,5 +1,7 @@
 #pragma once
 
+#include <DirectXMath.h>
+
 struct Vec4 : public DirectX::XMFLOAT4
 {
 	Vec4();

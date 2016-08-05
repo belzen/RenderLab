@@ -8,6 +8,7 @@ class RdrContext;
 class RdrDrawState;
 class RdrPostProcessEffects;
 struct RdrResource;
+class InputManager;
 
 struct RdrPostProcessDbgData
 {
@@ -23,7 +24,7 @@ public:
 	void Init();
 
 	void HandleResize(uint width, uint height);
-	void DoPostProcessing(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrPostProcessEffects& rEffects);
+	void DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrPostProcessEffects& rEffects);
 
 	const RdrPostProcessDbgData& GetDebugData() const;
 

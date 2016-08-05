@@ -2,6 +2,7 @@
 
 #include "Math.h"
 #include "shapes/Quad.h"
+#include "shapes/Plane.h"
 
 enum class CubemapFace
 {

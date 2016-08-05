@@ -1,0 +1,333 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <FxCompile Include="..\..\data\shaders\c_add.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_bloom_shrink.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_blur.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_clustered_light_cull.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_depth_partition.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_luminance_histogram.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_luminance_measure.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_tiled_depth_calc.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_tiled_light_cull.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\g_cubemap.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_error.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_model.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_sky.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_sprite.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_text.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_tonemap.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\v_model.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\v_screen.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\v_sky.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\v_sprite.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\v_text.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="FrameTimer.cpp" />
+    <ClCompile Include="Precompiled.cpp" />
+    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="UI.cpp" />
+    <ClCompile Include="WorldObject.cpp" />
+    <ClCompile Include="RenderDoc\RenderDoc.cpp">
+      <Filter>RenderDoc</Filter>
+    </ClCompile>
+    <ClCompile Include="input\CameraInputContext.cpp">
+      <Filter>input</Filter>
+    </ClCompile>
+    <ClCompile Include="input\Input.cpp">
+      <Filter>input</Filter>
+    </ClCompile>
+    <ClCompile Include="debug\Debug.cpp">
+      <Filter>debug</Filter>
+    </ClCompile>
+    <ClCompile Include="debug\DebugConsole.cpp">
+      <Filter>debug</Filter>
+    </ClCompile>
+    <ClCompile Include="debug\PostProcessDebugger.cpp">
+      <Filter>debug</Filter>
+    </ClCompile>
+    <ClCompile Include="render\Camera.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\Font.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\Light.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\ModelData.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\ModelInstance.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrContextD3D11.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrContextD3D11_Shaders.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrDeviceTypes.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrDrawOp.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrFrameState.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrGeoSystem.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrMaterial.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrPostProcess.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrPostProcessEffects.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrProfiler.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrResourceSystem.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrScratchMem.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrShaderSystem.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\Renderer.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\Sky.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\Sprite.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Types.h" />
+    <ClInclude Include="FrameTimer.h" />
+    <ClInclude Include="FreeList.h" />
+    <ClInclude Include="IDSet.h" />
+    <ClInclude Include="LinearAllocator.h" />
+    <ClInclude Include="Precompiled.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="UI.h" />
+    <ClInclude Include="WorldObject.h" />
+    <ClInclude Include="RenderDoc\renderdoc_app.h">
+      <Filter>RenderDoc</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderDoc\RenderDocUtil.h">
+      <Filter>RenderDoc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\data\shaders\c_constants.h">
+      <Filter>shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\data\shaders\g_constants.h">
+      <Filter>shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\data\shaders\p_constants.h">
+      <Filter>shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="input\CameraInputContext.h">
+      <Filter>input</Filter>
+    </ClInclude>
+    <ClInclude Include="input\Input.h">
+      <Filter>input</Filter>
+    </ClInclude>
+    <ClInclude Include="debug\Debug.h">
+      <Filter>debug</Filter>
+    </ClInclude>
+    <ClInclude Include="debug\DebugConsole.h">
+      <Filter>debug</Filter>
+    </ClInclude>
+    <ClInclude Include="debug\PostProcessDebugger.h">
+      <Filter>debug</Filter>
+    </ClInclude>
+    <ClInclude Include="shapes\Quad.h">
+      <Filter>shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="shapes\Plane.h">
+      <Filter>shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="shapes\Rect.h">
+      <Filter>shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="render\Camera.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\Font.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\Light.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\data\shaders\light_types.h">
+      <Filter>shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="render\ModelData.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\ModelInstance.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrContext.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrContextD3D11.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrDeviceTypes.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrDrawOp.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrDrawState.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrFrameState.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrGeometry.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrGeoSystem.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrMaterial.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrPostProcess.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrPostProcessEffects.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrProfiler.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrRequests.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrResource.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrResourceSystem.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrScratchMem.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrShaderConstants.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrShaders.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrShaderSystem.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrShaderTypes.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\Renderer.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\Sky.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\Sprite.h">
+      <Filter>render</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\data\shaders\p_common.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\data\shaders\p_util.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\data\shaders\v_common.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\data\shaders\v_constants.h">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\data\shaders\v_output.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\data\shaders\light_inc.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="RenderDoc">
+      <UniqueIdentifier>{56b1a9d4-05c0-41f3-9f16-8fc67a50deef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="debug">
+      <UniqueIdentifier>{c69764fa-db44-4924-9ff8-1bb1eb892097}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="render">
+      <UniqueIdentifier>{c7270bf8-3a27-4af2-8854-d447d80686b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shapes">
+      <UniqueIdentifier>{60242be3-0065-4fcd-a584-97db5e91c1e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="input">
+      <UniqueIdentifier>{5584ef18-09e6-4c09-845f-24f5140fbb62}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{e3abedcb-6f4c-4778-9874-41f91b907844}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

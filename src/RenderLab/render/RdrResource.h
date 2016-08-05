@@ -1,6 +1,8 @@
 #pragma once
 
 #include "RdrDeviceTypes.h"
+#include "MathLib\Vec4.h"
+#include "FreeList.h"
 
 struct ID3D11Buffer;
 struct ID3D11Texture2D;

@@ -4,6 +4,7 @@
 #include "render/RdrContext.h"
 #include "render/Light.h"
 #include "render/Sky.h"
+#include <vector>
 
 class Camera;
 class Renderer;
@@ -33,9 +34,6 @@ public:
 
 	const RdrPostProcessEffects* GetPostProcEffects() const;
 
-	Camera& GetMainCamera();
-	const Camera& GetMainCamera() const;
-
 	const char* GetName() const;
 
 private:
@@ -43,7 +41,6 @@ private:
 
 	WorldObjectList m_objects;
 	LightList m_lights;
-	Camera m_mainCamera;
 	Sky m_sky;
 	RdrPostProcessEffects m_postProcEffects;
 	FileWatcher::ListenerID m_reloadListenerId;
@@ -69,16 +66,6 @@ inline LightList& Scene::GetLightList()
 inline const RdrPostProcessEffects* Scene::GetPostProcEffects() const
 {
 	return &m_postProcEffects;
-}
-
-inline Camera& Scene::GetMainCamera()
-{ 
-	return m_mainCamera; 
-}
-
-inline const Camera& Scene::GetMainCamera() const
-{ 
-	return m_mainCamera; 
 }
 
 inline const char* Scene::GetName() const

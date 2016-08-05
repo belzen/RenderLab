@@ -3,58 +3,55 @@
 #include <stack>
 #include "debug\DebugConsole.h"
 
-namespace
+InputManager::InputManager()
 {
-	bool s_keyStates[255] = { 0 };
-	bool s_mouseStates[5] = { 0 };
-	int s_mouseX, s_mouseY;
-	int s_mouseMoveX, s_mouseMoveY;
-	std::stack<IInputContext*> s_inputFocusStack;
+	memset(m_keyStates, 0, sizeof(m_keyStates));
+	memset(m_mouseStates, 0, sizeof(m_mouseStates));
 }
 
-void Input::PushContext(IInputContext* pController)
+void InputManager::PushContext(IInputContext* pController)
 {
-	if ( !s_inputFocusStack.empty() )
-		s_inputFocusStack.top()->LostFocus();
+	if ( !m_inputFocusStack.empty() )
+		m_inputFocusStack.top()->LostFocus();
 
-	s_inputFocusStack.push(pController);
-	s_inputFocusStack.top()->GainedFocus();
+	m_inputFocusStack.push(pController);
+	m_inputFocusStack.top()->GainedFocus();
 }
 
-void Input::PopContext()
+void InputManager::PopContext()
 {
-	assert(s_inputFocusStack.size() > 1);
-	s_inputFocusStack.top()->LostFocus();
-	s_inputFocusStack.pop();
-	s_inputFocusStack.top()->GainedFocus();
+	assert(m_inputFocusStack.size() > 1);
+	m_inputFocusStack.top()->LostFocus();
+	m_inputFocusStack.pop();
+	m_inputFocusStack.top()->GainedFocus();
 }
 
-IInputContext* Input::GetActiveContext()
+IInputContext* InputManager::GetActiveContext()
 {
-	return s_inputFocusStack.top();
+	return m_inputFocusStack.top();
 }
 
-void Input::Reset()
+void InputManager::Reset()
 {
-	s_mouseMoveX = 0;
-	s_mouseMoveY = 0;
+	m_mouseMoveX = 0;
+	m_mouseMoveY = 0;
 }
 
-bool Input::IsKeyDown(int key)
+bool InputManager::IsKeyDown(int key) const
 {
-	return s_keyStates[key];
+	return m_keyStates[key];
 }
 
-void Input::SetKeyDown(int key, bool down)
+void InputManager::SetKeyDown(int key, bool down)
 {
-	bool changed = (s_keyStates[key] != down);
-	s_keyStates[key] = down;
+	bool changed = (m_keyStates[key] != down);
+	m_keyStates[key] = down;
 
-	IInputContext* pContext = s_inputFocusStack.top();
+	IInputContext* pContext = m_inputFocusStack.top();
 	if (changed && down && key == KEY_TILDE)
 	{
 		// ~ reserved for debug console.
-		DebugConsole::ToggleActive();
+		DebugConsole::ToggleActive(*this);
 	}
 	else if ( changed || (down && pContext->WantsKeyDownRepeat()) )
 	{
@@ -62,40 +59,40 @@ void Input::SetKeyDown(int key, bool down)
 	}
 }
 
-bool Input::IsMouseDown(int button)
+bool InputManager::IsMouseDown(int button) const
 {
-	return s_mouseStates[button];
+	return m_mouseStates[button];
 }
 
-void Input::SetMouseDown(int button, bool down, int x, int y)
+void InputManager::SetMouseDown(int button, bool down, int x, int y)
 {
-	s_mouseStates[button] = down;
-	s_mouseX = x;
-	s_mouseY = y;
-	s_mouseMoveX = 0;
-	s_mouseMoveY = 0;
+	m_mouseStates[button] = down;
+	m_mouseX = x;
+	m_mouseY = y;
+	m_mouseMoveX = 0;
+	m_mouseMoveY = 0;
 
-	s_inputFocusStack.top()->HandleMouseDown(button, down, x, y);
+	m_inputFocusStack.top()->HandleMouseDown(button, down, x, y);
 }
 
-void Input::GetMouseMove(int& x, int& y)
+void InputManager::GetMouseMove(int& x, int& y) const
 {
-	x = s_mouseMoveX;
-	y = s_mouseMoveY;
+	x = m_mouseMoveX;
+	y = m_mouseMoveY;
 }
 
-void Input::GetMousePos(int& x, int& y)
+void InputManager::GetMousePos(int& x, int& y) const
 {
-	x = s_mouseX;
-	y = s_mouseY;
+	x = m_mouseX;
+	y = m_mouseY;
 }
 
-void Input::SetMousePos(int x, int y)
+void InputManager::SetMousePos(int x, int y)
 {
-	s_mouseMoveX = x - s_mouseX;
-	s_mouseMoveY = y - s_mouseY;
-	s_mouseX = x;
-	s_mouseY = y;
+	m_mouseMoveX = x - m_mouseX;
+	m_mouseMoveY = y - m_mouseY;
+	m_mouseX = x;
+	m_mouseY = y;
 
-	s_inputFocusStack.top()->HandleMouseMove(x, y, s_mouseMoveX, s_mouseMoveY);
+	m_inputFocusStack.top()->HandleMouseMove(x, y, m_mouseMoveX, m_mouseMoveY);
 }

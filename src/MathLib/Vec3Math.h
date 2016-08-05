@@ -49,15 +49,18 @@ inline Vec3 Vec3TransformCoord(const Vec3& lhs, const Matrix44& transformMtx)
 
 inline float Vec3MaxComponent(const Vec3& vec)
 {
-	return std::max(std::max(vec.x, vec.y), vec.z);
+	using std::max;
+	return max(max(vec.x, vec.y), vec.z);
 }
 
 inline Vec3 Vec3Max(const Vec3& lhs, const Vec3& rhs)
 {
-	return Vec3(std::max(lhs.x, rhs.x), std::max(lhs.y, rhs.y), std::max(lhs.z, rhs.z));
+	using std::max;
+	return Vec3(max(lhs.x, rhs.x), max(lhs.y, rhs.y), max(lhs.z, rhs.z));
 }
 
 inline Vec3 Vec3Min(const Vec3& lhs, const Vec3& rhs)
 {
-	return Vec3(std::min(lhs.x, rhs.x), std::min(lhs.y, rhs.y), std::min(lhs.z, rhs.z));
+	using std::min;
+	return Vec3(min(lhs.x, rhs.x), min(lhs.y, rhs.y), min(lhs.z, rhs.z));
 }

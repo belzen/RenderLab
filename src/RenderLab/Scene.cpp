@@ -91,13 +91,6 @@ void Scene::Load(const char* sceneName)
 	AssetLib::g_sceneDef.GetFilePattern(filePattern, ARRAY_SIZE(filePattern));
 	m_reloadListenerId = FileWatcher::AddListener(filePattern, handleSceneFileChanged, this);
 
-	// Camera - Skip moving the camera if this is a reload
-	if (!m_reloadPending)
-	{
-		m_mainCamera.SetPosition(pSceneData->camPosition);
-		m_mainCamera.SetPitchYawRoll(pSceneData->camPitchYawRoll);
-	}
-
 	// Sky
 	m_sky.Load(pSceneData->sky);
 

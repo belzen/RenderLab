@@ -12,19 +12,19 @@ CameraInputContext::CameraInputContext()
 
 }
 
-void CameraInputContext::Update(float dt)
+void CameraInputContext::Update(const InputManager& rInputManager, float dt)
 {
 	float right = 0.f;
 	float up = 0.f;
 	float forward = 0.f;
 
 	// Rotation
-	if (Input::IsMouseDown(1))
+	if (rInputManager.IsMouseDown(1))
 	{
 		static const float kPixelToAngle = Maths::kPi / (180.f * 10.f);
 		static const float kMaxPitch = Maths::kPi * 0.5f - 0.001f;
 		int moveX, moveY;
-		Input::GetMouseMove(moveX, moveY);
+		rInputManager.GetMouseMove(moveX, moveY);
 
 		Vec3 pitchYawRoll = m_pCamera->GetPitchYawRoll();
 
@@ -38,7 +38,7 @@ void CameraInputContext::Update(float dt)
 
 		m_pCamera->SetPitchYawRoll(pitchYawRoll);
 
-		if (Input::IsMouseDown(0))
+		if (rInputManager.IsMouseDown(0))
 		{
 			// Left + Right Mouse button down translate forward
 			forward = 1.f;
@@ -46,19 +46,19 @@ void CameraInputContext::Update(float dt)
 	}
 
 	// Translation
-	if (Input::IsKeyDown(KEY_W))
+	if (rInputManager.IsKeyDown(KEY_W))
 		forward = 1.f;
-	else if (Input::IsKeyDown(KEY_S))
+	else if (rInputManager.IsKeyDown(KEY_S))
 		forward = -1.f;
 
-	if (Input::IsKeyDown(KEY_A))
+	if (rInputManager.IsKeyDown(KEY_A))
 		right = -1.f;
-	else if (Input::IsKeyDown(KEY_D))
+	else if (rInputManager.IsKeyDown(KEY_D))
 		right = 1.f;
 
-	if (Input::IsKeyDown(KEY_Q))
+	if (rInputManager.IsKeyDown(KEY_Q))
 		up = 1.f;
-	else if (Input::IsKeyDown(KEY_Z))
+	else if (rInputManager.IsKeyDown(KEY_Z))
 		up = -1.f;
 
 	if (fabs(right) + fabs(up) + fabs(forward) != 0.f)

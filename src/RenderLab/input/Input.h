@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stack>
+
 enum Keys
 {
 	KEY_BACKSPACE = 0x08,
@@ -49,13 +51,18 @@ enum Keys
 	KEY_X = 0x58,
 	KEY_Y = 0x59,
 	KEY_Z = 0x5A,
+
+	KEY_F11 = 0x7a,
+
 	KEY_TILDE = 0xc0,
 };
+
+class InputManager;
 
 class IInputContext
 {
 public:
-	virtual void Update(float dt) = 0;
+	virtual void Update(const InputManager& rInputManager, float dt) = 0;
 
 	virtual void GainedFocus() = 0;
 	virtual void LostFocus() = 0;
@@ -69,8 +76,11 @@ public:
 	virtual bool WantsKeyDownRepeat() = 0;
 };
 
-namespace Input
+class InputManager
 {
+public:
+	InputManager();
+
 	// Manage the input focus stack.
 	void PushContext(IInputContext* pContext);
 	void PopContext();
@@ -78,13 +88,20 @@ namespace Input
 
 	void Reset();
 
-	bool IsKeyDown(int key);
+	bool IsKeyDown(int key) const;
 	void SetKeyDown(int key, bool down);
 
-	bool IsMouseDown(int button);
+	bool IsMouseDown(int button) const;
 	void SetMouseDown(int button, bool down, int x, int y);
-	void GetMouseMove(int& x, int& y);
+	void GetMouseMove(int& x, int& y) const;
 
-	void GetMousePos(int& x, int& y);
+	void GetMousePos(int& x, int& y) const;
 	void SetMousePos(int x, int y);
-}
+
+private:
+	bool m_keyStates[255];
+	bool m_mouseStates[5];
+	int m_mouseX, m_mouseY;
+	int m_mouseMoveX, m_mouseMoveY;
+	std::stack<IInputContext*> m_inputFocusStack;
+};

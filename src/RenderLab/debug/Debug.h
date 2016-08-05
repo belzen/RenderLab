@@ -1,7 +1,7 @@
 #pragma once
 
 class Renderer;
-class Scene;
+class Camera;
 class FrameTimer;
 
 class IDebugger
@@ -23,5 +23,5 @@ namespace Debug
 	void DeactivateDebugger(const char* name);
 
 	void Update(float dt);
-	void QueueDraw(Renderer& rRenderer, const Scene& rScene, const FrameTimer& rFrameTimer);
+	void QueueDraw(Renderer& rRenderer, const Camera& rCamera, const FrameTimer& rFrameTimer);
 }

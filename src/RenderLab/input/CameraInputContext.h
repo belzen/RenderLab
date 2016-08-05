@@ -9,7 +9,7 @@ class CameraInputContext : public IInputContext
 public:
 	CameraInputContext();
 
-	void Update(float dt);
+	void Update(const InputManager& rInputManager, float dt);
 
 	void GainedFocus();
 	void LostFocus();

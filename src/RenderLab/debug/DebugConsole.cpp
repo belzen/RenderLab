@@ -53,7 +53,7 @@ namespace
 	class DebugInputContext : public IInputContext
 	{
 	public:
-		void Update(float dt)
+		void Update(const InputManager& rInputManager, float dt)
 		{
 
 		}
@@ -264,17 +264,17 @@ void DebugConsole::QueueDraw(Renderer& rRenderer)
 	}
 }
 
-void DebugConsole::ToggleActive()
+void DebugConsole::ToggleActive(InputManager& rInputManager)
 {
 	if (s_debugConsole.isActive)
 	{
 		s_debugConsole.isActive = false;
-		Input::PopContext();
+		rInputManager.PopContext();
 	}
 	else
 	{
 		s_debugConsole.isActive = true;
-		Input::PushContext(&s_debugInputContext);
+		rInputManager.PushContext(&s_debugInputContext);
 	}
 }
 

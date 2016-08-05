@@ -2,6 +2,7 @@
 
 #include "RdrResource.h"
 #include "ModelData.h"
+#include "UtilsLib\FileWatcher.h"
 
 struct RdrDrawOp;
 struct RdrMaterial;

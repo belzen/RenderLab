@@ -33,5 +33,5 @@ namespace DebugConsole
 
 	void QueueDraw(Renderer& rRenderer);
 
-	void ToggleActive();
+	void ToggleActive(InputManager& rInputManager);
 }

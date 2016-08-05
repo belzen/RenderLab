@@ -6,6 +6,7 @@
 #include "Math.h"
 #include "Camera.h"
 
+struct Rect;
 struct RdrDrawOp;
 class LightList;
 class RdrContext;
