@@ -54,19 +54,18 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha)
 {
 	RdrDrawOp* op = RdrDrawOp::Allocate();
-	op->eType = RdrDrawOpType::Graphics;
-	op->graphics.hGeo = m_hGeo;
-	op->graphics.bFreeGeo = false;
-	op->graphics.bTempDrawOp = true;
-	op->graphics.hInputLayout = m_hInputLayout;
-	op->graphics.vertexShader = kVertexShader;
-	op->graphics.pMaterial = &m_material;
+	op->hGeo = m_hGeo;
+	op->bFreeGeo = false;
+	op->bTempDrawOp = true;
+	op->hInputLayout = m_hInputLayout;
+	op->vertexShader = kVertexShader;
+	op->pMaterial = &m_material;
 
 	uint constantsSize = sizeof(Vec4) * 2;
 	Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
 	pConstants[0] = Vec4(pos.x - rRenderer.GetViewportWidth() * 0.5f, pos.y + rRenderer.GetViewportHeight() * 0.5f, pos.z + 1.f, 0.f);
 	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
-	op->graphics.hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
+	op->hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
 
-	rRenderer.AddToBucket(op, RdrBucketType::UI);
+	rRenderer.AddDrawOpToBucket(op, RdrBucketType::UI);
 }

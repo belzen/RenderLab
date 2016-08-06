@@ -186,6 +186,7 @@
     <ClCompile Include="render\Camera.cpp" />
     <ClCompile Include="render\Font.cpp" />
     <ClCompile Include="render\ModelInstance.cpp" />
+    <ClCompile Include="render\RdrComputeOp.cpp" />
     <ClCompile Include="render\RdrDeviceTypes.cpp" />
     <ClCompile Include="render\RdrGeoSystem.cpp" />
     <ClCompile Include="render\Light.cpp" />
@@ -231,6 +232,7 @@
     <ClInclude Include="render\Light.h" />
     <ClInclude Include="render\ModelData.h" />
     <ClInclude Include="render\ModelInstance.h" />
+    <ClInclude Include="render\RdrComputeOp.h" />
     <ClInclude Include="render\RdrContext.h" />
     <ClInclude Include="render\RdrContextD3D11.h" />
     <ClInclude Include="render\RdrDeviceTypes.h" />

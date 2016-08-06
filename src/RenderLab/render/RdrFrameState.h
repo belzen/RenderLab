@@ -9,11 +9,13 @@
 #include "shapes\Rect.h"
 
 struct RdrDrawOp;
+struct RdrComputeOp;
 class Scene;
 class LightList;
 class RdrPostProcessEffects;
 class InputManager;
 
+typedef std::vector<const RdrComputeOp*> RdrComputeOpBucket;
 typedef std::vector<const RdrDrawOp*> RdrDrawOpBucket;
 
 #define MAX_ACTIONS_PER_FRAME 16
@@ -30,6 +32,8 @@ struct RdrPassData
 {
 	RdrRenderTargetViewHandle ahRenderTargets[MAX_RENDER_TARGETS];
 	RdrDepthStencilViewHandle hDepthTarget;
+
+	RdrComputeOpBucket computeOps;
 
 	Rect viewport;
 

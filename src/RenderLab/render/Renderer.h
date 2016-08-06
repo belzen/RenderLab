@@ -58,7 +58,8 @@ public:
 	void QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 	void QueueShadowCubeMapPass(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 
-	void AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);
+	void AddDrawOpToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);
+	void AddComputeOpToPass(RdrComputeOp* pComputeOp, RdrPass ePass);
 
 	void DrawFrame();
 	void PostFrameSync();
@@ -89,7 +90,7 @@ private:
 	RdrAction* GetNextAction();
 
 	void DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlobalConstants, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices);
-	void DispatchCompute(const RdrDrawOp* pDrawOp);
+	void DispatchCompute(const RdrComputeOp* pComputeOp);
 
 	void ProcessReadbackRequests();
 

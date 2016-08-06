@@ -152,6 +152,9 @@
     <ClCompile Include="render\Sprite.cpp">
       <Filter>render</Filter>
     </ClCompile>
+    <ClCompile Include="render\RdrComputeOp.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -287,6 +290,9 @@
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="render\Sprite.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrComputeOp.h">
       <Filter>render</Filter>
     </ClInclude>
   </ItemGroup>

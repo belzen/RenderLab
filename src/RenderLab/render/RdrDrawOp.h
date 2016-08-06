@@ -4,10 +4,22 @@
 #include "RdrShaders.h"
 #include "RdrMaterial.h"
 
-enum class RdrDrawOpType
+struct RdrDispatchOp
 {
-	Graphics,
-	Compute
+	static RdrDispatchOp* Allocate();
+	static void QueueRelease(const RdrDispatchOp* pDrawOp);
+	static void ProcessReleases();
+
+	RdrComputeShader shader;
+	uint threads[3];
+
+	RdrResourceHandle hViews[8];
+	uint viewCount;
+
+	RdrResourceHandle hTextures[4];
+	uint texCount;
+
+	RdrConstantBufferHandle hCsConstants;
 };
 
 struct RdrDrawOp
@@ -16,38 +28,16 @@ struct RdrDrawOp
 	static void QueueRelease(const RdrDrawOp* pDrawOp);
 	static void ProcessReleases();
 
-	union
-	{
-		struct
-		{
-			RdrConstantBufferHandle hVsConstants;
+	RdrConstantBufferHandle hVsConstants;
 
-			RdrInputLayoutHandle hInputLayout;
-			RdrVertexShader      vertexShader;
+	RdrInputLayoutHandle hInputLayout;
+	RdrVertexShader      vertexShader;
 
-			const RdrMaterial* pMaterial;
+	const RdrMaterial* pMaterial;
 
-			RdrGeoHandle hGeo;
-			uint8 bFreeGeo : 1;
-			uint8 bHasAlpha : 1;
-			uint8 bIsSky : 1;
-			uint8 bTempDrawOp : 1;
-		} graphics;
-
-		struct
-		{
-			RdrComputeShader shader;
-			uint threads[3];
-
-			RdrResourceHandle hViews[8];
-			uint viewCount;
-
-			RdrResourceHandle hTextures[4];
-			uint texCount;
-
-			RdrConstantBufferHandle hCsConstants;
-		} compute;
-	};
-
-	RdrDrawOpType eType;
+	RdrGeoHandle hGeo;
+	uint8 bFreeGeo : 1;
+	uint8 bHasAlpha : 1;
+	uint8 bIsSky : 1;
+	uint8 bTempDrawOp : 1;
 };

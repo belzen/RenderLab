@@ -24,5 +24,8 @@ bool RenderDoc::Init()
 void RenderDoc::Capture()
 {
 	s_pRenderDocApi->TriggerCapture();
-	s_pRenderDocApi->LaunchReplayUI(1, "");
+	if (!s_pRenderDocApi->IsRemoteAccessConnected())
+	{
+		s_pRenderDocApi->LaunchReplayUI(1, "");
+	}
 }

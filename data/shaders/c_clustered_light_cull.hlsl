@@ -207,99 +207,47 @@ void main(uint3 groupId : SV_GroupID, uint localIdx : SV_GroupIndex)
 	Frustum frustum;
 	constructFrustum(groupId, frustum);
 
-	// Split culling mode based on cluster depth.
-	// Closer to the camera it's more effective to use AABB or frustum separating axis,
-	// but further away when the frustums are larger, we get fewer false positives with a basic frustum test.
-	if (groupId.z <= 8)
+	for (i = localIdx; i < cbCullParams.spotLightCount; i += THREAD_COUNT_TOTAL)
 	{
-		for (i = localIdx; i < cbCullParams.spotLightCount; i += THREAD_COUNT_TOTAL)
+		SpotLight light = g_spotLights[i];
+		if (cullSpotLight(frustum, light))
 		{
-			SpotLight light = g_spotLights[i];
-			if (cullSpotLight(frustum, light))
+			// add light to light list
+			uint lightIndex;
+			InterlockedAdd(grp_clusterLightCount, 1, lightIndex);
+
+			if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER)
 			{
-				// add light to light list
-				uint lightIndex;
-				InterlockedAdd(grp_clusterLightCount, 1, lightIndex);
-
-				if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER)
-				{
-					// Make sure we're not over the light limit before writing to the buffer.
-					// The light count is still incremented, but is clamped to the max before writing.
-					break;
-				}
-
-				InterlockedAdd(grp_spotLightCount, 1);
-				g_clusterLightIndices[clusterIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
+				// Make sure we're not over the light limit before writing to the buffer.
+				// The light count is still incremented, but is clamped to the max before writing.
+				break;
 			}
-		}
 
-		GroupMemoryBarrierWithGroupSync();
-
-		for (i = localIdx; i < cbCullParams.pointLightCount; i += THREAD_COUNT_TOTAL)
-		{
-			PointLight light = g_pointLights[i];
-			if (cullPointLight(frustum, light, 1))
-			{
-				// add light to light list
-				uint lightIndex;
-				InterlockedAdd(grp_clusterLightCount, 1, lightIndex);
-
-				if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER)
-				{
-					// Make sure we're not over the light limit before writing to the buffer.
-					// The light count is still incremented, but is clamped to the max before writing.
-					break;
-				}
-
-				InterlockedAdd(grp_pointLightCount, 1);
-				g_clusterLightIndices[clusterIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
-			}
+			InterlockedAdd(grp_spotLightCount, 1);
+			g_clusterLightIndices[clusterIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
 		}
 	}
-	else
+
+	GroupMemoryBarrierWithGroupSync();
+
+	for (i = localIdx; i < cbCullParams.pointLightCount; i += THREAD_COUNT_TOTAL)
 	{
-		for (i = localIdx; i < cbCullParams.spotLightCount; i += THREAD_COUNT_TOTAL)
+		PointLight light = g_pointLights[i];
+		if (cullPointLight(frustum, light, 1))
 		{
-			SpotLight light = g_spotLights[i];
-			if (cullSpotLight(frustum, light))
+			// add light to light list
+			uint lightIndex;
+			InterlockedAdd(grp_clusterLightCount, 1, lightIndex);
+
+			if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER)
 			{
-				// add light to light list
-				uint lightIndex;
-				InterlockedAdd(grp_clusterLightCount, 1, lightIndex);
-
-				if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER)
-				{
-					// Make sure we're not over the light limit before writing to the buffer.
-					// The light count is still incremented, but is clamped to the max before writing.
-					break;
-				}
-
-				InterlockedAdd(grp_spotLightCount, 1);
-				g_clusterLightIndices[clusterIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
+				// Make sure we're not over the light limit before writing to the buffer.
+				// The light count is still incremented, but is clamped to the max before writing.
+				break;
 			}
-		}
 
-		GroupMemoryBarrierWithGroupSync();
-
-		for (i = localIdx; i < cbCullParams.pointLightCount; i += THREAD_COUNT_TOTAL)
-		{
-			PointLight light = g_pointLights[i];
-			if (cullPointLight(frustum, light, 0))
-			{
-				// add light to light list
-				uint lightIndex;
-				InterlockedAdd(grp_clusterLightCount, 1, lightIndex);
-
-				if (lightIndex >= CLUSTEREDLIGHTING_MAX_LIGHTS_PER)
-				{
-					// Make sure we're not over the light limit before writing to the buffer.
-					// The light count is still incremented, but is clamped to the max before writing.
-					break;
-				}
-
-				InterlockedAdd(grp_pointLightCount, 1);
-				g_clusterLightIndices[clusterIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
-			}
+			InterlockedAdd(grp_pointLightCount, 1);
+			g_clusterLightIndices[clusterIdx + lightIndex + LIGHTLIST_NUM_LIGHT_TYPES] = i;
 		}
 	}
 

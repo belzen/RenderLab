@@ -12,6 +12,7 @@
 #include "RdrShaderConstants.h"
 #include "RdrScratchMem.h"
 #include "RdrDrawOp.h"
+#include "RdrComputeOp.h"
 #include "Scene.h"
 #include "../../data/shaders/light_types.h"
 
@@ -91,10 +92,7 @@ namespace
 
 	void validateDrawOp(RdrDrawOp* pDrawOp)
 	{
-		if (pDrawOp->eType == RdrDrawOpType::Graphics)
-		{
-			assert(pDrawOp->graphics.hGeo);
-		}
+		assert(pDrawOp->hGeo);
 	}
 
 	void cullSceneToCameraForShadows(const Camera& rCamera, const Scene& rScene, RdrDrawOpBucket& rOpaqueBucket)
@@ -117,7 +115,7 @@ namespace
 				const RdrDrawOp* pDrawOp = apDrawOps[k];
 				if (pDrawOp)
 				{
-					if (!pDrawOp->graphics.bHasAlpha && !pDrawOp->graphics.bIsSky)
+					if (!pDrawOp->bHasAlpha && !pDrawOp->bIsSky)
 					{
 						rOpaqueBucket.push_back(pDrawOp);
 					}
@@ -157,11 +155,11 @@ namespace
 				const RdrDrawOp* pDrawOp = apDrawOps[k];
 				if (pDrawOp)
 				{
-					if (pDrawOp->graphics.bHasAlpha)
+					if (pDrawOp->bHasAlpha)
 					{
 						rAlphaBucket.push_back(pDrawOp);
 					}
-					else if (pDrawOp->graphics.bIsSky)
+					else if (pDrawOp->bIsSky)
 					{
 						rSkyBucket.push_back(pDrawOp);
 						testDepth = false;
@@ -198,11 +196,11 @@ namespace
 				const RdrDrawOp* pDrawOp = apDrawOps[k];
 				if (pDrawOp)
 				{
-					if (pDrawOp->graphics.bHasAlpha)
+					if (pDrawOp->bHasAlpha)
 					{
 						rAlphaBucket.push_back(pDrawOp);
 					}
-					else if (pDrawOp->graphics.bIsSky)
+					else if (pDrawOp->bIsSky)
 					{
 						rSkyBucket.push_back(pDrawOp);
 					}
@@ -430,17 +428,16 @@ void Renderer::QueueClusteredLightCulling()
 		m_clusteredLightData.hLightIndices = RdrResourceSystem::CreateDataBuffer(nullptr, clusterCountX * clusterCountY * clusterCountZ * CLUSTEREDLIGHTING_BLOCK_SIZE, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
 	}
 
-	RdrDrawOp* pCullOp = RdrDrawOp::Allocate();
-	pCullOp->eType = RdrDrawOpType::Compute;
-	pCullOp->compute.shader = RdrComputeShader::ClusteredLightCull;
-	pCullOp->compute.threads[0] = clusterCountX;
-	pCullOp->compute.threads[1] = clusterCountY;
-	pCullOp->compute.threads[2] = clusterCountZ;
-	pCullOp->compute.hViews[0] = m_clusteredLightData.hLightIndices;
-	pCullOp->compute.viewCount = 1;
-	pCullOp->compute.hTextures[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
-	pCullOp->compute.hTextures[1] = m_pCurrentAction->lightParams.hPointLightListRes;
-	pCullOp->compute.texCount = 2;
+	RdrComputeOp* pCullOp = RdrComputeOp::Allocate();
+	pCullOp->shader = RdrComputeShader::ClusteredLightCull;
+	pCullOp->threads[0] = clusterCountX;
+	pCullOp->threads[1] = clusterCountY;
+	pCullOp->threads[2] = clusterCountZ;
+	pCullOp->hViews[0] = m_clusteredLightData.hLightIndices;
+	pCullOp->viewCount = 1;
+	pCullOp->hTextures[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
+	pCullOp->hTextures[1] = m_pCurrentAction->lightParams.hPointLightListRes;
+	pCullOp->texCount = 2;
 
 	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ClusteredLightCullingParams));
 	ClusteredLightCullingParams* pParams = (ClusteredLightCullingParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
@@ -468,9 +465,9 @@ void Renderer::QueueClusteredLightCulling()
 	{
 		m_clusteredLightData.hCullConstants = RdrResourceSystem::CreateConstantBuffer(pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	}
-	pCullOp->compute.hCsConstants = m_clusteredLightData.hCullConstants;
+	pCullOp->hCsConstants = m_clusteredLightData.hCullConstants;
 
-	AddToBucket(pCullOp, RdrBucketType::LightCulling);
+	AddComputeOpToPass(pCullOp, RdrPass::LightCulling);
 }
 
 void Renderer::QueueTiledLightCulling()
@@ -497,16 +494,15 @@ void Renderer::QueueTiledLightCulling()
 		m_tiledLightData.hDepthMinMaxTex = RdrResourceSystem::CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT, RdrResourceUsage::Default);
 	}
 
-	RdrDrawOp* pDepthOp = RdrDrawOp::Allocate();
-	pDepthOp->eType = RdrDrawOpType::Compute;
-	pDepthOp->compute.shader = RdrComputeShader::TiledDepthMinMax;
-	pDepthOp->compute.threads[0] = tileCountX;
-	pDepthOp->compute.threads[1] = tileCountY;
-	pDepthOp->compute.threads[2] = 1;
-	pDepthOp->compute.hViews[0] = m_tiledLightData.hDepthMinMaxTex;
-	pDepthOp->compute.viewCount = 1;
-	pDepthOp->compute.hTextures[0] = m_hPrimaryDepthBuffer;
-	pDepthOp->compute.texCount = 1;
+	RdrComputeOp* pDepthOp = RdrComputeOp::Allocate();
+	pDepthOp->shader = RdrComputeShader::TiledDepthMinMax;
+	pDepthOp->threads[0] = tileCountX;
+	pDepthOp->threads[1] = tileCountY;
+	pDepthOp->threads[2] = 1;
+	pDepthOp->hViews[0] = m_tiledLightData.hDepthMinMaxTex;
+	pDepthOp->viewCount = 1;
+	pDepthOp->hTextures[0] = m_hPrimaryDepthBuffer;
+	pDepthOp->texCount = 1;
 
 	Matrix44 viewMtx;
 	Matrix44 invProjMtx;
@@ -531,9 +527,9 @@ void Renderer::QueueTiledLightCulling()
 	{
 		m_tiledLightData.hDepthMinMaxConstants = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	}
-	pDepthOp->compute.hCsConstants = m_tiledLightData.hDepthMinMaxConstants;
+	pDepthOp->hCsConstants = m_tiledLightData.hDepthMinMaxConstants;
 
-	AddToBucket(pDepthOp, RdrBucketType::LightCulling);
+	AddComputeOpToPass(pDepthOp, RdrPass::LightCulling);
 
 	//////////////////////////////////////
 	// Light culling
@@ -544,18 +540,16 @@ void Renderer::QueueTiledLightCulling()
 		m_tiledLightData.hLightIndices = RdrResourceSystem::CreateDataBuffer(nullptr, tileCountX * tileCountY * TILEDLIGHTING_BLOCK_SIZE, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
 	}
 
-	RdrDrawOp* pCullOp = RdrDrawOp::Allocate();
-	pCullOp->eType = RdrDrawOpType::Compute;
-	pCullOp->compute.shader = RdrComputeShader::TiledLightCull;
-	pCullOp->compute.threads[0] = tileCountX;
-	pCullOp->compute.threads[1] = tileCountY;
-	pCullOp->compute.threads[2] = 1;
-	pCullOp->compute.hViews[0] = m_tiledLightData.hLightIndices;
-	pCullOp->compute.viewCount = 1;
-	pCullOp->compute.hTextures[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
-	pCullOp->compute.hTextures[1] = m_pCurrentAction->lightParams.hPointLightListRes;
-	pCullOp->compute.hTextures[2] = m_tiledLightData.hDepthMinMaxTex;
-	pCullOp->compute.texCount = 3;
+	RdrComputeOp* pCullOp = RdrComputeOp::Allocate();
+	pCullOp->threads[0] = tileCountX;
+	pCullOp->threads[1] = tileCountY;
+	pCullOp->threads[2] = 1;
+	pCullOp->hViews[0] = m_tiledLightData.hLightIndices;
+	pCullOp->viewCount = 1;
+	pCullOp->hTextures[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
+	pCullOp->hTextures[1] = m_pCurrentAction->lightParams.hPointLightListRes;
+	pCullOp->hTextures[2] = m_tiledLightData.hDepthMinMaxTex;
+	pCullOp->texCount = 3;
 
 	constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(TiledLightCullingParams));
 	TiledLightCullingParams* pParams = (TiledLightCullingParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
@@ -584,9 +578,9 @@ void Renderer::QueueTiledLightCulling()
 	{
 		m_tiledLightData.hCullConstants = RdrResourceSystem::CreateConstantBuffer(pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	}
-	pCullOp->compute.hCsConstants = m_tiledLightData.hCullConstants;
+	pCullOp->hCsConstants = m_tiledLightData.hCullConstants;
 
-	AddToBucket(pCullOp, RdrBucketType::LightCulling);
+	AddComputeOpToPass(pCullOp, RdrPass::LightCulling);
 }
 
 void Renderer::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
@@ -778,12 +772,17 @@ void Renderer::EndAction()
 	m_pCurrentAction = nullptr;
 }
 
-void Renderer::AddToBucket(RdrDrawOp* pDrawOp, RdrBucketType eBucket)
+void Renderer::AddDrawOpToBucket(RdrDrawOp* pDrawOp, RdrBucketType eBucket)
 {
 #if ENABLE_DRAWOP_VALIDATION
 	validateDrawOp(pDrawOp);
 #endif
 	m_pCurrentAction->buckets[(int)eBucket].push_back(pDrawOp);
+}
+
+void Renderer::AddComputeOpToPass(RdrComputeOp* pComputeOp, RdrPass ePass)
+{
+	m_pCurrentAction->passes[(int)ePass].computeOps.push_back(pComputeOp);
 }
 
 void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
@@ -845,18 +844,24 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 		? m_clusteredLightData.hLightIndices 
 		: m_tiledLightData.hLightIndices;
 
-	RdrDrawOpBucket::const_iterator opIter = rAction.buckets[(int)s_passBuckets[(int)ePass] ].begin();
-	RdrDrawOpBucket::const_iterator opEndIter = rAction.buckets[(int)s_passBuckets[(int)ePass] ].end();
-	for ( ; opIter != opEndIter; ++opIter )
+	// Compute ops
 	{
-		const RdrDrawOp* pDrawOp = *opIter;
-		if (pDrawOp->eType == RdrDrawOpType::Compute)
+		RdrComputeOpBucket::const_iterator opIter = rPass.computeOps.begin();
+		RdrComputeOpBucket::const_iterator opEndIter = rPass.computeOps.end();
+		for (; opIter != opEndIter; ++opIter)
 		{
-			DispatchCompute(pDrawOp);
+			DispatchCompute(*opIter);
 		}
-		else
+	}
+
+	// Draw ops
+	{
+		const RdrGlobalConstants& rGlobalConstants = (ePass == RdrPass::UI) ? rAction.uiConstants : rAction.constants;
+		RdrDrawOpBucket::const_iterator opIter = rAction.buckets[(int)s_passBuckets[(int)ePass]].begin();
+		RdrDrawOpBucket::const_iterator opEndIter = rAction.buckets[(int)s_passBuckets[(int)ePass]].end();
+		for (; opIter != opEndIter; ++opIter)
 		{
-			const RdrGlobalConstants& rGlobalConstants = (ePass == RdrPass::UI) ? rAction.uiConstants : rAction.constants;
+			const RdrDrawOp* pDrawOp = *opIter;
 			DrawGeo(rPass, rGlobalConstants, pDrawOp, rAction.lightParams, hLightIndicesBuffer);
 		}
 	}
@@ -921,14 +926,7 @@ void Renderer::DrawShadowPass(const RdrShadowPass& rShadowPass)
 	for (; opIter != opEndIter; ++opIter)
 	{
 		const RdrDrawOp* pDrawOp = *opIter;
-		if (pDrawOp->eType == RdrDrawOpType::Compute)
-		{
-			DispatchCompute(pDrawOp);
-		}
-		else
-		{
-			DrawGeo(rPassData, rShadowPass.constants, pDrawOp, lightParams, 0);
-		}
+		DrawGeo(rPassData, rShadowPass.constants, pDrawOp, lightParams, 0);
 	}
 
 	m_pContext->EndEvent();
@@ -945,7 +943,7 @@ void Renderer::PostFrameSync()
 		RdrAction& rAction = rActiveState.actions[iAction];
 
 		// Free draw ops.
-		for (uint iBucket = 0; iBucket < (int)RdrBucketType::Count; ++iBucket)
+		for (uint iBucket = 0; iBucket < (uint)RdrBucketType::Count; ++iBucket)
 		{
 			uint numOps = (uint)rAction.buckets[iBucket].size();
 			RdrDrawOpBucket::iterator iter = rAction.buckets[iBucket].begin();
@@ -953,17 +951,28 @@ void Renderer::PostFrameSync()
 			for (; iter != endIter; ++iter)
 			{
 				const RdrDrawOp* pDrawOp = *iter;
-				if (pDrawOp->eType == RdrDrawOpType::Graphics && pDrawOp->graphics.bFreeGeo)
+				if (pDrawOp->bFreeGeo)
 				{
-					RdrGeoSystem::ReleaseGeo(pDrawOp->graphics.hGeo);
+					RdrGeoSystem::ReleaseGeo(pDrawOp->hGeo);
 				}
 				
-				if (pDrawOp->eType == RdrDrawOpType::Compute || pDrawOp->graphics.bTempDrawOp)
+				if (pDrawOp->bTempDrawOp)
 				{
 					RdrDrawOp::QueueRelease(pDrawOp);
 				}
 			}
 			rAction.buckets[iBucket].clear();
+		}
+
+		for (uint iPass = 0; iPass < (uint)RdrPass::Count; ++iPass)
+		{
+			uint numOps = (uint)rAction.passes[iPass].computeOps.size();
+			RdrComputeOpBucket::iterator iter = rAction.passes[iPass].computeOps.begin();
+			RdrComputeOpBucket::iterator endIter = rAction.passes[iPass].computeOps.end();
+			for (; iter != endIter; ++iter)
+			{
+				RdrComputeOp::QueueRelease(*iter);
+			}
 		}
 
 		rAction.Reset();
@@ -979,6 +988,7 @@ void Renderer::PostFrameSync()
 	RdrShaderSystem::FlipState();
 	RdrScratchMem::FlipState();
 	RdrDrawOp::ProcessReleases();
+	RdrComputeOp::ProcessReleases();
 
 	m_eLightingMethod = m_ePendingLightingMethod;
 }
@@ -1092,11 +1102,11 @@ void Renderer::DrawFrame()
 void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlobalConstants, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices)
 {
 	bool bDepthOnly = (rPass.shaderMode == RdrShaderMode::DepthOnly);
-	const RdrGeometry* pGeo = RdrGeoSystem::GetGeo(pDrawOp->graphics.hGeo);
+	const RdrGeometry* pGeo = RdrGeoSystem::GetGeo(pDrawOp->hGeo);
 	RdrShaderFlags shaderFlags = RdrShaderFlags::None;
 
 	// Vertex shader
-	RdrVertexShader vertexShader = pDrawOp->graphics.vertexShader;
+	RdrVertexShader vertexShader = pDrawOp->vertexShader;
 	if (bDepthOnly)
 	{
 		shaderFlags |= RdrShaderFlags::DepthOnly;
@@ -1107,9 +1117,9 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlob
 
 	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerFrame;
 	m_drawState.vsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->bufferObj;
-	if (pDrawOp->graphics.hVsConstants)
+	if (pDrawOp->hVsConstants)
 	{
-		m_drawState.vsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pDrawOp->graphics.hVsConstants)->bufferObj;
+		m_drawState.vsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pDrawOp->hVsConstants)->bufferObj;
 		m_drawState.vsConstantBufferCount = 2;
 	}
 	else
@@ -1127,7 +1137,7 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlob
 	}
 
 	// Pixel shader
-	const RdrMaterial* pMaterial = pDrawOp->graphics.pMaterial;
+	const RdrMaterial* pMaterial = pDrawOp->pMaterial;
 	if (pMaterial)
 	{
 		m_drawState.pPixelShader = pMaterial->hPixelShaders[(int)rPass.shaderMode] ?
@@ -1162,7 +1172,7 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlob
 	}
 
 	// Input assembly
-	m_drawState.inputLayout = *RdrShaderSystem::GetInputLayout(pDrawOp->graphics.hInputLayout); // todo: layouts per flags
+	m_drawState.inputLayout = *RdrShaderSystem::GetInputLayout(pDrawOp->hInputLayout); // todo: layouts per flags
 	m_drawState.eTopology = RdrTopology::TriangleList;
 
 	m_drawState.vertexBuffers[0] = pGeo->vertexBuffer;
@@ -1186,30 +1196,30 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlob
 	m_drawState.Reset();
 }
 
-void Renderer::DispatchCompute(const RdrDrawOp* pDrawOp)
+void Renderer::DispatchCompute(const RdrComputeOp* pComputeOp)
 {
-	m_drawState.pComputeShader = RdrShaderSystem::GetComputeShader(pDrawOp->compute.shader);
+	m_drawState.pComputeShader = RdrShaderSystem::GetComputeShader(pComputeOp->shader);
 
-	m_drawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(pDrawOp->compute.hCsConstants)->bufferObj;
+	m_drawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(pComputeOp->hCsConstants)->bufferObj;
 	m_drawState.csConstantBufferCount = 1;
 
-	for (uint i = 0; i < pDrawOp->compute.texCount; ++i)
+	for (uint i = 0; i < pComputeOp->texCount; ++i)
 	{
-		if (pDrawOp->compute.hTextures[i])
-			m_drawState.csResources[i] = RdrResourceSystem::GetResource(pDrawOp->compute.hTextures[i])->resourceView;
+		if (pComputeOp->hTextures[i])
+			m_drawState.csResources[i] = RdrResourceSystem::GetResource(pComputeOp->hTextures[i])->resourceView;
 		else
 			m_drawState.csResources[i].pTypeless = nullptr;
 	}
 
-	for (uint i = 0; i < pDrawOp->compute.viewCount; ++i)
+	for (uint i = 0; i < pComputeOp->viewCount; ++i)
 	{
-		if (pDrawOp->compute.hViews[i])
-			m_drawState.csUavs[i] = RdrResourceSystem::GetResource(pDrawOp->compute.hViews[i])->uav;
+		if (pComputeOp->hViews[i])
+			m_drawState.csUavs[i] = RdrResourceSystem::GetResource(pComputeOp->hViews[i])->uav;
 		else
 			m_drawState.csUavs[i].pTypeless = nullptr;
 	}
 
-	m_pContext->DispatchCompute(m_drawState, pDrawOp->compute.threads[0], pDrawOp->compute.threads[1], pDrawOp->compute.threads[2]);
+	m_pContext->DispatchCompute(m_drawState, pComputeOp->threads[0], pComputeOp->threads[1], pComputeOp->threads[2]);
 
 	m_drawState.Reset();
 }

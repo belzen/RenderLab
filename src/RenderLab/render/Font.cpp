@@ -46,21 +46,20 @@ namespace
 		Vec3 pos = UI::PosToScreenSpace(uiPos, Vec2(rText.size.x, rText.size.y) * size, rRenderer.GetViewportSize());
 
 		RdrDrawOp* op = RdrDrawOp::Allocate();
-		op->eType = RdrDrawOpType::Graphics;
-		op->graphics.hGeo = rText.hTextGeo;
-		op->graphics.bFreeGeo = bFreeGeo;
-		op->graphics.bTempDrawOp = true;
-		op->graphics.hInputLayout = s_text.hInputLayout;
-		op->graphics.vertexShader = kVertexShader;
-		op->graphics.pMaterial = &s_text.material;
+		op->hGeo = rText.hTextGeo;
+		op->bFreeGeo = bFreeGeo;
+		op->bTempDrawOp = true;
+		op->hInputLayout = s_text.hInputLayout;
+		op->vertexShader = kVertexShader;
+		op->pMaterial = &s_text.material;
 
 		uint constantsSize = sizeof(Vec4) * 2;
 		Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
 		pConstants[0] = Vec4(color.r, color.g, color.b, color.a);
 		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
-		op->graphics.hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
+		op->hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
 
-		rRenderer.AddToBucket(op, RdrBucketType::UI);
+		rRenderer.AddDrawOpToBucket(op, RdrBucketType::UI);
 	}
 }
 

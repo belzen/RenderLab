@@ -65,21 +65,20 @@ void ModelInstance::PrepareDraw(const Matrix44& mtxWorld, bool transformChanged)
 		if (!m_pSubObjectDrawOps[i])
 		{
 			RdrDrawOp* pDrawOp = m_pSubObjectDrawOps[i] = RdrDrawOp::Allocate();
-			pDrawOp->eType = RdrDrawOpType::Graphics;
 
-			pDrawOp->graphics.hVsConstants = m_hVsPerObjectConstantBuffer;
+			pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
 
-			pDrawOp->graphics.pMaterial = rSubObject.pMaterial;
+			pDrawOp->pMaterial = rSubObject.pMaterial;
 
-			pDrawOp->graphics.hInputLayout = m_hInputLayout;
-			pDrawOp->graphics.vertexShader = kVertexShader;
+			pDrawOp->hInputLayout = m_hInputLayout;
+			pDrawOp->vertexShader = kVertexShader;
 			if (rSubObject.pMaterial->bAlphaCutout)
 			{
-				pDrawOp->graphics.vertexShader.flags |= RdrShaderFlags::AlphaCutout;
+				pDrawOp->vertexShader.flags |= RdrShaderFlags::AlphaCutout;
 			}
 
-			pDrawOp->graphics.hGeo = rSubObject.hGeo;
-			pDrawOp->graphics.bHasAlpha = false;
+			pDrawOp->hGeo = rSubObject.hGeo;
+			pDrawOp->bHasAlpha = false;
 		}
 	}
 }

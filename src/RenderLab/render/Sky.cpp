@@ -130,22 +130,19 @@ void Sky::PrepareDraw()
 		if (!m_pSubObjectDrawOps[i])
 		{
 			RdrDrawOp* pDrawOp = m_pSubObjectDrawOps[i] = RdrDrawOp::Allocate();
-			pDrawOp->eType = RdrDrawOpType::Graphics;
+			pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
+			pDrawOp->pMaterial = m_pMaterial;
 
-			pDrawOp->graphics.hVsConstants = m_hVsPerObjectConstantBuffer;
-
-			pDrawOp->graphics.pMaterial = m_pMaterial;
-
-			pDrawOp->graphics.hInputLayout = s_hSkyInputLayout;
-			pDrawOp->graphics.vertexShader = kVertexShader;
+			pDrawOp->hInputLayout = s_hSkyInputLayout;
+			pDrawOp->vertexShader = kVertexShader;
 			if (rSubObject.pMaterial->bAlphaCutout)
 			{
-				pDrawOp->graphics.vertexShader.flags |= RdrShaderFlags::AlphaCutout;
+				pDrawOp->vertexShader.flags |= RdrShaderFlags::AlphaCutout;
 			}
 
-			pDrawOp->graphics.hGeo = rSubObject.hGeo;
-			pDrawOp->graphics.bHasAlpha = false;
-			pDrawOp->graphics.bIsSky = true;
+			pDrawOp->hGeo = rSubObject.hGeo;
+			pDrawOp->bHasAlpha = false;
+			pDrawOp->bIsSky = true;
 		}
 	}
 }
