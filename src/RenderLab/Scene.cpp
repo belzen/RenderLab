@@ -6,6 +6,7 @@
 #include "render/ModelInstance.h"
 #include "render/Font.h"
 #include "AssetLib/SceneAsset.h"
+#include "AssetLib/AssetLibrary.h"
 
 namespace
 {
@@ -96,17 +97,14 @@ void Scene::Load(const char* sceneName)
 
 	// Post-processing effects
 	{
-		char* pPostProcFileData;
-		uint postProcFileSize;
-		if (!AssetLib::g_postProcessEffectsDef.LoadAsset(pSceneData->postProcessingEffects, &pPostProcFileData, &postProcFileSize))
+		AssetLib::PostProcessEffects* pEffects = AssetLibrary<AssetLib::PostProcessEffects>::LoadAsset(pSceneData->postProcessingEffects);
+		if (!pEffects)
 		{
 			assert(false);
 			return;
 		}
 
-		m_postProcEffects.Init(AssetLib::PostProcessEffects::FromMem(pPostProcFileData));
-
-		delete pPostProcFileData;
+		m_postProcEffects.Init(pEffects);
 	}
 
 	// Lights
@@ -165,6 +163,7 @@ void Scene::Update(float dt)
 	}
 
 	m_sky.Update(dt);
+	m_lights.UpdateSunLight(m_sky.GetSunLight());
 }
 
 void Scene::PrepareDraw()

@@ -90,7 +90,7 @@ namespace
 	};
 	static_assert(sizeof(s_passProfileSections) / sizeof(s_passProfileSections[0]) == (int)RdrPass::Count, "Missing RdrPass profile sections!");
 
-	void validateDrawOp(RdrDrawOp* pDrawOp)
+	void validateDrawOp(const RdrDrawOp* pDrawOp)
 	{
 		assert(pDrawOp->hGeo);
 	}
@@ -433,11 +433,11 @@ void Renderer::QueueClusteredLightCulling()
 	pCullOp->threads[0] = clusterCountX;
 	pCullOp->threads[1] = clusterCountY;
 	pCullOp->threads[2] = clusterCountZ;
-	pCullOp->hViews[0] = m_clusteredLightData.hLightIndices;
-	pCullOp->viewCount = 1;
-	pCullOp->hTextures[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
-	pCullOp->hTextures[1] = m_pCurrentAction->lightParams.hPointLightListRes;
-	pCullOp->texCount = 2;
+	pCullOp->hWritableResources[0] = m_clusteredLightData.hLightIndices;
+	pCullOp->writableResourceCount = 1;
+	pCullOp->hResources[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
+	pCullOp->hResources[1] = m_pCurrentAction->lightParams.hPointLightListRes;
+	pCullOp->resourceCount = 2;
 
 	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ClusteredLightCullingParams));
 	ClusteredLightCullingParams* pParams = (ClusteredLightCullingParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
@@ -499,10 +499,10 @@ void Renderer::QueueTiledLightCulling()
 	pDepthOp->threads[0] = tileCountX;
 	pDepthOp->threads[1] = tileCountY;
 	pDepthOp->threads[2] = 1;
-	pDepthOp->hViews[0] = m_tiledLightData.hDepthMinMaxTex;
-	pDepthOp->viewCount = 1;
-	pDepthOp->hTextures[0] = m_hPrimaryDepthBuffer;
-	pDepthOp->texCount = 1;
+	pDepthOp->hWritableResources[0] = m_tiledLightData.hDepthMinMaxTex;
+	pDepthOp->writableResourceCount = 1;
+	pDepthOp->hResources[0] = m_hPrimaryDepthBuffer;
+	pDepthOp->resourceCount = 1;
 
 	Matrix44 viewMtx;
 	Matrix44 invProjMtx;
@@ -544,12 +544,12 @@ void Renderer::QueueTiledLightCulling()
 	pCullOp->threads[0] = tileCountX;
 	pCullOp->threads[1] = tileCountY;
 	pCullOp->threads[2] = 1;
-	pCullOp->hViews[0] = m_tiledLightData.hLightIndices;
-	pCullOp->viewCount = 1;
-	pCullOp->hTextures[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
-	pCullOp->hTextures[1] = m_pCurrentAction->lightParams.hPointLightListRes;
-	pCullOp->hTextures[2] = m_tiledLightData.hDepthMinMaxTex;
-	pCullOp->texCount = 3;
+	pCullOp->hWritableResources[0] = m_tiledLightData.hLightIndices;
+	pCullOp->writableResourceCount = 1;
+	pCullOp->hResources[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
+	pCullOp->hResources[1] = m_pCurrentAction->lightParams.hPointLightListRes;
+	pCullOp->hResources[2] = m_tiledLightData.hDepthMinMaxTex;
+	pCullOp->resourceCount = 3;
 
 	constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(TiledLightCullingParams));
 	TiledLightCullingParams* pParams = (TiledLightCullingParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
@@ -609,6 +609,7 @@ void Renderer::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHand
 	cullSceneToCameraForShadows(rCamera, *m_pCurrentAction->pScene, rShadowPass.drawOps);
 
 	createPerActionConstants(rCamera, viewport, rShadowPass.constants);
+	rShadowPass.constants.hPsAtmosphere = 0;
 }
 
 void Renderer::QueueShadowCubeMapPass(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
@@ -639,6 +640,7 @@ void Renderer::QueueShadowCubeMapPass(const Light* pLight, RdrDepthStencilViewHa
 	cullSceneToCameraForShadows(rShadowPass.camera, *m_pCurrentAction->pScene, rShadowPass.drawOps);
 
 	createPerActionConstants(rShadowPass.camera, viewport, rShadowPass.constants);
+	rShadowPass.constants.hPsAtmosphere = 0;
 	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(pLight->position, 0.1f, pLight->radius * 2.f);
 }
 
@@ -742,7 +744,17 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 		sceneDepthMin, sceneDepthMax);
 
 	createPerActionConstants(m_pCurrentAction->camera, viewport, m_pCurrentAction->constants);
+	m_pCurrentAction->constants.hPsAtmosphere = rScene.GetSky().GetAtmosphereConstantBuffer();
+
 	createUiConstants(viewport, m_pCurrentAction->uiConstants);
+
+	// Sky
+	const RdrComputeOp** pSkyComputeOps = rScene.GetSky().GetComputeOps();
+	const uint numSkyComputeOps = rScene.GetSky().GetNumComputeOps();
+	for (uint i = 0; i < numSkyComputeOps; ++i)
+	{
+		AddComputeOpToPass(pSkyComputeOps[i], RdrPass::Sky);
+	}
 
 	// Lighting
 	LightList& rLights = rScene.GetLightList();
@@ -772,7 +784,7 @@ void Renderer::EndAction()
 	m_pCurrentAction = nullptr;
 }
 
-void Renderer::AddDrawOpToBucket(RdrDrawOp* pDrawOp, RdrBucketType eBucket)
+void Renderer::AddDrawOpToBucket(const RdrDrawOp* pDrawOp, RdrBucketType eBucket)
 {
 #if ENABLE_DRAWOP_VALIDATION
 	validateDrawOp(pDrawOp);
@@ -780,7 +792,7 @@ void Renderer::AddDrawOpToBucket(RdrDrawOp* pDrawOp, RdrBucketType eBucket)
 	m_pCurrentAction->buckets[(int)eBucket].push_back(pDrawOp);
 }
 
-void Renderer::AddComputeOpToPass(RdrComputeOp* pComputeOp, RdrPass ePass)
+void Renderer::AddComputeOpToPass(const RdrComputeOp* pComputeOp, RdrPass ePass)
 {
 	m_pCurrentAction->passes[(int)ePass].computeOps.push_back(pComputeOp);
 }
@@ -945,7 +957,6 @@ void Renderer::PostFrameSync()
 		// Free draw ops.
 		for (uint iBucket = 0; iBucket < (uint)RdrBucketType::Count; ++iBucket)
 		{
-			uint numOps = (uint)rAction.buckets[iBucket].size();
 			RdrDrawOpBucket::iterator iter = rAction.buckets[iBucket].begin();
 			RdrDrawOpBucket::iterator endIter = rAction.buckets[iBucket].end();
 			for (; iter != endIter; ++iter)
@@ -966,13 +977,14 @@ void Renderer::PostFrameSync()
 
 		for (uint iPass = 0; iPass < (uint)RdrPass::Count; ++iPass)
 		{
-			uint numOps = (uint)rAction.passes[iPass].computeOps.size();
-			RdrComputeOpBucket::iterator iter = rAction.passes[iPass].computeOps.begin();
-			RdrComputeOpBucket::iterator endIter = rAction.passes[iPass].computeOps.end();
+			RdrPassData& rPass = rAction.passes[iPass];
+			RdrComputeOpBucket::iterator iter = rPass.computeOps.begin();
+			RdrComputeOpBucket::iterator endIter = rPass.computeOps.end();
 			for (; iter != endIter; ++iter)
 			{
 				RdrComputeOp::QueueRelease(*iter);
 			}
+			rPass.computeOps.clear();
 		}
 
 		rAction.Reset();
@@ -1159,6 +1171,9 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlob
 				m_drawState.psConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(rLightParams.hDirectionalLightsCb)->bufferObj;
 				m_drawState.psConstantBufferCount++;
 
+				m_drawState.psConstantBuffers[2] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsAtmosphere)->bufferObj;
+				m_drawState.psConstantBufferCount++;
+
 				m_drawState.psResources[(int)RdrPsResourceSlots::SpotLightList] = RdrResourceSystem::GetResource(rLightParams.hSpotLightListRes)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::PointLightList] = RdrResourceSystem::GetResource(rLightParams.hPointLightListRes)->resourceView;
 
@@ -1200,21 +1215,33 @@ void Renderer::DispatchCompute(const RdrComputeOp* pComputeOp)
 {
 	m_drawState.pComputeShader = RdrShaderSystem::GetComputeShader(pComputeOp->shader);
 
-	m_drawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(pComputeOp->hCsConstants)->bufferObj;
-	m_drawState.csConstantBufferCount = 1;
-
-	for (uint i = 0; i < pComputeOp->texCount; ++i)
+	if (pComputeOp->hCsConstants)
 	{
-		if (pComputeOp->hTextures[i])
-			m_drawState.csResources[i] = RdrResourceSystem::GetResource(pComputeOp->hTextures[i])->resourceView;
+		m_drawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(pComputeOp->hCsConstants)->bufferObj;
+		m_drawState.csConstantBufferCount = 1;
+	}
+	else
+	{
+		m_drawState.csConstantBufferCount = 0;
+	}
+
+	for (uint i = 0; i < pComputeOp->resourceCount; ++i)
+	{
+		if (pComputeOp->hResources[i])
+			m_drawState.csResources[i] = RdrResourceSystem::GetResource(pComputeOp->hResources[i])->resourceView;
 		else
 			m_drawState.csResources[i].pTypeless = nullptr;
 	}
 
-	for (uint i = 0; i < pComputeOp->viewCount; ++i)
+	for (uint i = 0; i < pComputeOp->samplerCount; ++i)
 	{
-		if (pComputeOp->hViews[i])
-			m_drawState.csUavs[i] = RdrResourceSystem::GetResource(pComputeOp->hViews[i])->uav;
+		m_drawState.csSamplers[i] = pComputeOp->samplers[i];
+	}
+
+	for (uint i = 0; i < pComputeOp->writableResourceCount; ++i)
+	{
+		if (pComputeOp->hWritableResources[i])
+			m_drawState.csUavs[i] = RdrResourceSystem::GetResource(pComputeOp->hWritableResources[i])->uav;
 		else
 			m_drawState.csUavs[i].pTypeless = nullptr;
 	}

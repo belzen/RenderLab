@@ -42,7 +42,7 @@ namespace
 			info.width = 1;
 			info.height = 1;
 			info.format = pColorBuffer->texInfo.format;
-			info.arraySize = 1;
+			info.depth = 1;
 			info.mipLevels = 1;
 			info.sampleCount = 1;
 			pRdrContext->CreateTexture(nullptr, info, RdrResourceUsage::Staging, rLumCopyRes);
@@ -139,13 +139,13 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 			rBloom.hResources[n] = RdrResourceSystem::CreateTexture2D(w, h, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
 		}
 
-		if (rBloom.hAddConstants)
-			RdrResourceSystem::ReleaseConstantBuffer(rBloom.hAddConstants);
-		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(AddParams));
-		AddParams* pAddParams = (AddParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
-		pAddParams->width = (float)w;
-		pAddParams->height = (float)h;
-		rBloom.hAddConstants = RdrResourceSystem::CreateConstantBuffer(pAddParams, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
+		if (rBloom.hBlendConstants)
+			RdrResourceSystem::ReleaseConstantBuffer(rBloom.hBlendConstants);
+		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(Blend2dParams));
+		Blend2dParams* pAddParams = (Blend2dParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
+		pAddParams->size2.x = (float)w;
+		pAddParams->size2.y = (float)h;
+		rBloom.hBlendConstants = RdrResourceSystem::CreateConstantBuffer(pAddParams, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
 	}
 
 	if (m_useHistogramToneMap)
@@ -373,22 +373,22 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 			rDrawState.Reset();
 		}
 
-		// Add
+		// Blend together
 		if (i != 0)
 		{
 			pInput1 = RdrResourceSystem::GetResource(m_bloomBuffers[i - 1].hResources[0]);
 			pInput2 = pOutput;
 			pOutput = RdrResourceSystem::GetResource(m_bloomBuffers[i - 1].hResources[1]);
 
-			uint w = getThreadGroupCount(pOutput->texInfo.width, ADD_THREADS_X);
-			uint h = getThreadGroupCount(pOutput->texInfo.height, ADD_THREADS_Y);
+			uint w = getThreadGroupCount(pOutput->texInfo.width, BLEND_THREADS_X);
+			uint h = getThreadGroupCount(pOutput->texInfo.height, BLEND_THREADS_Y);
 
-			rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::Add);
+			rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::Blend2d);
 			rDrawState.csResources[0] = pInput1->resourceView;
 			rDrawState.csSamplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 			rDrawState.csResources[1] = pInput2->resourceView;
 			rDrawState.csUavs[0] = pOutput->uav;
-			rDrawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(m_bloomBuffers[i-1].hAddConstants)->bufferObj;
+			rDrawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(m_bloomBuffers[i-1].hBlendConstants)->bufferObj;
 			rDrawState.csConstantBufferCount = 1;
 			pRdrContext->DispatchCompute(rDrawState, w, h, 1);
 			rDrawState.Reset();

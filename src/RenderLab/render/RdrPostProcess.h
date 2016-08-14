@@ -48,7 +48,7 @@ private:
 	struct BloomBuffer
 	{
 		RdrResourceHandle hResources[2];
-		RdrConstantBufferHandle hAddConstants;
+		RdrConstantBufferHandle hBlendConstants;
 	};
 	BloomBuffer m_bloomBuffers[4];
 

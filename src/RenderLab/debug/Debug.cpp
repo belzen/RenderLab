@@ -86,7 +86,7 @@ void Debug::QueueDraw(Renderer& rRenderer, const Camera& rCamera, const FrameTim
 
 	// FPS and position display
 	{
-		char line[32];
+		char line[64];
 		sprintf_s(line, "%.2f (%.2f ms)", rFrameTimer.GetFps(), 1000.f / rFrameTimer.GetFps());
 
 		UI::Position uiPos(UI::Coord(1.f, UI::Units::Percentage), 0.f, 0.f, UI::AlignmentFlags::Right);

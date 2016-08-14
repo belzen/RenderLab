@@ -166,23 +166,26 @@ bool cullSpotLight(in Frustum frustum, in SpotLight light)
 	float3 dirToCluster = normalize(frustum.center - lightViewPos.xyz);
 
 	// Coarse check vs spot light sphere.
-	if (!testFrustumAxis(frustum, lightViewPos.xyz, dirToCluster, light.radius))
-		return false;
+	bool result = false;
+	if (testFrustumAxis(frustum, lightViewPos.xyz, dirToCluster, light.radius))
+	{
+		float3 lightViewDir = mul(float4(light.direction, 0), cbCullParams.mtxView).xyz;
+		float3 planeTangent = normalize(cross(lightViewDir, dirToCluster));
+		float3 capDir = cross(planeTangent, lightViewDir);
 
-	float3 lightViewDir = mul(float4(light.direction, 0), cbCullParams.mtxView).xyz;
-	float3 planeTangent = normalize(cross(lightViewDir, dirToCluster));
-	float3 capDir = cross(planeTangent, lightViewDir);
+		// Transform the light's range/radius into the radius of the cone at the cap
+		float coneBaseRadius = light.radius * tan(light.outerConeAngle);
 
-	// Transform the light's range/radius into the radius of the cone at the cap
-	float coneBaseRadius = light.radius * tan(light.outerConeAngle);
+		// Find closest point on the cone's cap to the frustum.
+		float3 closestEndPoint = lightViewPos.xyz + (lightViewDir * light.radius) + (capDir * coneBaseRadius);
 
-	// Find closest point on the cone's cap to the frustum.
-	float3 closestEndPoint = lightViewPos.xyz + (lightViewDir * light.radius) + (capDir * coneBaseRadius);
+		float3 planeBitangent = normalize(closestEndPoint - lightViewPos.xyz);
+		float3 planeNormal = cross(planeTangent, planeBitangent);
 
-	float3 planeBitangent = normalize(closestEndPoint - lightViewPos.xyz);
-	float3 planeNormal = cross(planeTangent, planeBitangent);
+		result = testFrustumAxis(frustum, lightViewPos.xyz, planeNormal, 0.f);
+	}
 
-	return testFrustumAxis(frustum, lightViewPos.xyz, planeNormal, 0.f);
+	return result;
 }
 
 groupshared uint grp_clusterLightCount;

@@ -13,13 +13,20 @@ public:
 	void PrepareDraw();
 
 	RdrConstantBufferHandle GetToneMapInputConstants() const;
+	const AssetLib::PostProcessEffects* GetEffectsAsset() const;
 
 private:
 	RdrConstantBufferHandle m_hToneMapInputConstants;
-	AssetLib::PostProcessEffects m_effects;
+	const AssetLib::PostProcessEffects* m_pEffects;
+	uint m_updateTime;
 };
 
 inline RdrConstantBufferHandle RdrPostProcessEffects::GetToneMapInputConstants() const
 {
 	return m_hToneMapInputConstants;
+}
+
+inline const AssetLib::PostProcessEffects* RdrPostProcessEffects::GetEffectsAsset() const
+{
+	return m_pEffects;
 }

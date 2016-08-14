@@ -6,6 +6,8 @@
 
 namespace
 {
+	const uint kSunLightIndex = 0;
+
 	static uint s_shadowMapSize = 2048;
 	static uint s_shadowCubeMapSize = 512;
 
@@ -41,7 +43,7 @@ namespace
 }
 
 LightList::LightList()
-	: m_lightCount(0)
+	: m_lightCount(kSunLightIndex + 1)
 	, m_prevLightCount(0)
 {
 
@@ -112,12 +114,17 @@ void LightList::Cleanup()
 	m_lightCount = 0;
 }
 
-void LightList::AddLight(Light& light)
+void LightList::AddLight(const Light& light)
 {
 	assert(m_lightCount < ARRAY_SIZE(m_lights));
 
 	m_lights[m_lightCount] = light;
 	++m_lightCount;
+}
+
+void LightList::UpdateSunLight(const Light& rSunLight)
+{
+	m_lights[kSunLightIndex] = rSunLight;
 }
 
 void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax)
@@ -272,7 +279,7 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const fl
 	changed = changed || (m_prevLightCount != m_lightCount);
 	if (changed)
 	{
-		// todo2 size/resize buffers appropriately
+		// todo: size/resize buffers appropriately
 		DirectionalLightList* pDirectionalList = (DirectionalLightList*)RdrScratchMem::Alloc(sizeof(DirectionalLightList));
 		SpotLight* pSpotLights = (SpotLight*)RdrScratchMem::Alloc(sizeof(SpotLight) * 2048);
 		PointLight* pPointLights = (PointLight*)RdrScratchMem::Alloc(sizeof(PointLight) * 2048);

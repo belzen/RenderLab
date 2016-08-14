@@ -25,6 +25,7 @@ struct RdrGlobalConstants
 {
 	RdrConstantBufferHandle hVsPerFrame;
 	RdrConstantBufferHandle hPsPerFrame;
+	RdrConstantBufferHandle hPsAtmosphere;
 	RdrConstantBufferHandle hGsCubeMap;
 };
 

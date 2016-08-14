@@ -1,13 +1,12 @@
 #pragma once
 
-#include <windows.h>
-#include <vector>
-
 typedef void (*MenuCommandCallback)(void* pUserData);
 
 class Menu
 {
 public:
+	~Menu();
+
 	void Init();
 	void InitAsContextMenu();
 

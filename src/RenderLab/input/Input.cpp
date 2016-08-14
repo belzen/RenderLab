@@ -1,6 +1,5 @@
 #include "Precompiled.h"
 #include "Input.h"
-#include <stack>
 #include "debug\DebugConsole.h"
 
 InputManager::InputManager()

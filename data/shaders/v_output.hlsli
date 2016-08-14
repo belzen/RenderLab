@@ -18,7 +18,8 @@ struct VsOutputModel
 struct VsOutputSky
 {
 	float4 position : SV_POSITION;
-	float3 direction : POSITION;
+	float4 position_ws : POSITION;
+	float3 direction : TEXCOORD0;
 };
 
 struct VsOutputSprite

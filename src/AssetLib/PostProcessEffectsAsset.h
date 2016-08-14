@@ -4,10 +4,9 @@
 
 namespace AssetLib
 {
-	extern AssetDef g_postProcessEffectsDef;
-
 	struct PostProcessEffects
 	{
+		static AssetDef s_definition;
 		static PostProcessEffects* FromMem(char* pMem);
 
 		struct
@@ -22,5 +21,8 @@ namespace AssetLib
 		{
 			float threshold;
 		} bloom;
+
+		uint timeLastModified;
+		const char* assetName; // Filled in by the AssetLibrary during loading.
 	};
 }

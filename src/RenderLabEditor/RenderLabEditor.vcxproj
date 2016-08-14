@@ -92,49 +92,49 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>../RenderLab/;./;../</AdditionalIncludeDirectories>
+      <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>../RenderLab/;./;../</AdditionalIncludeDirectories>
+      <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>../RenderLab/;./;../</AdditionalIncludeDirectories>
+      <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,20 +142,20 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>../RenderLab/;./;../</AdditionalIncludeDirectories>
+      <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -163,20 +163,58 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
-    <ClCompile Include="Menu.cpp" />
+    <ClCompile Include="Precompiled.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Precompiled.h</PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Precompiled.h</PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Precompiled.h</PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Precompiled.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="PropertyTables.cpp" />
     <ClCompile Include="RenderWindow.cpp" />
+    <ClCompile Include="ViewModels\PostProcessEffectsViewModel.cpp" />
+    <ClCompile Include="ViewModels\SkyViewModel.cpp" />
+    <ClCompile Include="ViewModels\IViewModel.cpp" />
+    <ClCompile Include="Widgets\Button.cpp" />
+    <ClCompile Include="Widgets\CheckBox.cpp" />
+    <ClCompile Include="Widgets\Label.cpp" />
+    <ClCompile Include="Widgets\ListView.cpp" />
+    <ClCompile Include="Widgets\Menu.cpp" />
+    <ClCompile Include="Widgets\Panel.cpp" />
+    <ClCompile Include="Widgets\PropertyPanel.cpp" />
+    <ClCompile Include="Widgets\Slider.cpp" />
+    <ClCompile Include="Widgets\TextBox.cpp" />
+    <ClCompile Include="Widgets\Widget.cpp" />
     <ClCompile Include="WindowBase.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainWindow.h" />
-    <ClInclude Include="Menu.h" />
+    <ClInclude Include="Precompiled.h" />
+    <ClInclude Include="PropertyTables.h" />
     <ClInclude Include="RenderWindow.h" />
+    <ClInclude Include="SceneTree.h" />
+    <ClInclude Include="ViewModels\IViewModel.h" />
+    <ClInclude Include="ViewModels\PostProcessEffectsViewModel.h" />
+    <ClInclude Include="ViewModels\SkyViewModel.h" />
+    <ClInclude Include="Widgets\Button.h" />
+    <ClInclude Include="Widgets\CheckBox.h" />
+    <ClInclude Include="Widgets\Label.h" />
+    <ClInclude Include="Widgets\ListView.h" />
+    <ClInclude Include="Widgets\Menu.h" />
+    <ClInclude Include="Widgets\Panel.h" />
+    <ClInclude Include="Widgets\PropertyPanel.h" />
+    <ClInclude Include="Widgets\Slider.h" />
+    <ClInclude Include="Widgets\TextBox.h" />
+    <ClInclude Include="Widgets\Widget.h" />
     <ClInclude Include="WindowBase.h" />
     <ClInclude Include="WindowLayout.h" />
   </ItemGroup>

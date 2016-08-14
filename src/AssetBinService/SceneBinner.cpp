@@ -3,49 +3,11 @@
 #include "UtilsLib/FileLoader.h"
 #include "UtilsLib/Error.h"
 #include "UtilsLib/json/json.h"
+#include "UtilsLib/JsonUtils.h"
 #include "MathLib/Maths.h"
 
 namespace
-{
-	inline Vec3 readVec3(Json::Value& val)
-	{
-		Vec3 vec;
-		vec.x = val.get((uint)0, Json::Value(0.f)).asFloat();
-		vec.y = val.get((uint)1, Json::Value(0.f)).asFloat();
-		vec.z = val.get((uint)2, Json::Value(0.f)).asFloat();
-		return vec;
-	}
-
-	inline Vec3 readScale(Json::Value& val)
-	{
-		Vec3 vec;
-		vec.x = val.get((uint)0, Json::Value(1.f)).asFloat();
-		vec.y = val.get((uint)1, Json::Value(1.f)).asFloat();
-		vec.z = val.get((uint)2, Json::Value(1.f)).asFloat();
-		return vec;
-	}
-
-	inline Quaternion readRotation(Json::Value& val)
-	{
-		Vec3 pitchYawRoll;
-		pitchYawRoll.x = val.get((uint)0, Json::Value(0.f)).asFloat();
-		pitchYawRoll.y = val.get((uint)1, Json::Value(0.f)).asFloat();
-		pitchYawRoll.z = val.get((uint)2, Json::Value(0.f)).asFloat();
-
-		return QuaternionPitchYawRoll(
-			Maths::DegToRad(pitchYawRoll.x),
-			Maths::DegToRad(pitchYawRoll.y),
-			Maths::DegToRad(pitchYawRoll.z));
-	}
-
-	inline Vec3 readPitchYawRoll(Json::Value& val)
-	{
-		Vec3 pitchYawRoll;
-		pitchYawRoll.x = Maths::DegToRad(val.get((uint)0, Json::Value(0.f)).asFloat());
-		pitchYawRoll.y = Maths::DegToRad(val.get((uint)1, Json::Value(0.f)).asFloat());
-		pitchYawRoll.z = Maths::DegToRad(val.get((uint)2, Json::Value(0.f)).asFloat());
-		return pitchYawRoll;
-	}
+{\
 }
 
 AssetLib::AssetDef& SceneBinner::GetAssetDef() const
@@ -85,10 +47,10 @@ bool SceneBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstFil
 	Json::Value jCamera = jRoot.get("camera", Json::Value::null);
 
 	Json::Value jPos = jCamera.get("position", Json::Value::null);
-	binData.camPosition = readVec3(jPos);
+	binData.camPosition = jsonReadVec3(jPos);
 
 	Json::Value jRot = jCamera.get("rotation", Json::Value::null);
-	binData.camPitchYawRoll = readPitchYawRoll(jRot);
+	binData.camPitchYawRoll = jsonReadPitchYawRoll(jRot);
 
 	// Sky
 	{
@@ -120,14 +82,14 @@ bool SceneBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstFil
 			{
 				rLight.type = LightType::Directional;
 
-				rLight.direction = readVec3(jLight.get("direction", Json::Value::null));
+				rLight.direction = jsonReadVec3(jLight.get("direction", Json::Value::null));
 				rLight.direction = Vec3Normalize(rLight.direction);
 			}
 			else if (_stricmp(typeStr, "spot") == 0)
 			{
 				rLight.type = LightType::Spot;
 
-				rLight.direction = readVec3(jLight.get("direction", Json::Value::null));
+				rLight.direction = jsonReadVec3(jLight.get("direction", Json::Value::null));
 				rLight.direction = Vec3Normalize(rLight.direction);
 
 				float innerConeAngle = jLight.get("innerConeAngle", 0.f).asFloat();
@@ -145,9 +107,9 @@ bool SceneBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstFil
 				assert(false);
 			}
 
-			rLight.position = readVec3(jLight.get("position", Json::Value::null));
+			rLight.position = jsonReadVec3(jLight.get("position", Json::Value::null));
 
-			rLight.color = readVec3(jLight.get("color", Json::Value::null));
+			rLight.color = jsonReadVec3(jLight.get("color", Json::Value::null));
 			float intensity = jLight.get("intensity", 1.f).asFloat();
 			rLight.color.x *= intensity;
 			rLight.color.y *= intensity;
@@ -175,9 +137,9 @@ bool SceneBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstFil
 			Json::Value jObj = jObjects.get(i, Json::Value::null);
 			AssetLib::Object& rObj = binData.objects.ptr[i];
 
-			rObj.position = readVec3(jObj.get("position", Json::Value::null));
-			rObj.orientation = readRotation(jObj.get("rotation", Json::Value::null));
-			rObj.scale = readScale(jObj.get("scale", Json::Value::null));
+			rObj.position = jsonReadVec3(jObj.get("position", Json::Value::null));
+			rObj.orientation = jsonReadRotation(jObj.get("rotation", Json::Value::null));
+			rObj.scale = jsonReadScale(jObj.get("scale", Json::Value::null));
 
 			Json::Value jModel = jObj.get("model", Json::Value::null);
 			strcpy_s(rObj.model, jModel.asCString());

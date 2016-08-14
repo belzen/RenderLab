@@ -34,19 +34,33 @@ namespace
 	static_assert(ARRAY_SIZE(kGeometryShaderDefs) == (int)RdrGeometryShaderType::Count, "Missing geometry shader defs!");
 
 	const RdrShaderDef kComputeShaderDefs[] = {
-		{ "c_tiled_depth_calc.hlsl",  { 0 } },                // RdrComputeShader::TiledDepthMinMax
-		{ "c_tiled_light_cull.hlsl",  { 0 } },                // RdrComputeShader::TiledLightCull
-		{ "c_clustered_light_cull.hlsl",{ 0 } },              // RdrComputeShader::ClusteredLightCull
-		{ "c_luminance_measure.hlsl", { "STEP_ONE", 0 } },    // RdrComputeShader::LuminanceMeasure_First,
-		{ "c_luminance_measure.hlsl", { "STEP_MID", 0 } },    // RdrComputeShader::LuminanceMeasure_Mid,
-		{ "c_luminance_measure.hlsl", { "STEP_FINAL", 0 } },  // RdrComputeShader::LuminanceMeasure_Final,
-		{ "c_luminance_histogram.hlsl",{ "STEP_TILE", 0 } },  // RdrComputeShader::LuminanceHistogram_Tile,
-		{ "c_luminance_histogram.hlsl",{ "STEP_MERGE", 0 } }, // RdrComputeShader::LuminanceHistogram_Merge
-		{ "c_luminance_histogram.hlsl",{ "STEP_CURVE", 0 } }, // RdrComputeShader::LuminanceHistogram_ResponseCurve
-		{ "c_bloom_shrink.hlsl",      { 0 } },                // RdrComputeShader::Bloom,
-		{ "c_add.hlsl",               { 0 } },                // RdrComputeShader::Add,
-		{ "c_blur.hlsl",              { "BLUR_HORIZONTAL", 0 } }, // RdrComputeShader::BlurHorizontal,
-		{ "c_blur.hlsl",              { "BLUR_VERTICAL", 0 } },   // RdrComputeShader::BlurVertical,
+		{ "c_tiled_depth_calc.hlsl",			{ 0 } },						// RdrComputeShader::TiledDepthMinMax
+		{ "c_tiled_light_cull.hlsl",			{ 0 } },						// RdrComputeShader::TiledLightCull
+		{ "c_clustered_light_cull.hlsl",		{ 0 } },						// RdrComputeShader::ClusteredLightCull
+		{ "c_luminance_measure.hlsl",			{ "STEP_ONE", 0 } },			// RdrComputeShader::LuminanceMeasure_First,
+		{ "c_luminance_measure.hlsl",			{ "STEP_MID", 0 } },			// RdrComputeShader::LuminanceMeasure_Mid,
+		{ "c_luminance_measure.hlsl",			{ "STEP_FINAL", 0 } },			// RdrComputeShader::LuminanceMeasure_Final,
+		{ "c_luminance_histogram.hlsl",			{ "STEP_TILE", 0 } },			// RdrComputeShader::LuminanceHistogram_Tile,
+		{ "c_luminance_histogram.hlsl",			{ "STEP_MERGE", 0 } },			// RdrComputeShader::LuminanceHistogram_Merge
+		{ "c_luminance_histogram.hlsl",			{ "STEP_CURVE", 0 } },			// RdrComputeShader::LuminanceHistogram_ResponseCurve
+		{ "c_bloom_shrink.hlsl",				{ 0 } },						// RdrComputeShader::Bloom,
+		{ "c_blend_2d.hlsl",					{ 0 } },						// RdrComputeShader::Blend2d,
+		{ "c_add_2d.hlsl",						{ 0 } },						// RdrComputeShader::Add2d,
+		{ "c_add_3d.hlsl",						{ 0 } },						// RdrComputeShader::Add3d,
+		{ "c_blur.hlsl",						{ "BLUR_HORIZONTAL", 0 } },		// RdrComputeShader::BlurHorizontal,
+		{ "c_blur.hlsl",						{ "BLUR_VERTICAL", 0 } },		// RdrComputeShader::BlurVertical,
+		{ "c_clear_2d.hlsl",					{ 0 } },						// RdrComputeShader::Clear2d,
+		{ "c_clear_3d.hlsl",					{ 0 } },						// RdrComputeShader::Clear3d,
+		{ "c_copy_2d.hlsl",						{ 0 } },						// RdrComputeShader::Copy2d,
+		{ "c_copy_3d.hlsl",						{ 0 } },						// RdrComputeShader::Copy3d,
+		{ "c_atmosphere_transmittance.hlsl",	{ 0 } },						// RdrComputeShader::AtmosphereTransmittanceLut
+		{ "c_atmosphere_scatter_single.hlsl",	{ 0 } },						// RdrComputeShader::AtmosphereScatterLut_Single
+		{ "c_atmosphere_scatter_n.hlsl",		{ 0 } },						// RdrComputeShader::AtmosphereScatterLut_N
+		{ "c_atmosphere_irradiance.hlsl",		{ "IRRADIANCE_INITIAL", 0 } },	// RdrComputeShader::AtmosphereIrradianceLut_Initial
+		{ "c_atmosphere_irradiance.hlsl",		{ 0 } },						// RdrComputeShader::AtmosphereIrradianceLut_N
+		{ "c_atmosphere_irradiance.hlsl",		{ "COMBINED_SCATTER", 0 } },	// RdrComputeShader::AtmosphereIrradianceLut_N_CombinedScatter
+		{ "c_atmosphere_radiance.hlsl",			{ 0 } },						// RdrComputeShader::AtmosphereRadianceLut
+		{ "c_atmosphere_radiance.hlsl",			{ "COMBINED_SCATTER", 0 } },	// RdrComputeShader::AtmosphereRadianceLut_CombinedScatter
 	};
 	static_assert(ARRAY_SIZE(kComputeShaderDefs) == (int)RdrComputeShader::Count, "Missing compute shader defs!");
 

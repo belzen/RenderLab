@@ -10,7 +10,7 @@
 
 namespace
 {
-	static bool s_useDebugDevice = 0;
+	static bool s_useDebugDevice = 1;
 
 	bool resourceFormatIsDepth(const RdrResourceFormat eFormat)
 	{
@@ -456,9 +456,9 @@ ID3D11SamplerState* RdrContextD3D11::GetSampler(const RdrSamplerState& state)
 
 namespace
 {
-	bool CreateTextureCube(ID3D11Device* pDevice, D3D11_SUBRESOURCE_DATA* pData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource)
+	bool createTextureCube(ID3D11Device* pDevice, D3D11_SUBRESOURCE_DATA* pData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource)
 	{
-		const uint cubemapArraySize = rTexInfo.arraySize * 6;
+		const uint cubemapArraySize = rTexInfo.depth * 6;
 		D3D11_TEXTURE2D_DESC desc = { 0 };
 
 		desc.Usage = getD3DUsage(eUsage);
@@ -476,7 +476,7 @@ namespace
 		desc.MipLevels = rTexInfo.mipLevels;
 		desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 
-		HRESULT hr = pDevice->CreateTexture2D(&desc, pData, &rResource.pTexture);
+		HRESULT hr = pDevice->CreateTexture2D(&desc, pData, &rResource.pTexture2d);
 		assert(hr == S_OK);
 
 		//if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
@@ -484,12 +484,12 @@ namespace
 			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
 			viewDesc.Format = getD3DFormat(rTexInfo.format);
 
-			if (rTexInfo.arraySize > 1)
+			if (rTexInfo.depth > 1)
 			{
 				viewDesc.TextureCubeArray.First2DArrayFace = 0;
 				viewDesc.TextureCubeArray.MipLevels = rTexInfo.mipLevels;
 				viewDesc.TextureCubeArray.MostDetailedMip = 0;
-				viewDesc.TextureCubeArray.NumCubes = rTexInfo.arraySize;
+				viewDesc.TextureCubeArray.NumCubes = rTexInfo.depth;
 				viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
 			}
 			else
@@ -499,23 +499,23 @@ namespace
 				viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
 			}
 
-			hr = pDevice->CreateShaderResourceView(rResource.pTexture, &viewDesc, &rResource.resourceView.pViewD3D11);
+			hr = pDevice->CreateShaderResourceView(rResource.pTexture2d, &viewDesc, &rResource.resourceView.pViewD3D11);
 			assert(hr == S_OK);
 		}
 
 		return true;
 	}
 
-	bool CreateTexture2D(ID3D11Device* pDevice, D3D11_SUBRESOURCE_DATA* pData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource)
+	bool createTexture2D(ID3D11Device* pDevice, D3D11_SUBRESOURCE_DATA* pData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource)
 	{
 		bool bIsMultisampled = (rTexInfo.sampleCount > 1);
-		bool bIsArray = (rTexInfo.arraySize > 1);
+		bool bIsArray = (rTexInfo.depth > 1);
 		bool bCanBindAccessView = !bIsMultisampled && !resourceFormatIsCompressed(rTexInfo.format) && eUsage != RdrResourceUsage::Immutable;
 
 		D3D11_TEXTURE2D_DESC desc = { 0 };
 
 		desc.Usage = getD3DUsage(eUsage);
-		desc.ArraySize = rTexInfo.arraySize;
+		desc.ArraySize = rTexInfo.depth;
 		desc.MiscFlags = 0;
 		if (desc.Usage == D3D11_USAGE_STAGING)
 		{
@@ -549,7 +549,7 @@ namespace
 		desc.Height = rTexInfo.height;
 		desc.MipLevels = rTexInfo.mipLevels;
 
-		HRESULT hr = pDevice->CreateTexture2D(&desc, pData, &rResource.pTexture);
+		HRESULT hr = pDevice->CreateTexture2D(&desc, pData, &rResource.pTexture2d);
 		assert(hr == S_OK);
 
 		if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
@@ -560,13 +560,13 @@ namespace
 			{
 				if (bIsMultisampled)
 				{
-					viewDesc.Texture2DMSArray.ArraySize = rTexInfo.arraySize;
+					viewDesc.Texture2DMSArray.ArraySize = rTexInfo.depth;
 					viewDesc.Texture2DMSArray.FirstArraySlice = 0;
 					viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
 				}
 				else
 				{
-					viewDesc.Texture2DArray.ArraySize = rTexInfo.arraySize;
+					viewDesc.Texture2DArray.ArraySize = rTexInfo.depth;
 					viewDesc.Texture2DArray.FirstArraySlice = 0;
 					viewDesc.Texture2DArray.MipLevels = rTexInfo.mipLevels;
 					viewDesc.Texture2DArray.MostDetailedMip = 0;
@@ -587,7 +587,7 @@ namespace
 				}
 			}
 
-			hr = pDevice->CreateShaderResourceView(rResource.pTexture, &viewDesc, &rResource.resourceView.pViewD3D11);
+			hr = pDevice->CreateShaderResourceView(rResource.pTexture2d, &viewDesc, &rResource.resourceView.pViewD3D11);
 			assert(hr == S_OK);
 		}
 
@@ -597,7 +597,7 @@ namespace
 			viewDesc.Format = getD3DFormat(rTexInfo.format);
 			if (bIsArray)
 			{
-				viewDesc.Texture2DArray.ArraySize = rTexInfo.arraySize;
+				viewDesc.Texture2DArray.ArraySize = rTexInfo.depth;
 				viewDesc.Texture2DArray.FirstArraySlice = 0;
 				viewDesc.Texture2DArray.MipSlice = 0;
 				viewDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
@@ -608,7 +608,78 @@ namespace
 				viewDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
 			}
 
-			hr = pDevice->CreateUnorderedAccessView(rResource.pTexture, &viewDesc, &rResource.uav.pViewD3D11);
+			hr = pDevice->CreateUnorderedAccessView(rResource.pTexture2d, &viewDesc, &rResource.uav.pViewD3D11);
+			assert(hr == S_OK);
+		}
+
+		return true;
+	}
+
+
+	bool createTexture3D(ID3D11Device* pDevice, D3D11_SUBRESOURCE_DATA* pData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource)
+	{
+		bool bCanBindAccessView = !resourceFormatIsCompressed(rTexInfo.format) && eUsage != RdrResourceUsage::Immutable;
+
+		D3D11_TEXTURE3D_DESC desc = { 0 };
+
+		desc.Usage = getD3DUsage(eUsage);
+		desc.MiscFlags = 0;
+		if (desc.Usage == D3D11_USAGE_STAGING)
+		{
+			desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		}
+		else
+		{
+			if (desc.Usage == D3D11_USAGE_DYNAMIC)
+			{
+				desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			}
+			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			if (resourceFormatIsDepth(rTexInfo.format))
+			{
+				desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+			}
+			else
+			{
+				// todo: find out if having all these bindings cause any inefficiencies in D3D
+				if (bCanBindAccessView)
+					desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+				if (eUsage != RdrResourceUsage::Immutable)
+					desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+			}
+		}
+
+		desc.Format = getD3DTypelessFormat(rTexInfo.format);
+		desc.Width = rTexInfo.width;
+		desc.Height = rTexInfo.height;
+		desc.Depth = rTexInfo.depth;
+		desc.MipLevels = rTexInfo.mipLevels;
+
+		HRESULT hr = pDevice->CreateTexture3D(&desc, pData, &rResource.pTexture3d);
+		assert(hr == S_OK);
+
+		if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+		{
+			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+			viewDesc.Format = getD3DFormat(rTexInfo.format);
+			viewDesc.Texture3D.MipLevels = rTexInfo.mipLevels;
+			viewDesc.Texture3D.MostDetailedMip = 0;
+			viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
+
+			hr = pDevice->CreateShaderResourceView(rResource.pTexture3d, &viewDesc, &rResource.resourceView.pViewD3D11);
+			assert(hr == S_OK);
+		}
+
+		if (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
+		{
+			D3D11_UNORDERED_ACCESS_VIEW_DESC viewDesc;
+			viewDesc.Format = getD3DFormat(rTexInfo.format);
+			viewDesc.Texture3D.MipSlice = 0;
+			viewDesc.Texture3D.FirstWSlice = 0;
+			viewDesc.Texture3D.WSize = rTexInfo.depth;
+			viewDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE3D;
+
+			hr = pDevice->CreateUnorderedAccessView(rResource.pTexture3d, &viewDesc, &rResource.uav.pViewD3D11);
 			assert(hr == S_OK);
 		}
 
@@ -618,7 +689,7 @@ namespace
 
 bool RdrContextD3D11::CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource)
 {
-	uint sliceCount = rTexInfo.bCubemap ? rTexInfo.arraySize * 6 : rTexInfo.arraySize;
+	uint sliceCount = (rTexInfo.texType == RdrTextureType::kCube) ? rTexInfo.depth * 6 : rTexInfo.depth;
 	D3D11_SUBRESOURCE_DATA* pData = nullptr;  
 	
 	if (pSrcData)
@@ -647,13 +718,17 @@ bool RdrContextD3D11::CreateTexture(const void* pSrcData, const RdrTextureInfo& 
 	}
 
 	bool res = false;
-	if (rTexInfo.bCubemap)
+	switch (rTexInfo.texType)
 	{
-		res = CreateTextureCube(m_pDevice, pData, rTexInfo, eUsage, rResource);
-	}
-	else
-	{
-		res = CreateTexture2D(m_pDevice, pData, rTexInfo, eUsage, rResource);
+	case RdrTextureType::k2D:
+		res = createTexture2D(m_pDevice, pData, rTexInfo, eUsage, rResource);
+		break;
+	case RdrTextureType::kCube:
+		res = createTextureCube(m_pDevice, pData, rTexInfo, eUsage, rResource);
+		break;
+	case RdrTextureType::k3D:
+		res = createTexture3D(m_pDevice, pData, rTexInfo, eUsage, rResource);
+		break;
 	}
 
 	if (pData)
@@ -694,19 +769,19 @@ RdrDepthStencilView RdrContextD3D11::CreateDepthStencilView(const RdrResource& r
 	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
 	dsvDesc.Flags = 0;
 	dsvDesc.Format = getD3DDepthFormat(rDepthTex.texInfo.format);
-	if (rDepthTex.texInfo.arraySize > 1)
+	if (rDepthTex.texInfo.depth > 1)
 	{
 		if (bIsMultisampled)
 		{
 			dsvDesc.Texture2DMSArray.FirstArraySlice = 0;
-			dsvDesc.Texture2DMSArray.ArraySize = rDepthTex.texInfo.arraySize;
+			dsvDesc.Texture2DMSArray.ArraySize = rDepthTex.texInfo.depth;
 			dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY;
 		}
 		else
 		{
 			dsvDesc.Texture2DArray.MipSlice = 0;
 			dsvDesc.Texture2DArray.FirstArraySlice = 0;
-			dsvDesc.Texture2DArray.ArraySize = rDepthTex.texInfo.arraySize;
+			dsvDesc.Texture2DArray.ArraySize = rDepthTex.texInfo.depth;
 			dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
 		}
 	}
@@ -724,7 +799,7 @@ RdrDepthStencilView RdrContextD3D11::CreateDepthStencilView(const RdrResource& r
 		}
 	}
 
-	HRESULT hr = m_pDevice->CreateDepthStencilView(rDepthTex.pTexture, &dsvDesc, &view.pView);
+	HRESULT hr = m_pDevice->CreateDepthStencilView(rDepthTex.pTexture2d, &dsvDesc, &view.pView);
 	assert(hr == S_OK);
 
 	return view;
@@ -752,7 +827,7 @@ RdrDepthStencilView RdrContextD3D11::CreateDepthStencilView(const RdrResource& r
 		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
 	}
 
-	HRESULT hr = m_pDevice->CreateDepthStencilView(rDepthTex.pTexture, &dsvDesc, &view.pView);
+	HRESULT hr = m_pDevice->CreateDepthStencilView(rDepthTex.pTexture2d, &dsvDesc, &view.pView);
 	assert(hr == S_OK);
 
 	return view;
@@ -780,7 +855,7 @@ RdrRenderTargetView RdrContextD3D11::CreateRenderTargetView(RdrResource& rTexRes
 		desc.Texture2D.MipSlice = 0;
 	}
 
-	HRESULT hr = m_pDevice->CreateRenderTargetView(rTexRes.pTexture, &desc, &view.pView);
+	HRESULT hr = m_pDevice->CreateRenderTargetView(rTexRes.pTexture2d, &desc, &view.pView);
 	assert(hr == S_OK);
 
 	return view;
@@ -797,7 +872,7 @@ RdrRenderTargetView RdrContextD3D11::CreateRenderTargetView(RdrResource& rTexArr
 	desc.Texture2DArray.FirstArraySlice = arrayStartIndex;
 	desc.Texture2DArray.ArraySize = arraySize;
 
-	HRESULT hr = m_pDevice->CreateRenderTargetView(rTexArrayRes.pTexture, &desc, &view.pView);
+	HRESULT hr = m_pDevice->CreateRenderTargetView(rTexArrayRes.pTexture2d, &desc, &view.pView);
 	assert(hr == S_OK);
 
 	return view;
@@ -1046,7 +1121,7 @@ RdrConstantBufferDeviceObj RdrContextD3D11::CreateConstantBuffer(const void* pDa
 	D3D11_SUBRESOURCE_DATA data = { 0 };
 	data.pSysMem = pData;
 
-	ID3D11Buffer* pBuffer;
+	ID3D11Buffer* pBuffer = nullptr;
 	HRESULT hr = m_pDevice->CreateBuffer(&desc, (pData ? &data : nullptr), &pBuffer);
 	assert(hr == S_OK);
 

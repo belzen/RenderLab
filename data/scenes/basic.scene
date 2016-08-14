@@ -8,14 +8,6 @@
 	"postProcessingEffects" : "default",
 	"lights" : [
 		{
-			"type" : "directional",
-			"position" : [ 0.0, 0.0, 0.0 ],
-			"direction" : [1.0, -1.0, 1.0 ],
-			"color" : [1.0, 1.0, 1.0],
-			"intensity" : 32.5,
-			"castsShadows" : true
-		},
-		{
 			"type" : "spot",
 			"position" : [ 0.0, 5.0, -3.0 ],
 			"direction" : [ 1.0, -1.0, 0.0 ],

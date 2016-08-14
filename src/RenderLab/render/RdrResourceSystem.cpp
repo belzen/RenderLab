@@ -168,7 +168,8 @@ namespace
 		}
 	}
 
-	RdrResourceHandle createTextureInternal(uint width, uint height, uint mipLevels, uint arraySize, RdrResourceFormat eFormat, uint sampleCount, bool bCubemap, RdrResourceUsage eUsage)
+	RdrResourceHandle createTextureInternal(RdrTextureType texType, uint width, uint height, uint depth, 
+		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage)
 	{
 		RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
@@ -177,13 +178,13 @@ namespace
 
 		cmd.hResource = s_resourceSystem.resources.getId(pResource);
 		cmd.eUsage = eUsage;
+		cmd.texInfo.texType = texType;
 		cmd.texInfo.format = eFormat;
 		cmd.texInfo.width = width;
 		cmd.texInfo.height = height;
+		cmd.texInfo.depth = depth;
 		cmd.texInfo.mipLevels = mipLevels;
-		cmd.texInfo.arraySize = arraySize;
 		cmd.texInfo.sampleCount = sampleCount;
-		cmd.texInfo.bCubemap = bCubemap;
 
 		return cmd.hResource;
 	}
@@ -227,13 +228,13 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 	cmd.texInfo.width = (uint)metadata.width;
 	cmd.texInfo.height = (uint)metadata.height;
 	cmd.texInfo.mipLevels = (uint)metadata.mipLevels;
-	cmd.texInfo.arraySize = (uint)metadata.arraySize;
-	cmd.texInfo.bCubemap = pBinData->bIsCubemap;
+	cmd.texInfo.depth = (uint)metadata.arraySize;
+	cmd.texInfo.texType = (pBinData->bIsCubemap ? RdrTextureType::kCube : RdrTextureType::k2D); // todo: support 3d textures and arrays from assets
 	cmd.texInfo.sampleCount = 1;
 
 	if (pBinData->bIsCubemap)
 	{
-		cmd.texInfo.arraySize /= 6;
+		cmd.texInfo.depth /= 6;
 	}
 
 	cmd.pData = pBinData->ddsData.ptr + sizeof(DWORD) + sizeof(DirectX::DDS_HEADER);
@@ -249,27 +250,32 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 
 RdrResourceHandle RdrResourceSystem::CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage)
 {
-	return createTextureInternal(width, height, 1, 1, eFormat, 1, false, eUsage);
+	return createTextureInternal(RdrTextureType::k2D, width, height, 1, 1, eFormat, 1, eUsage);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTexture2DMS(uint width, uint height, RdrResourceFormat eFormat, uint sampleCount)
 {
-	return createTextureInternal(width, height, 1, 1, eFormat, sampleCount, false, RdrResourceUsage::Default);
+	return createTextureInternal(RdrTextureType::k2D, width, height, 1, 1, eFormat, sampleCount, RdrResourceUsage::Default);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat)
 {
-	return createTextureInternal(width, height, 1, arraySize, eFormat, 1, false, RdrResourceUsage::Default);
+	return createTextureInternal(RdrTextureType::k2D, width, height, arraySize, 1, eFormat, 1, RdrResourceUsage::Default);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat)
 {
-	return createTextureInternal(width, height, 1, 1, eFormat, 1, true, RdrResourceUsage::Default);
+	return createTextureInternal(RdrTextureType::kCube, width, height, 1, 1, eFormat, 1, RdrResourceUsage::Default);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat)
 {
-	return createTextureInternal(width, height, 1, arraySize, eFormat, 1, true, RdrResourceUsage::Default);
+	return createTextureInternal(RdrTextureType::kCube, width, height, arraySize, 1, eFormat, 1, RdrResourceUsage::Default);
+}
+
+RdrResourceHandle RdrResourceSystem::CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage)
+{
+	return createTextureInternal(RdrTextureType::k3D, width, height, depth, 1, eFormat, 1, eUsage);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage)

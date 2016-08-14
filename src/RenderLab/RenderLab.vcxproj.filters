@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <FxCompile Include="..\..\data\shaders\c_add.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
     <FxCompile Include="..\..\data\shaders\c_bloom_shrink.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
@@ -62,6 +59,45 @@
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="..\..\data\shaders\v_text.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_atmosphere_transmittance.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_atmosphere_irradiance.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_atmosphere_radiance.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_atmosphere_scatter_n.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_atmosphere_scatter_single.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_sum_textures.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_add_2d.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_blend_2d.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_add_3d.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_clear_2d.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_clear_3d.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_copy_2d.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_copy_3d.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
   </ItemGroup>
@@ -313,6 +349,9 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="..\..\data\shaders\light_inc.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\data\shaders\atmosphere_inc.hlsli">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

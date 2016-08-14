@@ -12,19 +12,33 @@ RdrPostProcessEffects::RdrPostProcessEffects()
 
 void RdrPostProcessEffects::Init(const AssetLib::PostProcessEffects* pEffects)
 {
-	m_effects = *pEffects;
+	m_pEffects = pEffects;
+	if (m_hToneMapInputConstants)
+	{
+		RdrResourceSystem::ReleaseConstantBuffer(m_hToneMapInputConstants);
+		m_hToneMapInputConstants = 0;
+	}
 }
 
 void RdrPostProcessEffects::PrepareDraw()
 {
-	if (!m_hToneMapInputConstants)
+	if (!m_hToneMapInputConstants || m_pEffects->timeLastModified != m_updateTime)
 	{
 		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ToneMapInputParams));
 		ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
-		pTonemapSettings->white = m_effects.eyeAdaptation.white;
-		pTonemapSettings->middleGrey = m_effects.eyeAdaptation.middleGrey;
-		pTonemapSettings->bloomThreshold = m_effects.bloom.threshold;
+		pTonemapSettings->white = m_pEffects->eyeAdaptation.white;
+		pTonemapSettings->middleGrey = m_pEffects->eyeAdaptation.middleGrey;
+		pTonemapSettings->bloomThreshold = m_pEffects->bloom.threshold;
 
-		m_hToneMapInputConstants = RdrResourceSystem::CreateConstantBuffer(pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+		if (m_hToneMapInputConstants)
+		{
+			RdrResourceSystem::UpdateConstantBuffer(m_hToneMapInputConstants, pTonemapSettings);
+		}
+		else
+		{
+			m_hToneMapInputConstants = RdrResourceSystem::CreateConstantBuffer(pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+		}
+
+		m_updateTime = m_pEffects->timeLastModified;
 	}
 }

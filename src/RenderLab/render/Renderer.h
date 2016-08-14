@@ -58,8 +58,8 @@ public:
 	void QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 	void QueueShadowCubeMapPass(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 
-	void AddDrawOpToBucket(RdrDrawOp* pDrawOp, RdrBucketType bucket);
-	void AddComputeOpToPass(RdrComputeOp* pComputeOp, RdrPass ePass);
+	void AddDrawOpToBucket(const RdrDrawOp* pDrawOp, RdrBucketType bucket);
+	void AddComputeOpToPass(const RdrComputeOp* pComputeOp, RdrPass ePass);
 
 	void DrawFrame();
 	void PostFrameSync();

@@ -4,7 +4,10 @@
 #include "Scene.h"
 #include "render\Renderer.h"
 #include "RenderWindow.h"
-#include "Menu.h"
+#include "Widgets/Menu.h"
+
+class PropertyPanel;
+class ListView;
 
 class MainWindow : public WindowBase
 {
@@ -24,6 +27,8 @@ private:
 	Scene m_scene;
 	Renderer m_renderer;
 	RenderWindow m_renderWindow;
+	PropertyPanel* m_pPropertyPanel;
+	ListView* m_pSceneListView;
 	bool m_running;
 
 	HANDLE m_hFrameDoneEvent;

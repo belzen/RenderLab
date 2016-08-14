@@ -2,17 +2,17 @@
 
 #include <windows.h>
 #include "input\Input.h"
+#include "Widgets/Widget.h"
 
 class Menu;
 
-class WindowBase
+class WindowBase : public Widget
 {
 public:
 	void Close();
 
 	void Resize(int parentWidth, int parentHeight);
 
-	HWND GetWindowHandle() const { return m_hWnd; }
 	int GetWidth() const { return m_width; }
 	int GetHeight() const { return m_height; }
 
@@ -32,8 +32,8 @@ private:
 	static LRESULT CALLBACK WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 private:
-	HWND m_hWnd;
 	Menu* m_pMenu;
+
 	int m_mouseCaptureCount;
 	int m_width;
 	int m_height;

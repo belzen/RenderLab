@@ -25,5 +25,7 @@ VsOutputSky main(VertexInput input)
 	output.position = float4(input.position + cbPerAction.cameraPosition, 1);
 	output.position = mul(output.position, cbPerAction.mtxViewProj).xyww;
 
+	output.position_ws = float4(input.position + cbPerAction.cameraPosition, 1);
+
 	return output;
 }

@@ -4,14 +4,14 @@
 
 using namespace AssetLib;
 
-AssetLib::AssetDef AssetLib::g_skyDef("skies", "skybin", 1);
+AssetLib::AssetDef AssetLib::Sky::s_definition("skies", "skybin", 1);
 
 Sky* Sky::FromMem(char* pMem)
 {
 	if (((uint*)pMem)[0] == BinFileHeader::kUID)
 	{
 		BinFileHeader* pHeader = (BinFileHeader*)pMem;
-		assert(pHeader->assetUID == g_skyDef.GetAssetUID());
+		assert(pHeader->assetUID == s_definition.GetAssetUID());
 		pMem += sizeof(BinFileHeader);
 	}
 

@@ -12,11 +12,14 @@ struct RdrComputeOp
 	RdrComputeShader shader;
 	uint threads[3];
 
-	RdrResourceHandle hViews[8];
-	uint viewCount;
+	RdrResourceHandle hResources[4];
+	uint resourceCount;
 
-	RdrResourceHandle hTextures[4];
-	uint texCount;
+	RdrSamplerState samplers[4];
+	uint samplerCount;
+
+	RdrResourceHandle hWritableResources[8];
+	uint writableResourceCount;
 
 	RdrConstantBufferHandle hCsConstants;
 };

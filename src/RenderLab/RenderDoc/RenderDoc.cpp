@@ -18,7 +18,11 @@ bool RenderDoc::Init()
 	if (!pGetApiFunc)
 		return false;
 
-	return !!pGetApiFunc(eRENDERDOC_API_Version_1_1_0, (void**)&s_pRenderDocApi);
+	if (!pGetApiFunc(eRENDERDOC_API_Version_1_1_0, (void**)&s_pRenderDocApi))
+		return false;
+
+	s_pRenderDocApi->SetCaptureOptionU32(RENDERDOC_CaptureOption::eRENDERDOC_Option_APIValidation, 1);
+	return true;
 }
 
 void RenderDoc::Capture()

@@ -6,21 +6,29 @@
 
 struct ID3D11Buffer;
 struct ID3D11Texture2D;
+struct ID3D11Texture3D;
 struct ID3D11Resource;
 struct ID3D11ShaderResourceView;
 struct ID3D11UnorderedAccessView;
+
+enum class RdrTextureType
+{
+	k2D,
+	k3D,
+	kCube
+};
 
 struct RdrTextureInfo
 {
 	const char* filename;
 
+	RdrTextureType texType;
 	RdrResourceFormat format;
 	uint width;
 	uint height;
+	uint depth; // Array size for 2d/cube.  Depth for 3d.
 	uint mipLevels;
-	uint arraySize;
 	uint sampleCount;
-	bool bCubemap;
 };
 
 struct RdrStructuredBufferInfo
@@ -52,7 +60,8 @@ struct RdrResource
 {
 	union
 	{
-		ID3D11Texture2D* pTexture;
+		ID3D11Texture2D* pTexture2d;
+		ID3D11Texture3D* pTexture3d;
 		ID3D11Buffer*    pBuffer;
 		ID3D11Resource*  pResource;
 	};

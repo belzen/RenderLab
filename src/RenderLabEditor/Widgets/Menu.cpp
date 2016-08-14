@@ -1,9 +1,15 @@
+#include "Precompiled.h"
 #include "Menu.h"
 #include "Types.h"
 
 namespace
 {
 	uint s_lastMenuCommandId = 1;
+}
+
+Menu::~Menu()
+{
+	DestroyMenu(m_hMenu);
 }
 
 void Menu::Init()

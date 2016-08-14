@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stack>
-
 enum Keys
 {
 	KEY_BACKSPACE = 0x08,

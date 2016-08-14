@@ -36,7 +36,9 @@ public:
 
 	void Cleanup();
 
-	void AddLight(Light& light);
+	void AddLight(const Light& light);
+
+	void UpdateSunLight(const Light& rSunLight);
 
 	void PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax);
 

@@ -100,9 +100,24 @@ enum class RdrComputeShader
 	LuminanceHistogram_ResponseCurve,
 
 	BloomShrink,
-	Add,
+	Blend2d,
+	Add2d,
+	Add3d,
 	BlurHorizontal,
 	BlurVertical,
+	Clear2d,
+	Clear3d,
+	Copy2d,
+	Copy3d,
+
+	AtmosphereTransmittanceLut,
+	AtmosphereScatterLut_Single,
+	AtmosphereScatterLut_N,
+	AtmosphereIrradianceLut_Initial,
+	AtmosphereIrradianceLut_N,
+	AtmosphereIrradianceLut_N_CombinedScatter,
+	AtmosphereRadianceLut,
+	AtmosphereRadianceLut_CombinedScatter,
 
 	Count
 };

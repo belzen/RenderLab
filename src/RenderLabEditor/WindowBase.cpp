@@ -1,6 +1,6 @@
+#include "Precompiled.h"
 #include "WindowBase.h"
-#include "Menu.h"
-#include <windowsx.h>
+#include "Widgets/Menu.h"
 
 namespace
 {
@@ -22,46 +22,28 @@ namespace
 
 void WindowBase::Create(HWND hParentWnd, int width, int height, const char* title)
 {
-	DWORD dwStyle = hParentWnd ? WS_CHILD : WS_OVERLAPPEDWINDOW;
+	const char* kWndClassName = "EditorWindow";
+	static bool s_bRegisteredClass = false;
+	if (!s_bRegisteredClass)
+	{
+		RegisterWindowClass(kWndClassName, WindowBase::WinProc);
+		s_bRegisteredClass = true;
+	}
 
-	HINSTANCE hInstance = ::GetModuleHandle(0);
-	WNDCLASSEX wc = { 0 };
-	RECT wr = { 0, 0, width, height };
-	::AdjustWindowRect(&wr, dwStyle, false);
-
-	wc.cbSize = sizeof(WNDCLASSEX);
-	wc.style = CS_HREDRAW | CS_VREDRAW;
-	wc.lpfnWndProc = WindowBase::WinProc;
-	wc.hInstance = hInstance;
-	wc.hCursor = ::LoadCursor(NULL, IDC_ARROW);
-	wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
-	wc.lpszClassName = L"EditorWindow";
-
-	::RegisterClassEx(&wc);
-
-	WCHAR wtitle[128] = { 0 };
-	mbstowcs_s(nullptr, wtitle, title, strlen(title));
-	m_hWnd = ::CreateWindowEx(NULL,
-		wc.lpszClassName, wtitle,
-		dwStyle,
-		0, 0,
-		wr.right - wr.left, wr.bottom - wr.top,
-		hParentWnd, NULL, hInstance, NULL);
-
-	::SetWindowLongPtr(m_hWnd, GWLP_USERDATA, (LONG_PTR)this);
-	::ShowWindow(m_hWnd, 1);
+	CreateRootWidgetWindow(hParentWnd, kWndClassName, 0, 0, width, height);
+	::ShowWindow(GetWindowHandle(), 1);
 }
 
 void WindowBase::SetMenuBar(Menu* pMenu)
 {
 	m_pMenu = pMenu;
-	::SetMenu(m_hWnd, pMenu->GetMenuHandle());
-	::DrawMenuBar(m_hWnd);
+	::SetMenu(GetWindowHandle(), pMenu->GetMenuHandle());
+	::DrawMenuBar(GetWindowHandle());
 }
 
 LRESULT CALLBACK WindowBase::WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	WindowBase* pWindow = (WindowBase*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+	WindowBase* pWindow = (WindowBase*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
 	if (pWindow)
 	{
 		bool bHandled = false;
@@ -123,5 +105,5 @@ void WindowBase::Close()
 
 void WindowBase::Resize(int parentWidth, int parentHeight)
 {
-	::MoveWindow(m_hWnd, 0, 0, parentWidth, parentHeight, true);
+	::MoveWindow(GetWindowHandle(), 0, 0, parentWidth, parentHeight, true);
 }

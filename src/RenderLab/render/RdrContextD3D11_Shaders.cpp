@@ -8,7 +8,7 @@
 
 namespace
 {
-	int s_debugShaders = 1;
+	int s_debugShaders = 0;
 
 	ID3D10Blob* compileShaderD3D(const char* pShaderText, uint textLen, const char* entrypoint, const char* shadermodel)
 	{

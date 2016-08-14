@@ -12,6 +12,7 @@ using std::max;
 #include <memory>
 #include <map>
 #include <vector>
+#include <stack>
 #include <DirectXMath.h>
 
 #include "../Types.h"

@@ -6,7 +6,7 @@
 
 AssetLib::AssetDef& PostProcessEffectsBinner::GetAssetDef() const
 {
-	return AssetLib::g_postProcessEffectsDef;
+	return AssetLib::PostProcessEffects::s_definition;
 }
 
 std::vector<std::string> PostProcessEffectsBinner::GetFileTypes() const

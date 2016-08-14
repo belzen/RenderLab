@@ -2,11 +2,12 @@
 #include "AssetLib/SkyAsset.h"
 #include "UtilsLib/FileLoader.h"
 #include "UtilsLib/json/json.h"
+#include "UtilsLib/JsonUtils.h"
 #include "UtilsLib/Error.h"
 
 AssetLib::AssetDef& SkyBinner::GetAssetDef() const
 {
-	return AssetLib::g_skyDef;
+	return AssetLib::Sky::s_definition;
 }
 
 std::vector<std::string> SkyBinner::GetFileTypes() const
@@ -43,6 +44,11 @@ bool SkyBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstFile)
 
 	Json::Value jMaterialName = jRoot.get("material", Json::Value::null);
 	strcpy_s(binData.material, jMaterialName.asCString());
+
+	binData.sun.angleXAxis = jRoot.get("sunAngleXAxis", 0.f).asFloat();
+	binData.sun.angleZAxis = jRoot.get("sunAngleZAxis", 0.f).asFloat();
+	binData.sun.intensity = jRoot.get("sunIntensity", 0.f).asFloat();
+	binData.sun.color = jsonReadVec3(jRoot.get("sunColor", Json::Value::null));
 
 	dstFile.write((char*)&binData, sizeof(AssetLib::Sky));
 
