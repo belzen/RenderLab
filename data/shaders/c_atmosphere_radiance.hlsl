@@ -1,4 +1,3 @@
-#define ATMOSPHERE_LUT_CALC 1
 #include "c_constants.h"
 
 cbuffer AtmosphereParamsBuffer : register(c0)
