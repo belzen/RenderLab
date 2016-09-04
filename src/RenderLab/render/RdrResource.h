@@ -79,6 +79,7 @@ struct RdrResource
 union RdrConstantBufferDeviceObj
 {
 	ID3D11Buffer* pBufferD3D11;
+	void* pTypeless;
 };
 
 struct RdrConstantBuffer
@@ -90,6 +91,27 @@ struct RdrConstantBuffer
 	uint size;
 };
 
+//////////////////////////////////////////////////////////////////////////
+
+inline bool operator == (const RdrConstantBufferDeviceObj& rLeft, const RdrConstantBufferDeviceObj& rRight)
+{
+	return rLeft.pTypeless == rRight.pTypeless;
+}
+
+inline bool operator != (const RdrConstantBufferDeviceObj& rLeft, const RdrConstantBufferDeviceObj& rRight)
+{
+	return !(rLeft == rRight);
+}
+
+inline bool operator == (const RdrShaderResourceView& rLeft, const RdrShaderResourceView& rRight)
+{
+	return rLeft.pTypeless == rRight.pTypeless;
+}
+
+inline bool operator != (const RdrShaderResourceView& rLeft, const RdrShaderResourceView& rRight)
+{
+	return !(rLeft == rRight);
+}
 
 //////////////////////////////////////////////////////////////////////////
 

@@ -602,6 +602,7 @@ void Renderer::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHand
 		rPassData.hDepthTarget = hDepthView;
 		rPassData.bClearDepthTarget = true;
 		rPassData.depthTestMode = RdrDepthTestMode::Less;
+		rPassData.bDepthWriteEnabled = true;
 		rPassData.bAlphaBlend = false;
 		rPassData.shaderMode = RdrShaderMode::DepthOnly;
 	}
@@ -632,6 +633,7 @@ void Renderer::QueueShadowCubeMapPass(const Light* pLight, RdrDepthStencilViewHa
 		rPassData.bAlphaBlend = false;
 		rPassData.shaderMode = RdrShaderMode::DepthOnly;
 		rPassData.depthTestMode = RdrDepthTestMode::Less;
+		rPassData.bDepthWriteEnabled = true;
 		rPassData.bClearDepthTarget = true;
 		rPassData.hDepthTarget = hDepthView;
 		rPassData.bIsCubeMapCapture = true;
@@ -673,6 +675,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
 		pPass->bClearDepthTarget = true;
 		pPass->depthTestMode = RdrDepthTestMode::Less;
+		pPass->bDepthWriteEnabled = true;
 		pPass->shaderMode = RdrShaderMode::DepthOnly;
 	}
 
@@ -684,6 +687,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 		pPass->bAlphaBlend = false;
 		pPass->bClearDepthTarget = false;
 		pPass->depthTestMode = RdrDepthTestMode::None;
+		pPass->bDepthWriteEnabled = false;
 		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
@@ -697,6 +701,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 		pPass->bAlphaBlend = false;
 		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
 		pPass->depthTestMode = RdrDepthTestMode::Equal;
+		pPass->bDepthWriteEnabled = false;
 		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
@@ -708,6 +713,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 		pPass->ahRenderTargets[0] = m_hColorBufferRenderTarget;
 		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
 		pPass->depthTestMode = RdrDepthTestMode::Equal;
+		pPass->bDepthWriteEnabled = false;
 		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
@@ -720,6 +726,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
 		pPass->depthTestMode = RdrDepthTestMode::Equal;
 		pPass->shaderMode = RdrShaderMode::Normal;
+		pPass->bDepthWriteEnabled = false;
 		pPass->bAlphaBlend = true;
 	}
 
@@ -733,6 +740,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 		pPass->ahRenderTargets[0] = RdrResourceSystem::kPrimaryRenderTargetHandle;
 		pPass->bAlphaBlend = true;
 		pPass->depthTestMode = RdrDepthTestMode::None;
+		pPass->bDepthWriteEnabled = false;
 		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
@@ -847,7 +855,7 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 	m_pContext->PSClearResources();
 
 	m_pContext->SetRenderTargets(MAX_RENDER_TARGETS, renderTargets, depthView);
-	m_pContext->SetDepthStencilState(rPass.depthTestMode);
+	m_pContext->SetDepthStencilState(rPass.depthTestMode, rPass.bDepthWriteEnabled);
 	m_pContext->SetBlendState(rPass.bAlphaBlend);
 
 	m_pContext->SetViewport(rPass.viewport);
@@ -927,7 +935,7 @@ void Renderer::DrawShadowPass(const RdrShadowPass& rShadowPass)
 	m_pContext->PSClearResources();
 
 	m_pContext->SetRenderTargets(MAX_RENDER_TARGETS, renderTargets, depthView);
-	m_pContext->SetDepthStencilState(rPassData.depthTestMode);
+	m_pContext->SetDepthStencilState(rPassData.depthTestMode, rPassData.bDepthWriteEnabled);
 	m_pContext->SetBlendState(rPassData.bAlphaBlend);
 
 	m_pContext->SetViewport(rPassData.viewport);
@@ -1162,6 +1170,8 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlob
 				m_drawState.psResources[i] = RdrResourceSystem::GetResource(pMaterial->hTextures[i])->resourceView;
 				m_drawState.psSamplers[i] = pMaterial->samplers[i];
 			}
+			m_drawState.psResourceCount = pMaterial->texCount;
+			m_drawState.psSamplerCount = pMaterial->texCount;
 
 			m_drawState.psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsPerFrame)->bufferObj;
 			m_drawState.psConstantBufferCount++;
@@ -1180,8 +1190,11 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlob
 				m_drawState.psResources[(int)RdrPsResourceSlots::TileLightIds] = RdrResourceSystem::GetResource(hTileLightIndices)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowMapTexArray)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowCubeMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowCubeMapTexArray)->resourceView;
-				m_drawState.psSamplers[(int)RdrPsSamplerSlots::ShadowMap] = RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false);
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMapData] = RdrResourceSystem::GetResource(rLightParams.hShadowMapDataRes)->resourceView;
+				m_drawState.psResourceCount = max((uint)RdrPsResourceSlots::ShadowMapData + 1, m_drawState.psResourceCount);
+
+				m_drawState.psSamplers[(int)RdrPsSamplerSlots::ShadowMap] = RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false);
+				m_drawState.psSamplerCount = max((uint)RdrPsSamplerSlots::ShadowMap + 1, m_drawState.psSamplerCount);
 			}
 		}
 	}
@@ -1191,8 +1204,9 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlob
 	m_drawState.eTopology = RdrTopology::TriangleList;
 
 	m_drawState.vertexBuffers[0] = pGeo->vertexBuffer;
-	m_drawState.vertexStride = pGeo->geoInfo.vertStride;
-	m_drawState.vertexOffset = 0;
+	m_drawState.vertexStrides[0] = pGeo->geoInfo.vertStride;
+	m_drawState.vertexOffsets[0] = 0;
+	m_drawState.vertexBufferCount = 1;
 	m_drawState.vertexCount = pGeo->geoInfo.numVerts;
 
 	if (pGeo->indexBuffer.pBuffer)

@@ -147,13 +147,22 @@ struct RdrRasterState
 struct RdrSamplerState
 {
 	RdrSamplerState()
-		: cmpFunc((uint)RdrComparisonFunc::Never), texcoordMode((uint)RdrTexCoordMode::Wrap), bPointSample(false) {}
+		: cmpFunc((uint)RdrComparisonFunc::Never), texcoordMode((uint)RdrTexCoordMode::Wrap), bPointSample(false), unused(0) {}
 	RdrSamplerState(const RdrComparisonFunc cmpFunc, const RdrTexCoordMode texcoordMode, const bool bPointSample)
-		: cmpFunc((uint)cmpFunc), texcoordMode((uint)texcoordMode), bPointSample(bPointSample) {}
+		: cmpFunc((uint)cmpFunc), texcoordMode((uint)texcoordMode), bPointSample(bPointSample), unused(0) {}
 
-	uint cmpFunc : 4;
-	uint texcoordMode : 2;
-	uint bPointSample : 1;
+	union
+	{
+		struct  
+		{
+			uint cmpFunc		: 4;
+			uint texcoordMode	: 2;
+			uint bPointSample	: 1;
+			uint unused			: 25;
+		};
+
+		uint compareVal; // For quick comparison tests.
+	};
 };
 
 struct RdrDepthStencilView
@@ -230,3 +239,15 @@ struct RdrQuery
 		void* pTypeless;
 	};
 };
+
+//////////////////////////////////////////////////////////////////////////
+
+inline bool operator == (const RdrSamplerState& rLeft, const RdrSamplerState& rRight)
+{
+	return rLeft.compareVal == rRight.compareVal;
+}
+
+inline bool operator != (const RdrSamplerState& rLeft, const RdrSamplerState& rRight)
+{
+	return !(rLeft == rRight);
+}

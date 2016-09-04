@@ -1,5 +1,6 @@
 #pragma once
 #include "RdrContext.h"
+#include "RdrDrawState.h"
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
@@ -24,8 +25,28 @@ struct D3D11_INPUT_ELEMENT_DESC;
 #define SAMPLER_TYPES_COUNT (int)RdrComparisonFunc::Count * (int)RdrTexCoordMode::Count * 2
 #define RASTER_STATES_COUNT 2 * 2 * 2
 
+enum class DeviceState
+{
+	VertexShader,
+	GeometryShader,
+	PixelShader,
+	VertexBuffer,
+	IndexBuffer,
+	InputLayout,
+	PrimitiveTopology,
+	VsResource,
+	PsResource,
+	PsSamplers,
+	VsConstantBuffer,
+	GsConstantBuffer,
+	PsConstantBuffer,
+
+	Count
+};
+
 class RdrContextD3D11 : public RdrContext
 {
+public:
 	bool Init(HWND hWnd, uint width, uint height);
 	void Resize(uint width, uint height);
 
@@ -92,7 +113,7 @@ class RdrContextD3D11 : public RdrContext
 	/////////////////////////////////////////////////////////////
 	// Pipeline state
 	void SetRenderTargets(uint numTargets, const RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget);
-	void SetDepthStencilState(RdrDepthTestMode eDepthTest);
+	void SetDepthStencilState(RdrDepthTestMode eDepthTest, bool bWriteEnabled);
 	void SetBlendState(const bool bAlphaBlend);
 	void SetRasterState(const RdrRasterState& rasterState);
 	void SetViewport(const Rect& viewport);
@@ -121,6 +142,7 @@ class RdrContextD3D11 : public RdrContext
 
 private:
 	ID3D11SamplerState* GetSampler(const RdrSamplerState& state);
+	void ResetDrawState();
 
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pDevContext;
@@ -133,7 +155,10 @@ private:
 	ID3D11SamplerState*      m_pSamplers[SAMPLER_TYPES_COUNT];
 	ID3D11BlendState*        m_pBlendStates[2];
 	ID3D11RasterizerState*   m_pRasterStates[RASTER_STATES_COUNT];
-	ID3D11DepthStencilState* m_pDepthStencilStates[(int)RdrDepthTestMode::Count];
+	ID3D11DepthStencilState* m_pDepthStencilStates[(int)RdrDepthTestMode::Count * 2];
+
+	RdrDrawState m_drawState;
+	uint m_stateChanges[(int)DeviceState::Count];
 
 	uint m_presentFlags;
 };

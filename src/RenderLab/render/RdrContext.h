@@ -81,7 +81,7 @@ public:
 	/////////////////////////////////////////////////////////////
 	// Pipeline state
 	virtual void SetRenderTargets(uint numTargets, const RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget) = 0;
-	virtual void SetDepthStencilState(RdrDepthTestMode eDepthTest) = 0;
+	virtual void SetDepthStencilState(RdrDepthTestMode eDepthTest, bool bWriteEnabled) = 0;
 	virtual void SetBlendState(const bool bAlphaBlend) = 0;
 	virtual void SetRasterState(const RdrRasterState& rasterState) = 0;
 	virtual void SetViewport(const Rect& viewport) = 0;

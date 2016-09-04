@@ -26,15 +26,22 @@ public:
 	RdrTopology eTopology;
 	RdrInputLayout inputLayout;
 
-	RdrVertexBuffer vertexBuffers[3];
 	RdrIndexBuffer indexBuffer;
-	uint vertexStride;
-	uint vertexOffset;
+	RdrVertexBuffer vertexBuffers[3];
+	uint vertexBufferCount;
+	uint vertexStrides[3];
+	uint vertexOffsets[3];
 	uint vertexCount;
 	uint indexCount;
 
+	RdrShaderResourceView vsResources[3];
+	uint vsResourceCount;
+
 	RdrShaderResourceView psResources[20];
+	uint psResourceCount;
+
 	RdrSamplerState psSamplers[16];
+	uint psSamplerCount;
 
 	RdrShaderResourceView csResources[20];
 	RdrSamplerState csSamplers[16];

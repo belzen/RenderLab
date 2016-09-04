@@ -413,12 +413,15 @@ void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState
 	if (m_useHistogramToneMap)
 	{
 		rDrawState.pPixelShader = RdrShaderSystem::GetPixelShader(m_hToneMapHistogramPs);
+
 		rDrawState.psResources[0] = pColorBuffer->resourceView;
-		rDrawState.psSamplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 		rDrawState.psResources[1] = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[1])->resourceView;
-		rDrawState.psSamplers[1] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 		rDrawState.psResources[2] = RdrResourceSystem::GetResource(m_hToneMapOutputConstants)->resourceView;
 		rDrawState.psResources[3] = RdrResourceSystem::GetResource(m_hToneMapHistogramResponseCurve)->resourceView;
+		rDrawState.psResourceCount = 4;
+
+		rDrawState.psSamplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+		rDrawState.psSamplerCount = 1;
 
 		rDrawState.psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(m_hToneMapHistogramSettings)->bufferObj;
 		rDrawState.psConstantBufferCount = 1;
@@ -427,10 +430,12 @@ void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState
 	{
 		rDrawState.pPixelShader = RdrShaderSystem::GetPixelShader(m_hToneMapPs);
 		rDrawState.psResources[0] = pColorBuffer->resourceView;
-		rDrawState.psSamplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 		rDrawState.psResources[1] = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[1])->resourceView;
-		rDrawState.psSamplers[1] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 		rDrawState.psResources[2] = RdrResourceSystem::GetResource(m_hToneMapOutputConstants)->resourceView;
+		rDrawState.psResourceCount = 3;
+
+		rDrawState.psSamplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+		rDrawState.psSamplerCount = 1;
 	}
 
 	// Input assembly
@@ -438,8 +443,9 @@ void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState
 	rDrawState.eTopology = RdrTopology::TriangleList;
 
 	rDrawState.vertexBuffers[0].pBuffer = nullptr;
-	rDrawState.vertexStride = 0;
-	rDrawState.vertexOffset = 0;
+	rDrawState.vertexStrides[0] = 0;
+	rDrawState.vertexOffsets[0] = 0;
+	rDrawState.vertexBufferCount = 1;
 	rDrawState.vertexCount = 3;
 
 	pRdrContext->Draw(rDrawState);

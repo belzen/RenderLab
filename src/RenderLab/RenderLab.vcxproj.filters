@@ -76,9 +76,6 @@
     <FxCompile Include="..\..\data\shaders\c_atmosphere_scatter_single.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\data\shaders\c_sum_textures.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
     <FxCompile Include="..\..\data\shaders\c_add_2d.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>

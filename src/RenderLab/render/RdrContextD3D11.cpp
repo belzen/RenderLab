@@ -183,8 +183,6 @@ bool RdrContextD3D11::CreateDataBuffer(const void* pSrcData, int numElements, Rd
 	if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
 	{
 		D3D11_SHADER_RESOURCE_VIEW_DESC desc;
-		desc.Buffer.ElementOffset = 0;
-		desc.Buffer.ElementWidth = rdrGetTexturePitch(1, eFormat);
 		desc.Buffer.FirstElement = 0;
 		desc.Buffer.NumElements = numElements;
 		desc.Format = getD3DFormat(eFormat);
@@ -406,6 +404,7 @@ bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height)
 	m_pDevContext->QueryInterface(__uuidof(m_pAnnotator), (void**)&m_pAnnotator);
 
 	Resize(width, height);
+	ResetDrawState();
 	return true;
 }
 
@@ -883,9 +882,9 @@ void RdrContextD3D11::ReleaseRenderTargetView(const RdrRenderTargetView& renderT
 	renderTargetView.pView->Release();
 }
 
-void RdrContextD3D11::SetDepthStencilState(RdrDepthTestMode eDepthTest)
+void RdrContextD3D11::SetDepthStencilState(RdrDepthTestMode eDepthTest, bool bWriteEnabled)
 {
-	if (!m_pDepthStencilStates[(int)eDepthTest])
+	if (!m_pDepthStencilStates[(int)eDepthTest * 2 + bWriteEnabled])
 	{
 		D3D11_DEPTH_STENCIL_DESC dsDesc;
 
@@ -902,7 +901,7 @@ void RdrContextD3D11::SetDepthStencilState(RdrDepthTestMode eDepthTest)
 			dsDesc.DepthFunc = D3D11_COMPARISON_NEVER;
 			break;
 		}
-		dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		dsDesc.DepthWriteMask = bWriteEnabled ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
 
 		dsDesc.StencilEnable = false;
 
@@ -1052,6 +1051,9 @@ void RdrContextD3D11::Present()
 			break;
 		}
 	}
+
+	ResetDrawState();
+	memset(m_stateChanges, 0, sizeof(m_stateChanges));
 }
 
 void RdrContextD3D11::Resize(uint width, uint height)
@@ -1145,55 +1147,168 @@ void RdrContextD3D11::ReleaseConstantBuffer(const RdrConstantBufferDeviceObj& bu
 	buffer.pBufferD3D11->Release();
 }
 
+// Compares array data between src and dst, copying differences to dst and returning the range of changed elements.
+template<typename DataT>
+static inline bool updateDataList(const DataT* aSrcData, DataT* aDstData, uint count, int* pOutFirstChanged, int* pOutLastChanged)
+{
+	int firstChanged = -1;
+	int lastChanged = -1;
+	for (uint i = 0; i < count; ++i)
+	{
+		if (aSrcData[i] != aDstData[i])
+		{
+			aDstData[i] = aSrcData[i];
+			lastChanged = i;
+			if (firstChanged < 0)
+				firstChanged = i;
+		}
+	}
+
+	*pOutFirstChanged = firstChanged;
+	*pOutLastChanged = lastChanged;
+	return (firstChanged >= 0);
+}
+
 void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 {
+	static_assert(sizeof(RdrVertexBuffer) == sizeof(ID3D11Buffer*), "RdrVertexBuffer must only contain the device obj pointer.");
 	static_assert(sizeof(RdrConstantBufferDeviceObj) == sizeof(ID3D11Buffer*), "RdrConstantBufferDeviceObj must only contain the device obj pointer.");
+	static_assert(sizeof(RdrShaderResourceView) == sizeof(ID3D11ShaderResourceView*), "RdrVertexBuffer must only contain the device obj pointer.");
+	
+	int firstChanged = -1;
+	int lastChanged = -1;
 
-	m_pDevContext->VSSetShader(rDrawState.pVertexShader->pVertex, nullptr, 0);
-	m_pDevContext->VSSetConstantBuffers(0, rDrawState.vsConstantBufferCount, (ID3D11Buffer**)rDrawState.vsConstantBuffers);
+	//////////////////////////////////////////////////////////////////////////
+	// Input assembler
 
-	if (rDrawState.pGeometryShader)
+	// Primitive topology
+	if (rDrawState.eTopology != m_drawState.eTopology)
 	{
-		m_pDevContext->GSSetShader(rDrawState.pGeometryShader->pGeometry, nullptr, 0);
-		m_pDevContext->GSSetConstantBuffers(0, rDrawState.gsConstantBufferCount, (ID3D11Buffer**)rDrawState.gsConstantBuffers);
+		m_pDevContext->IASetPrimitiveTopology(getD3DTopology(rDrawState.eTopology));
+		m_drawState.eTopology = rDrawState.eTopology;
+		m_stateChanges[(int)DeviceState::PrimitiveTopology]++;
 	}
-	else
+
+	// Input layout
+	if (rDrawState.inputLayout.pInputLayout != m_drawState.inputLayout.pInputLayout)
 	{
-		m_pDevContext->GSSetShader(nullptr, nullptr, 0);
+		m_pDevContext->IASetInputLayout(rDrawState.inputLayout.pInputLayout);
+		m_drawState.inputLayout.pInputLayout = rDrawState.inputLayout.pInputLayout;
+		m_stateChanges[(int)DeviceState::InputLayout]++;
 	}
 
-	if (rDrawState.pPixelShader)
+	// Vertex buffers
+	if (updateDataList<RdrVertexBuffer>(rDrawState.vertexBuffers, m_drawState.vertexBuffers,
+		rDrawState.vertexBufferCount, &firstChanged, &lastChanged))
 	{
-		m_pDevContext->PSSetShader(rDrawState.pPixelShader->pPixel, nullptr, 0);
-		m_pDevContext->PSSetConstantBuffers(0, rDrawState.psConstantBufferCount, (ID3D11Buffer**)rDrawState.psConstantBuffers);
+		m_pDevContext->IASetVertexBuffers(firstChanged, lastChanged - firstChanged + 1, 
+			(ID3D11Buffer**)rDrawState.vertexBuffers + firstChanged, rDrawState.vertexStrides + firstChanged, rDrawState.vertexOffsets + firstChanged);
+		m_stateChanges[(int)DeviceState::VertexBuffer]++;
+	}
 
-		uint numResources = ARRAY_SIZE(rDrawState.psResources);
-		for (uint i = 0; i < numResources; ++i)
+	//////////////////////////////////////////////////////////////////////////
+	// Vertex shader
+	if (rDrawState.pVertexShader != m_drawState.pVertexShader)
+	{
+		m_pDevContext->VSSetShader(rDrawState.pVertexShader->pVertex, nullptr, 0);
+		m_drawState.pVertexShader = rDrawState.pVertexShader;
+		m_stateChanges[(int)DeviceState::VertexShader]++;
+	}
+
+	// VS constants
+	if (updateDataList<RdrConstantBufferDeviceObj>(rDrawState.vsConstantBuffers, m_drawState.vsConstantBuffers,
+		rDrawState.vsConstantBufferCount, &firstChanged, &lastChanged))
+	{
+		m_pDevContext->VSSetConstantBuffers(firstChanged, lastChanged - firstChanged + 1, (ID3D11Buffer**)rDrawState.vsConstantBuffers + firstChanged);
+		m_stateChanges[(int)DeviceState::VsConstantBuffer]++;
+	}
+
+	// VS resources
+	if (updateDataList<RdrShaderResourceView>(rDrawState.vsResources, m_drawState.vsResources,
+		rDrawState.vsResourceCount, &firstChanged, &lastChanged))
+	{
+		m_pDevContext->VSSetShaderResources(firstChanged, lastChanged - firstChanged + 1, (ID3D11ShaderResourceView**)rDrawState.vsResources + firstChanged);
+		m_stateChanges[(int)DeviceState::VsResource]++;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Geometry shader
+	if (rDrawState.pGeometryShader != m_drawState.pGeometryShader)
+	{
+		if (rDrawState.pGeometryShader)
 		{
-			ID3D11ShaderResourceView* pResource = rDrawState.psResources[i].pViewD3D11;
-			m_pDevContext->PSSetShaderResources(i, 1, &pResource);
+			m_pDevContext->GSSetShader(rDrawState.pGeometryShader->pGeometry, nullptr, 0);
 		}
-
-		uint numSamplers = ARRAY_SIZE(rDrawState.psSamplers);
-		for (uint i = 0; i < numSamplers; ++i)
+		else
 		{
-			ID3D11SamplerState* pSampler = GetSampler(rDrawState.psSamplers[i]);
-			m_pDevContext->PSSetSamplers(i, 1, &pSampler);
+			m_pDevContext->GSSetShader(nullptr, nullptr, 0);
 		}
+		m_stateChanges[(int)DeviceState::GeometryShader]++;
+		m_drawState.pGeometryShader = rDrawState.pGeometryShader;
 	}
-	else
+
+	// GS constants
+	if (updateDataList<RdrConstantBufferDeviceObj>(rDrawState.gsConstantBuffers, m_drawState.gsConstantBuffers,
+		rDrawState.gsConstantBufferCount, &firstChanged, &lastChanged))
 	{
-		m_pDevContext->PSSetShader(nullptr, nullptr, 0);
+		m_pDevContext->GSSetConstantBuffers(firstChanged, lastChanged - firstChanged + 1, (ID3D11Buffer**)rDrawState.gsConstantBuffers + firstChanged);
+		m_stateChanges[(int)DeviceState::GsConstantBuffer]++;
 	}
 
-	m_pDevContext->IASetInputLayout(rDrawState.inputLayout.pInputLayout);
-	m_pDevContext->IASetPrimitiveTopology(getD3DTopology(rDrawState.eTopology));
+	//////////////////////////////////////////////////////////////////////////
+	// Pixel shader
+	if (rDrawState.pPixelShader != m_drawState.pPixelShader)
+	{
+		if (rDrawState.pPixelShader)
+		{
+			m_pDevContext->PSSetShader(rDrawState.pPixelShader->pPixel, nullptr, 0);
+		}
+		else
+		{
+			m_pDevContext->PSSetShader(nullptr, nullptr, 0);
+		}
+		m_drawState.pPixelShader = rDrawState.pPixelShader;
+		m_stateChanges[(int)DeviceState::PixelShader]++;
+	}
 
-	m_pDevContext->IASetVertexBuffers(0, 1, &rDrawState.vertexBuffers[0].pBuffer, &rDrawState.vertexStride, &rDrawState.vertexOffset);
+	// PS constants
+	if (updateDataList<RdrConstantBufferDeviceObj>(rDrawState.psConstantBuffers, m_drawState.psConstantBuffers,
+		rDrawState.psConstantBufferCount, &firstChanged, &lastChanged))
+	{
+		m_pDevContext->PSSetConstantBuffers(firstChanged, lastChanged - firstChanged + 1, (ID3D11Buffer**)rDrawState.psConstantBuffers + firstChanged);
+		m_stateChanges[(int)DeviceState::PsConstantBuffer]++;
+	}
+
+	// PS resources
+	if (updateDataList<RdrShaderResourceView>(rDrawState.psResources, m_drawState.psResources,
+		rDrawState.psResourceCount, &firstChanged, &lastChanged))
+	{
+		m_pDevContext->PSSetShaderResources(firstChanged, lastChanged - firstChanged + 1, (ID3D11ShaderResourceView**)rDrawState.psResources + firstChanged);
+		m_stateChanges[(int)DeviceState::PsResource]++;
+	}
+
+	// PS samplers
+	if (updateDataList<RdrSamplerState>(rDrawState.psSamplers, m_drawState.psSamplers,
+		rDrawState.psSamplerCount, &firstChanged, &lastChanged))
+	{
+		ID3D11SamplerState* apSamplers[16] = { 0 };
+		for (int i = firstChanged; i <= lastChanged; ++i)
+		{
+			apSamplers[i] = GetSampler(rDrawState.psSamplers[i]);
+		}
+		m_pDevContext->PSSetSamplers(firstChanged, lastChanged - firstChanged + 1, apSamplers + firstChanged);
+		m_stateChanges[(int)DeviceState::PsSamplers]++;
+	}
 
 	if (rDrawState.indexBuffer.pBuffer)
 	{
-		m_pDevContext->IASetIndexBuffer(rDrawState.indexBuffer.pBuffer, DXGI_FORMAT_R16_UINT, 0);
+		if (rDrawState.indexBuffer.pBuffer != m_drawState.indexBuffer.pBuffer)
+		{
+			m_pDevContext->IASetIndexBuffer(rDrawState.indexBuffer.pBuffer, DXGI_FORMAT_R16_UINT, 0);
+			m_drawState.indexBuffer.pBuffer = rDrawState.indexBuffer.pBuffer;
+			m_stateChanges[(int)DeviceState::IndexBuffer]++;
+		}
+
 		m_pDevContext->DrawIndexed(rDrawState.indexCount, 0, 0);
 	}
 	else
@@ -1204,6 +1319,9 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 
 void RdrContextD3D11::DispatchCompute(const RdrDrawState& rDrawState, uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
 {
+	PSClearResources();
+	ResetDrawState();
+
 	m_pDevContext->CSSetShader(rDrawState.pComputeShader->pCompute, nullptr, 0);
 
 	m_pDevContext->CSSetConstantBuffers(0, rDrawState.csConstantBufferCount, (ID3D11Buffer**)rDrawState.csConstantBuffers);
@@ -1242,12 +1360,14 @@ void RdrContextD3D11::DispatchCompute(const RdrDrawState& rDrawState, uint threa
 		ID3D11UnorderedAccessView* pUnorderedAccessView = nullptr;
 		m_pDevContext->CSSetUnorderedAccessViews(i, 1, &pUnorderedAccessView, nullptr);
 	}
+
+	ResetDrawState();
 }
 
 void RdrContextD3D11::PSClearResources()
 {
-	ID3D11ShaderResourceView* resourceViews[16] = { 0 };
-	m_pDevContext->PSSetShaderResources(0, 16, resourceViews);
+	ID3D11ShaderResourceView* resourceViews[ARRAY_SIZE(RdrDrawState::psResources)] = { 0 };
+	m_pDevContext->PSSetShaderResources(0, 20, resourceViews);
 }
 
 RdrQuery RdrContextD3D11::CreateQuery(RdrQueryType eType)
@@ -1308,4 +1428,9 @@ RdrQueryDisjointData RdrContextD3D11::GetDisjointQueryData(RdrQuery& rQuery)
 	data.frequency = d3dData.Frequency;
 	data.isDisjoint = !!d3dData.Disjoint;
 	return data;
+}
+
+void RdrContextD3D11::ResetDrawState()
+{
+	memset(&m_drawState, -1, sizeof(m_drawState));
 }

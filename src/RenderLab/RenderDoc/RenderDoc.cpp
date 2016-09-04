@@ -6,10 +6,15 @@ namespace
 {
 	HMODULE s_hRenderDocDll = NULL;
 	RENDERDOC_API_1_1_0* s_pRenderDocApi = nullptr;
+
+	bool s_attachRenderDoc = true;
 }
 
 bool RenderDoc::Init()
 {
+	if (!s_attachRenderDoc)
+		return false;
+
 	s_hRenderDocDll = LoadLibrary(L"D:\\RenderDoc_0.30_64\\RenderDoc.dll");
 	if (!s_hRenderDocDll)
 		return false;

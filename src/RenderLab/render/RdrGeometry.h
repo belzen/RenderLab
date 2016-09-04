@@ -45,3 +45,14 @@ struct RdrGeometry
 
 typedef FreeList<RdrGeometry, 1024> RdrGeoList;
 typedef RdrGeoList::Handle RdrGeoHandle;
+
+
+inline bool operator == (const RdrVertexBuffer& rLeft, const RdrVertexBuffer& rRight)
+{
+	return rLeft.pBuffer == rRight.pBuffer;
+}
+
+inline bool operator != (const RdrVertexBuffer& rLeft, const RdrVertexBuffer& rRight)
+{
+	return !(rLeft == rRight);
+}

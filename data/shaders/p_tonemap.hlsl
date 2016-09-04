@@ -8,10 +8,9 @@
 #define TONEMAP_METHOD FILMIC
 
 Texture2D texColor : register(t0);
-SamplerState sampColor : register(s0);
-
 Texture2D texBloom : register(t1);
-SamplerState sampBloom : register(s1);
+
+SamplerState samClamp : register(s0);
 
 StructuredBuffer<ToneMapOutputParams> bufToneMapParams : register(t2);
 
@@ -39,11 +38,11 @@ float3 applyFilmicTonemap(float3 color)
 
 float4 main(VsOutputSprite input) : SV_TARGET
 {
-	float4 color = texColor.Sample(sampColor, input.texcoords);
+	float4 color = texColor.Sample(samClamp, input.texcoords);
 
 	ToneMapOutputParams tonemap = bufToneMapParams[0];
 
-	color.rgb += texBloom.Sample(sampBloom, input.texcoords).rgb;
+	color.rgb += texBloom.Sample(samClamp, input.texcoords).rgb;
 
 #if TONEMAP_HISTOGRAM
 	float logLum = log(getLuminance(color));

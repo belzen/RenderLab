@@ -40,6 +40,7 @@ struct RdrPassData
 
 	RdrShaderMode shaderMode;
 	RdrDepthTestMode depthTestMode;
+	bool bDepthWriteEnabled;
 	bool bAlphaBlend;
 
 	bool bEnabled;
