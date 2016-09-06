@@ -210,6 +210,12 @@ void Sky::PrepareDraw()
 	{
 		const ModelData::SubObject& rSubObject = m_pModelData->GetSubObject(i);
 
+		if (g_debugState.rebuildDrawOps && m_pSubObjectDrawOps[i])
+		{
+			RdrDrawOp::QueueRelease(m_pSubObjectDrawOps[i]);
+			m_pSubObjectDrawOps[i] = nullptr;
+		}
+
 		if (!m_pSubObjectDrawOps[i])
 		{
 			RdrDrawOp* pDrawOp = m_pSubObjectDrawOps[i] = RdrDrawOp::Allocate();

@@ -4,12 +4,22 @@
 cbuffer PerAction : register(b0)
 {
 	VsPerAction cbPerAction;
-}; 
+};
 
+#if IS_INSTANCED
+StructuredBuffer<VsPerObject> g_bufPerObject : register(t0);
+
+cbuffer ObjectIdsBuffer : register(b1)
+{
+	uint4 objectIds[512];
+}
+
+#else
 cbuffer PerObject : register(b1)
 {
-	float4x4 mtxWorld;
+	VsPerObject cbPerObject;
 };
+#endif
 
 struct VertexInput
 {
@@ -19,11 +29,22 @@ struct VertexInput
 	float2 texcoords : TEXCOORD0;
 	float3 tangent : TANGENT;
 	float3 bitangent : BINORMAL;
+#if IS_INSTANCED
+	uint instanceId : SV_InstanceID;
+#endif
 };
 
 VsOutputModel main( VertexInput input )
 {
 	VsOutputModel output = (VsOutputModel)0;
+
+#if IS_INSTANCED
+	uint idx = objectIds[input.instanceId / 4][input.instanceId % 4];
+	VsPerObject perObject = g_bufPerObject[idx];
+	float4x4 mtxWorld = perObject.mtxWorld;
+#else
+	float4x4 mtxWorld = cbPerObject.mtxWorld;
+#endif
 
 	output.position_ws = mul(float4(input.position,1), mtxWorld);
 

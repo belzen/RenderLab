@@ -90,6 +90,7 @@ enum class RdrTexCoordMode
 
 enum class RdrResourceFormat
 {
+	UNKNOWN,
 	D16,
 	D24_UNORM_S8_UINT,
 	R16_UNORM,

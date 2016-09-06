@@ -36,7 +36,7 @@ public:
 
 	virtual bool CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResource& rResource) = 0;
 	virtual bool CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage, RdrResource& rResource) = 0;
-	virtual bool UpdateBuffer(const void* pSrcData, RdrResource& rResource) = 0;
+	virtual bool UpdateBuffer(const void* pSrcData, RdrResource& rResource, int numElements) = 0;
 
 	virtual void CopyResourceRegion(const RdrResource& rSrcResource, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset) = 0;
 	virtual void ReadResource(const RdrResource& rSrcResource, void* pDstData, uint dstDataSize) = 0;
@@ -45,7 +45,9 @@ public:
 
 	virtual void ResolveSurface(const RdrResource& rSrc, const RdrResource& rDst) = 0;
 
-	virtual void PSClearResources() = 0;
+	virtual RdrShaderResourceView CreateShaderResourceViewTexture(const RdrResource& rResource) = 0;
+	virtual RdrShaderResourceView CreateShaderResourceViewBuffer(const RdrResource& rResource, uint firstElement) = 0;
+	virtual void ReleaseShaderResourceView(RdrShaderResourceView& resourceView) = 0;
 
 	/////////////////////////////////////////////////////////////
 	// Depth Stencil Views
@@ -73,7 +75,7 @@ public:
 
 	/////////////////////////////////////////////////////////////
 	// Draw commands
-	virtual void Draw(const RdrDrawState& rDrawState) = 0;
+	virtual void Draw(const RdrDrawState& rDrawState, uint instanceCount) = 0;
 	virtual void DispatchCompute(const RdrDrawState& rDrawState, uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ) = 0;
 
 	virtual void Present() = 0;
@@ -85,6 +87,8 @@ public:
 	virtual void SetBlendState(const bool bAlphaBlend) = 0;
 	virtual void SetRasterState(const RdrRasterState& rasterState) = 0;
 	virtual void SetViewport(const Rect& viewport) = 0;
+
+	virtual void PSClearResources() = 0;
 
 	/////////////////////////////////////////////////////////////
 	// Events

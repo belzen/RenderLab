@@ -9,6 +9,8 @@ struct RdrMaterial
 
 	static const RdrMaterial* LoadFromFile(const char* materialName);
 	static void ReloadMaterial(const char* materialName);
+	// Retrieve a unique id for the material.
+	static uint16 GetMaterialId(const RdrMaterial* pMaterial);
 
 	RdrShaderHandle hPixelShaders[(int)RdrShaderMode::Count];
 	RdrResourceHandle hTextures[kMaxTextures];

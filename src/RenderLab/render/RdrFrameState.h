@@ -4,6 +4,7 @@
 #include "RdrResource.h"
 #include "RdrShaders.h"
 #include "RdrGeometry.h"
+#include "RdrDrawOp.h"
 #include "Camera.h"
 #include "Light.h"
 #include "shapes\Rect.h"
@@ -15,8 +16,30 @@ class LightList;
 class RdrPostProcessEffects;
 class InputManager;
 
+struct RdrDrawBucketEntry
+{
+	RdrDrawBucketEntry(const RdrDrawOp* pDrawOp) 
+		: pDrawOp(pDrawOp)
+	{
+		// TODO: Provide actual depth value for alpha sorting.
+		RdrDrawOp::BuildSortKey(pDrawOp, 0.f, sortKey);
+	}
+
+	static bool SortCompare(const RdrDrawBucketEntry& rLeft, const RdrDrawBucketEntry& rRight)
+	{
+		if (rLeft.sortKey.compare.val1 != rRight.sortKey.compare.val1)
+			return rLeft.sortKey.compare.val1 < rRight.sortKey.compare.val1;
+		else if (rLeft.sortKey.compare.val2 != rRight.sortKey.compare.val2)
+			return rLeft.sortKey.compare.val2 < rRight.sortKey.compare.val2;
+		return rLeft.pDrawOp < rRight.pDrawOp;
+	}
+
+	RdrDrawOpSortKey sortKey;
+	const RdrDrawOp* pDrawOp;
+};
+
+typedef std::vector<RdrDrawBucketEntry> RdrDrawOpBucket;
 typedef std::vector<const RdrComputeOp*> RdrComputeOpBucket;
-typedef std::vector<const RdrDrawOp*> RdrDrawOpBucket;
 
 #define MAX_ACTIONS_PER_FRAME 16
 #define MAX_RENDER_TARGETS 6
@@ -53,7 +76,7 @@ struct RdrShadowPass
 {
 	RdrPassData               passData;
 	RdrGlobalConstants        constants;
-	RdrDrawOpBucket           drawOps;
+	RdrDrawOpBucket           bucket;
 	Camera                    camera;
 	RdrDepthStencilViewHandle hDepthView;
 };

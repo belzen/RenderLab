@@ -4,11 +4,13 @@
 void RdrAction::Reset()
 {
 	for (int i = 0; i < (int)RdrBucketType::Count; ++i)
+	{
 		buckets[i].clear();
+	}
 
 	for (int i = 0; i < MAX_SHADOW_MAPS_PER_FRAME; ++i)
 	{
-		shadowPasses[i].drawOps.clear();
+		shadowPasses[i].bucket.clear();
 		memset(&shadowPasses[i].passData, 0, sizeof(shadowPasses[i].passData));
 	}
 

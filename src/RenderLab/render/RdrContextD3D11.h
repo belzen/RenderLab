@@ -22,31 +22,16 @@ struct ID3DUserDefinedAnnotation;
 
 struct D3D11_INPUT_ELEMENT_DESC;
 
+class RdrProfiler;
+
 #define SAMPLER_TYPES_COUNT (int)RdrComparisonFunc::Count * (int)RdrTexCoordMode::Count * 2
 #define RASTER_STATES_COUNT 2 * 2 * 2
-
-enum class DeviceState
-{
-	VertexShader,
-	GeometryShader,
-	PixelShader,
-	VertexBuffer,
-	IndexBuffer,
-	InputLayout,
-	PrimitiveTopology,
-	VsResource,
-	PsResource,
-	PsSamplers,
-	VsConstantBuffer,
-	GsConstantBuffer,
-	PsConstantBuffer,
-
-	Count
-};
 
 class RdrContextD3D11 : public RdrContext
 {
 public:
+	RdrContextD3D11(RdrProfiler& rProfiler);
+
 	bool Init(HWND hWnd, uint width, uint height);
 	void Resize(uint width, uint height);
 
@@ -68,7 +53,7 @@ public:
 
 	bool CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResource& rResource);
 	bool CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage, RdrResource& rResource);
-	bool UpdateBuffer(const void* pSrcData, RdrResource& rResource);
+	bool UpdateBuffer(const void* pSrcData, RdrResource& rResource, int numElements);
 
 	void CopyResourceRegion(const RdrResource& rSrcResource, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset);
 	void ReadResource(const RdrResource& rSrcResource, void* pDstData, uint dstDataSize);
@@ -77,7 +62,9 @@ public:
 
 	void ResolveSurface(const RdrResource& rSrc, const RdrResource& rDst);
 
-	void PSClearResources();
+	RdrShaderResourceView CreateShaderResourceViewTexture(const RdrResource& rResource);
+	RdrShaderResourceView CreateShaderResourceViewBuffer(const RdrResource& rResource, uint firstElement);
+	void ReleaseShaderResourceView(RdrShaderResourceView& resourceView);
 
 	/////////////////////////////////////////////////////////////
 	// Depth Stencil Views
@@ -105,7 +92,7 @@ public:
 
 	/////////////////////////////////////////////////////////////
 	// Draw commands
-	void Draw(const RdrDrawState& rDrawState);
+	void Draw(const RdrDrawState& rDrawState, uint instanceCount);
 	void DispatchCompute(const RdrDrawState& rDrawState, uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
 
 	void Present();
@@ -117,6 +104,8 @@ public:
 	void SetBlendState(const bool bAlphaBlend);
 	void SetRasterState(const RdrRasterState& rasterState);
 	void SetViewport(const Rect& viewport);
+
+	void PSClearResources();
 
 	/////////////////////////////////////////////////////////////
 	// Events
@@ -158,7 +147,7 @@ private:
 	ID3D11DepthStencilState* m_pDepthStencilStates[(int)RdrDepthTestMode::Count * 2];
 
 	RdrDrawState m_drawState;
-	uint m_stateChanges[(int)DeviceState::Count];
+	RdrProfiler& m_rProfiler;
 
 	uint m_presentFlags;
 };

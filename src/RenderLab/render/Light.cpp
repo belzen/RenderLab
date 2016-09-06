@@ -332,7 +332,7 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const fl
 		}
 		else
 		{
-			RdrResourceSystem::UpdateStructuredBuffer(m_hSpotLightListRes, pSpotLights);
+			RdrResourceSystem::UpdateBuffer(m_hSpotLightListRes, pSpotLights, m_numSpotLights);
 		}
 
 		if (!m_hPointLightListRes)
@@ -341,7 +341,7 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const fl
 		}
 		else
 		{
-			RdrResourceSystem::UpdateStructuredBuffer(m_hPointLightListRes, pPointLights);
+			RdrResourceSystem::UpdateBuffer(m_hPointLightListRes, pPointLights, m_numPointLights);
 		}
 
 		pDirectionalList->numLights = numDirectionalLights;
@@ -356,7 +356,7 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const fl
 
 		if (m_hShadowMapDataRes)
 		{
-			RdrResourceSystem::UpdateStructuredBuffer(m_hShadowMapDataRes, pShadowData);
+			RdrResourceSystem::UpdateBuffer(m_hShadowMapDataRes, pShadowData);
 		}
 		else
 		{

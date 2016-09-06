@@ -448,7 +448,7 @@ void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState
 	rDrawState.vertexBufferCount = 1;
 	rDrawState.vertexCount = 3;
 
-	pRdrContext->Draw(rDrawState);
+	pRdrContext->Draw(rDrawState, 1);
 
 	rDrawState.Reset();
 

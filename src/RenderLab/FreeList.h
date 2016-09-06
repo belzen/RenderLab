@@ -6,6 +6,7 @@ class FreeList
 {
 public:
 	typedef uint16 Handle;
+	static const uint16 kMaxEntries = T_nMaxEntries;
 
 	FreeList() 
 		: m_nextId(1), m_numFree(0)
@@ -75,6 +76,18 @@ public:
 	inline Handle getId(const T_object* pObj)
 	{
 		return (Handle)(pObj - m_objects);
+	}
+
+	// Note: This isn't accurate.  It returns the highest index that 
+	// was ever allocated, not what is currently in use.
+	inline Handle getMaxUsedId() const
+	{
+		return m_nextId;
+	}
+
+	inline const T_object* data() const
+	{
+		return m_objects;
 	}
 
 	inline void AcquireLock()

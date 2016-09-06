@@ -7,4 +7,9 @@ struct VsPerAction
 	float3 cameraPosition;
 };
 
+struct VsPerObject
+{
+	float4x4 mtxWorld;
+};
+
 #endif // SHADER_V_CONSTANTS_H

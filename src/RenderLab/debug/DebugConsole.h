@@ -6,7 +6,8 @@ class Renderer;
 
 enum class DebugCommandArgType
 {
-	Number,
+	Integer,
+	Float,
 	String,
 };
 
@@ -15,7 +16,8 @@ union DebugCommandArg
 	DebugCommandArgType type;
 	union
 	{
-		float num;
+		int inum;
+		float fnum;
 		char* str;
 	} val;
 };

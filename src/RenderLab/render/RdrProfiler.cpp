@@ -5,6 +5,7 @@
 void RdrProfiler::Init(RdrContext* pRdrContext)
 {
 	m_pRdrContext = pRdrContext;
+	m_hRenderThreadTimer = Timer::Create();
 }
 
 void RdrProfiler::Cleanup()
@@ -66,6 +67,9 @@ void RdrProfiler::EndSection()
 
 void RdrProfiler::BeginFrame()
 {
+	// Reset counters
+	memset(m_counters, 0, sizeof(m_counters));
+
 	RdrQuery& rDisjointQuery = m_disjointQueries[m_currFrame];
 	if (!rDisjointQuery.pTypeless)
 	{
@@ -74,6 +78,8 @@ void RdrProfiler::BeginFrame()
 
 	m_pRdrContext->BeginQuery(rDisjointQuery);
 	BeginSection(RdrProfileSection::Frame);
+
+	Timer::Reset(m_hRenderThreadTimer);
 }
 
 void RdrProfiler::EndFrame()
@@ -113,9 +119,24 @@ void RdrProfiler::EndFrame()
 		m_queryPool.push_back(rQueries);
 	}
 	rQueryList.clear();
+
+	// Update counters
+	memcpy(m_prevCounters, m_counters, sizeof(m_prevCounters));
+
+	m_renderThreadTime = Timer::GetElapsedSeconds(m_hRenderThreadTimer);
 }
 
 float RdrProfiler::GetSectionTime(RdrProfileSection eSection) const
 {
 	return m_timings[(int)eSection];
+}
+
+uint RdrProfiler::GetCounter(RdrProfileCounter eCounter) const
+{
+	return m_prevCounters[(int)eCounter];
+}
+
+float RdrProfiler::GetRenderThreadTime() const
+{
+	return m_renderThreadTime;
 }

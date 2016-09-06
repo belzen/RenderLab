@@ -6,15 +6,10 @@ namespace
 {
 	HMODULE s_hRenderDocDll = NULL;
 	RENDERDOC_API_1_1_0* s_pRenderDocApi = nullptr;
-
-	bool s_attachRenderDoc = true;
 }
 
 bool RenderDoc::Init()
 {
-	if (!s_attachRenderDoc)
-		return false;
-
 	s_hRenderDocDll = LoadLibrary(L"D:\\RenderDoc_0.30_64\\RenderDoc.dll");
 	if (!s_hRenderDocDll)
 		return false;
@@ -26,7 +21,9 @@ bool RenderDoc::Init()
 	if (!pGetApiFunc(eRENDERDOC_API_Version_1_1_0, (void**)&s_pRenderDocApi))
 		return false;
 
-	s_pRenderDocApi->SetCaptureOptionU32(RENDERDOC_CaptureOption::eRENDERDOC_Option_APIValidation, 1);
+	s_pRenderDocApi->SetCaptureOptionU32(RENDERDOC_CaptureOption::eRENDERDOC_Option_APIValidation, g_debugState.debugDevice);
+	s_pRenderDocApi->SetCaptureOptionU32(RENDERDOC_CaptureOption::eRENDERDOC_Option_DebugOutputMute, 0);
+
 	return true;
 }
 

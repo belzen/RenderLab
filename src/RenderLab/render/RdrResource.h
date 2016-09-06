@@ -31,7 +31,7 @@ struct RdrTextureInfo
 	uint sampleCount;
 };
 
-struct RdrStructuredBufferInfo
+struct RdrBufferInfo
 {
 	RdrResourceFormat eFormat;
 	uint elementSize;
@@ -68,12 +68,15 @@ struct RdrResource
 
 	RdrShaderResourceView resourceView;
 	RdrUnorderedAccessView uav;
+	RdrResourceUsage eUsage;
 
 	union
 	{
 		RdrTextureInfo texInfo;
-		RdrStructuredBufferInfo bufferInfo;
+		RdrBufferInfo bufferInfo;
 	};
+
+	bool bIsTexture; // Whether this resource is a texture or a buffer.
 };
 
 union RdrConstantBufferDeviceObj
@@ -126,3 +129,6 @@ typedef RdrRenderTargetViewList::Handle RdrRenderTargetViewHandle;
 
 typedef FreeList<RdrDepthStencilView, 128> RdrDepthStencilViewList;
 typedef RdrDepthStencilViewList::Handle RdrDepthStencilViewHandle;
+
+typedef FreeList<RdrShaderResourceView, 1024> RdrShaderResourceViewList;
+typedef RdrShaderResourceViewList::Handle RdrShaderResourceViewHandle;

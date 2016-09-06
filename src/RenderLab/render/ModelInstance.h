@@ -11,7 +11,7 @@ namespace AssetLib
 }
 
 class ModelInstance;
-typedef FreeList<ModelInstance, 1024> ModelInstanceFreeList;
+typedef FreeList<ModelInstance, 6 * 1024> ModelInstanceFreeList;
 
 class ModelInstance
 {
@@ -31,9 +31,13 @@ private:
 	friend ModelInstanceFreeList;
 	ModelInstance() {}
 
+	// Whether the model should allow GPU hardware instancing.
+	bool CanInstance() const;
+
 	ModelData* m_pModelData;
 	RdrDrawOp* m_pSubObjectDrawOps[ModelData::kMaxSubObjects];
 	RdrConstantBufferHandle m_hVsPerObjectConstantBuffer;
+	uint16 m_instancedDataId;
 	RdrInputLayoutHandle m_hInputLayout;
 };
 

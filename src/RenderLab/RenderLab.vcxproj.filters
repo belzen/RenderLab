@@ -188,6 +188,10 @@
     <ClCompile Include="render\RdrComputeOp.cpp">
       <Filter>render</Filter>
     </ClCompile>
+    <ClCompile Include="GlobalState.cpp" />
+    <ClCompile Include="render\RdrInstancedObjectDataBuffer.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -326,6 +330,10 @@
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="render\RdrComputeOp.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="GlobalState.h" />
+    <ClInclude Include="render\RdrInstancedObjectDataBuffer.h">
       <Filter>render</Filter>
     </ClInclude>
   </ItemGroup>

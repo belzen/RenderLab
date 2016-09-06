@@ -19,7 +19,7 @@ namespace
 
 void cmdShowDebugger(DebugCommandArg* args, int numArgs)
 {
-	if (args[1].val.num == 0)
+	if (args[1].val.inum == 0)
 	{
 		Debug::DeactivateDebugger(args[0].val.str);
 	}
@@ -32,7 +32,7 @@ void cmdShowDebugger(DebugCommandArg* args, int numArgs)
 void Debug::Init()
 {
 	DebugConsole::Init();
-	DebugConsole::RegisterCommand("dbg", cmdShowDebugger, DebugCommandArgType::String, DebugCommandArgType::Number);
+	DebugConsole::RegisterCommand("dbg", cmdShowDebugger, DebugCommandArgType::String, DebugCommandArgType::Integer);
 }
 
 void Debug::RegisterDebugger(const char* name, IDebugger* pDebugger)
@@ -133,6 +133,18 @@ void Debug::QueueDraw(Renderer& rRenderer, const Camera& rCamera, const FrameTim
 
 		uiPos.y.val += 20.f;
 		sprintf_s(line, "  UI: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::UI));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
+		sprintf_s(line, "  Draw Calls: %d", rProfiler.GetCounter(RdrProfileCounter::DrawCall));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
+		sprintf_s(line, "  Tris: %d", rProfiler.GetCounter(RdrProfileCounter::Triangles));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
+		sprintf_s(line, "  RT: %.4f ms", rProfiler.GetRenderThreadTime() * 1000.f);
 		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
 	}
 

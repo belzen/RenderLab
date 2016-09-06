@@ -8,15 +8,13 @@
 
 namespace
 {
-	int s_debugShaders = 0;
-
 	ID3D10Blob* compileShaderD3D(const char* pShaderText, uint textLen, const char* entrypoint, const char* shadermodel)
 	{
 		HRESULT hr;
 		ID3D10Blob* pCompiledData;
 		ID3D10Blob* pErrors = nullptr;
 
-		uint flags = (s_debugShaders ? D3DCOMPILE_DEBUG : D3DCOMPILE_OPTIMIZATION_LEVEL3);
+		uint flags = (g_debugState.debugShaders ? D3DCOMPILE_DEBUG : D3DCOMPILE_OPTIMIZATION_LEVEL3);
 
 		hr = D3DCompile(pShaderText, textLen, nullptr, nullptr, nullptr, entrypoint, shadermodel, flags, 0, &pCompiledData, &pErrors);
 		if (hr != S_OK)

@@ -43,6 +43,7 @@ namespace
 	{
 		RdrResourceHandle hResource;
 		const void* pData;
+		uint numElements;
 	};
 
 	struct ResCmdReleaseResource
@@ -98,16 +99,30 @@ namespace
 		RdrDepthStencilViewHandle hView;
 	};
 
+	struct ResCmdCreateShaderResourceView
+	{
+		RdrShaderResourceViewHandle hView;
+		RdrResourceHandle hResource;
+		int firstElement;
+	};
+
+	struct ResCmdReleaseShaderResourceView
+	{
+		RdrShaderResourceViewHandle hView;
+	};
+
 	struct ResFrameState
 	{
-		SizedArray<ResCmdCreateTexture, 1024>         textureCreates;
-		SizedArray<ResCmdCreateBuffer, 1024>          bufferCreates;
-		SizedArray<ResCmdUpdateBuffer, 1024>          bufferUpdates;
-		SizedArray<ResCmdReleaseResource, 1024>       resourceReleases;
-		SizedArray<ResCmdCreateRenderTarget, 1024>    renderTargetCreates;
-		SizedArray<ResCmdReleaseRenderTarget, 1024>   renderTargetReleases;
-		SizedArray<ResCmdCreateDepthStencil, 1024>    depthStencilCreates;
-		SizedArray<ResCmdReleaseDepthStencil, 1024>   depthStencilReleases;
+		SizedArray<ResCmdCreateTexture, 1024>				textureCreates;
+		SizedArray<ResCmdCreateBuffer, 1024>				bufferCreates;
+		SizedArray<ResCmdUpdateBuffer, 1024>				bufferUpdates;
+		SizedArray<ResCmdReleaseResource, 1024>				resourceReleases;
+		SizedArray<ResCmdCreateRenderTarget, 1024>			renderTargetCreates;
+		SizedArray<ResCmdReleaseRenderTarget, 1024>			renderTargetReleases;
+		SizedArray<ResCmdCreateDepthStencil, 1024>			depthStencilCreates;
+		SizedArray<ResCmdReleaseDepthStencil, 1024>			depthStencilReleases;
+		SizedArray<ResCmdCreateShaderResourceView, 1024>    shaderResourceViewCreates;
+		SizedArray<ResCmdReleaseShaderResourceView, 1024>   shaderResourceViewReleases;
 
 		SizedArray<ResCmdCreateConstantBuffer, 2048>  constantBufferCreates;
 		SizedArray<ResCmdUpdateConstantBuffer, 2048>  constantBufferUpdates;
@@ -131,6 +146,7 @@ namespace
 
 		RdrRenderTargetViewList renderTargetViews;
 		RdrDepthStencilViewList depthStencilViews;
+		RdrShaderResourceViewList shaderResourceViews;
 		RdrRenderTargetView primaryRenderTarget;
 
 		ResFrameState states[2];
@@ -307,13 +323,34 @@ RdrResourceHandle RdrResourceSystem::CreateStructuredBuffer(const void* pSrcData
 	return cmd.hResource;
 }
 
-RdrResourceHandle RdrResourceSystem::UpdateStructuredBuffer(const RdrResourceHandle hResource, const void* pSrcData)
+RdrResourceHandle RdrResourceSystem::UpdateBuffer(const RdrResourceHandle hResource, const void* pSrcData, int numElements)
 {
 	ResCmdUpdateBuffer& cmd = getQueueState().bufferUpdates.pushSafe();
 	cmd.hResource = hResource;
 	cmd.pData = pSrcData;
+	cmd.numElements = numElements;
 
 	return cmd.hResource;
+}
+
+RdrShaderResourceViewHandle RdrResourceSystem::CreateShaderResourceView(RdrResourceHandle hResource, uint firstElement)
+{
+	assert(hResource);
+
+	RdrShaderResourceView* pView = s_resourceSystem.shaderResourceViews.allocSafe();
+
+	ResCmdCreateShaderResourceView& cmd = getQueueState().shaderResourceViewCreates.pushSafe();
+	cmd.hResource = hResource;
+	cmd.hView = s_resourceSystem.shaderResourceViews.getId(pView);
+	cmd.firstElement = firstElement;
+
+	return cmd.hView;
+}
+
+void RdrResourceSystem::ReleaseShaderResourceView(RdrShaderResourceViewHandle hView)
+{
+	ResCmdReleaseShaderResourceView& cmd = getQueueState().shaderResourceViewReleases.pushSafe();
+	cmd.hView = hView;
 }
 
 RdrConstantBufferHandle RdrResourceSystem::CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage)
@@ -545,6 +582,16 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 		s_resourceSystem.depthStencilViews.releaseIdSafe(cmd.hView);
 	}
 
+	// Free shader resource views
+	numCmds = (uint)state.shaderResourceViewReleases.size();
+	for (uint i = 0; i < numCmds; ++i)
+	{
+		ResCmdReleaseShaderResourceView& cmd = state.shaderResourceViewReleases[i];
+		RdrShaderResourceView* pView = s_resourceSystem.shaderResourceViews.get(cmd.hView);
+		pRdrContext->ReleaseShaderResourceView(*pView);
+		s_resourceSystem.shaderResourceViews.releaseIdSafe(cmd.hView);
+	}
+
 	// Free constant buffers
 	s_resourceSystem.constantBuffers.AcquireLock();
 	{
@@ -567,6 +614,8 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 		pRdrContext->CreateTexture(cmd.pData, cmd.texInfo, cmd.eUsage, *pResource);
 		pResource->texInfo = cmd.texInfo;
+		pResource->eUsage = cmd.eUsage;
+		pResource->bIsTexture = true;
 
 		SAFE_DELETE(cmd.pHeaderData);
 	}
@@ -577,7 +626,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	{
 		ResCmdUpdateBuffer& cmd = state.bufferUpdates[i];
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
-		pRdrContext->UpdateBuffer(cmd.pData, *pResource);
+		pRdrContext->UpdateBuffer(cmd.pData, *pResource, cmd.numElements);
 	}
 
 	// Create buffers
@@ -590,6 +639,8 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 		pResource->bufferInfo.elementSize = cmd.elementSize;
 		pResource->bufferInfo.numElements = cmd.numElements;
 		pResource->bufferInfo.eFormat = cmd.eFormat;
+		pResource->eUsage = cmd.eUsage;
+		pResource->bIsTexture = false;
 
 		if (cmd.elementSize)
 		{
@@ -632,6 +683,23 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 		else
 		{
 			*pView = pRdrContext->CreateDepthStencilView(*pResource);
+		}
+	}
+
+	// Create shader resource views
+	numCmds = (uint)state.shaderResourceViewCreates.size();
+	for (uint i = 0; i < numCmds; ++i)
+	{
+		ResCmdCreateShaderResourceView& cmd = state.shaderResourceViewCreates[i];
+		RdrShaderResourceView* pView = s_resourceSystem.shaderResourceViews.get(cmd.hView);
+		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
+		if (pResource->bIsTexture)
+		{
+			*pView = pRdrContext->CreateShaderResourceViewTexture(*pResource);
+		}
+		else
+		{
+			*pView = pRdrContext->CreateShaderResourceViewBuffer(*pResource, cmd.firstElement);
 		}
 	}
 

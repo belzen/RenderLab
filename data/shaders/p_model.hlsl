@@ -1,6 +1,8 @@
 #include "p_common.hlsli"
-#include "light_inc.hlsli"
 #include "v_output.hlsli"
+#if !DEPTH_ONLY
+#include "light_inc.hlsli"
+#endif
 
 Texture2D texDiffuse : register(t0);
 SamplerState sampDiffuse : register(s0);

@@ -232,6 +232,8 @@ namespace
 			aDefines[numDefines++] = "CUBEMAP_CAPTURE";
 		if ((flags & RdrShaderFlags::AlphaCutout) != RdrShaderFlags::None)
 			aDefines[numDefines++] = "ALPHA_CUTOUT";
+		if ((flags & RdrShaderFlags::IsInstanced) != RdrShaderFlags::None)
+			aDefines[numDefines++] = "IS_INSTANCED";
 		
 		ID3D10Blob* pPreprocData = preprocessShader(rShaderDef.filename, aDefines, numDefines);
 		assert(pPreprocData);
@@ -312,14 +314,14 @@ namespace
 
 	void cmdSetGlobalShaderDefine(DebugCommandArg* args, int numArgs)
 	{
-		RdrShaderSystem::SetGlobalShaderDefine(args[0].val.str, (args[0].val.num != 0.f));
+		RdrShaderSystem::SetGlobalShaderDefine(args[0].val.str, (args[0].val.inum != 0));
 	}
 }
 
 void RdrShaderSystem::Init(RdrContext* pRdrContext)
 {
 	// Debug commands
-	DebugConsole::RegisterCommand("SetGlobalShaderDefine", cmdSetGlobalShaderDefine, DebugCommandArgType::String, DebugCommandArgType::Number);
+	DebugConsole::RegisterCommand("SetGlobalShaderDefine", cmdSetGlobalShaderDefine, DebugCommandArgType::String, DebugCommandArgType::Integer);
 
 	//////////////////////////////////////
 	// Load default shaders.
@@ -515,8 +517,6 @@ RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename,
 
 RdrInputLayoutHandle RdrShaderSystem::CreateInputLayout(const RdrVertexShader& vertexShader, const RdrVertexInputElement* aVertexElements, const uint numElements)
 {
-	RdrInputLayout* pLayout = s_shaderSystem.inputLayouts.allocSafe();
-
 	// Check for cached input layout
 	Hashing::SHA1 hash;
 	Hashing::SHA1::Calculate((char*)aVertexElements, numElements, hash);
@@ -532,6 +532,8 @@ RdrInputLayoutHandle RdrShaderSystem::CreateInputLayout(const RdrVertexShader& v
 	}
 
 	// Layout doesn't already exist, create a new one.
+	RdrInputLayout* pLayout = s_shaderSystem.inputLayouts.allocSafe();
+
 	ShdrCmdCreateInputLayout& cmd = getQueueState().layoutCreates.pushSafe();
 	cmd.hLayout = s_shaderSystem.inputLayouts.getId(pLayout);
 	cmd.vertexShader = vertexShader;

@@ -136,7 +136,6 @@ void Scene::Load(const char* sceneName)
 	// Objects
 	{
 		uint numObjects = pSceneData->objectCount;
-
 		for (uint i = 0; i < numObjects; ++i)
 		{
 			const AssetLib::Object& rObjectData = pSceneData->objects.ptr[i];

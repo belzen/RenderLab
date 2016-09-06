@@ -22,9 +22,11 @@ namespace RdrResourceSystem
 	RdrResourceHandle CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
 
 	RdrResourceHandle CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
-
 	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage);
-	RdrResourceHandle UpdateStructuredBuffer(const RdrResourceHandle hResource, const void* pSrcData);
+	RdrResourceHandle UpdateBuffer(const RdrResourceHandle hResource, const void* pSrcData, int numElements = -1);
+
+	RdrShaderResourceViewHandle CreateShaderResourceView(RdrResourceHandle hResource, uint firstElement);
+	void ReleaseShaderResourceView(RdrShaderResourceViewHandle hView);
 
 	RdrConstantBufferHandle CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
 	RdrConstantBufferHandle CreateTempConstantBuffer(const void* pData, uint size);

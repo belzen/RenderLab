@@ -13,6 +13,7 @@
 #include "RdrScratchMem.h"
 #include "RdrDrawOp.h"
 #include "RdrComputeOp.h"
+#include "RdrInstancedObjectDataBuffer.h"
 #include "Scene.h"
 #include "../../data/shaders/light_types.h"
 
@@ -20,25 +21,18 @@
 
 namespace
 {
+	const uint kMaxInstancesPerDraw = 2048;
+
 	// Hidden global reference to the Renderer for debug commands.
 	// There should only ever be one renderer, but I don't want every system to be
 	// able to access it through a singleton or other global pattern.
-	// This keeps the global ref containined to only this file.
+	// This keeps the global ref contained to only this file.
 	static Renderer* g_pRenderer = nullptr;
-
-	static bool s_wireframe = 0;
-	static int s_msaaLevel = 2;
-
-	void cmdSetWireframeEnabled(DebugCommandArg *args, int numArgs)
-	{
-		s_wireframe = (args[0].val.num != 0.f);
-	}
 
 	void cmdSetLightingMethod(DebugCommandArg *args, int numArgs)
 	{
-		g_pRenderer->SetLightingMethod((RdrLightingMethod)(int)args[0].val.num);
+		g_pRenderer->SetLightingMethod((RdrLightingMethod)args[0].val.inum);
 	}
-
 
 	enum class RdrPsResourceSlots
 	{
@@ -117,7 +111,8 @@ namespace
 				{
 					if (!pDrawOp->bHasAlpha && !pDrawOp->bIsSky)
 					{
-						rOpaqueBucket.push_back(pDrawOp);
+						RdrDrawBucketEntry entry(pDrawOp);
+						rOpaqueBucket.push_back(entry);
 					}
 				}
 			}
@@ -155,18 +150,19 @@ namespace
 				const RdrDrawOp* pDrawOp = apDrawOps[k];
 				if (pDrawOp)
 				{
+					RdrDrawBucketEntry entry(pDrawOp);
 					if (pDrawOp->bHasAlpha)
 					{
-						rAlphaBucket.push_back(pDrawOp);
+						rAlphaBucket.push_back(entry);
 					}
 					else if (pDrawOp->bIsSky)
 					{
-						rSkyBucket.push_back(pDrawOp);
+						rSkyBucket.push_back(entry);
 						testDepth = false;
 					}
 					else
 					{
-						rOpaqueBucket.push_back(pDrawOp);
+						rOpaqueBucket.push_back(entry);
 					}
 				}
 			}
@@ -196,17 +192,18 @@ namespace
 				const RdrDrawOp* pDrawOp = apDrawOps[k];
 				if (pDrawOp)
 				{
+					RdrDrawBucketEntry entry(pDrawOp);
 					if (pDrawOp->bHasAlpha)
 					{
-						rAlphaBucket.push_back(pDrawOp);
+						rAlphaBucket.push_back(entry);
 					}
 					else if (pDrawOp->bIsSky)
 					{
-						rSkyBucket.push_back(pDrawOp);
+						rSkyBucket.push_back(entry);
 					}
 					else
 					{
-						rOpaqueBucket.push_back(pDrawOp);
+						rOpaqueBucket.push_back(entry);
 					}
 				}
 			}
@@ -300,10 +297,9 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 	assert(g_pRenderer == nullptr);
 	g_pRenderer = this;
 
-	DebugConsole::RegisterCommand("wireframe", cmdSetWireframeEnabled, DebugCommandArgType::Number);
-	DebugConsole::RegisterCommand("lightingMethod", cmdSetLightingMethod, DebugCommandArgType::Number);
+	DebugConsole::RegisterCommand("lightingMethod", cmdSetLightingMethod, DebugCommandArgType::Integer);
 
-	m_pContext = new RdrContextD3D11();
+	m_pContext = new RdrContextD3D11(m_profiler);
 	if (!m_pContext->Init(hWnd, width, height))
 		return false;
 
@@ -322,6 +318,23 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 
 	Font::Init();
 	m_postProcess.Init();
+
+	// Create instance ids buffers
+	m_currentInstanceIds = 0;
+	for (int i = 0; i < ARRAY_SIZE(m_instanceIds); ++i)
+	{
+		size_t temp;
+		void* pAlignedData;
+
+		uint dataSize = kMaxInstancesPerDraw * sizeof(uint) + 16;
+		m_instanceIds[i].pData = new char[dataSize];
+		pAlignedData = (void*)m_instanceIds[i].pData;
+		std::align(16, dataSize, pAlignedData, temp);
+
+		m_instanceIds[i].ids = (uint*)pAlignedData;
+		m_instanceIds[i].buffer.size = RdrConstantBuffer::GetRequiredSize(kMaxInstancesPerDraw * sizeof(uint));
+		m_instanceIds[i].buffer.bufferObj = m_pContext->CreateConstantBuffer(nullptr, m_instanceIds[i].buffer.size, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+	}
 
 	return true;
 }
@@ -363,9 +376,9 @@ void Renderer::ApplyDeviceChanges()
 
 		// FP16 color
 		m_hColorBuffer = RdrResourceSystem::CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
-		if (s_msaaLevel > 1)
+		if (g_debugState.msaaLevel > 1)
 		{
-			m_hColorBufferMultisampled = RdrResourceSystem::CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, s_msaaLevel);
+			m_hColorBufferMultisampled = RdrResourceSystem::CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, g_debugState.msaaLevel);
 			m_hColorBufferRenderTarget = RdrResourceSystem::CreateRenderTargetView(m_hColorBufferMultisampled);
 		}
 		else
@@ -375,7 +388,7 @@ void Renderer::ApplyDeviceChanges()
 		}
 
 		// Depth Buffer
-		m_hPrimaryDepthBuffer = RdrResourceSystem::CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::D24_UNORM_S8_UINT, s_msaaLevel);
+		m_hPrimaryDepthBuffer = RdrResourceSystem::CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::D24_UNORM_S8_UINT, g_debugState.msaaLevel);
 		m_hPrimaryDepthStencilView = RdrResourceSystem::CreateDepthStencilView(m_hPrimaryDepthBuffer);
 
 		m_viewWidth = m_pendingViewWidth;
@@ -607,7 +620,8 @@ void Renderer::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHand
 		rPassData.shaderMode = RdrShaderMode::DepthOnly;
 	}
 
-	cullSceneToCameraForShadows(rCamera, *m_pCurrentAction->pScene, rShadowPass.drawOps);
+	cullSceneToCameraForShadows(rCamera, *m_pCurrentAction->pScene, rShadowPass.bucket);
+	std::sort(rShadowPass.bucket.begin(), rShadowPass.bucket.end(), RdrDrawBucketEntry::SortCompare);
 
 	createPerActionConstants(rCamera, viewport, rShadowPass.constants);
 	rShadowPass.constants.hPsAtmosphere = 0;
@@ -639,7 +653,8 @@ void Renderer::QueueShadowCubeMapPass(const Light* pLight, RdrDepthStencilViewHa
 		rPassData.bIsCubeMapCapture = true;
 	}
 
-	cullSceneToCameraForShadows(rShadowPass.camera, *m_pCurrentAction->pScene, rShadowPass.drawOps);
+	cullSceneToCameraForShadows(rShadowPass.camera, *m_pCurrentAction->pScene, rShadowPass.bucket);
+	std::sort(rShadowPass.bucket.begin(), rShadowPass.bucket.end(), RdrDrawBucketEntry::SortCompare);
 
 	createPerActionConstants(rShadowPass.camera, viewport, rShadowPass.constants);
 	rShadowPass.constants.hPsAtmosphere = 0;
@@ -797,7 +812,8 @@ void Renderer::AddDrawOpToBucket(const RdrDrawOp* pDrawOp, RdrBucketType eBucket
 #if ENABLE_DRAWOP_VALIDATION
 	validateDrawOp(pDrawOp);
 #endif
-	m_pCurrentAction->buckets[(int)eBucket].push_back(pDrawOp);
+	RdrDrawBucketEntry entry(pDrawOp);
+	m_pCurrentAction->buckets[(int)eBucket].push_back(entry);
 }
 
 void Renderer::AddComputeOpToPass(const RdrComputeOp* pComputeOp, RdrPass ePass)
@@ -860,10 +876,6 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 
 	m_pContext->SetViewport(rPass.viewport);
 
-	const RdrResourceHandle hLightIndicesBuffer = (m_eLightingMethod == RdrLightingMethod::Clustered) 
-		? m_clusteredLightData.hLightIndices 
-		: m_tiledLightData.hLightIndices;
-
 	// Compute ops
 	{
 		RdrComputeOpBucket::const_iterator opIter = rPass.computeOps.begin();
@@ -875,16 +887,9 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 	}
 
 	// Draw ops
-	{
-		const RdrGlobalConstants& rGlobalConstants = (ePass == RdrPass::UI) ? rAction.uiConstants : rAction.constants;
-		RdrDrawOpBucket::const_iterator opIter = rAction.buckets[(int)s_passBuckets[(int)ePass]].begin();
-		RdrDrawOpBucket::const_iterator opEndIter = rAction.buckets[(int)s_passBuckets[(int)ePass]].end();
-		for (; opIter != opEndIter; ++opIter)
-		{
-			const RdrDrawOp* pDrawOp = *opIter;
-			DrawGeo(rPass, rGlobalConstants, pDrawOp, rAction.lightParams, hLightIndicesBuffer);
-		}
-	}
+	const RdrDrawOpBucket& rBucket = rAction.buckets[(int)s_passBuckets[(int)ePass]];
+	const RdrGlobalConstants& rGlobalConstants = (ePass == RdrPass::UI) ? rAction.uiConstants : rAction.constants;
+	DrawBucket(rPass, rBucket, rGlobalConstants, rAction.lightParams);
 
 	m_pContext->EndEvent();
 	m_profiler.EndSection();
@@ -941,19 +946,36 @@ void Renderer::DrawShadowPass(const RdrShadowPass& rShadowPass)
 	m_pContext->SetViewport(rPassData.viewport);
 
 	RdrLightParams lightParams;
-	RdrDrawOpBucket::const_iterator opIter = rShadowPass.drawOps.begin();
-	RdrDrawOpBucket::const_iterator opEndIter = rShadowPass.drawOps.end();
-	for (; opIter != opEndIter; ++opIter)
-	{
-		const RdrDrawOp* pDrawOp = *opIter;
-		DrawGeo(rPassData, rShadowPass.constants, pDrawOp, lightParams, 0);
-	}
+	const RdrDrawOpBucket& rBucket = rShadowPass.bucket;
+	DrawBucket(rPassData, rBucket, rShadowPass.constants, lightParams);
 
 	m_pContext->EndEvent();
 }
 
 void Renderer::PostFrameSync()
 {
+	//////////////////////////////////////////////////////////////////////////
+	// Finalize pending frame data.
+	{
+		RdrFrameState& rQueueState = GetQueueState();
+
+		// Sort buckets and build object index buffers
+		for (uint iAction = 0; iAction < rQueueState.numActions; ++iAction)
+		{
+			RdrAction& rAction = rQueueState.actions[iAction];
+			for (int i = 0; i < (int)RdrBucketType::Count; ++i)
+			{
+				RdrDrawOpBucket& rBucket = rAction.buckets[i];
+				std::sort(rBucket.begin(), rBucket.end(), RdrDrawBucketEntry::SortCompare);
+			}
+		}
+
+		// Update global data
+		RdrInstancedObjectDataBuffer::UpdateBuffer();
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Clear the data that we just rendered with.
 	RdrFrameState& rActiveState = GetActiveState();
 	assert(!m_pCurrentAction);
 
@@ -965,11 +987,10 @@ void Renderer::PostFrameSync()
 		// Free draw ops.
 		for (uint iBucket = 0; iBucket < (uint)RdrBucketType::Count; ++iBucket)
 		{
-			RdrDrawOpBucket::iterator iter = rAction.buckets[iBucket].begin();
-			RdrDrawOpBucket::iterator endIter = rAction.buckets[iBucket].end();
-			for (; iter != endIter; ++iter)
+			RdrDrawOpBucket& rBucket = rAction.buckets[iBucket];
+			for (const RdrDrawBucketEntry& rEntry : rBucket)
 			{
-				const RdrDrawOp* pDrawOp = *iter;
+				const RdrDrawOp* pDrawOp = rEntry.pDrawOp;
 				if (pDrawOp->bFreeGeo)
 				{
 					RdrGeoSystem::ReleaseGeo(pDrawOp->hGeo);
@@ -980,17 +1001,15 @@ void Renderer::PostFrameSync()
 					RdrDrawOp::QueueRelease(pDrawOp);
 				}
 			}
-			rAction.buckets[iBucket].clear();
+			rBucket.clear();
 		}
 
 		for (uint iPass = 0; iPass < (uint)RdrPass::Count; ++iPass)
 		{
 			RdrPassData& rPass = rAction.passes[iPass];
-			RdrComputeOpBucket::iterator iter = rPass.computeOps.begin();
-			RdrComputeOpBucket::iterator endIter = rPass.computeOps.end();
-			for (; iter != endIter; ++iter)
+			for (const RdrComputeOp* pComputeOp : rPass.computeOps)
 			{
-				RdrComputeOp::QueueRelease(*iter);
+				RdrComputeOp::QueueRelease(pComputeOp);
 			}
 			rPass.computeOps.clear();
 		}
@@ -1007,10 +1026,14 @@ void Renderer::PostFrameSync()
 	RdrGeoSystem::FlipState();
 	RdrShaderSystem::FlipState();
 	RdrScratchMem::FlipState();
+	RdrInstancedObjectDataBuffer::FlipState();
 	RdrDrawOp::ProcessReleases();
 	RdrComputeOp::ProcessReleases();
 
 	m_eLightingMethod = m_ePendingLightingMethod;
+
+	// Misc debug updates
+	g_debugState.rebuildDrawOps = 0;
 }
 
 void Renderer::ProcessReadbackRequests()
@@ -1046,20 +1069,22 @@ void Renderer::ProcessReadbackRequests()
 void Renderer::DrawFrame()
 {
 	RdrFrameState& rFrameState = GetActiveState();
-
+	
+	// Process threaded render commands.
 	RdrShaderSystem::ProcessCommands(m_pContext);
 	RdrResourceSystem::ProcessCommands(m_pContext);
 	RdrGeoSystem::ProcessCommands(m_pContext);
 
 	ProcessReadbackRequests();
 
+	// Draw the frame
 	if (!m_pContext->IsIdle()) // If the device is idle (probably minimized), don't bother rendering anything.
 	{
 		m_profiler.BeginFrame();
 
 		for (uint iAction = 0; iAction < rFrameState.numActions; ++iAction)
 		{
-			RdrAction& rAction = rFrameState.actions[iAction];
+			const RdrAction& rAction = rFrameState.actions[iAction];
 			m_pContext->BeginEvent(rAction.name);
 
 			m_profiler.BeginSection(RdrProfileSection::Shadows);
@@ -1070,13 +1095,10 @@ void Renderer::DrawFrame()
 			m_profiler.EndSection();
 
 			RdrRasterState rasterState;
-			rasterState.bEnableMSAA = (s_msaaLevel > 1);
+			rasterState.bEnableMSAA = (g_debugState.msaaLevel > 1);
 			rasterState.bEnableScissor = false;
-			rasterState.bWireframe = s_wireframe;
+			rasterState.bWireframe = g_debugState.wireframe;
 			m_pContext->SetRasterState(rasterState);
-
-			// todo: sort buckets 
-			//std::sort(pAction->buckets[RdrBucketType::Opaque].begin(), pAction->buckets[RdrBucketType::Opaque].end(), );
 
 			DrawPass(rAction, RdrPass::ZPrepass);
 			DrawPass(rAction, RdrPass::LightCulling);
@@ -1084,15 +1106,15 @@ void Renderer::DrawFrame()
 			DrawPass(rAction, RdrPass::Sky);
 			DrawPass(rAction, RdrPass::Alpha);
 
-			if (s_wireframe)
+			if (g_debugState.wireframe)
 			{
 				rasterState.bWireframe = false;
 				m_pContext->SetRasterState(rasterState);
 			}
 
-			// Resolve multisampled color buffer.
+			// Resolve multi-sampled color buffer.
 			const RdrResource* pColorBuffer = RdrResourceSystem::GetResource(m_hColorBuffer);
-			if (s_msaaLevel > 1)
+			if (g_debugState.msaaLevel > 1)
 			{
 				const RdrResource* pColorBufferMultisampled = RdrResourceSystem::GetResource(m_hColorBufferMultisampled);
 				m_pContext->ResolveSurface(*pColorBufferMultisampled, *pColorBuffer);
@@ -1119,25 +1141,100 @@ void Renderer::DrawFrame()
 	m_pContext->Present();
 }
 
-void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlobalConstants, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices)
+void Renderer::DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, 
+	const RdrGlobalConstants& rGlobalConstants, const RdrLightParams& rLightParams)
+{
+	const RdrResourceHandle hLightIndicesBuffer = (m_eLightingMethod == RdrLightingMethod::Clustered)
+		? m_clusteredLightData.hLightIndices
+		: m_tiledLightData.hLightIndices;
+
+	if (g_debugState.enableInstancing & 1)
+	{
+		const RdrDrawBucketEntry* pPendingEntry = nullptr;
+		uint instanceCount = 0;
+		uint* pCurrInstanceIds = nullptr;
+
+		for (const RdrDrawBucketEntry& rEntry : rBucket)
+		{
+			if (pPendingEntry)
+			{
+				if (pPendingEntry->sortKey == rEntry.sortKey && instanceCount < kMaxInstancesPerDraw)
+				{
+					pCurrInstanceIds[instanceCount] = rEntry.pDrawOp->instanceDataId;
+					++instanceCount;
+				}
+				else
+				{
+					// Draw the pending entry
+					DrawGeo(rPass, rBucket, rGlobalConstants, pPendingEntry->pDrawOp, rLightParams, hLightIndicesBuffer, instanceCount);
+					pPendingEntry = nullptr;
+				}
+			}
+
+			// Update pending entry if it was not set or we just drew.
+			if (!pPendingEntry)
+			{
+				m_currentInstanceIds++;
+				if (m_currentInstanceIds >= 8)
+					m_currentInstanceIds = 0;
+
+				pCurrInstanceIds = m_instanceIds[m_currentInstanceIds].ids;
+				pCurrInstanceIds[0] = rEntry.pDrawOp->instanceDataId;
+
+				pPendingEntry = &rEntry;
+				instanceCount = 1;
+			}
+		}
+
+		if (pPendingEntry)
+		{
+			DrawGeo(rPass, rBucket, rGlobalConstants, pPendingEntry->pDrawOp, rLightParams, hLightIndicesBuffer, instanceCount);
+		}
+	}
+	else
+	{
+		for (const RdrDrawBucketEntry& rEntry : rBucket)
+		{
+			DrawGeo(rPass, rBucket, rGlobalConstants, rEntry.pDrawOp, rLightParams, hLightIndicesBuffer, 1);
+		}
+	}
+}
+
+void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants,
+	const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices, uint instanceCount)
 {
 	bool bDepthOnly = (rPass.shaderMode == RdrShaderMode::DepthOnly);
 	const RdrGeometry* pGeo = RdrGeoSystem::GetGeo(pDrawOp->hGeo);
-	RdrShaderFlags shaderFlags = RdrShaderFlags::None;
 
 	// Vertex shader
 	RdrVertexShader vertexShader = pDrawOp->vertexShader;
 	if (bDepthOnly)
 	{
-		shaderFlags |= RdrShaderFlags::DepthOnly;
+		vertexShader.flags |= RdrShaderFlags::DepthOnly;
 	}
-	vertexShader.flags |= shaderFlags;
+
+	bool instanced = false;
+	if (instanceCount > 1)
+	{
+		vertexShader.flags |= RdrShaderFlags::IsInstanced;
+		instanced = true;
+	}
 
 	m_drawState.pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
 
 	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerFrame;
 	m_drawState.vsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->bufferObj;
-	if (pDrawOp->hVsConstants)
+	
+	if (instanced)
+	{
+		m_pContext->UpdateConstantBuffer(m_instanceIds[m_currentInstanceIds].buffer, m_instanceIds[m_currentInstanceIds].ids);
+		m_drawState.vsConstantBuffers[1] = m_instanceIds[m_currentInstanceIds].buffer.bufferObj;
+		m_drawState.vsConstantBufferCount = 2;
+
+		m_drawState.vsResources[0] = RdrResourceSystem::GetResource(RdrInstancedObjectDataBuffer::GetResourceHandle())->resourceView;
+		m_drawState.vsResourceCount = 1;
+	}
+	else if (pDrawOp->hVsConstants)
 	{
 		m_drawState.vsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pDrawOp->hVsConstants)->bufferObj;
 		m_drawState.vsConstantBufferCount = 2;
@@ -1150,7 +1247,7 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlob
 	// Geom shader
 	if (rPass.bIsCubeMapCapture)
 	{
-		RdrGeometryShader geomShader = { RdrGeometryShaderType::Model_CubemapCapture, shaderFlags };
+		RdrGeometryShader geomShader = { RdrGeometryShaderType::Model_CubemapCapture, vertexShader.flags };
 		m_drawState.pGeometryShader = RdrShaderSystem::GetGeometryShader(geomShader);
 		m_drawState.gsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hGsCubeMap)->bufferObj;
 		m_drawState.gsConstantBufferCount = 1;
@@ -1213,14 +1310,17 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlob
 	{
 		m_drawState.indexBuffer = pGeo->indexBuffer;
 		m_drawState.indexCount = pGeo->geoInfo.numIndices;
+		m_profiler.AddCounter(RdrProfileCounter::Triangles, instanceCount * m_drawState.indexCount / 3);
 	}
 	else
 	{
 		m_drawState.indexBuffer.pBuffer = nullptr;
+		m_profiler.AddCounter(RdrProfileCounter::Triangles, instanceCount * m_drawState.vertexCount / 3);
 	}
 
 	// Done
-	m_pContext->Draw(m_drawState);
+	m_pContext->Draw(m_drawState, instanceCount);
+	m_profiler.IncrementCounter(RdrProfileCounter::DrawCall);
 
 	m_drawState.Reset();
 }

@@ -3,6 +3,7 @@
 #include "RdrDrawOp.h"
 #include "RdrDrawState.h"
 #include "Light.h"
+#include "RdrProfiler.h"
 
 #include <d3d11.h>
 #include <d3d11_1.h>
@@ -10,8 +11,6 @@
 
 namespace
 {
-	static bool s_useDebugDevice = 1;
-
 	bool resourceFormatIsDepth(const RdrResourceFormat eFormat)
 	{
 		return eFormat == RdrResourceFormat::D16 || eFormat == RdrResourceFormat::D24_UNORM_S8_UINT;
@@ -34,6 +33,7 @@ namespace
 	DXGI_FORMAT getD3DFormat(const RdrResourceFormat format)
 	{
 		static const DXGI_FORMAT s_d3dFormats[] = {
+			DXGI_FORMAT_UNKNOWN,				// ResourceFormat::UNKNOWN
 			DXGI_FORMAT_R16_UNORM,				// ResourceFormat::D16
 			DXGI_FORMAT_R24_UNORM_X8_TYPELESS,	// ResourceFormat::D24_UNORM_S8_UINT
 			DXGI_FORMAT_R16_UNORM,				// ResourceFormat::R16_UNORM
@@ -58,6 +58,7 @@ namespace
 	DXGI_FORMAT getD3DDepthFormat(const RdrResourceFormat format)
 	{
 		static const DXGI_FORMAT s_d3dDepthFormats[] = {
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::UNKNOWN
 			DXGI_FORMAT_D16_UNORM,			// ResourceFormat::D16
 			DXGI_FORMAT_D24_UNORM_S8_UINT,	// ResourceFormat::D24_UNORM_S8_UINT
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R16_UNORM
@@ -83,6 +84,7 @@ namespace
 	DXGI_FORMAT getD3DTypelessFormat(const RdrResourceFormat format)
 	{
 		static const DXGI_FORMAT s_d3dTypelessFormats[] = {
+			DXGI_FORMAT_UNKNOWN,			   // ResourceFormat::UNKNOWN
 			DXGI_FORMAT_R16_TYPELESS,		   // ResourceFormat::D16
 			DXGI_FORMAT_R24G8_TYPELESS,		   // ResourceFormat::D24_UNORM_S8_UINT
 			DXGI_FORMAT_R16_TYPELESS,		   // ResourceFormat::R16_UNORM
@@ -124,6 +126,18 @@ namespace
 		};
 		static_assert(ARRAY_SIZE(s_d3dUsage) == (int)RdrResourceUsage::Count, "Missing D3D11 resource usage!");
 		return s_d3dUsage[(int)eUsage];
+	}
+
+	static void createBufferSrv(ID3D11Device* pDevice, const RdrResource& rResource, uint numElements, RdrResourceFormat eFormat, int firstElement, ID3D11ShaderResourceView** pOutView)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC desc;
+		desc.Buffer.FirstElement = firstElement;
+		desc.Buffer.NumElements = numElements;
+		desc.Format = getD3DFormat(eFormat);
+		desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+
+		HRESULT hr = pDevice->CreateShaderResourceView(rResource.pResource, &desc, pOutView);
+		assert(hr == S_OK);
 	}
 
 	static ID3D11Buffer* createBuffer(ID3D11Device* pDevice, const void* pSrcData, const int size, const uint bindFlags)
@@ -182,14 +196,7 @@ bool RdrContextD3D11::CreateDataBuffer(const void* pSrcData, int numElements, Rd
 
 	if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
 	{
-		D3D11_SHADER_RESOURCE_VIEW_DESC desc;
-		desc.Buffer.FirstElement = 0;
-		desc.Buffer.NumElements = numElements;
-		desc.Format = getD3DFormat(eFormat);
-		desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-
-		hr = m_pDevice->CreateShaderResourceView(rResource.pResource, &desc, &rResource.resourceView.pViewD3D11);
-		assert(hr == S_OK);
+		createBufferSrv(m_pDevice, rResource, numElements, eFormat, 0, &rResource.resourceView.pViewD3D11);
 	}
 
 	if (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
@@ -242,8 +249,7 @@ bool RdrContextD3D11::CreateStructuredBuffer(const void* pSrcData, int numElemen
 
 	if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
 	{
-		hr = m_pDevice->CreateShaderResourceView(rResource.pResource, nullptr, &rResource.resourceView.pViewD3D11);
-		assert(hr == S_OK);
+		createBufferSrv(m_pDevice, rResource, numElements, RdrResourceFormat::UNKNOWN, 0, &rResource.resourceView.pViewD3D11);
 	}
 
 	if (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
@@ -255,22 +261,50 @@ bool RdrContextD3D11::CreateStructuredBuffer(const void* pSrcData, int numElemen
 	return true;
 }
 
-bool RdrContextD3D11::UpdateBuffer(const void* pSrcData, RdrResource& rResource)
+bool RdrContextD3D11::UpdateBuffer(const void* pSrcData, RdrResource& rResource, int numElements)
 {
-	D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
-	HRESULT hr = m_pDevContext->Map(rResource.pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-	assert(hr == S_OK);
-
-	if (rResource.bufferInfo.elementSize)
+	if (numElements == -1)
 	{
-		memcpy(mapped.pData, pSrcData, rResource.bufferInfo.elementSize * rResource.bufferInfo.numElements);
+		numElements = rResource.bufferInfo.numElements;
+	}
+
+	if (rResource.eUsage == RdrResourceUsage::Dynamic)
+	{
+		D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
+		HRESULT hr = m_pDevContext->Map(rResource.pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+		assert(hr == S_OK);
+
+		if (rResource.bufferInfo.elementSize)
+		{
+			memcpy(mapped.pData, pSrcData, rResource.bufferInfo.elementSize * numElements);
+		}
+		else
+		{
+			memcpy(mapped.pData, pSrcData, rdrGetTexturePitch(1, rResource.bufferInfo.eFormat) * numElements);
+		}
+
+		m_pDevContext->Unmap(rResource.pBuffer, 0);
 	}
 	else
 	{
-		memcpy(mapped.pData, pSrcData, rdrGetTexturePitch(1, rResource.bufferInfo.eFormat) * rResource.bufferInfo.numElements);
-	}
+		D3D11_BOX box = { 0 };
+		box.top = 0;
+		box.bottom = 1;
+		box.front = 0;
+		box.back = 1;
+		box.left = 0;
 
-	m_pDevContext->Unmap(rResource.pBuffer, 0);
+		if (rResource.bufferInfo.elementSize)
+		{
+			box.right = rResource.bufferInfo.elementSize * numElements;
+		}
+		else
+		{
+			box.right = rdrGetTexturePitch(1, rResource.bufferInfo.eFormat) * numElements;
+		}
+
+		m_pDevContext->UpdateSubresource(rResource.pResource, 0, &box, pSrcData, 0, 0);
+	}
 
 	return true;
 }
@@ -362,6 +396,12 @@ static D3D11_FILTER getFilterD3d(const RdrComparisonFunc cmpFunc, const bool bPo
 	}
 }
 
+RdrContextD3D11::RdrContextD3D11(RdrProfiler& rProfiler)
+	: m_rProfiler(rProfiler)
+{
+
+}
+
 bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height)
 {
 	HRESULT hr;
@@ -384,7 +424,7 @@ bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height)
 		nullptr,
 		D3D_DRIVER_TYPE_HARDWARE,
 		NULL,
-		s_useDebugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0,
+		g_debugState.debugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0,
 		nullptr,
 		0,
 		D3D11_SDK_VERSION,
@@ -455,6 +495,31 @@ ID3D11SamplerState* RdrContextD3D11::GetSampler(const RdrSamplerState& state)
 
 namespace
 {
+	bool createTextureCubeSrv(ID3D11Device* pDevice, const RdrTextureInfo& rTexInfo, const RdrResource& rResource, ID3D11ShaderResourceView** ppOutView)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+		viewDesc.Format = getD3DFormat(rTexInfo.format);
+
+		if (rTexInfo.depth > 1)
+		{
+			viewDesc.TextureCubeArray.First2DArrayFace = 0;
+			viewDesc.TextureCubeArray.MipLevels = rTexInfo.mipLevels;
+			viewDesc.TextureCubeArray.MostDetailedMip = 0;
+			viewDesc.TextureCubeArray.NumCubes = rTexInfo.depth;
+			viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
+		}
+		else
+		{
+			viewDesc.TextureCube.MipLevels = rTexInfo.mipLevels;
+			viewDesc.TextureCube.MostDetailedMip = 0;
+			viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+		}
+
+		HRESULT hr = pDevice->CreateShaderResourceView(rResource.pTexture2d, &viewDesc, ppOutView);
+		assert(hr == S_OK);
+		return true;
+	}
+
 	bool createTextureCube(ID3D11Device* pDevice, D3D11_SUBRESOURCE_DATA* pData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource)
 	{
 		const uint cubemapArraySize = rTexInfo.depth * 6;
@@ -480,27 +545,52 @@ namespace
 
 		//if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
 		{
-			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
-			viewDesc.Format = getD3DFormat(rTexInfo.format);
+			createTextureCubeSrv(pDevice, rTexInfo, rResource, &rResource.resourceView.pViewD3D11);
+		}
 
-			if (rTexInfo.depth > 1)
+		return true;
+	}
+
+	bool createTexture2DSrv(ID3D11Device* pDevice, const RdrTextureInfo& rTexInfo, const RdrResource& rResource, ID3D11ShaderResourceView** ppOutView)
+	{
+		bool bIsMultisampled = (rTexInfo.sampleCount > 1);
+		bool bIsArray = (rTexInfo.depth > 1);
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+		viewDesc.Format = getD3DFormat(rTexInfo.format);
+		if (bIsArray)
+		{
+			if (bIsMultisampled)
 			{
-				viewDesc.TextureCubeArray.First2DArrayFace = 0;
-				viewDesc.TextureCubeArray.MipLevels = rTexInfo.mipLevels;
-				viewDesc.TextureCubeArray.MostDetailedMip = 0;
-				viewDesc.TextureCubeArray.NumCubes = rTexInfo.depth;
-				viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
+				viewDesc.Texture2DMSArray.ArraySize = rTexInfo.depth;
+				viewDesc.Texture2DMSArray.FirstArraySlice = 0;
+				viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
 			}
 			else
 			{
-				viewDesc.TextureCube.MipLevels = rTexInfo.mipLevels;
-				viewDesc.TextureCube.MostDetailedMip = 0;
-				viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+				viewDesc.Texture2DArray.ArraySize = rTexInfo.depth;
+				viewDesc.Texture2DArray.FirstArraySlice = 0;
+				viewDesc.Texture2DArray.MipLevels = rTexInfo.mipLevels;
+				viewDesc.Texture2DArray.MostDetailedMip = 0;
+				viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
 			}
-
-			hr = pDevice->CreateShaderResourceView(rResource.pTexture2d, &viewDesc, &rResource.resourceView.pViewD3D11);
-			assert(hr == S_OK);
 		}
+		else
+		{
+			if (bIsMultisampled)
+			{
+				viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
+			}
+			else
+			{
+				viewDesc.Texture2D.MipLevels = rTexInfo.mipLevels;
+				viewDesc.Texture2D.MostDetailedMip = 0;
+				viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			}
+		}
+
+		HRESULT hr = pDevice->CreateShaderResourceView(rResource.pTexture2d, &viewDesc, ppOutView);
+		assert(hr == S_OK);
 
 		return true;
 	}
@@ -553,41 +643,7 @@ namespace
 
 		if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
 		{
-			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
-			viewDesc.Format = getD3DFormat(rTexInfo.format);
-			if (bIsArray)
-			{
-				if (bIsMultisampled)
-				{
-					viewDesc.Texture2DMSArray.ArraySize = rTexInfo.depth;
-					viewDesc.Texture2DMSArray.FirstArraySlice = 0;
-					viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
-				}
-				else
-				{
-					viewDesc.Texture2DArray.ArraySize = rTexInfo.depth;
-					viewDesc.Texture2DArray.FirstArraySlice = 0;
-					viewDesc.Texture2DArray.MipLevels = rTexInfo.mipLevels;
-					viewDesc.Texture2DArray.MostDetailedMip = 0;
-					viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
-				}
-			}
-			else
-			{
-				if (bIsMultisampled)
-				{
-					viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
-				}
-				else
-				{
-					viewDesc.Texture2D.MipLevels = rTexInfo.mipLevels;
-					viewDesc.Texture2D.MostDetailedMip = 0;
-					viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-				}
-			}
-
-			hr = pDevice->CreateShaderResourceView(rResource.pTexture2d, &viewDesc, &rResource.resourceView.pViewD3D11);
-			assert(hr == S_OK);
+			createTexture2DSrv(pDevice, rTexInfo, rResource, &rResource.resourceView.pViewD3D11);
 		}
 
 		if (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
@@ -614,6 +670,19 @@ namespace
 		return true;
 	}
 
+	bool createTexture3DSrv(ID3D11Device* pDevice, const RdrTextureInfo& rTexInfo, const RdrResource& rResource, ID3D11ShaderResourceView** ppOutView)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+		viewDesc.Format = getD3DFormat(rTexInfo.format);
+		viewDesc.Texture3D.MipLevels = rTexInfo.mipLevels;
+		viewDesc.Texture3D.MostDetailedMip = 0;
+		viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
+
+		HRESULT hr = pDevice->CreateShaderResourceView(rResource.pTexture3d, &viewDesc, ppOutView);
+		assert(hr == S_OK);
+
+		return true;
+	}
 
 	bool createTexture3D(ID3D11Device* pDevice, D3D11_SUBRESOURCE_DATA* pData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource)
 	{
@@ -659,14 +728,7 @@ namespace
 
 		if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
 		{
-			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
-			viewDesc.Format = getD3DFormat(rTexInfo.format);
-			viewDesc.Texture3D.MipLevels = rTexInfo.mipLevels;
-			viewDesc.Texture3D.MostDetailedMip = 0;
-			viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
-
-			hr = pDevice->CreateShaderResourceView(rResource.pTexture3d, &viewDesc, &rResource.resourceView.pViewD3D11);
-			assert(hr == S_OK);
+			createTexture3DSrv(pDevice, rTexInfo, rResource, &rResource.resourceView.pViewD3D11);
 		}
 
 		if (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
@@ -757,6 +819,41 @@ void RdrContextD3D11::ReleaseResource(RdrResource& rResource)
 void RdrContextD3D11::ResolveSurface(const RdrResource& rSrc, const RdrResource& rDst)
 {
 	m_pDevContext->ResolveSubresource(rDst.pResource, 0, rSrc.pResource, 0, getD3DFormat(rSrc.texInfo.format));
+}
+
+RdrShaderResourceView RdrContextD3D11::CreateShaderResourceViewTexture(const RdrResource& rResource)
+{
+	RdrShaderResourceView view = { 0 };
+	switch (rResource.texInfo.texType)
+	{
+	case RdrTextureType::k2D:
+		createTexture2DSrv(m_pDevice, rResource.texInfo, rResource, &view.pViewD3D11);
+		break;
+	case RdrTextureType::k3D:
+		createTexture3DSrv(m_pDevice, rResource.texInfo, rResource, &view.pViewD3D11);
+		break;
+	case RdrTextureType::kCube:
+		createTextureCubeSrv(m_pDevice, rResource.texInfo, rResource, &view.pViewD3D11);
+		break;
+	}
+	return view;
+}
+
+RdrShaderResourceView RdrContextD3D11::CreateShaderResourceViewBuffer(const RdrResource& rResource, uint firstElement)
+{
+	RdrShaderResourceView view = { 0 };
+
+	const RdrBufferInfo& rBufferInfo = rResource.bufferInfo;
+	RdrResourceFormat eFormat = (rBufferInfo.elementSize > 0) ? rBufferInfo.eFormat : RdrResourceFormat::UNKNOWN;
+	createBufferSrv(m_pDevice, rResource, rBufferInfo.numElements - firstElement, eFormat, firstElement, &view.pViewD3D11);
+
+	return view;
+}
+
+void RdrContextD3D11::ReleaseShaderResourceView(RdrShaderResourceView& resourceView)
+{
+	resourceView.pViewD3D11->Release();
+	resourceView.pTypeless = nullptr;
 }
 
 RdrDepthStencilView RdrContextD3D11::CreateDepthStencilView(const RdrResource& rDepthTex)
@@ -1053,7 +1150,6 @@ void RdrContextD3D11::Present()
 	}
 
 	ResetDrawState();
-	memset(m_stateChanges, 0, sizeof(m_stateChanges));
 }
 
 void RdrContextD3D11::Resize(uint width, uint height)
@@ -1169,7 +1265,7 @@ static inline bool updateDataList(const DataT* aSrcData, DataT* aDstData, uint c
 	return (firstChanged >= 0);
 }
 
-void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
+void RdrContextD3D11::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 {
 	static_assert(sizeof(RdrVertexBuffer) == sizeof(ID3D11Buffer*), "RdrVertexBuffer must only contain the device obj pointer.");
 	static_assert(sizeof(RdrConstantBufferDeviceObj) == sizeof(ID3D11Buffer*), "RdrConstantBufferDeviceObj must only contain the device obj pointer.");
@@ -1186,7 +1282,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 	{
 		m_pDevContext->IASetPrimitiveTopology(getD3DTopology(rDrawState.eTopology));
 		m_drawState.eTopology = rDrawState.eTopology;
-		m_stateChanges[(int)DeviceState::PrimitiveTopology]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::PrimitiveTopology);
 	}
 
 	// Input layout
@@ -1194,7 +1290,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 	{
 		m_pDevContext->IASetInputLayout(rDrawState.inputLayout.pInputLayout);
 		m_drawState.inputLayout.pInputLayout = rDrawState.inputLayout.pInputLayout;
-		m_stateChanges[(int)DeviceState::InputLayout]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::InputLayout);
 	}
 
 	// Vertex buffers
@@ -1203,7 +1299,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 	{
 		m_pDevContext->IASetVertexBuffers(firstChanged, lastChanged - firstChanged + 1, 
 			(ID3D11Buffer**)rDrawState.vertexBuffers + firstChanged, rDrawState.vertexStrides + firstChanged, rDrawState.vertexOffsets + firstChanged);
-		m_stateChanges[(int)DeviceState::VertexBuffer]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::VertexBuffer);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1212,7 +1308,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 	{
 		m_pDevContext->VSSetShader(rDrawState.pVertexShader->pVertex, nullptr, 0);
 		m_drawState.pVertexShader = rDrawState.pVertexShader;
-		m_stateChanges[(int)DeviceState::VertexShader]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::VertexShader);
 	}
 
 	// VS constants
@@ -1220,7 +1316,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 		rDrawState.vsConstantBufferCount, &firstChanged, &lastChanged))
 	{
 		m_pDevContext->VSSetConstantBuffers(firstChanged, lastChanged - firstChanged + 1, (ID3D11Buffer**)rDrawState.vsConstantBuffers + firstChanged);
-		m_stateChanges[(int)DeviceState::VsConstantBuffer]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::VsConstantBuffer);
 	}
 
 	// VS resources
@@ -1228,7 +1324,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 		rDrawState.vsResourceCount, &firstChanged, &lastChanged))
 	{
 		m_pDevContext->VSSetShaderResources(firstChanged, lastChanged - firstChanged + 1, (ID3D11ShaderResourceView**)rDrawState.vsResources + firstChanged);
-		m_stateChanges[(int)DeviceState::VsResource]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::VsResource);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1243,7 +1339,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 		{
 			m_pDevContext->GSSetShader(nullptr, nullptr, 0);
 		}
-		m_stateChanges[(int)DeviceState::GeometryShader]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::GeometryShader);
 		m_drawState.pGeometryShader = rDrawState.pGeometryShader;
 	}
 
@@ -1252,7 +1348,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 		rDrawState.gsConstantBufferCount, &firstChanged, &lastChanged))
 	{
 		m_pDevContext->GSSetConstantBuffers(firstChanged, lastChanged - firstChanged + 1, (ID3D11Buffer**)rDrawState.gsConstantBuffers + firstChanged);
-		m_stateChanges[(int)DeviceState::GsConstantBuffer]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::GsConstantBuffer);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1268,7 +1364,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 			m_pDevContext->PSSetShader(nullptr, nullptr, 0);
 		}
 		m_drawState.pPixelShader = rDrawState.pPixelShader;
-		m_stateChanges[(int)DeviceState::PixelShader]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::PixelShader);
 	}
 
 	// PS constants
@@ -1276,7 +1372,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 		rDrawState.psConstantBufferCount, &firstChanged, &lastChanged))
 	{
 		m_pDevContext->PSSetConstantBuffers(firstChanged, lastChanged - firstChanged + 1, (ID3D11Buffer**)rDrawState.psConstantBuffers + firstChanged);
-		m_stateChanges[(int)DeviceState::PsConstantBuffer]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::PsConstantBuffer);
 	}
 
 	// PS resources
@@ -1284,7 +1380,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 		rDrawState.psResourceCount, &firstChanged, &lastChanged))
 	{
 		m_pDevContext->PSSetShaderResources(firstChanged, lastChanged - firstChanged + 1, (ID3D11ShaderResourceView**)rDrawState.psResources + firstChanged);
-		m_stateChanges[(int)DeviceState::PsResource]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::PsResource);
 	}
 
 	// PS samplers
@@ -1297,7 +1393,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 			apSamplers[i] = GetSampler(rDrawState.psSamplers[i]);
 		}
 		m_pDevContext->PSSetSamplers(firstChanged, lastChanged - firstChanged + 1, apSamplers + firstChanged);
-		m_stateChanges[(int)DeviceState::PsSamplers]++;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::PsSamplers);
 	}
 
 	if (rDrawState.indexBuffer.pBuffer)
@@ -1306,14 +1402,28 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState)
 		{
 			m_pDevContext->IASetIndexBuffer(rDrawState.indexBuffer.pBuffer, DXGI_FORMAT_R16_UINT, 0);
 			m_drawState.indexBuffer.pBuffer = rDrawState.indexBuffer.pBuffer;
-			m_stateChanges[(int)DeviceState::IndexBuffer]++;
+			m_rProfiler.IncrementCounter(RdrProfileCounter::IndexBuffer);
 		}
 
-		m_pDevContext->DrawIndexed(rDrawState.indexCount, 0, 0);
+		if (instanceCount > 1)
+		{
+			m_pDevContext->DrawIndexedInstanced(rDrawState.indexCount, instanceCount, 0, 0, 0);
+		}
+		else
+		{
+			m_pDevContext->DrawIndexed(rDrawState.indexCount, 0, 0);
+		}
 	}
 	else
 	{
-		m_pDevContext->Draw(rDrawState.vertexCount, 0);
+		if (instanceCount > 1)
+		{
+			m_pDevContext->DrawInstanced(rDrawState.vertexCount, instanceCount, 0, 0);
+		}
+		else
+		{
+			m_pDevContext->Draw(rDrawState.vertexCount, 0);
+		}
 	}
 }
 

@@ -3,7 +3,7 @@
 #include "render/ModelInstance.h"
 
 class WorldObject;
-typedef FreeList<WorldObject, 1024> WorldObjectFreeList;
+typedef FreeList<WorldObject, 6 * 1024> WorldObjectFreeList;
 
 class WorldObject
 {

@@ -89,7 +89,9 @@ private:
 
 	RdrAction* GetNextAction();
 
-	void DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlobalConstants, const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices);
+	void DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants, const RdrLightParams& rLightParams);
+	void DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants,
+		const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices, uint instanceCount);
 	void DispatchCompute(const RdrComputeOp* pComputeOp);
 
 	void ProcessReadbackRequests();
@@ -128,6 +130,15 @@ private:
 	RdrResourceReadbackRequestList m_readbackRequests; // Average out to a max of 32 requests per frame
 	std::vector<RdrResourceReadbackRequestHandle> m_pendingReadbackRequests;
 	ThreadMutex m_readbackMutex;
+
+	// Instance object ID data.
+	struct
+	{
+		RdrConstantBuffer buffer;
+		char* pData; // Original non-aligned pointer.
+		uint* ids;
+	} m_instanceIds[8];
+	uint m_currentInstanceIds;
 };
 
 inline int Renderer::GetViewportWidth() const 

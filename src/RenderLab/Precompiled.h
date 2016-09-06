@@ -28,3 +28,5 @@ using std::max;
 #include "shapes/Rect.h"
 #include "shapes/Plane.h"
 #include "FreeList.h"
+#include "GlobalState.h"
+#include "Debug/DebugConsole.h"

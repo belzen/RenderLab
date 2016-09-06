@@ -157,8 +157,11 @@ namespace
 							
 							switch (arg.type)
 							{
-							case DebugCommandArgType::Number:
-								arg.val.num = (float)atof(argStrs[i]);
+							case DebugCommandArgType::Float:
+								arg.val.fnum = (float)atof(argStrs[i]);
+								break;
+							case DebugCommandArgType::Integer:
+								arg.val.inum = atoi(argStrs[i]);
 								break;
 							case DebugCommandArgType::String:
 								arg.val.str = argStrs[i];

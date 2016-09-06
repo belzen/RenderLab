@@ -91,3 +91,8 @@ void RdrMaterial::ReloadMaterial(const char* materialName)
 		loadMaterial(materialName, iter->second);
 	}
 }
+
+uint16 RdrMaterial::GetMaterialId(const RdrMaterial* pMaterial)
+{
+	return s_materials.getId(pMaterial);
+}

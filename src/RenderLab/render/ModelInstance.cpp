@@ -5,6 +5,7 @@
 #include "RdrDrawOp.h"
 #include "RdrResourceSystem.h"
 #include "RdrShaderSystem.h"
+#include "RdrInstancedObjectDataBuffer.h"
 
 namespace
 {
@@ -40,15 +41,37 @@ void ModelInstance::Release()
 	//s_models.release(this);
 }
 
+bool ModelInstance::CanInstance() const
+{
+	// TODO: Heuristic based on tri count.  Instancing seems to perform best on low-mid triangle counts.
+	return true;
+}
+
 void ModelInstance::PrepareDraw(const Matrix44& mtxWorld, bool transformChanged)
 {
 	if (transformChanged)
 	{
-		uint constantsSize = sizeof(Vec4) * 4;
+		uint constantsSize = sizeof(VsPerObject);
 		Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
+		memset(pConstants, 0, constantsSize);
 		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
 
 		m_hVsPerObjectConstantBuffer = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
+	
+		if (CanInstance())
+		{
+			if (!m_instancedDataId)
+			{
+				m_instancedDataId = RdrInstancedObjectDataBuffer::AllocEntry();
+			}
+
+			VsPerObject* pObjectData = RdrInstancedObjectDataBuffer::GetEntry(m_instancedDataId);
+			pObjectData->mtxWorld = Matrix44Transpose(mtxWorld);
+		}
+		else
+		{
+			m_instancedDataId = 0;
+		}
 	}
 
 	uint numSubObjects = m_pModelData->GetNumSubObjects();
@@ -56,7 +79,7 @@ void ModelInstance::PrepareDraw(const Matrix44& mtxWorld, bool transformChanged)
 	{
 		const ModelData::SubObject& rSubObject = m_pModelData->GetSubObject(i);
 
-		if (transformChanged && m_pSubObjectDrawOps[i])
+		if ((transformChanged || g_debugState.rebuildDrawOps) && m_pSubObjectDrawOps[i])
 		{
 			RdrDrawOp::QueueRelease(m_pSubObjectDrawOps[i]);
 			m_pSubObjectDrawOps[i] = nullptr;
@@ -66,8 +89,8 @@ void ModelInstance::PrepareDraw(const Matrix44& mtxWorld, bool transformChanged)
 		{
 			RdrDrawOp* pDrawOp = m_pSubObjectDrawOps[i] = RdrDrawOp::Allocate();
 
+			pDrawOp->instanceDataId = m_instancedDataId;
 			pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
-
 			pDrawOp->pMaterial = rSubObject.pMaterial;
 
 			pDrawOp->hInputLayout = m_hInputLayout;

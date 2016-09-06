@@ -7,6 +7,7 @@
 #include "debug/Debug.h"
 #include "RenderDoc/RenderDocUtil.h"
 #include "MainWindow.h"
+#include "GlobalState.h"
 
 namespace
 {
@@ -18,7 +19,11 @@ namespace
 
 int main(int argc, char** argv)
 {
-	RenderDoc::Init();
+	GlobalState::Init();
+	if (g_debugState.attachRenderDoc)
+	{
+		RenderDoc::Init();
+	}
 	Debug::Init();
 	FileWatcher::Init(Paths::GetBinDataDir());
 
