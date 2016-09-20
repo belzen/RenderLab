@@ -76,6 +76,8 @@ bool RdrContextD3D11::CompileShader(RdrShaderStage eType, const char* pShaderTex
 		"vs_5_0", // RdrShaderStage::Vertex
 		"ps_5_0", // RdrShaderStage::Pixel
 		"gs_5_0", // RdrShaderStage::Geometry
+		"hs_5_0", // RdrShaderStage::Hull
+		"ds_5_0", // RdrShaderStage::Domain
 		"cs_5_0"  // RdrShaderStage::Compute
 	};
 	static_assert(ARRAY_SIZE(s_d3dShaderModels) == (int)RdrShaderStage::Count, "Missing D3D shader models!");
@@ -111,6 +113,12 @@ void* RdrContextD3D11::CreateShader(RdrShaderStage eStage, const void* pShaderTe
 		break;
 	case RdrShaderStage::Compute:
 		hr = m_pDevice->CreateComputeShader(pShaderText, textLen, nullptr, (ID3D11ComputeShader**)&pOutShader);
+		break;
+	case RdrShaderStage::Hull:
+		hr = m_pDevice->CreateHullShader(pShaderText, textLen, nullptr, (ID3D11HullShader**)&pOutShader);
+		break;
+	case RdrShaderStage::Domain:
+		hr = m_pDevice->CreateDomainShader(pShaderText, textLen, nullptr, (ID3D11DomainShader**)&pOutShader);
 		break;
 	default:
 		assert(false);

@@ -154,7 +154,7 @@ TextObject Font::CreateText(const char* text)
 	TextObject obj;
 	obj.size.x = size.x;
 	obj.size.y = size.y;
-	obj.hTextGeo = RdrGeoSystem::CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, Vec3::kZero, size);
+	obj.hTextGeo = RdrResourceSystem::CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, RdrTopology::TriangleList, Vec3::kZero, size);
 	return obj;
 }
 

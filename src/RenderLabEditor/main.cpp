@@ -8,6 +8,7 @@
 #include "RenderDoc/RenderDocUtil.h"
 #include "MainWindow.h"
 #include "GlobalState.h"
+#include "UserConfig.h"
 
 namespace
 {
@@ -20,6 +21,7 @@ namespace
 int main(int argc, char** argv)
 {
 	GlobalState::Init();
+	UserConfig::Load();
 	if (g_debugState.attachRenderDoc)
 	{
 		RenderDoc::Init();

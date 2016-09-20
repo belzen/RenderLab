@@ -41,11 +41,9 @@ public:
 
 	/////////////////////////////////////////////////////////////
 	// Geometry
-	RdrVertexBuffer CreateVertexBuffer(const void* vertices, int size);
-	void ReleaseVertexBuffer(const RdrVertexBuffer& rBuffer);
-
-	RdrIndexBuffer CreateIndexBuffer(const void* indices, int size);
-	void ReleaseIndexBuffer(const RdrIndexBuffer& rBuffer);
+	RdrBuffer CreateVertexBuffer(const void* vertices, int size, RdrResourceUsage eUsage);
+	RdrBuffer CreateIndexBuffer(const void* indices, int size, RdrResourceUsage eUsage);
+	void ReleaseBuffer(const RdrBuffer& rBuffer);
 
 	/////////////////////////////////////////////////////////////
 	// Resources

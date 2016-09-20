@@ -31,11 +31,19 @@ struct RdrTextureInfo
 	uint sampleCount;
 };
 
+enum class RdrBufferType
+{
+	Data,
+	Structured,
+	Vertex
+};
+
 struct RdrBufferInfo
 {
+	RdrBufferType eType;
 	RdrResourceFormat eFormat;
-	uint elementSize;
 	uint numElements;
+	uint elementSize;
 };
 
 struct RdrShaderResourceView

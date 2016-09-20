@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="AssetDef.cpp" />
+    <ClCompile Include="MaterialAsset.cpp" />
+    <ClCompile Include="ModelAsset.cpp" />
+    <ClCompile Include="SceneAsset.cpp" />
+    <ClCompile Include="SkyAsset.cpp" />
+    <ClCompile Include="TextureAsset.cpp" />
+    <ClCompile Include="PostProcessEffectsAsset.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AssetDef.h" />
+    <ClInclude Include="BinFile.h" />
+    <ClInclude Include="MaterialAsset.h" />
+    <ClInclude Include="ModelAsset.h" />
+    <ClInclude Include="SceneAsset.h" />
+    <ClInclude Include="SkyAsset.h" />
+    <ClInclude Include="TextureAsset.h" />
+    <ClInclude Include="PostProcessEffectsAsset.h" />
+  </ItemGroup>
+</Project>

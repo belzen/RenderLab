@@ -1,17 +1,12 @@
 #pragma once
 #include "RdrShaders.h"
 
-enum class RdrTopology
-{
-	TriangleList,
-
-	Count
-};
-
 // todo: manage changed states
 class RdrDrawState
 {
 public:
+	static const uint kMaxVertexBuffers = 3;
+
 	// todo: remove need for reset()
 	void Reset()
 	{
@@ -20,17 +15,19 @@ public:
 
 	const RdrShader* pVertexShader;
 	const RdrShader* pGeometryShader;
+	const RdrShader* pHullShader;
+	const RdrShader* pDomainShader;
 	const RdrShader* pPixelShader;
 	const RdrShader* pComputeShader;
 
 	RdrTopology eTopology;
 	RdrInputLayout inputLayout;
 
-	RdrIndexBuffer indexBuffer;
-	RdrVertexBuffer vertexBuffers[3];
+	RdrBuffer indexBuffer;
+	RdrBuffer vertexBuffers[kMaxVertexBuffers];
 	uint vertexBufferCount;
-	uint vertexStrides[3];
-	uint vertexOffsets[3];
+	uint vertexStrides[kMaxVertexBuffers];
+	uint vertexOffsets[kMaxVertexBuffers];
 	uint vertexCount;
 	uint indexCount;
 
@@ -47,11 +44,13 @@ public:
 	RdrSamplerState csSamplers[16];
 	RdrUnorderedAccessView csUavs[8];
 
-	RdrConstantBufferDeviceObj vsConstantBuffers[16];
+	RdrConstantBufferDeviceObj vsConstantBuffers[4];
+	RdrConstantBufferDeviceObj dsConstantBuffers[4];
 	RdrConstantBufferDeviceObj gsConstantBuffers[4];
-	RdrConstantBufferDeviceObj psConstantBuffers[16];
-	RdrConstantBufferDeviceObj csConstantBuffers[16];
+	RdrConstantBufferDeviceObj psConstantBuffers[4];
+	RdrConstantBufferDeviceObj csConstantBuffers[4];
 	uint vsConstantBufferCount;
+	uint dsConstantBufferCount;
 	uint gsConstantBufferCount;
 	uint psConstantBufferCount;
 	uint csConstantBufferCount;

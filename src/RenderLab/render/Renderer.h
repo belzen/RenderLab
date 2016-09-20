@@ -3,7 +3,6 @@
 #include "RdrContext.h"
 #include "RdrFrameState.h"
 #include "RdrShaderSystem.h"
-#include "RdrGeoSystem.h"
 #include "RdrResourceSystem.h"
 #include "RdrDrawState.h"
 #include "RdrPostProcess.h"

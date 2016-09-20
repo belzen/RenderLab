@@ -2,6 +2,8 @@
 
 struct ID3D11VertexShader;
 struct ID3D11GeometryShader;
+struct ID3D11HullShader;
+struct ID3D11DomainShader;
 struct ID3D11PixelShader;
 struct ID3D11ComputeShader;
 struct ID3D10Blob;
@@ -18,6 +20,8 @@ enum class RdrShaderStage
 	Vertex,
 	Pixel,
 	Geometry,
+	Hull,
+	Domain,
 	Compute,
 
 	Count
@@ -27,11 +31,13 @@ struct RdrShader
 {
 	union
 	{
-		ID3D11VertexShader*   pVertex;
-		ID3D11GeometryShader* pGeometry;
-		ID3D11PixelShader*    pPixel;
-		ID3D11ComputeShader*  pCompute;
-		void*                 pTypeless;
+		ID3D11VertexShader*		pVertex;
+		ID3D11GeometryShader*	pGeometry;
+		ID3D11HullShader*		pHull;
+		ID3D11DomainShader*		pDomain;
+		ID3D11PixelShader*		pPixel;
+		ID3D11ComputeShader*	pCompute;
+		void*					pTypeless;
 	};
 
 	const char* filename;
@@ -61,6 +67,7 @@ enum class RdrVertexShaderType
 	Text,
 	Sprite,
 	Sky,
+	Terrain,
 	Screen, // Pass through shader for geo in screen-space
 
 	Count
@@ -82,6 +89,19 @@ enum class RdrGeometryShaderType
 struct RdrGeometryShader
 {
 	RdrGeometryShaderType eType;
+	RdrShaderFlags flags;
+};
+
+enum class RdrTessellationShaderType
+{
+	None,
+	Terrain,
+	Count
+};
+
+struct RdrTessellationShader
+{
+	RdrTessellationShaderType eType;
 	RdrShaderFlags flags;
 };
 

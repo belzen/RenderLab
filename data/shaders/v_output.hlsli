@@ -28,3 +28,32 @@ struct VsOutputSprite
 	float2 texcoords : TEXCOORD0;
 	float alpha : TEXCOORD1;
 };
+
+struct VsOutputTerrain
+{
+	float4 position_ws : POSITION;
+};
+
+
+// Hull/Domain outputs
+struct HsOutputTerrain
+{
+	float4 position_ws : POSITION;
+};
+
+struct HsPatchConstants
+{
+	float edgeTessFactor[4] : SV_TessFactor;
+	float insideTessFactors[2] : SV_InsideTessFactor;
+};
+
+struct DsOutputTerrain
+{
+	float4 position : SV_POSITION;
+	float4 position_ws : POSITION;
+
+#if !DEPTH_ONLY
+	float3 normal : NORMAL;
+	float2 texcoords : TEXCOORD0;
+#endif
+};

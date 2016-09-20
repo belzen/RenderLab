@@ -144,6 +144,7 @@ void Scene::Load(const char* sceneName)
 		}
 	}
 
+	m_terrain.Init();
 	// TODO: quad/oct tree for scene
 
 	delete pFileData;
@@ -171,6 +172,7 @@ void Scene::PrepareDraw()
 	{
 		m_objects[i]->PrepareDraw();
 	}
+	m_terrain.PrepareDraw();
 	m_sky.PrepareDraw();
 	m_postProcEffects.PrepareDraw();
 }

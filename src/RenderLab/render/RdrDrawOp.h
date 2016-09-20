@@ -68,12 +68,14 @@ struct RdrDrawOp
 	RdrConstantBufferHandle hVsConstants;
 	RdrInstancedObjectDataId instanceDataId;
 
-	RdrInputLayoutHandle hInputLayout;
-	RdrVertexShader      vertexShader;
+	RdrInputLayoutHandle  hInputLayout;
+	RdrVertexShader       vertexShader;
+	RdrTessellationShader tessellationShader;
 
 	const RdrMaterial* pMaterial;
 
 	RdrGeoHandle hGeo;
+	RdrResourceHandle hInstanceData;
 	uint8 bFreeGeo : 1;
 	uint8 bHasAlpha : 1;
 	uint8 bIsSky : 1;

@@ -31,7 +31,7 @@ public:
 
 	const char* GetName() const;
 
-	const RdrDrawOp** GetDrawOps() const;
+	const RdrDrawOp* const* GetDrawOps() const;
 	uint GetNumDrawOps() const;
 
 	const RdrComputeOp** GetComputeOps() const;
@@ -69,9 +69,9 @@ private:
 	uint m_pendingComputeOps;
 };
 
-inline const RdrDrawOp** Sky::GetDrawOps() const
+inline const RdrDrawOp* const* Sky::GetDrawOps() const
 {
-	return (const RdrDrawOp**)m_pSubObjectDrawOps;
+	return m_pSubObjectDrawOps;
 }
 
 inline uint Sky::GetNumDrawOps() const

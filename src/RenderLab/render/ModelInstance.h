@@ -22,7 +22,7 @@ public:
 
 	void PrepareDraw(const Matrix44& mtxWorld, bool transformChanged);
 
-	const RdrDrawOp** GetDrawOps() const;
+	const RdrDrawOp* const* GetDrawOps() const;
 	uint GetNumDrawOps() const;
 
 	float GetRadius() const;
@@ -41,9 +41,9 @@ private:
 	RdrInputLayoutHandle m_hInputLayout;
 };
 
-inline const RdrDrawOp** ModelInstance::GetDrawOps() const
+inline const RdrDrawOp* const* ModelInstance::GetDrawOps() const
 {
-	return (const RdrDrawOp**)m_pSubObjectDrawOps;
+	return m_pSubObjectDrawOps;
 }
 
 inline uint ModelInstance::GetNumDrawOps() const

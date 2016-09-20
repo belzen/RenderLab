@@ -81,8 +81,8 @@ int MainWindow::Run()
 		AssetLib::Sky* pSky = AssetLibrary<AssetLib::Sky>::LoadAsset("cloudy");
 		m_pSceneListView->AddItem("Sky", pSky);
 
-		AssetLib::PostProcessEffects* pEffects = AssetLibrary<AssetLib::PostProcessEffects>::LoadAsset(m_scene.GetPostProcEffects()->GetEffectsAsset()->assetName);
-		m_pSceneListView->AddItem("Post-Processing Effects", pEffects);
+		//AssetLib::PostProcessEffects* pEffects = AssetLibrary<AssetLib::PostProcessEffects>::LoadAsset(m_scene.GetPostProcEffects()->GetEffectsAsset()->assetName);
+		//m_pSceneListView->AddItem("Post-Processing Effects", pEffects);
 
 		m_pSceneListView->SelectItem(0);
 	}

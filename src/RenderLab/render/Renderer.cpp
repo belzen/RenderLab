@@ -101,7 +101,7 @@ namespace
 				continue;
 
 			const ModelInstance* pModel = pObj->GetModel();
-			const RdrDrawOp** apDrawOps = pModel->GetDrawOps();
+			const RdrDrawOp* const* apDrawOps = pModel->GetDrawOps();
 			uint numDrawOps = pModel->GetNumDrawOps();
 
 			for (uint k = 0; k < numDrawOps; ++k)
@@ -141,7 +141,7 @@ namespace
 				continue;
 			
 			const ModelInstance* pModel = pObj->GetModel();
-			const RdrDrawOp** apDrawOps = pModel->GetDrawOps();
+			const RdrDrawOp* const* apDrawOps = pModel->GetDrawOps();
 			uint numDrawOps = pModel->GetNumDrawOps();
 			bool testDepth = true;
 
@@ -182,9 +182,25 @@ namespace
 			}
 		}
 
+		// Terrain
+		{
+			const RdrDrawOp* const* apDrawOps = rScene.GetTerrain().GetDrawOps();
+			uint numDrawOps = rScene.GetTerrain().GetNumDrawOps();
+			
+			for (uint k = 0; k < numDrawOps; ++k)
+			{
+				const RdrDrawOp* pDrawOp = apDrawOps[k];
+				if (pDrawOp)
+				{
+					RdrDrawBucketEntry entry(pDrawOp);
+					rOpaqueBucket.push_back(entry);
+				}
+			}
+		}
+
 		// Sky
 		{
-			const RdrDrawOp** apDrawOps = rScene.GetSky().GetDrawOps();
+			const RdrDrawOp* const* apDrawOps = rScene.GetSky().GetDrawOps();
 			uint numDrawOps = rScene.GetSky().GetNumDrawOps();
 
 			for (uint k = 0; k < numDrawOps; ++k)
@@ -993,7 +1009,7 @@ void Renderer::PostFrameSync()
 				const RdrDrawOp* pDrawOp = rEntry.pDrawOp;
 				if (pDrawOp->bFreeGeo)
 				{
-					RdrGeoSystem::ReleaseGeo(pDrawOp->hGeo);
+					RdrResourceSystem::ReleaseGeo(pDrawOp->hGeo);
 				}
 				
 				if (pDrawOp->bTempDrawOp)
@@ -1023,7 +1039,6 @@ void Renderer::PostFrameSync()
 	// Swap state
 	m_queueState = !m_queueState;
 	RdrResourceSystem::FlipState(m_pContext);
-	RdrGeoSystem::FlipState();
 	RdrShaderSystem::FlipState();
 	RdrScratchMem::FlipState();
 	RdrInstancedObjectDataBuffer::FlipState();
@@ -1073,7 +1088,6 @@ void Renderer::DrawFrame()
 	// Process threaded render commands.
 	RdrShaderSystem::ProcessCommands(m_pContext);
 	RdrResourceSystem::ProcessCommands(m_pContext);
-	RdrGeoSystem::ProcessCommands(m_pContext);
 
 	ProcessReadbackRequests();
 
@@ -1204,13 +1218,15 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 	const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices, uint instanceCount)
 {
 	bool bDepthOnly = (rPass.shaderMode == RdrShaderMode::DepthOnly);
-	const RdrGeometry* pGeo = RdrGeoSystem::GetGeo(pDrawOp->hGeo);
+	const RdrGeometry* pGeo = RdrResourceSystem::GetGeo(pDrawOp->hGeo);
 
-	// Vertex shader
+	// Vertex & tessellation shaders
 	RdrVertexShader vertexShader = pDrawOp->vertexShader;
+	RdrTessellationShader tessShader = pDrawOp->tessellationShader;
 	if (bDepthOnly)
 	{
 		vertexShader.flags |= RdrShaderFlags::DepthOnly;
+		tessShader.flags |= RdrShaderFlags::DepthOnly;
 	}
 
 	bool instanced = false;
@@ -1221,10 +1237,16 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 	}
 
 	m_drawState.pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
+	m_drawState.pHullShader = RdrShaderSystem::GetHullShader(tessShader);
+	m_drawState.pDomainShader = RdrShaderSystem::GetDomainShader(tessShader);
 
 	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerFrame;
 	m_drawState.vsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->bufferObj;
-	
+	m_drawState.vsConstantBufferCount = 1;
+
+	m_drawState.dsConstantBuffers[0] = m_drawState.vsConstantBuffers[0];
+	m_drawState.dsConstantBufferCount = 1;
+
 	if (instanced)
 	{
 		m_pContext->UpdateConstantBuffer(m_instanceIds[m_currentInstanceIds].buffer, m_instanceIds[m_currentInstanceIds].ids);
@@ -1238,10 +1260,6 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 	{
 		m_drawState.vsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pDrawOp->hVsConstants)->bufferObj;
 		m_drawState.vsConstantBufferCount = 2;
-	}
-	else
-	{
-		m_drawState.vsConstantBufferCount = 1;
 	}
 
 	// Geom shader
@@ -1298,13 +1316,22 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 
 	// Input assembly
 	m_drawState.inputLayout = *RdrShaderSystem::GetInputLayout(pDrawOp->hInputLayout); // todo: layouts per flags
-	m_drawState.eTopology = RdrTopology::TriangleList;
+	m_drawState.eTopology = pGeo->geoInfo.eTopology;
 
 	m_drawState.vertexBuffers[0] = pGeo->vertexBuffer;
 	m_drawState.vertexStrides[0] = pGeo->geoInfo.vertStride;
 	m_drawState.vertexOffsets[0] = 0;
 	m_drawState.vertexBufferCount = 1;
 	m_drawState.vertexCount = pGeo->geoInfo.numVerts;
+
+	if (pDrawOp->hInstanceData)
+	{
+		const RdrResource* pInstanceData = RdrResourceSystem::GetResource(pDrawOp->hInstanceData);
+		m_drawState.vertexBuffers[1].pBuffer = pInstanceData->pBuffer;
+		m_drawState.vertexStrides[1] = pInstanceData->bufferInfo.elementSize;
+		m_drawState.vertexOffsets[1] = 0;
+		m_drawState.vertexBufferCount = 2;
+	}
 
 	if (pGeo->indexBuffer.pBuffer)
 	{

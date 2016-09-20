@@ -4,6 +4,7 @@
 #include "render/RdrContext.h"
 #include "render/Light.h"
 #include "render/Sky.h"
+#include "render/Terrain.h"
 #include <vector>
 
 class Camera;
@@ -28,6 +29,8 @@ public:
 
 	const Sky& GetSky() const;
 
+	const Terrain& GetTerrain() const;
+
 	const WorldObjectList& GetWorldObjects() const;
 
 	LightList& GetLightList();
@@ -42,6 +45,7 @@ private:
 	WorldObjectList m_objects;
 	LightList m_lights;
 	Sky m_sky;
+	Terrain m_terrain;
 	RdrPostProcessEffects m_postProcEffects;
 	FileWatcher::ListenerID m_reloadListenerId;
 	char m_sceneName[AssetLib::AssetDef::kMaxNameLen];
@@ -51,6 +55,11 @@ private:
 inline const Sky& Scene::GetSky() const
 {
 	return m_sky;
+}
+
+inline const Terrain& Scene::GetTerrain() const
+{
+	return m_terrain;
 }
 
 inline const WorldObjectList& Scene::GetWorldObjects() const

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RdrResource.h"
+#include "RdrGeometry.h"
 
 class RdrContext;
 
@@ -20,6 +21,13 @@ namespace RdrResourceSystem
 	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat);
 
 	RdrResourceHandle CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
+
+	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
+		RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax);
+	void ReleaseGeo(const RdrGeoHandle hGeo);
+	const RdrGeometry* GetGeo(const RdrGeoHandle hGeo);
+
+	RdrResourceHandle CreateVertexBuffer(const void* pSrcData, int size, RdrResourceUsage eUsage);
 
 	RdrResourceHandle CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
 	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage);

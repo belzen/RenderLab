@@ -24,6 +24,7 @@ namespace
 		{ "v_text.hlsl", 0},    // RdrVertexShaderType::Text
 		{ "v_sprite.hlsl", 0 }, // RdrVertexShaderType::Sprite
 		{ "v_sky.hlsl", 0 },    // RdrVertexShaderType::Sky
+		{ "v_terrain.hlsl", 0 },// RdrVertexShaderType::Terrain
 		{ "v_screen.hlsl", 0 }, // RdrVertexShaderType::Screen
 	};
 	static_assert(ARRAY_SIZE(kVertexShaderDefs) == (int)RdrVertexShaderType::Count, "Missing vertex shader defs!");
@@ -32,6 +33,18 @@ namespace
 		{ "g_cubemap.hlsl", 0 },  // RdrGeometryShaderType::Model_CubemapCapture
 	};
 	static_assert(ARRAY_SIZE(kGeometryShaderDefs) == (int)RdrGeometryShaderType::Count, "Missing geometry shader defs!");
+
+	const RdrShaderDef kHullShaderDefs[] = {
+		{ nullptr },				// RdrTessellationShaderType::None
+		{ "h_terrain.hlsl", 0 },	// RdrTessellationShaderType::Terrain
+	};
+	static_assert(ARRAY_SIZE(kHullShaderDefs) == (int)RdrTessellationShaderType::Count, "Missing hull shader defs!");
+
+	const RdrShaderDef kDomainShaderDefs[] = {
+		{ nullptr },				// RdrTessellationShaderType::None
+		{ "d_terrain.hlsl", 0 },	// RdrTessellationShaderType::Terrain
+	};
+	static_assert(ARRAY_SIZE(kDomainShaderDefs) == (int)RdrTessellationShaderType::Count, "Missing domain shader defs!");
 
 	const RdrShaderDef kComputeShaderDefs[] = {
 		{ "c_tiled_depth_calc.hlsl",			{ 0 } },						// RdrComputeShader::TiledDepthMinMax
@@ -116,6 +129,9 @@ namespace
 		RdrShader vertexShaders[(int)RdrVertexShaderType::Count * (int)RdrShaderFlags::NumCombos];
 
 		RdrShader geometryShaders[(int)RdrGeometryShaderType::Count * (int)RdrShaderFlags::NumCombos];
+		RdrShader hullShaders[(int)RdrTessellationShaderType::Count * (int)RdrShaderFlags::NumCombos];
+		RdrShader domainShaders[(int)RdrTessellationShaderType::Count * (int)RdrShaderFlags::NumCombos];
+
 		RdrShader computeShaders[(int)RdrComputeShader::Count];
 
 		RdrShaderHandleMap pixelShaderCache;
@@ -220,6 +236,9 @@ namespace
 		const char* aDefines[kMaxDefines];
 		uint numDefines = 0;
 
+		if (!rShaderDef.filename)
+			return;
+
 		while (rShaderDef.aDefines[numDefines] != 0)
 		{
 			aDefines[numDefines] = rShaderDef.aDefines[numDefines];
@@ -270,6 +289,11 @@ namespace
 	}
 
 	inline uint getGeometryShaderIndex(const RdrGeometryShader& shader)
+	{
+		return (uint)shader.eType * (uint)RdrShaderFlags::NumCombos + (uint)shader.flags;
+	}
+
+	inline uint getTessellationShaderIndex(const RdrTessellationShader& shader)
 	{
 		return (uint)shader.eType * (uint)RdrShaderFlags::NumCombos + (uint)shader.flags;
 	}
@@ -343,6 +367,20 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 			createDefaultShader(pRdrContext, RdrShaderStage::Geometry,
 				kGeometryShaderDefs[gs], (RdrShaderFlags)flags,
 				s_shaderSystem.geometryShaders[gs * (uint)RdrShaderFlags::NumCombos + flags]);
+		}
+	}
+
+	/// Tessellation shaders
+	for (int ts = 0; ts < (int)RdrTessellationShaderType::Count; ++ts)
+	{
+		for (uint flags = 0; flags < (uint)RdrShaderFlags::NumCombos; ++flags)
+		{
+			createDefaultShader(pRdrContext, RdrShaderStage::Hull,
+				kHullShaderDefs[ts], (RdrShaderFlags)flags,
+				s_shaderSystem.hullShaders[ts * (uint)RdrShaderFlags::NumCombos + flags]);
+			createDefaultShader(pRdrContext, RdrShaderStage::Domain,
+				kDomainShaderDefs[ts], (RdrShaderFlags)flags,
+				s_shaderSystem.domainShaders[ts * (uint)RdrShaderFlags::NumCombos + flags]);
 		}
 	}
 
@@ -550,16 +588,28 @@ RdrInputLayoutHandle RdrShaderSystem::CreateInputLayout(const RdrVertexShader& v
 	return cmd.hLayout;
 }
 
-const RdrShader* RdrShaderSystem::GetVertexShader(const RdrVertexShader shader)
+const RdrShader* RdrShaderSystem::GetVertexShader(const RdrVertexShader& shader)
 {
 	uint idx = getVertexShaderIndex(shader);
 	return &s_shaderSystem.vertexShaders[idx];
 }
 
-const RdrShader* RdrShaderSystem::GetGeometryShader(const RdrGeometryShader shader)
+const RdrShader* RdrShaderSystem::GetGeometryShader(const RdrGeometryShader& shader)
 {
 	uint idx = getGeometryShaderIndex(shader);
 	return &s_shaderSystem.geometryShaders[idx];
+}
+
+const RdrShader* RdrShaderSystem::GetHullShader(const RdrTessellationShader& shader)
+{
+	uint idx = getTessellationShaderIndex(shader);
+	return &s_shaderSystem.hullShaders[idx];
+}
+
+const RdrShader* RdrShaderSystem::GetDomainShader(const RdrTessellationShader& shader)
+{
+	uint idx = getTessellationShaderIndex(shader);
+	return &s_shaderSystem.domainShaders[idx];
 }
 
 const RdrShader* RdrShaderSystem::GetComputeShader(const RdrComputeShader eShader)

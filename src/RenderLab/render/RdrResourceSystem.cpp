@@ -18,7 +18,7 @@ namespace
 	static const uint kMaxConstantBuffersPerPool = 128;
 	static const uint kNumConstantBufferPools = 10;
 
-	struct ResCmdCreateTexture
+	struct CmdCreateTexture
 	{
 		RdrResourceHandle hResource;
 		RdrTextureInfo texInfo;
@@ -29,29 +29,27 @@ namespace
 		uint dataSize;
 	};
 
-	struct ResCmdCreateBuffer
+	struct CmdCreateBuffer
 	{
 		RdrResourceHandle hResource;
 		const void* pData;
-		RdrResourceFormat eFormat;
-		uint elementSize;
-		uint numElements;
+		RdrBufferInfo info;
 		RdrResourceUsage eUsage;
 	};
 
-	struct ResCmdUpdateBuffer
+	struct CmdUpdateBuffer
 	{
 		RdrResourceHandle hResource;
 		const void* pData;
 		uint numElements;
 	};
 
-	struct ResCmdReleaseResource
+	struct CmdReleaseResource
 	{
 		RdrResourceHandle hResource;
 	};
 
-	struct ResCmdCreateConstantBuffer
+	struct CmdCreateConstantBuffer
 	{
 		RdrConstantBufferHandle hBuffer;
 		RdrCpuAccessFlags cpuAccessFlags;
@@ -61,19 +59,19 @@ namespace
 		bool bIsTemp;
 	};
 
-	struct ResCmdUpdateConstantBuffer
+	struct CmdUpdateConstantBuffer
 	{
 		RdrConstantBufferHandle hBuffer;
 		const void* pData;
 		bool bIsTemp;
 	};
 
-	struct ResCmdReleaseConstantBuffer
+	struct CmdReleaseConstantBuffer
 	{
 		RdrConstantBufferHandle hBuffer;
 	};
 
-	struct ResCmdCreateRenderTarget
+	struct CmdCreateRenderTarget
 	{
 		RdrRenderTargetViewHandle hView;
 		RdrResourceHandle hResource;
@@ -81,12 +79,12 @@ namespace
 		int arraySize;
 	};
 
-	struct ResCmdReleaseRenderTarget
+	struct CmdReleaseRenderTarget
 	{
 		RdrRenderTargetViewHandle hView;
 	};
 
-	struct ResCmdCreateDepthStencil
+	struct CmdCreateDepthStencil
 	{
 		RdrDepthStencilViewHandle hView;
 		RdrResourceHandle hResource;
@@ -94,40 +92,55 @@ namespace
 		int arraySize;
 	};
 
-	struct ResCmdReleaseDepthStencil
+	struct CmdReleaseDepthStencil
 	{
 		RdrDepthStencilViewHandle hView;
 	};
 
-	struct ResCmdCreateShaderResourceView
+	struct CmdCreateShaderResourceView
 	{
 		RdrShaderResourceViewHandle hView;
 		RdrResourceHandle hResource;
 		int firstElement;
 	};
 
-	struct ResCmdReleaseShaderResourceView
+	struct CmdReleaseShaderResourceView
 	{
 		RdrShaderResourceViewHandle hView;
 	};
 
+	struct CmdUpdateGeo
+	{
+		RdrGeoHandle hGeo;
+		const void* pVertData;
+		const uint16* pIndexData;
+		RdrGeoInfo info;
+	};
+
+	struct CmdReleaseGeo
+	{
+		RdrGeoHandle hGeo;
+	};
+
 	struct ResFrameState
 	{
-		SizedArray<ResCmdCreateTexture, 1024>				textureCreates;
-		SizedArray<ResCmdCreateBuffer, 1024>				bufferCreates;
-		SizedArray<ResCmdUpdateBuffer, 1024>				bufferUpdates;
-		SizedArray<ResCmdReleaseResource, 1024>				resourceReleases;
-		SizedArray<ResCmdCreateRenderTarget, 1024>			renderTargetCreates;
-		SizedArray<ResCmdReleaseRenderTarget, 1024>			renderTargetReleases;
-		SizedArray<ResCmdCreateDepthStencil, 1024>			depthStencilCreates;
-		SizedArray<ResCmdReleaseDepthStencil, 1024>			depthStencilReleases;
-		SizedArray<ResCmdCreateShaderResourceView, 1024>    shaderResourceViewCreates;
-		SizedArray<ResCmdReleaseShaderResourceView, 1024>   shaderResourceViewReleases;
+		SizedArray<CmdCreateTexture, 1024>				textureCreates;
+		SizedArray<CmdCreateBuffer, 1024>				bufferCreates;
+		SizedArray<CmdUpdateBuffer, 1024>				bufferUpdates;
+		SizedArray<CmdReleaseResource, 1024>			resourceReleases;
+		SizedArray<CmdCreateRenderTarget, 1024>			renderTargetCreates;
+		SizedArray<CmdReleaseRenderTarget, 1024>		renderTargetReleases;
+		SizedArray<CmdCreateDepthStencil, 1024>			depthStencilCreates;
+		SizedArray<CmdReleaseDepthStencil, 1024>		depthStencilReleases;
+		SizedArray<CmdCreateShaderResourceView, 1024>   shaderResourceViewCreates;
+		SizedArray<CmdReleaseShaderResourceView, 1024>  shaderResourceViewReleases;
+		SizedArray<CmdUpdateGeo, 1024>					geoUpdates;
+		SizedArray<CmdReleaseGeo, 1024>					geoReleases;
 
-		SizedArray<ResCmdCreateConstantBuffer, 2048>  constantBufferCreates;
-		SizedArray<ResCmdUpdateConstantBuffer, 2048>  constantBufferUpdates;
-		SizedArray<ResCmdReleaseConstantBuffer, 2048> constantBufferReleases;
-		SizedArray<RdrConstantBufferHandle, 2048>     tempConstantBuffers;
+		SizedArray<CmdCreateConstantBuffer, 2048>		constantBufferCreates;
+		SizedArray<CmdUpdateConstantBuffer, 2048>		constantBufferUpdates;
+		SizedArray<CmdReleaseConstantBuffer, 2048>		constantBufferReleases;
+		SizedArray<RdrConstantBufferHandle, 2048>		tempConstantBuffers;
 	};
 
 	struct ConstantBufferPool
@@ -138,8 +151,9 @@ namespace
 
 	struct 
 	{
-		RdrResourceHandleMap textureCache;
-		RdrResourceList      resources;
+		RdrResourceHandleMap	textureCache;
+		RdrResourceList			resources;
+		RdrGeoList				geos;
 
 		RdrConstantBufferList constantBuffers;
 		ConstantBufferPool constantBufferPools[kNumConstantBufferPools];
@@ -189,7 +203,7 @@ namespace
 	{
 		RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
-		ResCmdCreateTexture& cmd = getQueueState().textureCreates.pushSafe();
+		CmdCreateTexture& cmd = getQueueState().textureCreates.pushSafe();
 		memset(&cmd, 0, sizeof(cmd));
 
 		cmd.hResource = s_resourceSystem.resources.getId(pResource);
@@ -220,7 +234,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 	if (iter != s_resourceSystem.textureCache.end())
 		return iter->second;
 
-	ResCmdCreateTexture& cmd = getQueueState().textureCreates.pushSafe();
+	CmdCreateTexture& cmd = getQueueState().textureCreates.pushSafe();
 	memset(&cmd, 0, sizeof(cmd));
 
 	if (!AssetLib::g_textureDef.LoadAsset(texName, &cmd.pHeaderData, &cmd.dataSize))
@@ -294,17 +308,32 @@ RdrResourceHandle RdrResourceSystem::CreateTexture3D(uint width, uint height, ui
 	return createTextureInternal(RdrTextureType::k3D, width, height, depth, 1, eFormat, 1, eUsage);
 }
 
+RdrResourceHandle RdrResourceSystem::CreateVertexBuffer(const void* pSrcData, int size, RdrResourceUsage eUsage)
+{
+	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
+
+	CmdCreateBuffer& cmd = getQueueState().bufferCreates.pushSafe();
+	cmd.hResource = s_resourceSystem.resources.getId(pResource);
+	cmd.pData = pSrcData;
+	cmd.eUsage = eUsage;
+	cmd.info.eType = RdrBufferType::Vertex;
+	cmd.info.elementSize = size;
+	cmd.info.numElements = 1;
+
+	return cmd.hResource;
+}
+
 RdrResourceHandle RdrResourceSystem::CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage)
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
-	ResCmdCreateBuffer& cmd = getQueueState().bufferCreates.pushSafe();
+	CmdCreateBuffer& cmd = getQueueState().bufferCreates.pushSafe();
 	cmd.hResource = s_resourceSystem.resources.getId(pResource);
 	cmd.pData = pSrcData;
-	cmd.numElements = numElements;
-	cmd.eFormat = eFormat;
-	cmd.elementSize = 0;
 	cmd.eUsage = eUsage;
+	cmd.info.eType = RdrBufferType::Data;
+	cmd.info.eFormat = eFormat;
+	cmd.info.numElements = numElements;
 
 	return cmd.hResource;
 }
@@ -313,19 +342,20 @@ RdrResourceHandle RdrResourceSystem::CreateStructuredBuffer(const void* pSrcData
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
-	ResCmdCreateBuffer& cmd = getQueueState().bufferCreates.pushSafe();
+	CmdCreateBuffer& cmd = getQueueState().bufferCreates.pushSafe();
 	cmd.hResource = s_resourceSystem.resources.getId(pResource);
 	cmd.pData = pSrcData;
-	cmd.numElements = numElements;
-	cmd.elementSize = elementSize;
 	cmd.eUsage = eUsage;
+	cmd.info.eType = RdrBufferType::Structured;
+	cmd.info.elementSize = elementSize;
+	cmd.info.numElements = numElements;
 
 	return cmd.hResource;
 }
 
 RdrResourceHandle RdrResourceSystem::UpdateBuffer(const RdrResourceHandle hResource, const void* pSrcData, int numElements)
 {
-	ResCmdUpdateBuffer& cmd = getQueueState().bufferUpdates.pushSafe();
+	CmdUpdateBuffer& cmd = getQueueState().bufferUpdates.pushSafe();
 	cmd.hResource = hResource;
 	cmd.pData = pSrcData;
 	cmd.numElements = numElements;
@@ -339,7 +369,7 @@ RdrShaderResourceViewHandle RdrResourceSystem::CreateShaderResourceView(RdrResou
 
 	RdrShaderResourceView* pView = s_resourceSystem.shaderResourceViews.allocSafe();
 
-	ResCmdCreateShaderResourceView& cmd = getQueueState().shaderResourceViewCreates.pushSafe();
+	CmdCreateShaderResourceView& cmd = getQueueState().shaderResourceViewCreates.pushSafe();
 	cmd.hResource = hResource;
 	cmd.hView = s_resourceSystem.shaderResourceViews.getId(pView);
 	cmd.firstElement = firstElement;
@@ -349,7 +379,7 @@ RdrShaderResourceViewHandle RdrResourceSystem::CreateShaderResourceView(RdrResou
 
 void RdrResourceSystem::ReleaseShaderResourceView(RdrShaderResourceViewHandle hView)
 {
-	ResCmdReleaseShaderResourceView& cmd = getQueueState().shaderResourceViewReleases.pushSafe();
+	CmdReleaseShaderResourceView& cmd = getQueueState().shaderResourceViewReleases.pushSafe();
 	cmd.hView = hView;
 }
 
@@ -357,7 +387,7 @@ RdrConstantBufferHandle RdrResourceSystem::CreateConstantBuffer(const void* pDat
 {
 	RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.allocSafe();
 
-	ResCmdCreateConstantBuffer& cmd = getQueueState().constantBufferCreates.pushSafe();
+	CmdCreateConstantBuffer& cmd = getQueueState().constantBufferCreates.pushSafe();
 	cmd.hBuffer = s_resourceSystem.constantBuffers.getId(pBuffer);
 	cmd.pData = pData;
 	cmd.cpuAccessFlags = cpuAccessFlags;
@@ -380,7 +410,7 @@ RdrConstantBufferHandle RdrResourceSystem::CreateTempConstantBuffer(const void* 
 			RdrConstantBufferHandle hBuffer = rPool.ahBuffers[--rPool.bufferCount];
 
 			// Queue update command with temp flag.
-			ResCmdUpdateConstantBuffer& cmd = getQueueState().constantBufferUpdates.pushSafe();
+			CmdUpdateConstantBuffer& cmd = getQueueState().constantBufferUpdates.pushSafe();
 			cmd.hBuffer = hBuffer;
 			cmd.pData = pData;
 			cmd.bIsTemp = true;
@@ -391,7 +421,7 @@ RdrConstantBufferHandle RdrResourceSystem::CreateTempConstantBuffer(const void* 
 
 	RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.allocSafe();
 
-	ResCmdCreateConstantBuffer& cmd = getQueueState().constantBufferCreates.pushSafe();
+	CmdCreateConstantBuffer& cmd = getQueueState().constantBufferCreates.pushSafe();
 	cmd.hBuffer = s_resourceSystem.constantBuffers.getId(pBuffer);
 	cmd.pData = pData;
 	cmd.cpuAccessFlags = RdrCpuAccessFlags::Write;
@@ -404,7 +434,7 @@ RdrConstantBufferHandle RdrResourceSystem::CreateTempConstantBuffer(const void* 
 
 void RdrResourceSystem::UpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData)
 {
-	ResCmdUpdateConstantBuffer& cmd = getQueueState().constantBufferUpdates.pushSafe();
+	CmdUpdateConstantBuffer& cmd = getQueueState().constantBufferUpdates.pushSafe();
 	cmd.hBuffer = hBuffer;
 	cmd.pData = pData;
 	cmd.bIsTemp = false;
@@ -412,13 +442,13 @@ void RdrResourceSystem::UpdateConstantBuffer(RdrConstantBufferHandle hBuffer, co
 
 void RdrResourceSystem::ReleaseConstantBuffer(RdrConstantBufferHandle hBuffer)
 {
-	ResCmdReleaseConstantBuffer& cmd = getQueueState().constantBufferReleases.pushSafe();
+	CmdReleaseConstantBuffer& cmd = getQueueState().constantBufferReleases.pushSafe();
 	cmd.hBuffer = hBuffer;
 }
 
 void RdrResourceSystem::ReleaseResource(RdrResourceHandle hRes)
 {
-	ResCmdReleaseResource& cmd = getQueueState().resourceReleases.pushSafe();
+	CmdReleaseResource& cmd = getQueueState().resourceReleases.pushSafe();
 	cmd.hResource = hRes;
 }
 
@@ -443,7 +473,7 @@ RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceH
 
 	RdrRenderTargetView* pView = s_resourceSystem.renderTargetViews.allocSafe();
 
-	ResCmdCreateRenderTarget& cmd = getQueueState().renderTargetCreates.pushSafe();
+	CmdCreateRenderTarget& cmd = getQueueState().renderTargetCreates.pushSafe();
 	cmd.hResource = hResource;
 	cmd.hView = s_resourceSystem.renderTargetViews.getId(pView);
 	cmd.arrayStartIndex = -1;
@@ -457,7 +487,7 @@ RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceH
 
 	RdrRenderTargetView* pView = s_resourceSystem.renderTargetViews.allocSafe();
 
-	ResCmdCreateRenderTarget& cmd = getQueueState().renderTargetCreates.pushSafe();
+	CmdCreateRenderTarget& cmd = getQueueState().renderTargetCreates.pushSafe();
 	cmd.hResource = hResource;
 	cmd.hView = s_resourceSystem.renderTargetViews.getId(pView);
 	cmd.arrayStartIndex = arrayStartIndex;
@@ -468,7 +498,7 @@ RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceH
 
 void RdrResourceSystem::ReleaseRenderTargetView(const RdrRenderTargetViewHandle hView)
 {
-	ResCmdReleaseRenderTarget& cmd = getQueueState().renderTargetReleases.pushSafe();
+	CmdReleaseRenderTarget& cmd = getQueueState().renderTargetReleases.pushSafe();
 	cmd.hView = hView;
 }
 
@@ -479,7 +509,7 @@ RdrDepthStencilView RdrResourceSystem::GetDepthStencilView(const RdrDepthStencil
 
 void RdrResourceSystem::ReleaseDepthStencilView(const RdrRenderTargetViewHandle hView)
 {
-	ResCmdReleaseDepthStencil& cmd = getQueueState().depthStencilReleases.pushSafe();
+	CmdReleaseDepthStencil& cmd = getQueueState().depthStencilReleases.pushSafe();
 	cmd.hView = hView;
 }
 
@@ -489,7 +519,7 @@ RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceH
 
 	RdrDepthStencilView* pView = s_resourceSystem.depthStencilViews.allocSafe();
 
-	ResCmdCreateDepthStencil& cmd = getQueueState().depthStencilCreates.pushSafe();
+	CmdCreateDepthStencil& cmd = getQueueState().depthStencilCreates.pushSafe();
 	cmd.hResource = hResource;
 	cmd.hView = s_resourceSystem.depthStencilViews.getId(pView);
 	cmd.arrayStartIndex = -1;
@@ -503,13 +533,43 @@ RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceH
 
 	RdrDepthStencilView* pView = s_resourceSystem.depthStencilViews.allocSafe();
 
-	ResCmdCreateDepthStencil& cmd = getQueueState().depthStencilCreates.pushSafe();
+	CmdCreateDepthStencil& cmd = getQueueState().depthStencilCreates.pushSafe();
 	cmd.hResource = hResource;
 	cmd.hView = s_resourceSystem.depthStencilViews.getId(pView);
 	cmd.arrayStartIndex = arrayStartIndex;
 	cmd.arraySize = arraySize;
 
 	return cmd.hView;
+}
+
+const RdrGeometry* RdrResourceSystem::GetGeo(const RdrGeoHandle hGeo)
+{
+	return s_resourceSystem.geos.get(hGeo);
+}
+
+void RdrResourceSystem::ReleaseGeo(const RdrGeoHandle hGeo)
+{
+	CmdReleaseGeo& cmd = getQueueState().geoReleases.pushSafe();
+	cmd.hGeo = hGeo;
+}
+
+RdrGeoHandle RdrResourceSystem::CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
+	RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax)
+{
+	RdrGeometry* pGeo = s_resourceSystem.geos.allocSafe();
+
+	CmdUpdateGeo& cmd = getQueueState().geoUpdates.pushSafe();
+	cmd.hGeo = s_resourceSystem.geos.getId(pGeo);
+	cmd.pVertData = pVertData;
+	cmd.pIndexData = pIndexData;
+	cmd.info.eTopology = eTopology;
+	cmd.info.vertStride = vertStride;
+	cmd.info.numVerts = numVerts;
+	cmd.info.numIndices = numIndices;
+	cmd.info.boundsMin = boundsMin;
+	cmd.info.boundsMax = boundsMax;
+
+	return cmd.hGeo;
 }
 
 void RdrResourceSystem::FlipState(RdrContext* pRdrContext)
@@ -554,7 +614,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 		numCmds = (uint)state.resourceReleases.size();
 		for (uint i = 0; i < numCmds; ++i)
 		{
-			ResCmdReleaseResource& cmd = state.resourceReleases[i];
+			CmdReleaseResource& cmd = state.resourceReleases[i];
 			RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 			pRdrContext->ReleaseResource(*pResource);
 			s_resourceSystem.resources.releaseId(cmd.hResource);
@@ -566,7 +626,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	numCmds = (uint)state.renderTargetReleases.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		ResCmdReleaseRenderTarget& cmd = state.renderTargetReleases[i];
+		CmdReleaseRenderTarget& cmd = state.renderTargetReleases[i];
 		RdrRenderTargetView* pView = s_resourceSystem.renderTargetViews.get(cmd.hView);
 		pRdrContext->ReleaseRenderTargetView(*pView);
 		s_resourceSystem.renderTargetViews.releaseIdSafe(cmd.hView);
@@ -576,7 +636,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	numCmds = (uint)state.depthStencilReleases.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		ResCmdReleaseDepthStencil& cmd = state.depthStencilReleases[i];
+		CmdReleaseDepthStencil& cmd = state.depthStencilReleases[i];
 		RdrDepthStencilView* pView = s_resourceSystem.depthStencilViews.get(cmd.hView);
 		pRdrContext->ReleaseDepthStencilView(*pView);
 		s_resourceSystem.depthStencilViews.releaseIdSafe(cmd.hView);
@@ -586,7 +646,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	numCmds = (uint)state.shaderResourceViewReleases.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		ResCmdReleaseShaderResourceView& cmd = state.shaderResourceViewReleases[i];
+		CmdReleaseShaderResourceView& cmd = state.shaderResourceViewReleases[i];
 		RdrShaderResourceView* pView = s_resourceSystem.shaderResourceViews.get(cmd.hView);
 		pRdrContext->ReleaseShaderResourceView(*pView);
 		s_resourceSystem.shaderResourceViews.releaseIdSafe(cmd.hView);
@@ -598,7 +658,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 		numCmds = (uint)state.constantBufferReleases.size();
 		for (uint i = 0; i < numCmds; ++i)
 		{
-			ResCmdReleaseConstantBuffer& cmd = state.constantBufferReleases[i];
+			CmdReleaseConstantBuffer& cmd = state.constantBufferReleases[i];
 			RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
 			pRdrContext->ReleaseConstantBuffer(pBuffer->bufferObj);
 			s_resourceSystem.constantBuffers.releaseId(cmd.hBuffer);
@@ -606,11 +666,29 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	}
 	s_resourceSystem.constantBuffers.ReleaseLock();
 
+	// Free geos
+	s_resourceSystem.geos.AcquireLock();
+	numCmds = (uint)state.geoReleases.size();
+	for (uint i = 0; i < numCmds; ++i)
+	{
+		CmdReleaseGeo& cmd = state.geoReleases[i];
+		RdrGeometry* pGeo = s_resourceSystem.geos.get(cmd.hGeo);
+
+		pRdrContext->ReleaseBuffer(pGeo->vertexBuffer);
+		pGeo->vertexBuffer.pBuffer = nullptr;
+
+		pRdrContext->ReleaseBuffer(pGeo->indexBuffer);
+		pGeo->indexBuffer.pBuffer = nullptr;
+
+		s_resourceSystem.geos.releaseId(cmd.hGeo);
+	}
+	s_resourceSystem.geos.ReleaseLock();
+
 	// Create textures
 	numCmds = (uint)state.textureCreates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		ResCmdCreateTexture& cmd = state.textureCreates[i];
+		CmdCreateTexture& cmd = state.textureCreates[i];
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 		pRdrContext->CreateTexture(cmd.pData, cmd.texInfo, cmd.eUsage, *pResource);
 		pResource->texInfo = cmd.texInfo;
@@ -624,7 +702,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	numCmds = (uint)state.bufferUpdates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		ResCmdUpdateBuffer& cmd = state.bufferUpdates[i];
+		CmdUpdateBuffer& cmd = state.bufferUpdates[i];
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 		pRdrContext->UpdateBuffer(cmd.pData, *pResource, cmd.numElements);
 	}
@@ -633,22 +711,24 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	numCmds = (uint)state.bufferCreates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		ResCmdCreateBuffer& cmd = state.bufferCreates[i];
+		CmdCreateBuffer& cmd = state.bufferCreates[i];
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 
-		pResource->bufferInfo.elementSize = cmd.elementSize;
-		pResource->bufferInfo.numElements = cmd.numElements;
-		pResource->bufferInfo.eFormat = cmd.eFormat;
+		pResource->bufferInfo = cmd.info;
 		pResource->eUsage = cmd.eUsage;
 		pResource->bIsTexture = false;
 
-		if (cmd.elementSize)
+		switch (cmd.info.eType)
 		{
-			pRdrContext->CreateStructuredBuffer(cmd.pData, cmd.numElements, cmd.elementSize, cmd.eUsage, *pResource);
-		}
-		else
-		{
-			pRdrContext->CreateDataBuffer(cmd.pData, cmd.numElements, cmd.eFormat, cmd.eUsage, *pResource);
+		case RdrBufferType::Data:
+			pRdrContext->CreateDataBuffer(cmd.pData, cmd.info.numElements, cmd.info.eFormat, cmd.eUsage, *pResource);
+			break;
+		case RdrBufferType::Structured:
+			pRdrContext->CreateStructuredBuffer(cmd.pData, cmd.info.numElements, cmd.info.elementSize, cmd.eUsage, *pResource);
+			break;
+		case RdrBufferType::Vertex:
+			pResource->pBuffer = pRdrContext->CreateVertexBuffer(cmd.pData, cmd.info.elementSize * cmd.info.numElements, cmd.eUsage).pBuffer;
+			break;
 		}
 	}
 
@@ -656,7 +736,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	numCmds = (uint)state.renderTargetCreates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		ResCmdCreateRenderTarget& cmd = state.renderTargetCreates[i];
+		CmdCreateRenderTarget& cmd = state.renderTargetCreates[i];
 		RdrRenderTargetView* pView = s_resourceSystem.renderTargetViews.get(cmd.hView);
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 		if (cmd.arrayStartIndex >= 0)
@@ -673,7 +753,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	numCmds = (uint)state.depthStencilCreates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		ResCmdCreateDepthStencil& cmd = state.depthStencilCreates[i];
+		CmdCreateDepthStencil& cmd = state.depthStencilCreates[i];
 		RdrDepthStencilView* pView = s_resourceSystem.depthStencilViews.get(cmd.hView);
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 		if (cmd.arrayStartIndex >= 0)
@@ -690,7 +770,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	numCmds = (uint)state.shaderResourceViewCreates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		ResCmdCreateShaderResourceView& cmd = state.shaderResourceViewCreates[i];
+		CmdCreateShaderResourceView& cmd = state.shaderResourceViewCreates[i];
 		RdrShaderResourceView* pView = s_resourceSystem.shaderResourceViews.get(cmd.hView);
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 		if (pResource->bIsTexture)
@@ -707,7 +787,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	numCmds = (uint)state.constantBufferCreates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		ResCmdCreateConstantBuffer& cmd = state.constantBufferCreates[i];
+		CmdCreateConstantBuffer& cmd = state.constantBufferCreates[i];
 		RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
 		pBuffer->bufferObj = pRdrContext->CreateConstantBuffer(cmd.pData, cmd.size, cmd.cpuAccessFlags, cmd.eUsage);
 		pBuffer->size = cmd.size;
@@ -722,7 +802,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 	numCmds = (uint)state.constantBufferUpdates.size();
 	for (uint i = 0; i < numCmds; ++i)
 	{
-		const ResCmdUpdateConstantBuffer& cmd = state.constantBufferUpdates[i];
+		const CmdUpdateConstantBuffer& cmd = state.constantBufferUpdates[i];
 		RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
 		pRdrContext->UpdateConstantBuffer(*pBuffer, cmd.pData);
 
@@ -732,6 +812,33 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 		}
 	}
 
+	// Create/Update geos
+	s_resourceSystem.geos.AcquireLock();
+	numCmds = (uint)state.geoUpdates.size();
+	for (uint i = 0; i < numCmds; ++i)
+	{
+		CmdUpdateGeo& cmd = state.geoUpdates[i];
+		RdrGeometry* pGeo = s_resourceSystem.geos.get(cmd.hGeo);
+		if (!pGeo->vertexBuffer.pBuffer)
+		{
+			// Creating
+			pGeo->geoInfo = cmd.info;
+			pGeo->vertexBuffer = pRdrContext->CreateVertexBuffer(cmd.pVertData, cmd.info.vertStride * cmd.info.numVerts, RdrResourceUsage::Default);
+			if (cmd.pIndexData)
+			{
+				pGeo->indexBuffer = pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices, RdrResourceUsage::Default);
+			}
+		}
+		else
+		{
+			// Updating
+			assert(false); //todo
+		}
+	}
+	s_resourceSystem.geos.ReleaseLock();
+
+	state.geoUpdates.clear();
+	state.geoReleases.clear();
 	state.textureCreates.clear();
 	state.bufferCreates.clear();
 	state.bufferUpdates.clear();

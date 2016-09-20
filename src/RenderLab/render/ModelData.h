@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RdrGeoSystem.h"
+#include "RdrGeometry.h"
 
 struct RdrMaterial;
 namespace AssetLib

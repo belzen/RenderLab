@@ -14,8 +14,18 @@ struct Vertex
 	Vec3 bitangent;
 };
 
+enum class RdrTopology
+{
+	TriangleList,
+	TriangleStrip,
+	Quad,
+
+	Count
+};
+
 struct RdrGeoInfo
 {
+	RdrTopology eTopology;
 	int numVerts;
 	int numIndices;
 	uint vertStride;
@@ -23,23 +33,17 @@ struct RdrGeoInfo
 	Vec3 boundsMax;
 };
 
-struct RdrVertexBuffer
-{
-	ID3D11Buffer* pBuffer;
-};
-
-struct RdrIndexBuffer
+struct RdrBuffer
 {
 	ID3D11Buffer* pBuffer;
 };
 
 struct RdrGeometry
 {
-	RdrVertexBuffer vertexBuffer;
-	RdrIndexBuffer indexBuffer;
+	RdrBuffer vertexBuffer;
+	RdrBuffer indexBuffer;
 	RdrGeoInfo geoInfo;
 };
-
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -47,12 +51,12 @@ typedef FreeList<RdrGeometry, 1024> RdrGeoList;
 typedef RdrGeoList::Handle RdrGeoHandle;
 
 
-inline bool operator == (const RdrVertexBuffer& rLeft, const RdrVertexBuffer& rRight)
+inline bool operator == (const RdrBuffer& rLeft, const RdrBuffer& rRight)
 {
 	return rLeft.pBuffer == rRight.pBuffer;
 }
 
-inline bool operator != (const RdrVertexBuffer& rLeft, const RdrVertexBuffer& rRight)
+inline bool operator != (const RdrBuffer& rLeft, const RdrBuffer& rRight)
 {
 	return !(rLeft == rRight);
 }

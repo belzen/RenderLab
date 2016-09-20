@@ -17,10 +17,12 @@ namespace RdrShaderSystem
 
 	void SetGlobalShaderDefine(const char* define, bool enable);
 
-	const RdrShader* GetVertexShader(const RdrVertexShader shader);
-	const RdrShader* GetGeometryShader(const RdrGeometryShader shader);
-	const RdrShader* GetComputeShader(const RdrComputeShader eShader);
+	const RdrShader* GetVertexShader(const RdrVertexShader& shader);
+	const RdrShader* GetGeometryShader(const RdrGeometryShader& shader);
+	const RdrShader* GetHullShader(const RdrTessellationShader& shader);
+	const RdrShader* GetDomainShader(const RdrTessellationShader& shader);
 	const RdrShader* GetPixelShader(const RdrShaderHandle hShader);
+	const RdrShader* GetComputeShader(const RdrComputeShader eShader);
 
 	const RdrInputLayout* GetInputLayout(const RdrInputLayoutHandle hLayout);
 

@@ -97,6 +97,18 @@
     <FxCompile Include="..\..\data\shaders\c_copy_3d.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\data\shaders\v_terrain.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\h_terrain.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\d_terrain.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_terrain.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FrameTimer.cpp" />
@@ -152,9 +164,6 @@
     <ClCompile Include="render\RdrFrameState.cpp">
       <Filter>render</Filter>
     </ClCompile>
-    <ClCompile Include="render\RdrGeoSystem.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
     <ClCompile Include="render\RdrMaterial.cpp">
       <Filter>render</Filter>
     </ClCompile>
@@ -192,6 +201,10 @@
     <ClCompile Include="render\RdrInstancedObjectDataBuffer.cpp">
       <Filter>render</Filter>
     </ClCompile>
+    <ClCompile Include="render\Terrain.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="UserConfig.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -281,9 +294,6 @@
     <ClInclude Include="render\RdrGeometry.h">
       <Filter>render</Filter>
     </ClInclude>
-    <ClInclude Include="render\RdrGeoSystem.h">
-      <Filter>render</Filter>
-    </ClInclude>
     <ClInclude Include="render\RdrMaterial.h">
       <Filter>render</Filter>
     </ClInclude>
@@ -336,6 +346,10 @@
     <ClInclude Include="render\RdrInstancedObjectDataBuffer.h">
       <Filter>render</Filter>
     </ClInclude>
+    <ClInclude Include="render\Terrain.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="UserConfig.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\shaders\p_common.hlsli">

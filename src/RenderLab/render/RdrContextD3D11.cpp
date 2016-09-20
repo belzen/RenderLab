@@ -11,6 +11,8 @@
 
 namespace
 {
+	const int kNumBackBuffers = 2;
+
 	bool resourceFormatIsDepth(const RdrResourceFormat eFormat)
 	{
 		return eFormat == RdrResourceFormat::D16 || eFormat == RdrResourceFormat::D24_UNORM_S8_UINT;
@@ -24,7 +26,9 @@ namespace
 	D3D11_PRIMITIVE_TOPOLOGY getD3DTopology(const RdrTopology eTopology)
 	{
 		static const D3D11_PRIMITIVE_TOPOLOGY s_d3dTopology[] = {
-			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,	// kRdrTopology_TriangleList
+			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,				// RdrTopology::TriangleList
+			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,				// RdrTopology::TriangleStrip
+			D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST,	// RdrTopology::Quad
 		};
 		static_assert(ARRAY_SIZE(s_d3dTopology) == (int)RdrTopology::Count, "Missing D3D topologies!");
 		return s_d3dTopology[(int)eTopology];
@@ -333,26 +337,21 @@ void RdrContextD3D11::ReadResource(const RdrResource& rSrcResource, void* pDstDa
 	m_pDevContext->Unmap(rSrcResource.pResource, 0);
 }
 
-RdrVertexBuffer RdrContextD3D11::CreateVertexBuffer(const void* vertices, int size)
+RdrBuffer RdrContextD3D11::CreateVertexBuffer(const void* vertices, int size, RdrResourceUsage eUsage)
 {
-	RdrVertexBuffer buffer;
+	RdrBuffer buffer;
 	buffer.pBuffer = createBuffer(m_pDevice, vertices, size, D3D11_BIND_VERTEX_BUFFER);
 	return buffer;
 }
 
-void RdrContextD3D11::ReleaseVertexBuffer(const RdrVertexBuffer& rBuffer)
+RdrBuffer RdrContextD3D11::CreateIndexBuffer(const void* indices, int size, RdrResourceUsage eUsage)
 {
-	rBuffer.pBuffer->Release();
-}
-
-RdrIndexBuffer RdrContextD3D11::CreateIndexBuffer(const void* indices, int size)
-{
-	RdrIndexBuffer buffer;
+	RdrBuffer buffer;
 	buffer.pBuffer = createBuffer(m_pDevice, indices, size, D3D11_BIND_INDEX_BUFFER);
 	return buffer;
 }
 
-void RdrContextD3D11::ReleaseIndexBuffer(const RdrIndexBuffer& rBuffer)
+void RdrContextD3D11::ReleaseBuffer(const RdrBuffer& rBuffer)
 {
 	rBuffer.pBuffer->Release();
 }
@@ -407,7 +406,7 @@ bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height)
 	HRESULT hr;
 
 	DXGI_SWAP_CHAIN_DESC swapChainDesc = { 0 };
-	swapChainDesc.BufferCount = 1;
+	swapChainDesc.BufferCount = kNumBackBuffers;
 	swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	swapChainDesc.BufferDesc.Width = width;
 	swapChainDesc.BufferDesc.Height = height;
@@ -418,7 +417,7 @@ bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height)
 	swapChainDesc.Windowed = true;
 	swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
 	hr = D3D11CreateDeviceAndSwapChain(
 		nullptr,
@@ -844,8 +843,7 @@ RdrShaderResourceView RdrContextD3D11::CreateShaderResourceViewBuffer(const RdrR
 	RdrShaderResourceView view = { 0 };
 
 	const RdrBufferInfo& rBufferInfo = rResource.bufferInfo;
-	RdrResourceFormat eFormat = (rBufferInfo.elementSize > 0) ? rBufferInfo.eFormat : RdrResourceFormat::UNKNOWN;
-	createBufferSrv(m_pDevice, rResource, rBufferInfo.numElements - firstElement, eFormat, firstElement, &view.pViewD3D11);
+	createBufferSrv(m_pDevice, rResource, rBufferInfo.numElements - firstElement, rBufferInfo.eFormat, firstElement, &view.pViewD3D11);
 
 	return view;
 }
@@ -1156,7 +1154,7 @@ void RdrContextD3D11::Resize(uint width, uint height)
 {
 	if (m_pPrimaryRenderTarget)
 		m_pPrimaryRenderTarget->Release();
-	m_pSwapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
+	m_pSwapChain->ResizeBuffers(kNumBackBuffers, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
 
 	ID3D11Texture2D* pBackBuffer;
 	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
@@ -1267,7 +1265,7 @@ static inline bool updateDataList(const DataT* aSrcData, DataT* aDstData, uint c
 
 void RdrContextD3D11::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 {
-	static_assert(sizeof(RdrVertexBuffer) == sizeof(ID3D11Buffer*), "RdrVertexBuffer must only contain the device obj pointer.");
+	static_assert(sizeof(RdrBuffer) == sizeof(ID3D11Buffer*), "RdrBuffer must only contain the device obj pointer.");
 	static_assert(sizeof(RdrConstantBufferDeviceObj) == sizeof(ID3D11Buffer*), "RdrConstantBufferDeviceObj must only contain the device obj pointer.");
 	static_assert(sizeof(RdrShaderResourceView) == sizeof(ID3D11ShaderResourceView*), "RdrVertexBuffer must only contain the device obj pointer.");
 	
@@ -1294,7 +1292,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 	}
 
 	// Vertex buffers
-	if (updateDataList<RdrVertexBuffer>(rDrawState.vertexBuffers, m_drawState.vertexBuffers,
+	if (updateDataList<RdrBuffer>(rDrawState.vertexBuffers, m_drawState.vertexBuffers,
 		rDrawState.vertexBufferCount, &firstChanged, &lastChanged))
 	{
 		m_pDevContext->IASetVertexBuffers(firstChanged, lastChanged - firstChanged + 1, 
@@ -1349,6 +1347,46 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 	{
 		m_pDevContext->GSSetConstantBuffers(firstChanged, lastChanged - firstChanged + 1, (ID3D11Buffer**)rDrawState.gsConstantBuffers + firstChanged);
 		m_rProfiler.IncrementCounter(RdrProfileCounter::GsConstantBuffer);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Hull shader
+	if (rDrawState.pHullShader != m_drawState.pHullShader)
+	{
+		if (rDrawState.pHullShader)
+		{
+			m_pDevContext->HSSetShader(rDrawState.pHullShader->pHull, nullptr, 0);
+		}
+		else
+		{
+			m_pDevContext->HSSetShader(nullptr, nullptr, 0);
+		}
+		m_drawState.pHullShader = rDrawState.pHullShader;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::HullShader);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Domain shader
+	if (rDrawState.pDomainShader != m_drawState.pDomainShader)
+	{
+		if (rDrawState.pDomainShader)
+		{
+			m_pDevContext->DSSetShader(rDrawState.pDomainShader->pDomain, nullptr, 0);
+		}
+		else
+		{
+			m_pDevContext->DSSetShader(nullptr, nullptr, 0);
+		}
+		m_drawState.pDomainShader = rDrawState.pDomainShader;
+		m_rProfiler.IncrementCounter(RdrProfileCounter::DomainShader);
+	}
+
+	if (rDrawState.pDomainShader &&
+		updateDataList<RdrConstantBufferDeviceObj>(rDrawState.dsConstantBuffers, m_drawState.dsConstantBuffers,
+			rDrawState.dsConstantBufferCount, &firstChanged, &lastChanged))
+	{
+		m_pDevContext->DSSetConstantBuffers(firstChanged, lastChanged - firstChanged + 1, (ID3D11Buffer**)rDrawState.dsConstantBuffers + firstChanged);
+		m_rProfiler.IncrementCounter(RdrProfileCounter::DsConstantBuffer);
 	}
 
 	//////////////////////////////////////////////////////////////////////////

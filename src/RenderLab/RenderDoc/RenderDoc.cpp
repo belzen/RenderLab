@@ -1,5 +1,6 @@
 #include "Precompiled.h"
 #include "RenderDocUtil.h"
+#include "UserConfig.h"
 #include "renderdoc_app.h"
 
 namespace
@@ -10,7 +11,7 @@ namespace
 
 bool RenderDoc::Init()
 {
-	s_hRenderDocDll = LoadLibrary(L"D:\\RenderDoc_0.30_64\\RenderDoc.dll");
+	s_hRenderDocDll = LoadLibraryA(g_userConfig.renderDocPath.c_str());
 	if (!s_hRenderDocDll)
 		return false;
 

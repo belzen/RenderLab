@@ -3,6 +3,7 @@
 #include "RdrContext.h"
 #include "RdrDrawOp.h"
 #include "RdrScratchMem.h"
+#include "RdrResourceSystem.h"
 #include "Camera.h"
 #include "AssetLib/ModelAsset.h"
 #include "UtilsLib/Hash.h"
@@ -66,7 +67,8 @@ ModelData* ModelData::LoadFromFile(const char* modelName)
 			++vertAccum;
 		}
 
-		pModel->m_subObjects[i].hGeo = RdrGeoSystem::CreateGeo(pVerts, sizeof(Vertex), rBinSubobject.vertCount, pIndices, rBinSubobject.indexCount, rBinSubobject.boundsMin, rBinSubobject.boundsMax);
+		pModel->m_subObjects[i].hGeo = RdrResourceSystem::CreateGeo(pVerts, sizeof(Vertex), rBinSubobject.vertCount, 
+			pIndices, rBinSubobject.indexCount, RdrTopology::TriangleList, rBinSubobject.boundsMin, rBinSubobject.boundsMax);
 		pModel->m_subObjects[i].pMaterial = RdrMaterial::LoadFromFile(rBinSubobject.materialName);
 
 		indicesAccum += rBinSubobject.indexCount;

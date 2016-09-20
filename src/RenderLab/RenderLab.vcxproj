@@ -191,7 +191,6 @@
     <ClCompile Include="render\ModelInstance.cpp" />
     <ClCompile Include="render\RdrComputeOp.cpp" />
     <ClCompile Include="render\RdrDeviceTypes.cpp" />
-    <ClCompile Include="render\RdrGeoSystem.cpp" />
     <ClCompile Include="render\Light.cpp" />
     <ClCompile Include="render\ModelData.cpp" />
     <ClCompile Include="render\RdrFrameState.cpp" />
@@ -209,8 +208,10 @@
     <ClCompile Include="render\Sky.cpp" />
     <ClCompile Include="render\Sprite.cpp" />
     <ClCompile Include="render\RdrResourceSystem.cpp" />
+    <ClCompile Include="render\Terrain.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="UI.cpp" />
+    <ClCompile Include="UserConfig.cpp" />
     <ClCompile Include="WorldObject.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -261,12 +262,13 @@
     <ClInclude Include="render\RdrShaders.h" />
     <ClInclude Include="render\Sky.h" />
     <ClInclude Include="render\Sprite.h" />
-    <ClInclude Include="render\RdrGeoSystem.h" />
+    <ClInclude Include="render\Terrain.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="shapes\Plane.h" />
     <ClInclude Include="shapes\Quad.h" />
     <ClInclude Include="shapes\Rect.h" />
     <ClInclude Include="UI.h" />
+    <ClInclude Include="UserConfig.h" />
     <ClInclude Include="WorldObject.h" />
   </ItemGroup>
   <ItemGroup>
@@ -547,6 +549,16 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
     </FxCompile>
+    <FxCompile Include="..\..\data\shaders\d_terrain.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Domain</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Domain</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Domain</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Domain</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
     <FxCompile Include="..\..\data\shaders\g_cubemap.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Geometry</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
@@ -560,6 +572,16 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\h_terrain.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Hull</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Hull</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Hull</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Hull</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="..\..\data\shaders\p_error.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
@@ -620,6 +642,12 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_terrain.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="..\..\data\shaders\p_text.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
@@ -713,6 +741,7 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
     </FxCompile>
+    <FxCompile Include="..\..\data\shaders\v_terrain.hlsl" />
     <FxCompile Include="..\..\data\shaders\v_text.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
