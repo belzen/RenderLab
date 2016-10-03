@@ -79,10 +79,29 @@ private:
 class Vector3PropertyDef : public PropertyDef
 {
 public:
-	Vector3PropertyDef(const char* name, const char* desc);
+	typedef Vec3 (*GetValueFunc)(void* pSource);
+	typedef bool (*ChangedFunc)(const Vec3& newVal, void* pSource);
+	typedef bool (*ElemChangedFunc)(const float newVal, void* pSource);
+
+	Vector3PropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback,
+		ElemChangedFunc xChangedCallback, ElemChangedFunc yChangedCallback, ElemChangedFunc zChangedCallback);
 
 	static const uint64 kTypeId;
 	uint64 GetTypeId() const;
+
+	ChangedFunc GetChangedCallback() const;
+	ElemChangedFunc GetXChangedCallback() const;
+	ElemChangedFunc GetYChangedCallback() const;
+	ElemChangedFunc GetZChangedCallback() const;
+
+	Vec3 GetValue(void* pSource) const;
+
+private:
+	GetValueFunc m_getValueCallback;
+	ChangedFunc m_changedCallback;
+	ElemChangedFunc m_xChangedCallback;
+	ElemChangedFunc m_yChangedCallback;
+	ElemChangedFunc m_zChangedCallback;
 };
 
 class BooleanPropertyDef : public PropertyDef
@@ -102,12 +121,42 @@ private:
 class TextPropertyDef : public PropertyDef
 {
 public:
-	TextPropertyDef(const char* name, const char* desc);
+	typedef std::string (*GetValueFunc)(void* pSource);
+	typedef bool (*ChangedFunc)(const std::string& newVal, void* pSource);
+
+	TextPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback);
 
 	static const uint64 kTypeId;
 	uint64 GetTypeId() const;
+
+	ChangedFunc GetChangedCallback() const;
+
+	std::string GetValue(void* pSource) const;
+
+private:
+	GetValueFunc m_getValueCallback;
+	ChangedFunc m_changedCallback;
 };
 
+class ModelPropertyDef : public PropertyDef
+{
+public:
+	typedef std::string (*GetValueFunc)(void* pSource);
+	typedef bool (*ChangedFunc)(const std::string& newVal, void* pSource);
+
+	ModelPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback);
+
+	static const uint64 kTypeId;
+	uint64 GetTypeId() const;
+
+	ChangedFunc GetChangedCallback() const;
+
+	std::string GetValue(void* pSource) const;
+
+private:
+	GetValueFunc m_getValueCallback;
+	ChangedFunc m_changedCallback;
+};
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -215,8 +264,14 @@ inline float FloatPropertyDef::GetValue(void* pSource) const
 
 //////////////////////////////////////////////////////////////////////////
 // Vector3PropertyDef inlines
-inline Vector3PropertyDef::Vector3PropertyDef(const char* name, const char* desc)
+inline Vector3PropertyDef::Vector3PropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback,
+	ElemChangedFunc xChangedCallback, ElemChangedFunc yChangedCallback, ElemChangedFunc zChangedCallback)
 	: PropertyDef(name, desc)
+	, m_getValueCallback(getValueCallback)
+	, m_changedCallback(changedCallback)
+	, m_xChangedCallback(xChangedCallback)
+	, m_yChangedCallback(yChangedCallback)
+	, m_zChangedCallback(zChangedCallback)
 {
 
 }
@@ -224,6 +279,31 @@ inline Vector3PropertyDef::Vector3PropertyDef(const char* name, const char* desc
 inline uint64 Vector3PropertyDef::GetTypeId() const
 {
 	return kTypeId;
+}
+
+inline Vector3PropertyDef::ChangedFunc Vector3PropertyDef::GetChangedCallback() const
+{
+	return m_changedCallback;
+}
+
+inline Vector3PropertyDef::ElemChangedFunc Vector3PropertyDef::GetXChangedCallback() const
+{
+	return m_xChangedCallback;
+}
+
+inline Vector3PropertyDef::ElemChangedFunc Vector3PropertyDef::GetYChangedCallback() const
+{
+	return m_yChangedCallback;
+}
+
+inline Vector3PropertyDef::ElemChangedFunc Vector3PropertyDef::GetZChangedCallback() const
+{
+	return m_zChangedCallback;
+}
+
+inline Vec3 Vector3PropertyDef::GetValue(void* pSource) const
+{
+	return m_getValueCallback(pSource);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -242,8 +322,10 @@ inline uint64 BooleanPropertyDef::GetTypeId() const
 
 //////////////////////////////////////////////////////////////////////////
 // TextPropertyDef inlines
-inline TextPropertyDef::TextPropertyDef(const char* name, const char* desc)
+inline TextPropertyDef::TextPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback)
 	: PropertyDef(name, desc)
+	, m_getValueCallback(getValueCallback)
+	, m_changedCallback(changedCallback)
 {
 
 }
@@ -251,4 +333,40 @@ inline TextPropertyDef::TextPropertyDef(const char* name, const char* desc)
 inline uint64 TextPropertyDef::GetTypeId() const
 {
 	return kTypeId;
+}
+
+inline TextPropertyDef::ChangedFunc TextPropertyDef::GetChangedCallback() const
+{
+	return m_changedCallback;
+}
+
+inline std::string TextPropertyDef::GetValue(void* pSource) const
+{
+	return m_getValueCallback(pSource);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// ModelPropertyDef inlines
+inline ModelPropertyDef::ModelPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback)
+	: PropertyDef(name, desc)
+	, m_getValueCallback(getValueCallback)
+	, m_changedCallback(changedCallback)
+{
+
+}
+
+inline uint64 ModelPropertyDef::GetTypeId() const
+{
+	return kTypeId;
+}
+
+inline ModelPropertyDef::ChangedFunc ModelPropertyDef::GetChangedCallback() const
+{
+	return m_changedCallback;
+}
+
+inline std::string ModelPropertyDef::GetValue(void* pSource) const
+{
+	return m_getValueCallback(pSource);
 }

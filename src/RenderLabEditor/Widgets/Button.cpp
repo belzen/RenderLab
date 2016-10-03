@@ -2,13 +2,13 @@
 #include "Button.h"
 
 Button* Button::Create(const Widget& rParent, int x, int y, int width, int height,
-	const char* text, ClickedFunc clickedCallback)
+	const char* text, ClickedFunc clickedCallback, void* pUserData)
 {
-	return new Button(rParent, x, y, width, height, text, clickedCallback);
+	return new Button(rParent, x, y, width, height, text, clickedCallback, pUserData);
 }
 
 Button::Button(const Widget& rParent, int x, int y, int width, int height, 
-	const char* text, ClickedFunc clickedCallback)
+	const char* text, ClickedFunc clickedCallback, void* pUserData)
 {
 	// Create container
 	static bool s_bRegisteredClass = false;
@@ -25,6 +25,7 @@ Button::Button(const Widget& rParent, int x, int y, int width, int height,
 	::SetWindowTextA(m_hButton, text);
 
 	m_clickedCallback = clickedCallback;
+	m_pUserData = pUserData;
 }
 
 Button::~Button()
@@ -41,7 +42,7 @@ LRESULT CALLBACK Button::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 			Button* pButton = (Button*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
 			if (pButton->m_clickedCallback)
 			{
-				pButton->m_clickedCallback();
+				pButton->m_clickedCallback(pButton->m_pUserData);
 			}
 		}
 		break;

@@ -24,8 +24,6 @@ bool RenderWindow::HandleResize(int newWidth, int newHeight)
 bool RenderWindow::HandleKeyDown(int key)
 {
 	m_inputManager.SetKeyDown(key, true);
-	if (key == KEY_F11)
-		RenderDoc::Capture();
 	return true;
 }
 

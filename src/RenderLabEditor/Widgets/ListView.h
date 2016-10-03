@@ -17,7 +17,7 @@ public:
 		SelectionChangedFunc selectionChangedCallback, void* pUserData);
 
 	template<typename ItemT>
-	void AddItem(char* name, ItemT* pData);
+	void AddItem(const char* name, ItemT* pData);
 	void RemoveItem(uint index);
 
 	void SelectItem(uint index);
@@ -30,7 +30,7 @@ private:
 
 	virtual ~ListView();
 
-	void AddItemInternal(char* name, uint64 typeId, void* pItemData);
+	void AddItemInternal(const char* name, uint64 typeId, void* pItemData);
 	void HandleSelectionChanged();
 
 	static LRESULT CALLBACK WinProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam);
@@ -46,7 +46,7 @@ private:
 
 
 template<typename ItemT>
-void ListView::AddItem(char* name, ItemT* pItemData)
+void ListView::AddItem(const char* name, ItemT* pItemData)
 {
 	AddItemInternal(name, typeid(ItemT).hash_code(), static_cast<void*>(pItemData));
 }

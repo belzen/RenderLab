@@ -49,7 +49,7 @@ bool ModelInstance::CanInstance() const
 
 void ModelInstance::PrepareDraw(const Matrix44& mtxWorld, bool transformChanged)
 {
-	if (transformChanged)
+	if (transformChanged || !m_hVsPerObjectConstantBuffer)
 	{
 		uint constantsSize = sizeof(VsPerObject);
 		Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);

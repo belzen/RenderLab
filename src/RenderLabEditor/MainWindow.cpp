@@ -7,6 +7,8 @@
 #include "AssetLib/AssetLibrary.h"
 #include "ViewModels/IViewModel.h"
 #include "AssetLib/SkyAsset.h"
+#include "WorldObject.h"
+#include "RenderDoc\RenderDocUtil.h"
 
 void MainWindow::Create(int width, int height, const char* title)
 {
@@ -18,14 +20,31 @@ void MainWindow::Create(int width, int height, const char* title)
 
 	WindowBase::Create(0, width, height, title);
 	
-	m_mainMenu.Init();
-	m_fileMenu.Init();
+	m_sceneViewModel.Init(&m_scene, SceneObjectAdded, this);
 
+	m_fileMenu.Init();
 	m_fileMenu.AddItem("Exit", [](void* pUserData) {
 		::PostQuitMessage(0);
 	}, this);
 
+	m_addMenu.Init();
+	m_addMenu.AddItem("Add Object", [](void* pUserData) {
+		MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
+		ModelInstance* pModel = ModelInstance::Create("box");
+		WorldObject* pObject = WorldObject::Create("New Object", pModel, Vec3::kZero, Quaternion::kIdentity, Vec3::kOne);
+		pWindow->m_sceneViewModel.AddObject(pObject);
+	}, this);
+
+	m_debugMenu.Init();
+	m_debugMenu.AddItem("RenderDoc Capture", [](void* pUserData) {
+		RenderDoc::Capture();
+	}, this);
+
+	m_mainMenu.Init();
 	m_mainMenu.AddSubMenu("File", &m_fileMenu);
+	m_mainMenu.AddSubMenu("Add", &m_addMenu);
+	m_mainMenu.AddSubMenu("Debug", &m_debugMenu);
+
 	SetMenuBar(&m_mainMenu);
 }
 
@@ -40,17 +59,6 @@ bool MainWindow::HandleClose()
 {
 	::PostQuitMessage(0);
 	return true;
-}
-
-void MainWindow::RenderThreadMain(MainWindow* pWindow)
-{
-	while (pWindow->m_running)
-	{
-		pWindow->m_renderer.DrawFrame();
-
-		::SetEvent(pWindow->m_hRenderFrameDoneEvent);
-		::WaitForSingleObject(pWindow->m_hFrameDoneEvent, INFINITE);
-	}
 }
 
 void SceneListViewSelectionChanged(const ListView* pList, uint selectedIndex, void* pUserData)
@@ -81,8 +89,14 @@ int MainWindow::Run()
 		AssetLib::Sky* pSky = AssetLibrary<AssetLib::Sky>::LoadAsset("cloudy");
 		m_pSceneListView->AddItem("Sky", pSky);
 
-		//AssetLib::PostProcessEffects* pEffects = AssetLibrary<AssetLib::PostProcessEffects>::LoadAsset(m_scene.GetPostProcEffects()->GetEffectsAsset()->assetName);
-		//m_pSceneListView->AddItem("Post-Processing Effects", pEffects);
+		AssetLib::PostProcessEffects* pEffects = AssetLibrary<AssetLib::PostProcessEffects>::LoadAsset(m_scene.GetPostProcEffects()->GetEffectsAsset()->assetName);
+		m_pSceneListView->AddItem("Post-Processing Effects", pEffects);
+
+		WorldObjectList& sceneObjects = m_scene.GetWorldObjects();
+		for (WorldObject* pObject : sceneObjects)
+		{
+			m_pSceneListView->AddItem(pObject->GetName(), pObject);
+		}
 
 		m_pSceneListView->SelectItem(0);
 	}
@@ -139,4 +153,21 @@ int MainWindow::Run()
 	FileWatcher::Cleanup();
 
 	return (int)msg.wParam;
+}
+
+void MainWindow::RenderThreadMain(MainWindow* pWindow)
+{
+	while (pWindow->m_running)
+	{
+		pWindow->m_renderer.DrawFrame();
+
+		::SetEvent(pWindow->m_hRenderFrameDoneEvent);
+		::WaitForSingleObject(pWindow->m_hFrameDoneEvent, INFINITE);
+	}
+}
+
+void MainWindow::SceneObjectAdded(WorldObject* pObject, void* pUserData)
+{
+	MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
+	pWindow->m_pSceneListView->AddItem(pObject->GetName(), pObject);
 }

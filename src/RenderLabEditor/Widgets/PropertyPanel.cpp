@@ -3,9 +3,11 @@
 #include "WindowBase.h"
 #include "Slider.h"
 #include "TextBox.h"
+#include "NumericTextBox.h"
 #include "Label.h"
 #include "CheckBox.h"
 #include "Button.h"
+#include "AssetSelector.h"
 #include "PropertyTables.h"
 #include "ViewModels/IViewModel.h"
 
@@ -104,7 +106,13 @@ void PropertyPanel::SetViewModel(IViewModel* pViewModel, bool freeOldViewModel)
 		}
 		else if (typeId == TextPropertyDef::kTypeId)
 		{
-			TextBox* pTextBox = TextBox::Create(*this, x, y, controlWidth, kRowHeight);
+			const TextPropertyDef* pTextDef = (const TextPropertyDef*)pDef;
+
+			TextBox* pTextBox = TextBox::Create(*this, x, y, controlWidth, kRowHeight,
+				pTextDef->GetChangedCallback(), pViewModel);
+
+			std::string str = pTextDef->GetValue(pViewModel);
+			pTextBox->SetValue(str, false);
 			y += pTextBox->GetHeight() + kPadding;
 
 			m_childWidgets.push_back(pTextBox);
@@ -118,11 +126,42 @@ void PropertyPanel::SetViewModel(IViewModel* pViewModel, bool freeOldViewModel)
 		}
 		else if (typeId == Vector3PropertyDef::kTypeId)
 		{
-			Label* pLabel = Label::Create(*this, x, y, controlWidth, kRowHeight, pDef->GetName());
-			x += kIndent;
-			y += pLabel->GetHeight() + kPadding;
+			const Vector3PropertyDef* pVecDef = (const Vector3PropertyDef*)pDef;
 
-			m_childWidgets.push_back(pLabel);
+			int elemWidth = controlWidth / 3;
+			NumericTextBox* pTextBoxX = NumericTextBox::Create(*this, x, y, elemWidth, kRowHeight, 
+				pVecDef->GetXChangedCallback(), pViewModel);
+			NumericTextBox* pTextBoxY = NumericTextBox::Create(*this, x + elemWidth, y, elemWidth, kRowHeight,
+				pVecDef->GetYChangedCallback(), pViewModel);
+			NumericTextBox* pTextBoxZ = NumericTextBox::Create(*this, x + 2 * elemWidth, y, elemWidth, kRowHeight,
+				pVecDef->GetZChangedCallback(), pViewModel);
+
+			Vec3 vecValue = pVecDef->GetValue(pViewModel);
+			pTextBoxX->SetValue(vecValue.x, false);
+			pTextBoxY->SetValue(vecValue.y, false);
+			pTextBoxZ->SetValue(vecValue.z, false);
+
+			y += pTextBoxX->GetHeight() + kPadding;
+
+			m_childWidgets.push_back(pTextBoxX);
+			m_childWidgets.push_back(pTextBoxY);
+			m_childWidgets.push_back(pTextBoxZ);
+		}
+		else if (typeId == ModelPropertyDef::kTypeId)
+		{
+			const ModelPropertyDef* pModelDef = (const ModelPropertyDef*)pDef;
+			std::string str = pModelDef->GetValue(pViewModel);
+
+			AssetSelector* pSelector = AssetSelector::Create(*this, x, y, controlWidth, kRowHeight, pModelDef->GetChangedCallback(), pViewModel);
+			pSelector->SetValue(str, false);
+
+			m_childWidgets.push_back(pSelector);
+
+			y += pSelector->GetHeight() + kPadding;
+		}
+		else
+		{
+			assert(false);
 		}
 
 		x -= kLabelWidth;

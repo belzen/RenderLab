@@ -60,7 +60,7 @@ const ListViewItem* ListView::GetItem(uint index) const
 	return (index < m_items.size()) ? &m_items[index] : nullptr;
 }
 
-void ListView::AddItemInternal(char* name, uint64 typeId, void* pItemData)
+void ListView::AddItemInternal(const char* name, uint64 typeId, void* pItemData)
 {
 	ListViewItem item = { 0 };
 	item.typeId = typeId;
@@ -70,7 +70,7 @@ void ListView::AddItemInternal(char* name, uint64 typeId, void* pItemData)
 	LVITEMA lvItem = { 0 };
 	lvItem.iItem = (uint)m_items.size();
 	lvItem.mask = LVIF_TEXT;
-	lvItem.pszText = name;
+	lvItem.pszText = const_cast<char*>(name);
 	lvItem.cchTextMax = (uint)strlen(lvItem.pszText) + 1;
 	::SendMessageA(m_hListView, LVM_INSERTITEMA, 0, (LPARAM)&lvItem);
 }

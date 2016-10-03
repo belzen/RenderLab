@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AssetLib\AssetDef.h"
 #include "RdrGeometry.h"
 
 struct RdrMaterial;
@@ -32,6 +33,8 @@ public:
 
 	uint GetNumSubObjects() const;
 
+	const char* GetName() const;
+
 private:
 	friend ModelDataFreeList;
 	ModelData() {}
@@ -59,4 +62,9 @@ inline const ModelData::SubObject& ModelData::GetSubObject(const uint index) con
 inline uint ModelData::GetNumSubObjects() const
 {
 	return m_subObjectCount;
+}
+
+inline const char* ModelData::GetName() const
+{
+	return m_modelName;
 }

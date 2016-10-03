@@ -2,6 +2,7 @@
 
 #include "WindowBase.h"
 #include "Scene.h"
+#include "ViewModels\SceneViewModel.h"
 #include "render\Renderer.h"
 #include "RenderWindow.h"
 #include "Widgets/Menu.h"
@@ -22,9 +23,12 @@ private:
 
 private:
 	static void RenderThreadMain(MainWindow* pWindow);
-	
+	static void SceneObjectAdded(WorldObject* pObject, void* pUserData);
+
 private:
 	Scene m_scene;
+	SceneViewModel m_sceneViewModel;
+
 	Renderer m_renderer;
 	RenderWindow m_renderWindow;
 	PropertyPanel* m_pPropertyPanel;
@@ -36,4 +40,6 @@ private:
 
 	Menu m_mainMenu;
 	Menu m_fileMenu;
+	Menu m_addMenu;
+	Menu m_debugMenu;
 };

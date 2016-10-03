@@ -20,7 +20,7 @@ private:
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	Slider(const Widget& rParent, int x, int y, int width, int height,
-		float minVal, float maxVal, float step, ChangedFunc changedCallbackj, void* pUserData);
+		float minVal, float maxVal, float step, ChangedFunc changedCallback, void* pUserData);
 	Slider(const Slider&);
 
 	virtual ~Slider();

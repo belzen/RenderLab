@@ -19,3 +19,7 @@
 /bin/data/
 /bin/shaders/
 /src/ObjSceneConverter/output
+bin/AssetBinService.exe
+bin/ObjSceneConverter.exe
+bin/RenderLabEditor.exe
+bin/TextSDF.exe

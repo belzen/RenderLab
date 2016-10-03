@@ -1,29 +1,30 @@
 #pragma once
-
 #include "Widget.h"
 
-class TextBox : public Widget
+class Label;
+class Button;
+
+class AssetSelector : public Widget
 {
 public:
 	typedef bool (*ChangedFunc)(const std::string& newValue, void* pUserData);
 
-	static TextBox* Create(const Widget& rParent, int x, int y, int width, int height,
+	static AssetSelector* Create(const Widget& rParent, int x, int y, int width, int height,
 		ChangedFunc changedCallback, void* pUserData);
 
 public:
 	void SetValue(const std::string& val, bool triggerCallback);
 
 private:
-	static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-	TextBox(const Widget& rParent, int x, int y, int width, int height,
+	AssetSelector(const Widget& rParent, int x, int y, int width, int height,
 		ChangedFunc changedCallback, void* pUserData);
-	TextBox(const TextBox&);
+	AssetSelector(const AssetSelector&);
 
-	virtual ~TextBox();
+	virtual ~AssetSelector();
 
 private:
-	HWND m_hTextBox;
+	Label* m_pLabel;
+	Button* m_pButton;
 
 	ChangedFunc m_changedCallback;
 	void* m_pUserData;

@@ -140,7 +140,7 @@ void Scene::Load(const char* sceneName)
 		{
 			const AssetLib::Object& rObjectData = pSceneData->objects.ptr[i];
 			ModelInstance* pModel = ModelInstance::Create(rObjectData.model);
-			m_objects.push_back(WorldObject::Create(pModel, rObjectData.position, rObjectData.orientation, rObjectData.scale));
+			m_objects.push_back(WorldObject::Create(rObjectData.name, pModel, rObjectData.position, rObjectData.orientation, rObjectData.scale));
 		}
 	}
 
@@ -175,4 +175,9 @@ void Scene::PrepareDraw()
 	m_terrain.PrepareDraw();
 	m_sky.PrepareDraw();
 	m_postProcEffects.PrepareDraw();
+}
+
+void Scene::AddObject(WorldObject* pObject)
+{
+	m_objects.push_back(pObject);
 }

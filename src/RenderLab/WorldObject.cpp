@@ -9,10 +9,11 @@ namespace
 	WorldObjectFreeList s_worldObjects;
 }
 
-WorldObject* WorldObject::Create(ModelInstance* pModel, Vec3 pos, Quaternion orientation, Vec3 scale)
+WorldObject* WorldObject::Create(const char* name, ModelInstance* pModel, Vec3 pos, Quaternion orientation, Vec3 scale)
 {
 	WorldObject* pObject = s_worldObjects.allocSafe();
 
+	strcpy_s(pObject->m_name, name);
 	pObject->m_pModel = pModel;
 	pObject->m_position = pos;
 	pObject->m_scale = scale;

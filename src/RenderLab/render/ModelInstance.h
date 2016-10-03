@@ -27,6 +27,8 @@ public:
 
 	float GetRadius() const;
 
+	const ModelData* GetModelData() const;
+
 private:
 	friend ModelInstanceFreeList;
 	ModelInstance() {}
@@ -54,4 +56,9 @@ inline uint ModelInstance::GetNumDrawOps() const
 inline float ModelInstance::GetRadius() const
 {
 	return m_pModelData->GetRadius();
+}
+
+inline const ModelData* ModelInstance::GetModelData() const
+{
+	return m_pModelData;
 }

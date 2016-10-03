@@ -143,6 +143,9 @@ bool SceneBinner::BinAsset(const std::string& srcFilename, std::ofstream& dstFil
 
 			Json::Value jModel = jObj.get("model", Json::Value::null);
 			strcpy_s(rObj.model, jModel.asCString());
+
+			Json::Value jName = jObj.get("name", Json::Value::null);
+			strcpy_s(rObj.name, jModel.asCString());
 		}
 	}
 

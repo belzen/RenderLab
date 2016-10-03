@@ -8,8 +8,11 @@ typedef FreeList<WorldObject, 6 * 1024> WorldObjectFreeList;
 class WorldObject
 {
 public:
-	static WorldObject* Create(ModelInstance* pModel, Vec3 pos, Quaternion orientation, Vec3 scale);
+	static WorldObject* Create(const char* name, ModelInstance* pModel, Vec3 pos, Quaternion orientation, Vec3 scale);
 	void Release();
+
+	const char* GetName() const;
+	void SetName(const char* name);
 
 	void SetModel(ModelInstance* pModel);
 	const ModelInstance* GetModel() const;
@@ -31,6 +34,8 @@ public:
 private:
 	friend WorldObjectFreeList;
 
+	char m_name[64];
+
 	Vec3 m_position;
 	Vec3 m_scale;
 	Quaternion m_orientation;
@@ -47,6 +52,7 @@ inline const Matrix44 WorldObject::GetTransform() const
 inline void WorldObject::SetModel(ModelInstance* pModel)
 {
 	m_pModel = pModel; 
+	// todo: destroy old model
 }
 
 inline const ModelInstance* WorldObject::GetModel() const
@@ -84,4 +90,14 @@ inline void WorldObject::SetScale(Vec3 scale)
 inline float WorldObject::GetRadius() const
 {
 	return m_pModel->GetRadius() * Vec3MaxComponent(m_scale);
+}
+
+inline const char* WorldObject::GetName() const
+{
+	return m_name;
+}
+
+inline void WorldObject::SetName(const char* name)
+{
+	strcpy_s(m_name, name);
 }

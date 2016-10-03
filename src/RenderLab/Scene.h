@@ -32,6 +32,10 @@ public:
 	const Terrain& GetTerrain() const;
 
 	const WorldObjectList& GetWorldObjects() const;
+	WorldObjectList& GetWorldObjects();
+
+	void AddObject(WorldObject* pObject);
+
 
 	LightList& GetLightList();
 
@@ -63,6 +67,11 @@ inline const Terrain& Scene::GetTerrain() const
 }
 
 inline const WorldObjectList& Scene::GetWorldObjects() const
+{
+	return m_objects;
+}
+
+inline WorldObjectList& Scene::GetWorldObjects()
 {
 	return m_objects;
 }

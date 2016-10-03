@@ -38,6 +38,7 @@ namespace AssetLib
 		Quaternion orientation;
 		Vec3 scale;
 		char model[AssetLib::AssetDef::kMaxNameLen];
+		char name[64];
 	};
 
 	struct Scene
