@@ -1,20 +1,34 @@
 #include "ModelAsset.h"
+#include "UtilsLib/Error.h"
 
 using namespace AssetLib;
 
-AssetLib::AssetDef AssetLib::g_modelDef("geo", "modelbin", 1);
-
-Model* Model::FromMem(char* pMem)
+AssetDef& Model::GetAssetDef()
 {
-	if (((uint*)pMem)[0] == BinFileHeader::kUID)
+	static AssetLib::AssetDef s_assetDef("geo", "model", 1);
+	return s_assetDef;
+}
+
+Model* Model::Load(const char* assetName)
+{
+	char* pFileData = nullptr;
+	uint fileSize = 0;
+
+	if (!GetAssetDef().LoadAsset(assetName, &pFileData, &fileSize))
 	{
-		BinFileHeader* pHeader = (BinFileHeader*)pMem;
-		assert(pHeader->assetUID == g_modelDef.GetAssetUID());
-		pMem += sizeof(BinFileHeader);
+		Error("Failed to load model asset: %s", assetName);
+		return nullptr;
 	}
 
-	Model* pModel = (Model*)pMem;
-	char* pDataMem = pMem + sizeof(Model);
+	if (((uint*)pFileData)[0] == BinFileHeader::kUID)
+	{
+		BinFileHeader* pHeader = (BinFileHeader*)pFileData;
+		assert(pHeader->assetUID == GetAssetDef().GetAssetUID());
+		pFileData += sizeof(BinFileHeader);
+	}
+
+	Model* pModel = (Model*)pFileData;
+	char* pDataMem = pFileData + sizeof(Model);
 
 	pModel->subobjects.PatchPointer(pDataMem);
 	pModel->positions.PatchPointer(pDataMem);

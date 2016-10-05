@@ -1,20 +1,45 @@
 #include "MaterialAsset.h"
 #include "BinFile.h"
+#include "UtilsLib/json/json.h"
+#include "UtilsLib/FileLoader.h"
+#include "UtilsLib/Error.h"
 #include <assert.h>
 
 using namespace AssetLib;
 
-AssetLib::AssetDef AssetLib::g_materialDef("materials", "matbin", 2);
-
-Material* Material::FromMem(char* pMem)
+AssetDef& Material::GetAssetDef()
 {
-	if (((uint*)pMem)[0] == BinFileHeader::kUID)
+	static AssetLib::AssetDef s_assetDef("materials", "material", 2);
+	return s_assetDef;
+}
+
+Material* Material::Load(const char* assetName)
+{
+	Json::Value jRoot;
+	if (!GetAssetDef().LoadAssetJson(assetName, &jRoot))
 	{
-		BinFileHeader* pHeader = (BinFileHeader*)pMem;
-		assert(pHeader->assetUID == g_materialDef.GetAssetUID());
-		pMem += sizeof(BinFileHeader);
+		Error("Failed to load material asset: %s", assetName);
+		return nullptr;
 	}
 
-	Material* pMaterial = (Material*)pMem;
+	Material* pMaterial = new Material();
+
+	Json::Value jShader = jRoot.get("pixelShader", Json::Value::null);
+	strcpy_s(pMaterial->pixelShader, jShader.asCString());
+
+	Json::Value jNeedsLight = jRoot.get("needsLighting", false);
+	pMaterial->bNeedsLighting = jNeedsLight.asBool();
+
+	Json::Value jAlphaCutout = jRoot.get("alphaCutout", false);
+	pMaterial->bAlphaCutout = jAlphaCutout.asBool();
+
+	Json::Value jTextures = jRoot.get("textures", Json::Value::null);
+	pMaterial->texCount = jTextures.size();
+	for (uint n = 0; n < pMaterial->texCount; ++n)
+	{
+		Json::Value jTex = jTextures.get(n, Json::Value::null);
+		strcpy_s(pMaterial->textures[n], jTex.asCString());
+	}
+
 	return pMaterial;
 }

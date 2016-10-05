@@ -7,7 +7,7 @@ UserConfig g_userConfig;
 void UserConfig::Load()
 {
 	char path[MAX_PATH];
-	sprintf_s(path, "%s\\%s", Paths::GetBinDataDir(), "user.config");
+	sprintf_s(path, "%s\\%s", Paths::GetDataDir(), "user.config");
 
 	Json::Value jRoot;
 	if (FileLoader::LoadJson(path, jRoot))

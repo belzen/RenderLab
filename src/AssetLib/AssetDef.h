@@ -1,6 +1,7 @@
 #pragma once
 #include "../Types.h"
 #include "UtilsLib/Paths.h"
+#include "UtilsLib/json/json-forwards.h"
 
 namespace AssetLib
 {
@@ -11,7 +12,7 @@ namespace AssetLib
 	public:
 		static const uint kMaxNameLen = 128;
 
-		AssetDef(const char* folder, const char* binExt, uint binVersion);
+		AssetDef(const char* folder, const char* ext, uint binVersion);
 
 		void SetReloadHandler(AssetReloadFunc reloadFunc);
 		bool HasReloadHandler() const;
@@ -21,6 +22,7 @@ namespace AssetLib
 		void BuildFilename(const char* assetName, char* outFilename, uint maxFilenameLen) const;
 
 		bool LoadAsset(const char* assetName, char** ppOutFileData, uint* pOutFileSize);
+		bool LoadAssetJson(const char* assetName, Json::Value* pJsonRoot);
 
 		void GetFilePattern(char* pOutPattern, uint maxPatternLen);
 

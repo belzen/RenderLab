@@ -200,7 +200,7 @@ void DebugConsole::Init()
 	texcoords[2] = Vec2(0.f, 1.f);
 	texcoords[3] = Vec2(1.f, 1.f);
 
-	s_debugConsole.bgSprite.Init(texcoords, "a_white");
+	s_debugConsole.bgSprite.Init(texcoords, "white");
 }
 
 void DebugConsole::RegisterCommand(const char* name, DebugCommandCallback func, DebugCommandArgType arg)

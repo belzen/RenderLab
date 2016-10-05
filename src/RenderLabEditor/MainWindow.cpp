@@ -10,6 +10,16 @@
 #include "WorldObject.h"
 #include "RenderDoc\RenderDocUtil.h"
 
+MainWindow::MainWindow()
+	: m_pPropertyPanel(nullptr)
+	, m_pSceneListView(nullptr)
+	, m_running(false)
+	, m_hFrameDoneEvent(0)
+	, m_hRenderFrameDoneEvent(0)
+{
+
+}
+
 void MainWindow::Create(int width, int height, const char* title)
 {
 	::InitCommonControls();

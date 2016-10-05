@@ -4,14 +4,15 @@
 
 namespace AssetLib
 {
-	extern AssetDef g_textureDef;
-
 	struct Texture
 	{
-		static Texture* FromMem(char* pMem);
+		static AssetDef& GetAssetDef();
+		static Texture* Load(const char* assetName);
 
-		bool bIsCubemap;
-		bool bIsSrgb;
-		BinDataPtr<char> ddsData;
+		char* ddsData;
+		uint ddsDataSize;
+
+		uint timeLastModified;
+		const char* assetName; // Filled in by the AssetLibrary during loading.
 	};
 }

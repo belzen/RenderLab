@@ -160,7 +160,7 @@ namespace
 		HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes)
 		{
 			char filename[FILE_MAX_PATH];
-			sprintf_s(filename, "%s/%s/%s", Paths::GetBinDataDir(), kShaderFolder, pFileName);
+			sprintf_s(filename, "%s/%s/%s", Paths::GetDataDir(), kShaderFolder, pFileName);
 
 			uint size;
 			char* data;
@@ -186,7 +186,7 @@ namespace
 		ID3D10Blob* pErrors = nullptr;
 
 		char fullFilename[FILE_MAX_PATH];
-		sprintf_s(fullFilename, "%s/%s/%s", Paths::GetBinDataDir(), kShaderFolder, filename);
+		sprintf_s(fullFilename, "%s/%s/%s", Paths::GetDataDir(), kShaderFolder, filename);
 
 		char* pFileData;
 		uint fileSize;

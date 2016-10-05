@@ -4,6 +4,7 @@
 #include "UtilsLib/Paths.h"
 #include "UtilsLib/FileLoader.h"
 #include "UtilsLib/Hash.h"
+#include "UtilsLib/JsonUtils.h"
 
 using namespace AssetLib;
 
@@ -32,17 +33,17 @@ void AssetDef::ReloadCommon(const char* filename, void* pUserData)
 	pDef->m_reloadFunc(assetName);
 }
 
-AssetDef::AssetDef(const char* folder, const char* binExt, uint binVersion)
+AssetDef::AssetDef(const char* folder, const char* ext, uint binVersion)
 	: m_binVersion(binVersion)
 {
 	strcpy_s(m_folder, folder);
 	m_folderLen = (uint)strlen(m_folder);
 
-	sprintf_s(m_fullPath, "%s/%s", Paths::GetBinDataDir(), m_folder);
-	strcpy_s(m_ext, binExt);
+	sprintf_s(m_fullPath, "%s/%s", Paths::GetDataDir(), m_folder);
+	strcpy_s(m_ext, ext);
 	m_extLen = (uint)strlen(m_ext);
 
-	m_assetUID = Hashing::HashString(binExt);
+	m_assetUID = Hashing::HashString(ext);
 }
 
 void AssetDef::SetReloadHandler(AssetReloadFunc reloadFunc)
@@ -75,6 +76,14 @@ bool AssetDef::LoadAsset(const char* assetName, char** ppOutFileData, uint* pOut
 	BuildFilename(assetName, filePath, ARRAY_SIZE(filePath));
 
 	return FileLoader::Load(filePath, ppOutFileData, pOutFileSize);
+}
+
+bool AssetDef::LoadAssetJson(const char* assetName, Json::Value* pJsonRoot)
+{
+	char filePath[FILE_MAX_PATH];
+	BuildFilename(assetName, filePath, ARRAY_SIZE(filePath));
+
+	return FileLoader::LoadJson(filePath, *pJsonRoot);
 }
 
 void AssetDef::GetFilePattern(char* pOutPattern, uint maxPatternLen)

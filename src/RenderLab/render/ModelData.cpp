@@ -6,6 +6,7 @@
 #include "RdrResourceSystem.h"
 #include "Camera.h"
 #include "AssetLib/ModelAsset.h"
+#include "AssetLib/AssetLibrary.h"
 #include "UtilsLib/Hash.h"
 
 namespace
@@ -24,15 +25,12 @@ ModelData* ModelData::LoadFromFile(const char* modelName)
 	if (iter != s_modelCache.end())
 		return iter->second;
 
-	char* pFileData;
-	uint fileSize;
-	if (!AssetLib::g_modelDef.LoadAsset(modelName, &pFileData, &fileSize))
+	AssetLib::Model* pBinData = AssetLibrary<AssetLib::Model>::LoadAsset(modelName);
+	if (!pBinData)
 	{
 		Error("Failed to load model: %s", modelName);
 		return nullptr;
 	}
-
-	AssetLib::Model* pBinData = AssetLib::Model::FromMem(pFileData);
 
 	ModelData* pModel = s_models.allocSafe();
 	pModel->m_pBinData = pBinData;

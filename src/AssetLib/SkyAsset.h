@@ -6,8 +6,8 @@ namespace AssetLib
 {
 	struct Sky
 	{
-		static AssetDef s_definition;
-		static Sky* FromMem(char* pMem);
+		static AssetDef& GetAssetDef();
+		static Sky* Load(const char* assetName);
 
 		char model[AssetLib::AssetDef::kMaxNameLen];
 		char material[AssetLib::AssetDef::kMaxNameLen];

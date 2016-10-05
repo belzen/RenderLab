@@ -1,20 +1,39 @@
 #include "SkyAsset.h"
 #include "BinFile.h"
-#include <assert.h>
+#include "UtilsLib/JsonUtils.h"
+#include "UtilsLib/FileLoader.h"
+#include "UtilsLib/Error.h"
 
 using namespace AssetLib;
 
-AssetLib::AssetDef AssetLib::Sky::s_definition("skies", "skybin", 1);
-
-Sky* Sky::FromMem(char* pMem)
+AssetDef& Sky::GetAssetDef()
 {
-	if (((uint*)pMem)[0] == BinFileHeader::kUID)
+	static AssetDef s_assetDef("skies", "sky", 1);
+	return s_assetDef;
+}
+
+Sky* Sky::Load(const char* assetName)
+{
+	Json::Value jRoot;
+	if (!GetAssetDef().LoadAssetJson(assetName, &jRoot))
 	{
-		BinFileHeader* pHeader = (BinFileHeader*)pMem;
-		assert(pHeader->assetUID == s_definition.GetAssetUID());
-		pMem += sizeof(BinFileHeader);
+		Error("Failed to load sky asset: %s", assetName);
+		return nullptr;
 	}
 
-	Sky* pSky = (Sky*)pMem;
+	Sky* pSky = new Sky();
+
+	Json::Value jModel = jRoot.get("model", Json::Value::null);
+	strcpy_s(pSky->model, jModel.asCString());
+
+	Json::Value jMaterialName = jRoot.get("material", Json::Value::null);
+	strcpy_s(pSky->material, jMaterialName.asCString());
+
+	pSky->sun.angleXAxis = jRoot.get("sunAngleXAxis", 0.f).asFloat();
+	pSky->sun.angleZAxis = jRoot.get("sunAngleZAxis", 0.f).asFloat();
+	pSky->sun.intensity = jRoot.get("sunIntensity", 0.f).asFloat();
+	pSky->sun.color = jsonReadVec3(jRoot.get("sunColor", Json::Value::null));
+
 	return pSky;
 }
+

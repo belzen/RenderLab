@@ -3,6 +3,7 @@
 #include "BinFile.h"
 #include "MathLib/Vec3.h"
 #include "MathLib/Quaternion.h"
+#include <vector>
 
 enum class LightType : int
 {
@@ -14,8 +15,6 @@ enum class LightType : int
 
 namespace AssetLib
 {
-	extern AssetDef g_sceneDef;
-
 	struct Light
 	{
 		LightType type;
@@ -43,17 +42,19 @@ namespace AssetLib
 
 	struct Scene
 	{
-		static Scene* FromMem(char* pMem);
+		static AssetDef& GetAssetDef();
+		static Scene* Load(const char* assetName);
 
 		char postProcessingEffects[AssetLib::AssetDef::kMaxNameLen];
 		char sky[AssetLib::AssetDef::kMaxNameLen];
 
 		Vec3 camPosition;
 		Vec3 camPitchYawRoll;
-		uint lightCount;
-		uint objectCount;
 
-		BinDataPtr<Light> lights;
-		BinDataPtr<Object> objects;
+		std::vector<Light> lights;
+		std::vector<Object> objects;
+
+		uint timeLastModified;
+		const char* assetName; // Filled in by the AssetLibrary during loading.
 	};
 }

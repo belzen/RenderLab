@@ -7,11 +7,10 @@
 
 namespace AssetLib
 {
-	extern AssetDef g_modelDef;
-
 	struct Model
 	{
-		static Model* FromMem(char* pMem);
+		static AssetDef& GetAssetDef();
+		static Model* Load(const char* assetName);
 
 		struct SubObject
 		{
@@ -35,5 +34,8 @@ namespace AssetLib
 		BinDataPtr<Vec3> tangents;
 		BinDataPtr<Vec3> bitangents;
 		BinDataPtr<uint16> indices;
+
+		uint timeLastModified;
+		const char* assetName; // Filled in by the AssetLibrary during loading.
 	};
 }

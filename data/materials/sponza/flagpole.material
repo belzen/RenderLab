@@ -1,5 +1,5 @@
 {
 	"pixelShader" : "p_model.hlsl",
-	"textures" : [ "sponza/sponza_flagpole", "n_flat" ],
+	"textures" : [ "sponza/sponza_flagpole", "flat_ddn" ],
 	"needsLighting" : true
 }

@@ -43,7 +43,7 @@ namespace
 	void handleSkyFileChanged(const char* filename, void* pUserData)
 	{
 		char skyName[AssetLib::AssetDef::kMaxNameLen];
-		AssetLib::Sky::s_definition.ExtractAssetName(filename, skyName, ARRAY_SIZE(skyName));
+		AssetLib::Sky::GetAssetDef().ExtractAssetName(filename, skyName, ARRAY_SIZE(skyName));
 
 		Sky* pSky = (Sky*)pUserData;
 		if (_stricmp(pSky->GetName(), skyName) == 0)
@@ -135,7 +135,7 @@ void Sky::Load(const char* skyName)
 
 	// Listen for changes of the sky file.
 	char filePattern[AssetLib::AssetDef::kMaxNameLen];
-	AssetLib::Sky::s_definition.GetFilePattern(filePattern, ARRAY_SIZE(filePattern));
+	AssetLib::Sky::GetAssetDef().GetFilePattern(filePattern, ARRAY_SIZE(filePattern));
 	m_reloadListenerId = FileWatcher::AddListener(filePattern, handleSkyFileChanged, this);
 
 	// Transmittance LUTs

@@ -39,8 +39,8 @@ void Terrain::Init()
 	memset(&m_material, 0, sizeof(m_material));
 	m_material.bNeedsLighting = true;
 	m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_terrain.hlsl", nullptr, 0);
-	m_material.hTextures[0] = RdrResourceSystem::CreateTextureFromFile("a_white", nullptr);
-	m_material.hTextures[1] = RdrResourceSystem::CreateTextureFromFile("n_test", nullptr);
+	m_material.hTextures[0] = RdrResourceSystem::CreateTextureFromFile("white", nullptr);
+	m_material.hTextures[1] = RdrResourceSystem::CreateTextureFromFile("test_ddn", nullptr);
 	m_material.samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
 	m_material.samplers[1] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
 	m_material.texCount = 2;

@@ -13,7 +13,7 @@ namespace
 	void handleSceneFileChanged(const char* filename, void* pUserData)
 	{
 		char sceneName[AssetLib::AssetDef::kMaxNameLen];
-		AssetLib::g_sceneDef.ExtractAssetName(filename, sceneName, ARRAY_SIZE(sceneName));
+		AssetLib::Scene::GetAssetDef().ExtractAssetName(filename, sceneName, ARRAY_SIZE(sceneName));
 
 		Scene* pScene = (Scene*)pUserData;
 		if (_stricmp(pScene->GetName(), sceneName) == 0)
@@ -77,19 +77,16 @@ void Scene::Load(const char* sceneName)
 	assert(m_sceneName[0] == 0);
 	strcpy_s(m_sceneName, sceneName);
 
-	char* pFileData;
-	uint fileSize;
-	if (!AssetLib::g_sceneDef.LoadAsset(sceneName, &pFileData, &fileSize))
+	AssetLib::Scene* pSceneData = AssetLibrary<AssetLib::Scene>::LoadAsset(sceneName);
+	if (!pSceneData)
 	{
 		assert(false);
 		return;
 	}
 
-	AssetLib::Scene* pSceneData = AssetLib::Scene::FromMem(pFileData);
-
 	// Listen for changes of the scene file.
 	char filePattern[AssetLib::AssetDef::kMaxNameLen];
-	AssetLib::g_sceneDef.GetFilePattern(filePattern, ARRAY_SIZE(filePattern));
+	AssetLib::Scene::GetAssetDef().GetFilePattern(filePattern, ARRAY_SIZE(filePattern));
 	m_reloadListenerId = FileWatcher::AddListener(filePattern, handleSceneFileChanged, this);
 
 	// Sky
@@ -108,46 +105,35 @@ void Scene::Load(const char* sceneName)
 	}
 
 	// Lights
+	for (const AssetLib::Light& rLightData : pSceneData->lights)
 	{
-		uint numLights = pSceneData->lightCount;
-		for (uint i = 0; i < numLights; ++i)
-		{
-			const AssetLib::Light& rLightData = pSceneData->lights.ptr[i];
+		Light light;
+		light.type = rLightData.type;
+		light.color = rLightData.color;
+		light.position = rLightData.position;
+		light.direction = rLightData.direction;
+		light.radius = rLightData.radius;
+		light.innerConeAngle = rLightData.innerConeAngle;
+		light.outerConeAngle = rLightData.outerConeAngle;
+		light.castsShadows = rLightData.bCastsShadows;
 
-			Light light;
-			light.type = rLightData.type;
-			light.color = rLightData.color;
-			light.position = rLightData.position;
-			light.direction = rLightData.direction;
-			light.radius = rLightData.radius;
-			light.innerConeAngle = rLightData.innerConeAngle;
-			light.outerConeAngle = rLightData.outerConeAngle;
-			light.castsShadows = rLightData.bCastsShadows;
+		m_lights.AddLight(light);
+	}
 
-			m_lights.AddLight(light);
-		}
-
-		if (s_stressTestLights)
-		{
-			spawnLightStressTest(m_lights);
-		}
+	if (s_stressTestLights)
+	{
+		spawnLightStressTest(m_lights);
 	}
 
 	// Objects
+	for (const AssetLib::Object& rObjectData : pSceneData->objects)
 	{
-		uint numObjects = pSceneData->objectCount;
-		for (uint i = 0; i < numObjects; ++i)
-		{
-			const AssetLib::Object& rObjectData = pSceneData->objects.ptr[i];
-			ModelInstance* pModel = ModelInstance::Create(rObjectData.model);
-			m_objects.push_back(WorldObject::Create(rObjectData.name, pModel, rObjectData.position, rObjectData.orientation, rObjectData.scale));
-		}
+		ModelInstance* pModel = ModelInstance::Create(rObjectData.model);
+		m_objects.push_back(WorldObject::Create(rObjectData.name, pModel, rObjectData.position, rObjectData.orientation, rObjectData.scale));
 	}
 
 	m_terrain.Init();
 	// TODO: quad/oct tree for scene
-
-	delete pFileData;
 }
 
 void Scene::Update(float dt)

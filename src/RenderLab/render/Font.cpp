@@ -67,7 +67,7 @@ void Font::Init()
 {
 	// todo: implement font asset & binning
 	char filename[FILE_MAX_PATH];
-	sprintf_s(filename, "%s/textures/fonts/verdana.dat", Paths::GetSrcDataDir());
+	sprintf_s(filename, "%s/textures/fonts/verdana.dat", Paths::GetDataDir());
 	loadFontData(filename);
 
 	s_text.hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_vertexDesc, ARRAY_SIZE(s_vertexDesc));

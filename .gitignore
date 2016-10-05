@@ -23,3 +23,6 @@ bin/AssetBinService.exe
 bin/ObjSceneConverter.exe
 bin/RenderLabEditor.exe
 bin/TextSDF.exe
+bin/AssetImporter.exe
+user.config
+

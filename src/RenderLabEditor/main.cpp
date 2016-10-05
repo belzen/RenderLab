@@ -27,7 +27,7 @@ int main(int argc, char** argv)
 		RenderDoc::Init();
 	}
 	Debug::Init();
-	FileWatcher::Init(Paths::GetBinDataDir());
+	FileWatcher::Init(Paths::GetDataDir());
 
 	MainWindow mainWindow;
 	mainWindow.Create(kClientWidth, kClientHeight, "Render Lab");

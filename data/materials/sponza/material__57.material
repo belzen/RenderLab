@@ -1,6 +1,6 @@
 {
 	"pixelShader" : "p_model.hlsl",
-	"textures" : [ "sponza/vase_plant", "n_flat", "sponza/vase_plant_mask" ],
+	"textures" : [ "sponza/vase_plant", "flat_ddn", "sponza/vase_plant_mask" ],
 	"needsLighting" : true,
 	"alphaCutout" : true
 }

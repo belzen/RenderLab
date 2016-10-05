@@ -3,6 +3,7 @@
 #include "RdrContext.h"
 #include "RdrScratchMem.h"
 #include "AssetLib/TextureAsset.h"
+#include "AssetLib/AssetLibrary.h"
 #include "UtilsLib/Hash.h"
 #include "UtilsLib/SizedArray.h"
 
@@ -172,7 +173,7 @@ namespace
 		return s_resourceSystem.states[s_resourceSystem.queueState];
 	}
 
-	RdrResourceFormat getFormatFromDXGI(DXGI_FORMAT format, bool bIsSrgb)
+	RdrResourceFormat getFormatFromDXGI(DXGI_FORMAT format)
 	{
 		switch (format)
 		{
@@ -186,12 +187,18 @@ namespace
 			return RdrResourceFormat::R16G16_FLOAT;
 		case DXGI_FORMAT_R8_UNORM:
 			return RdrResourceFormat::R8_UNORM;
+		case DXGI_FORMAT_BC1_UNORM_SRGB:
+			return RdrResourceFormat::DXT1_sRGB;
 		case DXGI_FORMAT_BC1_UNORM:
-			return bIsSrgb ? RdrResourceFormat::DXT1_sRGB : RdrResourceFormat::DXT1;
+			return RdrResourceFormat::DXT1;
+		case DXGI_FORMAT_BC3_UNORM_SRGB:
+			return RdrResourceFormat::DXT5_sRGB;
 		case DXGI_FORMAT_BC3_UNORM:
-			return bIsSrgb ? RdrResourceFormat::DXT5_sRGB : RdrResourceFormat::DXT5;
+			return RdrResourceFormat::DXT5;
+		case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+			return RdrResourceFormat::B8G8R8A8_UNORM_sRGB;
 		case DXGI_FORMAT_B8G8R8A8_UNORM:
-			return bIsSrgb ? RdrResourceFormat::B8G8R8A8_UNORM_sRGB : RdrResourceFormat::B8G8R8A8_UNORM;
+			return RdrResourceFormat::B8G8R8A8_UNORM;
 		default:
 			assert(false);
 			return RdrResourceFormat::Count;
@@ -234,40 +241,51 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 	if (iter != s_resourceSystem.textureCache.end())
 		return iter->second;
 
-	CmdCreateTexture& cmd = getQueueState().textureCreates.pushSafe();
-	memset(&cmd, 0, sizeof(cmd));
-
-	if (!AssetLib::g_textureDef.LoadAsset(texName, &cmd.pHeaderData, &cmd.dataSize))
+	AssetLib::Texture* pTexture = AssetLibrary<AssetLib::Texture>::LoadAsset(texName);
+	if (!pTexture)
 	{
 		assert(false);
 		return 0;
 	}
 
-	AssetLib::Texture* pBinData = AssetLib::Texture::FromMem(cmd.pHeaderData);
-
 	DirectX::TexMetadata metadata;
-	DirectX::GetMetadataFromDDSMemory(pBinData->ddsData.ptr, cmd.dataSize, 0, metadata);
+	DirectX::GetMetadataFromDDSMemory(pTexture->ddsData, pTexture->ddsDataSize, 0, metadata);
 
 	// Create new texture info
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 	pResource->texInfo.filename = _strdup(texName); // todo: string cache
+
+	CmdCreateTexture& cmd = getQueueState().textureCreates.pushSafe();
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.pHeaderData = pTexture->ddsData;
+	cmd.dataSize = pTexture->ddsDataSize;
 	cmd.hResource = s_resourceSystem.resources.getId(pResource);
 
 	cmd.eUsage = RdrResourceUsage::Immutable;
-	cmd.texInfo.format = getFormatFromDXGI(metadata.format, pBinData->bIsSrgb);
+	cmd.texInfo.format = getFormatFromDXGI(metadata.format);
 	cmd.texInfo.width = (uint)metadata.width;
 	cmd.texInfo.height = (uint)metadata.height;
 	cmd.texInfo.mipLevels = (uint)metadata.mipLevels;
 	cmd.texInfo.depth = (uint)metadata.arraySize;
-	cmd.texInfo.texType = (pBinData->bIsCubemap ? RdrTextureType::kCube : RdrTextureType::k2D); // todo: support 3d textures and arrays from assets
 	cmd.texInfo.sampleCount = 1;
 
-	if (pBinData->bIsCubemap)
+	if (metadata.IsCubemap())
 	{
+		cmd.texInfo.texType = RdrTextureType::kCube;
 		cmd.texInfo.depth /= 6;
 	}
+	else
+	{
+		cmd.texInfo.texType = RdrTextureType::k2D;
+	}
 
-	cmd.pData = pBinData->ddsData.ptr + sizeof(DWORD) + sizeof(DirectX::DDS_HEADER);
+	DirectX::DDS_HEADER* pHeader = (DirectX::DDS_HEADER*)(pTexture->ddsData + sizeof(DWORD));
+	cmd.pData = (char*)(pHeader + 1);
+
+	if (pHeader->ddspf.dwFourCC == DirectX::DDSPF_DX10.dwFourCC)
+	{
+		cmd.pData += sizeof(DirectX::DDS_HEADER_DXT10);
+	}
 
 	s_resourceSystem.textureCache.insert(std::make_pair(nameHash, cmd.hResource));
 

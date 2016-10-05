@@ -13,6 +13,8 @@ class ListView;
 class MainWindow : public WindowBase
 {
 public:
+	MainWindow();
+
 	void Create(int width, int height, const char* title);
 
 	int Run();

@@ -1,23 +1,29 @@
 #include "TextureAsset.h"
-#include <assert.h>
+#include "UtilsLib\JsonUtils.h"
+#include "UtilsLib\FileLoader.h"
+#include "UtilsLib\Error.h"
 
 using namespace AssetLib;
 
-AssetLib::AssetDef AssetLib::g_textureDef("textures", "texbin", 1);
-
-Texture* Texture::FromMem(char* pMem)
+AssetDef& Texture::GetAssetDef()
 {
-	if (((uint*)pMem)[0] == BinFileHeader::kUID)
+	static AssetDef s_assetDef("textures", "dds", 1);
+	return s_assetDef;
+}
+
+Texture* Texture::Load(const char* assetName)
+{
+	char* pFileData = nullptr;
+	uint fileSize = 0;
+
+	if (!GetAssetDef().LoadAsset(assetName, &pFileData, &fileSize))
 	{
-		BinFileHeader* pHeader = (BinFileHeader*)pMem;
-		assert(pHeader->assetUID == g_textureDef.GetAssetUID());
-		pMem += sizeof(BinFileHeader);
+		Error("Failed to load texture asset: %s", assetName);
+		return nullptr;
 	}
 
-	Texture* pTexture = (Texture*)pMem;
-	char* pDataMem = pMem + sizeof(Texture);
-
-	pTexture->ddsData.PatchPointer(pDataMem);
-
+	Texture* pTexture = new Texture();
+	pTexture->ddsData = pFileData;
+	pTexture->ddsDataSize = fileSize;
 	return pTexture;
 }

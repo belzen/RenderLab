@@ -4,6 +4,9 @@
 
 namespace Paths
 {
-	const char* GetSrcDataDir();
-	const char* GetBinDataDir();
+	const char* GetDataDir();
+
+	const char* GetExtension(const char* filename);
+
+	void GetFilenameNoExtension(const char* path, char* outFilename, int maxNameLen);
 }

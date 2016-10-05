@@ -1,5 +1,5 @@
 {
 	"pixelShader" : "p_model.hlsl",
-	"textures" : [ "sponza/sponza_fabric", "n_flat" ],
+	"textures" : [ "sponza/sponza_fabric", "flat_ddn" ],
 	"needsLighting" : true
 }

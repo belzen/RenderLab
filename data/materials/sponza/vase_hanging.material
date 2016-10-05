@@ -1,5 +1,5 @@
 {
 	"pixelShader" : "p_model.hlsl",
-	"textures" : [ "sponza/vase_hanging", "n_flat" ],
+	"textures" : [ "sponza/vase_hanging", "flat_ddn" ],
 	"needsLighting" : true
 }

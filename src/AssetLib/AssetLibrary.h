@@ -1,6 +1,8 @@
 #pragma once
 
 #include "UtilsLib/Error.h"
+#include "UtilsLib/JsonUtils.h"
+#include "UtilsLib/Hash.h"
 
 template<typename AssetTypeT>
 class AssetLibrary
@@ -30,15 +32,7 @@ private:
 		if (iter != m_assetCache.end())
 			return iter->second;
 
-		char* pFileData = nullptr;
-		uint fileSize = 0;
-		if (!AssetTypeT::s_definition.LoadAsset(assetName, &pFileData, &fileSize))
-		{
-			Error("Failed to load asset: %s", assetName);
-			return nullptr;
-		}
-
-		AssetTypeT* pAsset = AssetTypeT::FromMem(pFileData);
+		AssetTypeT* pAsset = AssetTypeT::Load(assetName);
 		pAsset->assetName = _strdup(assetName);
 		m_assetCache.insert(std::make_pair(nameHash, pAsset));
 		return pAsset;

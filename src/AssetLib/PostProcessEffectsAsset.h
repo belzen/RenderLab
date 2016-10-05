@@ -6,8 +6,8 @@ namespace AssetLib
 {
 	struct PostProcessEffects
 	{
-		static AssetDef s_definition;
-		static PostProcessEffects* FromMem(char* pMem);
+		static AssetDef& GetAssetDef();
+		static PostProcessEffects* Load(const char* assetName);
 
 		struct
 		{

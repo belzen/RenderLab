@@ -3,6 +3,7 @@
 #include "RdrShaderSystem.h"
 #include "RdrResourceSystem.h"
 #include "AssetLib/MaterialAsset.h"
+#include "AssetLib/AssetLibrary.h"
 #include "UtilsLib/Hash.h"
 
 namespace
@@ -15,15 +16,12 @@ namespace
 
 	void loadMaterial(const char* materialName, RdrMaterial* pOutMaterial)
 	{
-		char* pFileData;
-		uint fileSize;
-		if (!AssetLib::g_materialDef.LoadAsset(materialName, &pFileData, &fileSize))
+		AssetLib::Material* pMaterial = AssetLibrary<AssetLib::Material>::LoadAsset(materialName);
+		if (!pMaterial)
 		{
 			assert(false);
 			return;
 		}
-
-		AssetLib::Material* pMaterial = AssetLib::Material::FromMem(pFileData);
 
 		// Create default pixel shader
 		const char* defines[2] = { 0 };
@@ -54,16 +52,14 @@ namespace
 			pOutMaterial->hTextures[n] = RdrResourceSystem::CreateTextureFromFile(pMaterial->textures[n], nullptr);
 			pOutMaterial->samplers[n] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
 		}
-
-		delete pFileData;
 	}
 }
 
 const RdrMaterial* RdrMaterial::LoadFromFile(const char* materialName)
 {
-	if (!AssetLib::g_materialDef.HasReloadHandler())
+	if (!AssetLib::Material::GetAssetDef().HasReloadHandler())
 	{
-		AssetLib::g_materialDef.SetReloadHandler(RdrMaterial::ReloadMaterial);
+		AssetLib::Material::GetAssetDef().SetReloadHandler(RdrMaterial::ReloadMaterial);
 	}
 
 	// Check if the material's already been loaded
