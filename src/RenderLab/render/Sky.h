@@ -40,6 +40,8 @@ public:
 	Light GetSunLight() const;
 	Vec3 GetSunDirection() const;
 
+	float GetPssmLambda() const;
+
 	RdrConstantBufferHandle GetAtmosphereConstantBuffer() const;
 
 private:

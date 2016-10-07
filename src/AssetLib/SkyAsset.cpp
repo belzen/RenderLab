@@ -34,6 +34,8 @@ Sky* Sky::Load(const char* assetName)
 	pSky->sun.intensity = jRoot.get("sunIntensity", 0.f).asFloat();
 	pSky->sun.color = jsonReadVec3(jRoot.get("sunColor", Json::Value::null));
 
+	pSky->shadows.pssmLambda = jRoot.get("pssmLambda", 0.f).asFloat();
+
 	return pSky;
 }
 

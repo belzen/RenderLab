@@ -470,3 +470,8 @@ Light Sky::GetSunLight() const
 
 	return light;
 }
+
+float Sky::GetPssmLambda() const
+{
+	return m_pSrcAsset->shadows.pssmLambda;
+}

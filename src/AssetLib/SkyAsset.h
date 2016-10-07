@@ -20,6 +20,11 @@ namespace AssetLib
 			float intensity;
 		} sun;
 
+		struct  
+		{
+			float pssmLambda;
+		} shadows;
+
 		uint timeLastModified;
 		const char* assetName; // Filled in by the AssetLibrary during loading.
 	};

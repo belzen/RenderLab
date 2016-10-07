@@ -4,5 +4,6 @@
 	"sunAngleXAxis" : 90.0,
 	"sunAngleZAxis" : 90.0,
 	"sunIntensity" : 500.0,
-	"sunColor" : [1.0, 1.0, 1.0]
+	"sunColor" : [1.0, 1.0, 1.0],
+	"pssmLambda" : 0.6
 }

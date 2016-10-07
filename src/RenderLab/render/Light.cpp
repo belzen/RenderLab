@@ -3,6 +3,7 @@
 #include "RdrScratchMem.h"
 #include "Renderer.h"
 #include "Scene.h"
+#include "Sky.h"
 
 namespace
 {
@@ -122,16 +123,13 @@ void LightList::AddLight(const Light& light)
 	++m_lightCount;
 }
 
-void LightList::UpdateSunLight(const Light& rSunLight)
+void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax)
 {
-	m_lights[kSunLightIndex] = rSunLight;
-}
+	m_lights[kSunLightIndex] = rSky.GetSunLight();
 
-void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax)
-{
 	if (!m_hShadowMapTexArray)
 	{
-		m_hShadowMapTexArray = RdrResourceSystem::CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, RdrResourceFormat::D16);
+		m_hShadowMapTexArray = RdrResourceSystem::CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, RdrResourceFormat::D24_UNORM_S8_UINT);
 		for (int i = 0; i < MAX_SHADOW_MAPS; ++i)
 		{
 			m_shadowMapDepthViews[i] = RdrResourceSystem::CreateDepthStencilView(m_hShadowMapTexArray, i, 1);
@@ -139,7 +137,7 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const fl
 	}
 	if (!m_hShadowCubeMapTexArray)
 	{
-		m_hShadowCubeMapTexArray = RdrResourceSystem::CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, RdrResourceFormat::D16);
+		m_hShadowCubeMapTexArray = RdrResourceSystem::CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, RdrResourceFormat::D24_UNORM_S8_UINT);
 
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
 		for (int i = 0; i < MAX_SHADOW_CUBEMAPS; ++i)
@@ -185,7 +183,7 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const fl
 				float zDiff = (zMax - zMin);
 
 				float nearDepth = zMin;
-				float lamda = 0.9f;
+				float lamda = rSky.GetPssmLambda();
 
 				for (int iPartition = 0; iPartition < kNumCascades; ++iPartition)
 				{

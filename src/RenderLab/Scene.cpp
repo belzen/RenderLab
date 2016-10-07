@@ -149,7 +149,6 @@ void Scene::Update(float dt)
 	}
 
 	m_sky.Update(dt);
-	m_lights.UpdateSunLight(m_sky.GetSunLight());
 }
 
 void Scene::PrepareDraw()

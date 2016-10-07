@@ -20,6 +20,9 @@ private:
 	static float GetSunIntensity(void* pSource);
 	static bool SetSunIntensity(const float intensity, void* pSource);
 
+	static float GetPssmLambda(void* pSource);
+	static bool SetPssmLambda(const float lambda, void* pSource);
+
 private:
 	AssetLib::Sky* m_pSky;
 };

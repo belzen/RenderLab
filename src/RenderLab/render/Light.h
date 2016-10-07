@@ -12,6 +12,7 @@ class RdrContext;
 class Renderer;
 class Camera;
 class Scene;
+class Sky;
 
 #define MAX_SHADOW_MAPS_PER_FRAME 10
 #define USE_SINGLEPASS_SHADOW_CUBEMAP 1
@@ -38,9 +39,7 @@ public:
 
 	void AddLight(const Light& light);
 
-	void UpdateSunLight(const Light& rSunLight);
-
-	void PrepareDraw(Renderer& rRenderer, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax);
+	void PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax);
 
 	RdrResourceHandle GetShadowMapDataRes() const;
 	RdrResourceHandle GetShadowMapTexArray() const;
