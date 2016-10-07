@@ -303,6 +303,17 @@ namespace
 		return (uint)shader;
 	}
 
+	void processDefaultShaderReload(RdrShaderStage eStage, RdrShader* pShader, const RdrShaderDef& rShaderDef, RdrShaderFlags flags, RdrShader& rErrorShader, RdrContext* pRdrContext)
+	{
+		// Free the old shader object if it wasn't the error shader.
+		if (pShader->pTypeless != rErrorShader.pTypeless)
+		{
+			pRdrContext->ReleaseShader(pShader);
+		}
+
+		createDefaultShader(pRdrContext, eStage, rShaderDef, flags, *pShader);
+	}
+
 	void processShaderReload(RdrShaderStage eStage, RdrShader* pShader, RdrShader& rErrorShader, RdrContext* pRdrContext)
 	{
 		// Free the old shader object if it wasn't the error shader.
@@ -405,6 +416,8 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 {
 	AutoScopedLock lock(s_shaderSystem.reloadMutex);
 
+	bool found = false;
+
 	Hashing::StringHash nameHash = Hashing::HashString(filename);
 	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.find(nameHash);
 	if (iter != s_shaderSystem.pixelShaderCache.end())
@@ -412,7 +425,7 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 		ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
 		cmd.eStage = RdrShaderStage::Pixel;
 		cmd.hPixelShader = iter->second;
-		return;
+		found = true;
 	}
 
 	for (int i = 0; i < (int)RdrVertexShaderType::Count; ++i)
@@ -422,7 +435,7 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 			ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
 			cmd.eStage = RdrShaderStage::Vertex;
 			cmd.vertexShader = (RdrVertexShaderType)i;
-			return;
+			found = true;
 		}
 	}
 
@@ -433,7 +446,7 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 			ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
 			cmd.eStage = RdrShaderStage::Compute;
 			cmd.computeShader = (RdrComputeShader)i;
-			return;
+			found = true;
 		}
 	}
 
@@ -444,12 +457,15 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 			ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
 			cmd.eStage = RdrShaderStage::Geometry;
 			cmd.geomShader = (RdrGeometryShaderType)i;
-			return;
+			found = true;
 		}
 	}
 
-	// Couldn't find any specific shader... This is most likely a header file.  Just reload all shaders
-	ReloadAllShaders();
+	if (!found)
+	{
+		// Couldn't find any specific shader... This is most likely a header file.  Just reload all shaders
+		ReloadAllShaders();
+	}
 }
 
 void RdrShaderSystem::ReloadAllShaders()
@@ -693,7 +709,7 @@ void RdrShaderSystem::ProcessCommands(RdrContext* pRdrContext)
 					{
 						vertexShader.flags = (RdrShaderFlags)flags;
 						pShader = &s_shaderSystem.vertexShaders[getVertexShaderIndex(vertexShader)];
-						processShaderReload(cmd.eStage, pShader, rErrorShader, pRdrContext);
+						processDefaultShaderReload(cmd.eStage, pShader, kVertexShaderDefs[(int)cmd.vertexShader], vertexShader.flags, rErrorShader, pRdrContext);
 					}
 				}
 				break;
@@ -705,13 +721,15 @@ void RdrShaderSystem::ProcessCommands(RdrContext* pRdrContext)
 					{
 						geomShader.flags = (RdrShaderFlags)flags;
 						pShader = &s_shaderSystem.geometryShaders[getGeometryShaderIndex(geomShader)];
-						processShaderReload(cmd.eStage, pShader, rErrorShader, pRdrContext);
+						processDefaultShaderReload(cmd.eStage, pShader, kGeometryShaderDefs[(int)cmd.geomShader], geomShader.flags, rErrorShader, pRdrContext);
 					}
 				}
 				break;
 			case RdrShaderStage::Compute:
-				pShader = &s_shaderSystem.computeShaders[getComputeShaderIndex(cmd.computeShader)];
-				processShaderReload(cmd.eStage, pShader, rErrorShader, pRdrContext);
+				{
+					pShader = &s_shaderSystem.computeShaders[getComputeShaderIndex(cmd.computeShader)];
+					processDefaultShaderReload(cmd.eStage, pShader, kComputeShaderDefs[(int)cmd.computeShader], RdrShaderFlags::None, rErrorShader, pRdrContext);
+				}
 				break;
 			}
 		}
