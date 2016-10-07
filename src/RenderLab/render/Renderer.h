@@ -44,7 +44,7 @@ struct RdrClusteredLightingData
 class Renderer
 {
 public:
-	bool Init(HWND hWnd, int width, int height);
+	bool Init(HWND hWnd, int width, int height, InputManager* pInputManager);
 	void Cleanup();
 
 	void Resize(int width, int height);
@@ -99,6 +99,7 @@ private:
 	RdrContext* m_pContext;
 
 	RdrProfiler m_profiler;
+	InputManager* m_pInputManager;
 
 	RdrDepthStencilViewHandle m_hPrimaryDepthStencilView;
 	RdrResourceHandle         m_hPrimaryDepthBuffer;

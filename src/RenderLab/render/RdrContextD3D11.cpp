@@ -403,6 +403,8 @@ RdrContextD3D11::RdrContextD3D11(RdrProfiler& rProfiler)
 
 bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height)
 {
+	m_slopeScaledDepthBias = 3.f;
+
 	HRESULT hr;
 
 	DXGI_SWAP_CHAIN_DESC swapChainDesc = { 0 };
@@ -1064,9 +1066,10 @@ void RdrContextD3D11::SetBlendState(const bool bAlphaBlend)
 void RdrContextD3D11::SetRasterState(const RdrRasterState& rasterState)
 {
 	uint rasterIndex =
-		rasterState.bEnableMSAA * 2 * 2
-		+ rasterState.bEnableScissor * 2
-		+ rasterState.bWireframe;
+		rasterState.bEnableMSAA * 2 * 2 * 2
+		+ rasterState.bEnableScissor * 2 * 2
+		+ rasterState.bWireframe * 2
+		+ rasterState.bUseSlopeScaledDepthBias;
 
 	if (!m_pRasterStates[rasterIndex])
 	{
@@ -1075,7 +1078,7 @@ void RdrContextD3D11::SetRasterState(const RdrRasterState& rasterState)
 		desc.MultisampleEnable = rasterState.bEnableMSAA;
 		desc.CullMode = D3D11_CULL_BACK;
 		desc.DepthBias = 0;
-		desc.SlopeScaledDepthBias = 0.f;
+		desc.SlopeScaledDepthBias = rasterState.bUseSlopeScaledDepthBias ? m_slopeScaledDepthBias : 0.f;
 		desc.DepthBiasClamp = 0.f;
 		desc.DepthClipEnable = true;
 		desc.FrontCounterClockwise = false;

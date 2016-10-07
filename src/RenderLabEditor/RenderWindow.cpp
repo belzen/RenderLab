@@ -9,7 +9,7 @@ void RenderWindow::Create(HWND hParentWnd, int width, int height, Renderer* pRen
 	m_pRenderer = pRenderer;
 	WindowBase::Create(hParentWnd, width, height, "RenderViewport");
 
-	m_pRenderer->Init(GetWindowHandle(), width, height);
+	m_pRenderer->Init(GetWindowHandle(), width, height, &m_inputManager);
 
 	m_defaultInputContext.SetCamera(&m_mainCamera);
 	m_inputManager.PushContext(&m_defaultInputContext);

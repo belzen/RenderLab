@@ -25,7 +25,7 @@ struct D3D11_INPUT_ELEMENT_DESC;
 class RdrProfiler;
 
 #define SAMPLER_TYPES_COUNT (int)RdrComparisonFunc::Count * (int)RdrTexCoordMode::Count * 2
-#define RASTER_STATES_COUNT 2 * 2 * 2
+#define RASTER_STATES_COUNT 2 * 2 * 2 * 2
 
 class RdrContextD3D11 : public RdrContext
 {
@@ -148,4 +148,7 @@ private:
 	RdrProfiler& m_rProfiler;
 
 	uint m_presentFlags;
+
+	// Global depth bias to use for raster states that enable it.
+	float m_slopeScaledDepthBias;
 };

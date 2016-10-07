@@ -143,6 +143,7 @@ struct RdrRasterState
 	uint bEnableMSAA : 1;
 	uint bEnableScissor : 1;
 	uint bWireframe : 1;
+	uint bUseSlopeScaledDepthBias : 1; // Uses global slope scaled depth bias
 };
 
 struct RdrSamplerState

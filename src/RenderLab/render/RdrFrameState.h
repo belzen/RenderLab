@@ -121,9 +121,6 @@ struct RdrAction
 
 	bool bIsCubemapCapture;
 	bool bEnablePostProcessing;
-
-	// Debugging data
-	const InputManager* pInputManager;
 };
 
 struct RdrFrameState

@@ -174,7 +174,7 @@ namespace
 				float dist = sqrtf(max(0.f, distSqr));
 				float radius = pObj->GetRadius();
 
-				if (dist -radius < depthMin)
+				if (dist - radius < depthMin)
 					depthMin = dist - radius;
 
 				if (dist + radius > depthMax)
@@ -308,7 +308,7 @@ namespace
 
 //////////////////////////////////////////////////////
 
-bool Renderer::Init(HWND hWnd, int width, int height)
+bool Renderer::Init(HWND hWnd, int width, int height, InputManager* pInputManager)
 {
 	assert(g_pRenderer == nullptr);
 	g_pRenderer = this;
@@ -320,6 +320,7 @@ bool Renderer::Init(HWND hWnd, int width, int height)
 		return false;
 
 	m_profiler.Init(m_pContext);
+	m_pInputManager = pInputManager;
 
 	RdrResourceSystem::Init();
 
@@ -797,7 +798,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 
 	// Lighting
 	LightList& rLights = rScene.GetLightList();
-	rLights.PrepareDraw(*this, m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax);
+	rLights.PrepareDraw(*this, rScene.GetSky(), m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax);
 
 	m_pCurrentAction->lightParams.hDirectionalLightsCb = rLights.GetDirectionalLightListCb();
 	m_pCurrentAction->lightParams.hSpotLightListRes = rLights.GetSpotLightListRes();
@@ -1101,6 +1102,17 @@ void Renderer::DrawFrame()
 			const RdrAction& rAction = rFrameState.actions[iAction];
 			m_pContext->BeginEvent(rAction.name);
 
+			//////////////////////////////////////////////////////////////////////////
+			// Shadow passes
+
+			// Setup shadow raster state with depth bias.
+			RdrRasterState rasterState;
+			rasterState.bEnableMSAA = false;
+			rasterState.bEnableScissor = false;
+			rasterState.bWireframe = false;
+			rasterState.bUseSlopeScaledDepthBias = 1;
+			m_pContext->SetRasterState(rasterState);
+
 			m_profiler.BeginSection(RdrProfileSection::Shadows);
 			for (int iShadow = 0; iShadow < rAction.shadowPassCount; ++iShadow)
 			{
@@ -1108,10 +1120,12 @@ void Renderer::DrawFrame()
 			}
 			m_profiler.EndSection();
 
-			RdrRasterState rasterState;
+			//////////////////////////////////////////////////////////////////////////
+			// Normal draw passes
 			rasterState.bEnableMSAA = (g_debugState.msaaLevel > 1);
 			rasterState.bEnableScissor = false;
 			rasterState.bWireframe = g_debugState.wireframe;
+			rasterState.bUseSlopeScaledDepthBias = 0;
 			m_pContext->SetRasterState(rasterState);
 
 			DrawPass(rAction, RdrPass::ZPrepass);
@@ -1140,7 +1154,7 @@ void Renderer::DrawFrame()
 			if (rAction.bEnablePostProcessing)
 			{
 				m_profiler.BeginSection(RdrProfileSection::PostProcessing);
-				m_postProcess.DoPostProcessing(*rAction.pInputManager, m_pContext, m_drawState, pColorBuffer, *rAction.pPostProcEffects);
+				m_postProcess.DoPostProcessing(*m_pInputManager, m_pContext, m_drawState, pColorBuffer, *rAction.pPostProcEffects);
 				m_profiler.EndSection();
 			}
 

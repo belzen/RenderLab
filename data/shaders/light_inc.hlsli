@@ -43,15 +43,15 @@ float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float lightRadi
 		for (int i = 0; i < 4; ++i)
 		{
 			float res = texShadowMaps.SampleCmpLevelZero(sampShadowMaps, float3(uv.xy + poissonDisk[i] / 700.f, shadowMapIndex), lightDepthValue).x;
-			vis -= (1.f - res) * 0.2f;
+			vis -= (1.f - res) * 0.25f;
 		}
 		return vis;
 #else
 		// 16-tap PCF
 		float sum = 0.f;
-		for (float y = -1.5f; y < 1.5f; y += 1.f)
+		for (float y = -1.5f; y <= 1.5f; y += 1.f)
 		{
-			for (float x = -1.5f; x < 1.5f; x += 1.f)
+			for (float x = -1.5f; x <= 1.5f; x += 1.f)
 			{
 				float2 offset = float2(x, y) / float2(2048.f, 2048.f); // todo: remove hard-coded texture size
 				sum += texShadowMaps.SampleCmpLevelZero(sampShadowMaps, float3(uv.xy + offset, shadowMapIndex), lightDepthValue).x;
