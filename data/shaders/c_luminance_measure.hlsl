@@ -37,11 +37,11 @@ void main( uint3 globalId : SV_DispatchThreadID, uint3 groupId : SV_GroupId, uin
 
 	float4 lum;
 	lum.x = getLuminance(c00.rgb);
-	lum.w = getLuminance(c10.rgb);
 	lum.y = getLuminance(c01.rgb);
 	lum.z = getLuminance(c11.rgb);
+	lum.w = getLuminance(c10.rgb);
 	
-	grp_logLum[localIdx] = log2(lum);
+	grp_logLum[localIdx] = (lum <= 0.f) ? 0 : log2(lum);
 
 #else
 	float4 lum = texInput[samplePos + uint2(0, 0)];
@@ -69,13 +69,13 @@ void main( uint3 globalId : SV_DispatchThreadID, uint3 groupId : SV_GroupId, uin
 		uint2 inputSize;
 		texInput.GetDimensions(inputSize.x, inputSize.y);
 
-		uint2 sampleSize = min( (inputSize - samplePos) / 2, uint2(GroupSizeX, GroupSizeY));
+		uint2 sampleSize = min( (inputSize - samplePos), 2 * uint2(GroupSizeX, GroupSizeY));
 		sampleSize = max(sampleSize, uint2(1, 1));
 		uint numSamples = sampleSize.x * sampleSize.y;
 
 #if STEP_FINAL
 		// Calculate final average luminance and setup tonemapping params.
-		float avgLum = (grp_logLum[0].x + grp_logLum[0].y + grp_logLum[0].z + grp_logLum[0].w) / (4 * numSamples);
+		float avgLum = (grp_logLum[0].x + grp_logLum[0].y + grp_logLum[0].z + grp_logLum[0].w) / numSamples;
 		avgLum = exp2(avgLum);
 
 		// Decay luminance
@@ -86,7 +86,7 @@ void main( uint3 globalId : SV_DispatchThreadID, uint3 groupId : SV_GroupId, uin
 		bufToneMapOutput[0].white = cbTonemapInput.white;
 		bufToneMapOutput[0].adaptedLum = adaptedLum;
 #else
-		texLumOutput[groupId.xy] = grp_logLum[0] / numSamples;
+		texLumOutput[groupId.xy] = grp_logLum[0] / (numSamples / 4);
 #endif
 	}
 }

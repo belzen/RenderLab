@@ -217,8 +217,8 @@ void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawStat
 {
 	pRdrContext->BeginEvent(L"Lum Measurement");
 	
-	uint w = pColorBuffer->texInfo.width / 16;
-	uint h = pColorBuffer->texInfo.height / 16;
+	uint w = getThreadGroupCount(pColorBuffer->texInfo.width, 16);
+	uint h = getThreadGroupCount(pColorBuffer->texInfo.height, 16);
 
 	const RdrResource* pLumInput = pColorBuffer;
 	const RdrResource* pLumOutput = RdrResourceSystem::GetResource(m_hLumOutputs[0]);
@@ -241,8 +241,8 @@ void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawStat
 		rDrawState.csResources[0] = pLumInput->resourceView;
 		rDrawState.csUavs[0] = pLumOutput->uav;
 
-		w = (uint)ceil(w / 16.f);
-		h = (uint)ceil(h / 16.f);
+		w = getThreadGroupCount(w, 16);
+		h = getThreadGroupCount(h, 16);
 		++i;
 
 		pRdrContext->DispatchCompute(rDrawState, w, h, 1);
@@ -268,8 +268,8 @@ void RdrPostProcess::DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState&
 {
 	pRdrContext->BeginEvent(L"Lum Histogram");
 
-	uint w = pColorBuffer->texInfo.width / 32;
-	uint h = pColorBuffer->texInfo.height / 16;
+	uint w = getThreadGroupCount(pColorBuffer->texInfo.width, 32);
+	uint h = getThreadGroupCount(pColorBuffer->texInfo.height, 16);
 
 	const RdrResource* pLumInput = pColorBuffer;
 	const RdrResource* pTileHistograms = RdrResourceSystem::GetResource(m_hToneMapTileHistograms);
@@ -309,8 +309,8 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 
 	// High-pass filter and downsample to 1/2, 1/4, 1/8, and 1/16 res
 	{
-		uint w = pColorBuffer->texInfo.width / 16;
-		uint h = pColorBuffer->texInfo.height / 16;
+		uint w = getThreadGroupCount(pColorBuffer->texInfo.width, 16);
+		uint h = getThreadGroupCount(pColorBuffer->texInfo.height, 16);
 
 		const RdrResource* pLumInput = pColorBuffer;
 		const RdrResource* pTonemapBuffer = RdrResourceSystem::GetResource(m_hToneMapOutputConstants);
@@ -336,9 +336,6 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 	const RdrResource* pOutput = nullptr;
 	for (int i = ARRAY_SIZE(m_bloomBuffers) - 1; i >= 0; --i)
 	{
-		uint w = pColorBuffer->texInfo.width / 16;
-		uint h = pColorBuffer->texInfo.height / 16;
-
 		int blurTargetIdx = (i == 0);
 		// Blur
 		{ 
