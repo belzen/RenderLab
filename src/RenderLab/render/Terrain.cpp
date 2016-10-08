@@ -29,9 +29,17 @@ void Terrain::Init()
 		nullptr, 0,
 		RdrTopology::Quad, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f));
 
-	Vec3* aInstanceData = (Vec3*)RdrScratchMem::AllocAligned(sizeof(Vec3) * 1, 16);
-	aInstanceData[0] = Vec3(0.f, 0.f, 5.f);
-	m_hInstanceData = RdrResourceSystem::CreateVertexBuffer(aInstanceData, sizeof(aInstanceData[0]) * 1, RdrResourceUsage::Immutable);
+	int gridSize = 8;
+	float cellSize = 10.f;
+	Vec3* aInstanceData = (Vec3*)RdrScratchMem::AllocAligned(sizeof(Vec3) * gridSize * gridSize, 16);
+	for (int x = 0; x < gridSize; ++x)
+	{
+		for (int y = 0; y < gridSize; ++y)
+		{
+			aInstanceData[x + y * gridSize] = Vec3(x * cellSize, y * cellSize, cellSize);
+		}
+	}
+	m_hInstanceData = RdrResourceSystem::CreateVertexBuffer(aInstanceData, sizeof(aInstanceData[0]), gridSize * gridSize, RdrResourceUsage::Immutable);
 
 	m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_terrainVertexDesc, ARRAY_SIZE(s_terrainVertexDesc));
 
@@ -52,10 +60,11 @@ void Terrain::PrepareDraw()
 	{
 		m_pDrawOp = RdrDrawOp::Allocate();
 		m_pDrawOp->hGeo = m_hGeo;
-		m_pDrawOp->hInstanceData = m_hInstanceData;
+		m_pDrawOp->hCustomInstanceBuffer = m_hInstanceData;
 		m_pDrawOp->hInputLayout = m_hInputLayout;
 		m_pDrawOp->vertexShader = kVertexShader;
 		m_pDrawOp->tessellationShader = kTessellationShader;
 		m_pDrawOp->pMaterial = &m_material;
+		m_pDrawOp->instanceCount = 8 * 8;
 	}
 }

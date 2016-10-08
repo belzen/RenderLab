@@ -1189,7 +1189,7 @@ void Renderer::DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBuck
 		{
 			if (pPendingEntry)
 			{
-				if (pPendingEntry->sortKey == rEntry.sortKey && instanceCount < kMaxInstancesPerDraw)
+				if (pPendingEntry->pDrawOp->instanceDataId != 0 && pPendingEntry->sortKey == rEntry.sortKey && instanceCount < kMaxInstancesPerDraw)
 				{
 					pCurrInstanceIds[instanceCount] = rEntry.pDrawOp->instanceDataId;
 					++instanceCount;
@@ -1343,13 +1343,16 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 	m_drawState.vertexBufferCount = 1;
 	m_drawState.vertexCount = pGeo->geoInfo.numVerts;
 
-	if (pDrawOp->hInstanceData)
+	if (pDrawOp->hCustomInstanceBuffer)
 	{
-		const RdrResource* pInstanceData = RdrResourceSystem::GetResource(pDrawOp->hInstanceData);
+		const RdrResource* pInstanceData = RdrResourceSystem::GetResource(pDrawOp->hCustomInstanceBuffer);
 		m_drawState.vertexBuffers[1].pBuffer = pInstanceData->pBuffer;
 		m_drawState.vertexStrides[1] = pInstanceData->bufferInfo.elementSize;
 		m_drawState.vertexOffsets[1] = 0;
 		m_drawState.vertexBufferCount = 2;
+
+		assert(instanceCount == 1);
+		instanceCount = pDrawOp->instanceCount;
 	}
 
 	if (pGeo->indexBuffer.pBuffer)

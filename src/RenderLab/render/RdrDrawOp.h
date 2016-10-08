@@ -43,9 +43,8 @@ struct RdrDrawOpSortKey
 			uint16 vertexShaderFlags;
 			uint16 geo;
 			uint16 material;
-			uint bCanInstance : 1;
-			uint unusedBits : 31;
-			uint unused;
+			uint unused1;
+			uint unused2;
 		} opaque;
 
 		struct  
@@ -75,7 +74,11 @@ struct RdrDrawOp
 	const RdrMaterial* pMaterial;
 
 	RdrGeoHandle hGeo;
-	RdrResourceHandle hInstanceData;
+
+	// Custom instance buffer for special objects like terrain that don't use the normal instancing system.
+	RdrResourceHandle hCustomInstanceBuffer;
+	uint16 instanceCount;
+
 	uint8 bFreeGeo : 1;
 	uint8 bHasAlpha : 1;
 	uint8 bIsSky : 1;
@@ -100,9 +103,8 @@ inline void RdrDrawOp::BuildSortKey(const RdrDrawOp* pDrawOp, const float minDep
 		rOutKey.opaque.vertexShaderFlags = (uint16)pDrawOp->vertexShader.flags;
 		rOutKey.opaque.geo = pDrawOp->hGeo;
 		rOutKey.opaque.material = RdrMaterial::GetMaterialId(pDrawOp->pMaterial);
-		rOutKey.opaque.bCanInstance = !!pDrawOp->instanceDataId;
-		rOutKey.opaque.unusedBits = 0;
-		rOutKey.opaque.unused = 0;
+		rOutKey.opaque.unused1 = 0;
+		rOutKey.opaque.unused2 = 0;
 	}
 }
 

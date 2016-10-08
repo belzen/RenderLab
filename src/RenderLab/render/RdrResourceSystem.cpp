@@ -326,7 +326,7 @@ RdrResourceHandle RdrResourceSystem::CreateTexture3D(uint width, uint height, ui
 	return createTextureInternal(RdrTextureType::k3D, width, height, depth, 1, eFormat, 1, eUsage);
 }
 
-RdrResourceHandle RdrResourceSystem::CreateVertexBuffer(const void* pSrcData, int size, RdrResourceUsage eUsage)
+RdrResourceHandle RdrResourceSystem::CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceUsage eUsage)
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
@@ -335,8 +335,8 @@ RdrResourceHandle RdrResourceSystem::CreateVertexBuffer(const void* pSrcData, in
 	cmd.pData = pSrcData;
 	cmd.eUsage = eUsage;
 	cmd.info.eType = RdrBufferType::Vertex;
-	cmd.info.elementSize = size;
-	cmd.info.numElements = 1;
+	cmd.info.elementSize = stride;
+	cmd.info.numElements = numVerts;
 
 	return cmd.hResource;
 }

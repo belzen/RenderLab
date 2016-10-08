@@ -27,7 +27,7 @@ namespace RdrResourceSystem
 	void ReleaseGeo(const RdrGeoHandle hGeo);
 	const RdrGeometry* GetGeo(const RdrGeoHandle hGeo);
 
-	RdrResourceHandle CreateVertexBuffer(const void* pSrcData, int size, RdrResourceUsage eUsage);
+	RdrResourceHandle CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceUsage eUsage);
 
 	RdrResourceHandle CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
 	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage);
