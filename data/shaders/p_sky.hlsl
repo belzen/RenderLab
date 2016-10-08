@@ -31,8 +31,7 @@ const float mieG = 0.65;*/
 
 float4 main(VsOutputSky input) : SV_TARGET
 {
-	// todo2: origin should be somewhere high above planetRadius to avoid negative altitude
-	float3 viewPos = cbPerAction.cameraPos * 0.001f + float3(0.f, cbAtmosphere.planetRadius, 0.f);
+	float3 viewPos = atmViewPosToPlanetPos(cbPerAction.cameraPos);
 	float3 viewDir = normalize(input.position_ws.xyz - cbPerAction.cameraPos);
 
 	float r = length(viewPos);

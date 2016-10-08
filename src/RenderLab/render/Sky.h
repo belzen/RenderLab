@@ -43,6 +43,7 @@ public:
 	float GetPssmLambda() const;
 
 	RdrConstantBufferHandle GetAtmosphereConstantBuffer() const;
+	RdrResourceHandle GetTransmittanceLut() const;
 
 private:
 	RdrComputeOp* m_pComputeOps[32];
@@ -95,3 +96,9 @@ inline RdrConstantBufferHandle Sky::GetAtmosphereConstantBuffer() const
 {
 	return m_hAtmosphereConstants;
 }
+
+inline RdrResourceHandle Sky::GetTransmittanceLut() const
+{
+	return m_hTransmittanceLut;
+}
+

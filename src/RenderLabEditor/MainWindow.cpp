@@ -83,14 +83,17 @@ void SceneListViewSelectionChanged(const ListView* pList, uint selectedIndex, vo
 
 int MainWindow::Run()
 {
-	HWND hWnd = GetWindowHandle();
-
 	m_running = true;
-	m_scene.Load("basic");
 
+	// Initialize renderer first.
+	HWND hWnd = GetWindowHandle();
 	const int kDefaultPanelWidth = 300;
 	m_renderWindow.Create(hWnd, GetWidth() - kDefaultPanelWidth, GetHeight(), &m_renderer);
 
+	// Load in default scene
+	m_scene.Load("basic");
+
+	// Finish editor setup.
 	m_pPropertyPanel = PropertyPanel::Create(*this, GetWidth() - kDefaultPanelWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);
 	m_pSceneListView = ListView::Create(*this, GetWidth() - kDefaultPanelWidth, 0, kDefaultPanelWidth, GetHeight() / 2, SceneListViewSelectionChanged, m_pPropertyPanel);
 

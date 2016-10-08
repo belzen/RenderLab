@@ -316,13 +316,12 @@ float3 atmCalcGroundColor(float3 viewPos, float3 viewDir, float distToGround, fl
 	// TODO: Clean this up and enable for internal usage.
 	//		Right now it's basically a direct copy from the source code for Bruneton08.
 	//		The reflectance texture is just a color texture for the planet with the a/w component being some sort of specular value.
-#if 0
 	float3 result;
 	// if ray hits ground surface
 	// ground reflectance at end of ray, x0
 	float3 x0 = viewPos + viewDir * distToGround;
 	float r0 = length(x0);
-	float3 n = viewPos0 / r0;
+	float3 n = x0 / r0;// viewPos0 / r0;
 	float2 coords = float2(atan2(n.y, n.x), acos(n.z)) * float2(0.5, 1.0) / kPi + float2(0.5, 0.0);
 	float4 reflectance = texGroundReflectance.Sample(texSampler, coords) * float4(0.2, 0.2, 0.2, 1.0);
 	if (r0 > cbAtmosphere.planetRadius + 0.01f) 
@@ -350,9 +349,6 @@ float3 atmCalcGroundColor(float3 viewPos, float3 viewDir, float distToGround, fl
 	}
 
 	return attenuation * groundColor;
-#else
-	return 0.f;
-#endif
 }
 
 // Calculate the lighting for the sun disc.
@@ -369,4 +365,11 @@ float3 atmCalcSunColor(float3 viewPos, float3 viewDir, float3 sunDir, float alti
 		? atmGetTransmittanceWithShadow(texTransmittanceLut, texSampler, altitude, cosViewAngle)
 		: float3(1, 1, 1);
 	return transmittance * sunLight;
+}
+
+// Convert a standard world units view position into planet-relative kilometers.
+float3 atmViewPosToPlanetPos(float3 viewPos)
+{
+	// todo2: origin should be somewhere high above planetRadius to avoid negative altitude
+	return viewPos * 0.001f + float3(0.f, cbAtmosphere.planetRadius, 0.f);
 }

@@ -1,4 +1,5 @@
 #include "light_types.h"
+#include "atmosphere_inc.hlsli"
 
 // Specular models
 #define PHONG 1
@@ -8,15 +9,19 @@
 static float3 ambient_color = float3(1.f, 1.f, 1.f);
 static float ambient_intensity = 1.f;
 
+SamplerState samClamp : register(s14);
+SamplerComparisonState sampShadowMaps : register(s15);
+
+Texture2D texSkyTransmittanceLut : register(t13);
+Texture2DArray texShadowMaps : register(t14);
+TextureCubeArray texShadowCubemaps : register(t15);
+
 StructuredBuffer<SpotLight> g_spotLights : register(t16);
 StructuredBuffer<PointLight> g_pointLights : register(t17);
 Buffer<uint> g_lightIndices : register(t18);
 
 StructuredBuffer<ShaderShadowData> g_shadowData : register(t19);
 
-Texture2DArray texShadowMaps : register(t14);
-TextureCubeArray texShadowCubemaps : register(t15);
-SamplerComparisonState sampShadowMaps : register(s15);
 
 static const float kShadowBias = 0.002f;
 
@@ -170,8 +175,19 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 			++shadowMapIndex;
 		}
 
+		// Apply transmittance to the directional light, otherwise surfaces will be way brighter than the sky.
+		// Source: Intel's OutdoorLightScattering demo
+		// Note: This assumes every directional light is a sun.
+		float altitude = length(atmViewPosToPlanetPos(pos_ws));
+		float cosViewAngle = dirToLight.y;
+		float3 transmittance = atmSampleTransmittance(texSkyTransmittanceLut, samClamp, altitude, cosViewAngle);
+
+		float reflectance = cbAtmosphere.averageGroundReflectance; // todo: What about non-terrain objects?
+		float3 sunColor = light.color * transmittance * reflectance / kPi;
+
+		// Calc shadow and apply the attenuated sun light.
 		float shadowFactor = calcShadowFactor(pos_ws, dirToLight, 1000000.f, shadowMapIndex);
-		accumulateLighting(normal, dirToLight, light.color, viewDir, shadowFactor, 1.f, diffuse, specular);
+		accumulateLighting(normal, dirToLight, sunColor, viewDir, shadowFactor, 1.f, diffuse, specular);
 	}
 
 

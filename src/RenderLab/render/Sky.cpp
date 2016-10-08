@@ -171,8 +171,9 @@ void Sky::Update(float dt)
 {
 	if (m_reloadPending)
 	{
+		const char* assetName = m_pSrcAsset->assetName;
 		Cleanup();
-		Load(m_pSrcAsset->assetName);
+		Load(assetName);
 		m_reloadPending = false;
 	}
 }
@@ -244,7 +245,7 @@ void Sky::PrepareDraw()
 		pParams->rayleighAltitudeScale = 8.f;
 		pParams->rayleighScatteringCoeff = float3(5.8e-3f, 1.35e-2f, 3.31e-2f);
 		pParams->ozoneExtinctionCoeff = float3(0.f, 0.f, 0.f);
-		pParams->averageGroundReflectance = 0.1f;
+		pParams->averageGroundReflectance = 0.4f;
 		pParams->sunDirection = GetSunDirection();
 		pParams->sunColor = m_pSrcAsset->sun.color * m_pSrcAsset->sun.intensity;
 

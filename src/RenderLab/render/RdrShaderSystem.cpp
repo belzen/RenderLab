@@ -204,7 +204,7 @@ namespace
 		for (uint i = 0; i < s_shaderSystem.globalShaderDefines.size(); ++i)
 		{
 			macroDefines[numDefines + i].Name = s_shaderSystem.globalShaderDefines[i].c_str();
-			macroDefines[i].Definition = "1";
+			macroDefines[numDefines + i].Definition = "1";
 		}
 
 		IncludeHandler include;
@@ -322,7 +322,7 @@ namespace
 			pRdrContext->ReleaseShader(pShader);
 		}
 
-		ID3D10Blob* pBlob = preprocessShader(pShader->filename, nullptr, 0);
+		ID3D10Blob* pBlob = preprocessShader(pShader->filename, nullptr, 0); // todo2: Shader defines are missing
 		if (pBlob)
 		{
 			uint textLen = (uint)pBlob->GetBufferSize();

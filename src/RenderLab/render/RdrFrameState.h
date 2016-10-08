@@ -87,6 +87,7 @@ struct RdrLightParams
 	RdrResourceHandle hSpotLightListRes;
 	RdrResourceHandle hPointLightListRes;
 
+	RdrResourceHandle hSkyTransmittanceLut;
 	RdrResourceHandle hShadowMapDataRes;
 	RdrResourceHandle hShadowMapTexArray;
 	RdrResourceHandle hShadowCubeMapTexArray;

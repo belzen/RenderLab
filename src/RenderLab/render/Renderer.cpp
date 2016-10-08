@@ -36,6 +36,7 @@ namespace
 
 	enum class RdrPsResourceSlots
 	{
+		SkyTransmittance = 13,
 		ShadowMaps = 14,
 		ShadowCubeMaps = 15,
 		SpotLightList = 16,
@@ -46,6 +47,7 @@ namespace
 
 	enum class RdrPsSamplerSlots
 	{
+		Clamp = 14,
 		ShadowMap = 15,
 	};
 
@@ -808,6 +810,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 	m_pCurrentAction->lightParams.hShadowMapDataRes = rLights.GetShadowMapDataRes();
 	m_pCurrentAction->lightParams.hShadowCubeMapTexArray = rLights.GetShadowCubeMapTexArray();
 	m_pCurrentAction->lightParams.hShadowMapTexArray = rLights.GetShadowMapTexArray();
+	m_pCurrentAction->lightParams.hSkyTransmittanceLut = rScene.GetSky().GetTransmittanceLut();
 
 	if (m_eLightingMethod == RdrLightingMethod::Clustered)
 	{
@@ -1316,12 +1319,14 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 				m_drawState.psResources[(int)RdrPsResourceSlots::SpotLightList] = RdrResourceSystem::GetResource(rLightParams.hSpotLightListRes)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::PointLightList] = RdrResourceSystem::GetResource(rLightParams.hPointLightListRes)->resourceView;
 
+				m_drawState.psResources[(int)RdrPsResourceSlots::SkyTransmittance] = RdrResourceSystem::GetResource(rLightParams.hSkyTransmittanceLut)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::TileLightIds] = RdrResourceSystem::GetResource(hTileLightIndices)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowMapTexArray)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowCubeMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowCubeMapTexArray)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMapData] = RdrResourceSystem::GetResource(rLightParams.hShadowMapDataRes)->resourceView;
 				m_drawState.psResourceCount = max((uint)RdrPsResourceSlots::ShadowMapData + 1, m_drawState.psResourceCount);
 
+				m_drawState.psSamplers[(int)RdrPsSamplerSlots::Clamp] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 				m_drawState.psSamplers[(int)RdrPsSamplerSlots::ShadowMap] = RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false);
 				m_drawState.psSamplerCount = max((uint)RdrPsSamplerSlots::ShadowMap + 1, m_drawState.psSamplerCount);
 			}
