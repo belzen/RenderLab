@@ -15,7 +15,7 @@ RWTexture3D<float4> g_outputTexMieScatteringLut : register(u1);
 RWTexture3D<float4> g_outputTexScatteringLut : register(u2);
 
 
-/* todo2 : non-linear scattering.  From Bruneton08:
+/* todo : non-linear scattering.  From Bruneton08:
 static const float RES_MU = 128.f;
 static const float RES_MU_S = 32.f * 8.f;
 static const float RES_NU = 8.f;

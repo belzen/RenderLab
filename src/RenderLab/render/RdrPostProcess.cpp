@@ -3,7 +3,7 @@
 #include "RdrPostProcessEffects.h"
 #include "RdrContext.h"
 #include "RdrDrawState.h"
-#include "RdrScratchMem.h"
+#include "RdrFrameMem.h"
 #include "Renderer.h"
 #include "RdrShaderConstants.h"
 #include "input/Input.h"
@@ -142,7 +142,7 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 		if (rBloom.hBlendConstants)
 			RdrResourceSystem::ReleaseConstantBuffer(rBloom.hBlendConstants);
 		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(Blend2dParams));
-		Blend2dParams* pAddParams = (Blend2dParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
+		Blend2dParams* pAddParams = (Blend2dParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pAddParams->size2.x = (float)w;
 		pAddParams->size2.y = (float)h;
 		rBloom.hBlendConstants = RdrResourceSystem::CreateConstantBuffer(pAddParams, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
@@ -173,7 +173,7 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 			uint tileCount;
 		};
 		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(Test));
-		Test* pTest = (Test*)RdrScratchMem::AllocAligned(constantsSize, 16);
+		Test* pTest = (Test*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pTest->logLuminanceMin = 0.f;
 		pTest->logLuminanceMax = 3.f;
 		pTest->tileCount = numTiles;

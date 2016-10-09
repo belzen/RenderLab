@@ -4,7 +4,7 @@
 #include "RdrShaders.h"
 #include "ModelData.h"
 
-struct RdrDrawOp;
+class RdrDrawBuckets;
 namespace AssetLib
 {
 	struct Model;
@@ -20,10 +20,7 @@ public:
 
 	void Release();
 
-	void PrepareDraw(const Matrix44& mtxWorld, bool transformChanged);
-
-	const RdrDrawOp* const* GetDrawOps() const;
-	uint GetNumDrawOps() const;
+	void QueueDraw(RdrDrawBuckets* pDrawBuckets, const Matrix44& mtxWorld, bool transformChanged);
 
 	float GetRadius() const;
 
@@ -37,21 +34,10 @@ private:
 	bool CanInstance() const;
 
 	ModelData* m_pModelData;
-	RdrDrawOp* m_pSubObjectDrawOps[ModelData::kMaxSubObjects];
 	RdrConstantBufferHandle m_hVsPerObjectConstantBuffer;
 	uint16 m_instancedDataId;
 	RdrInputLayoutHandle m_hInputLayout;
 };
-
-inline const RdrDrawOp* const* ModelInstance::GetDrawOps() const
-{
-	return m_pSubObjectDrawOps;
-}
-
-inline uint ModelInstance::GetNumDrawOps() const
-{
-	return ModelData::kMaxSubObjects;
-}
 
 inline float ModelInstance::GetRadius() const
 {

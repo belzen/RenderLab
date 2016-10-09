@@ -57,8 +57,6 @@ struct RdrPassData
 	RdrRenderTargetViewHandle ahRenderTargets[MAX_RENDER_TARGETS];
 	RdrDepthStencilViewHandle hDepthTarget;
 
-	RdrComputeOpBucket computeOps;
-
 	Rect viewport;
 
 	RdrShaderMode shaderMode;
@@ -72,11 +70,29 @@ struct RdrPassData
 	bool bIsCubeMapCapture;
 };
 
+class RdrDrawBuckets
+{
+public:
+	void AddDrawOp(const RdrDrawOp* pDrawOp, RdrBucketType eBucket);
+	void AddComputeOp(const RdrComputeOp* pComputeOp, RdrPass ePass);
+
+	const RdrDrawOpBucket& GetDrawOpBucket(RdrBucketType eBucketType) const;
+	const RdrComputeOpBucket& GetComputeOpBucket(RdrPass ePass) const;
+
+	void SortDrawOps(RdrBucketType eBucketType);
+
+	void Clear();
+
+private:
+	RdrDrawOpBucket m_drawOpBuckets[(int)RdrBucketType::Count];
+	RdrComputeOpBucket m_computeOpBuckets[(int)RdrPass::Count];
+};
+
 struct RdrShadowPass
 {
 	RdrPassData               passData;
 	RdrGlobalConstants        constants;
-	RdrDrawOpBucket           bucket;
+	RdrDrawBuckets              buckets;
 	Camera                    camera;
 	RdrDepthStencilViewHandle hDepthView;
 };
@@ -103,13 +119,13 @@ struct RdrAction
 	///
 	LPCWSTR name;
 
-	RdrDrawOpBucket buckets[(int)RdrBucketType::Count];
+	RdrDrawBuckets opBuckets;
 	RdrPassData passes[(int)RdrPass::Count];
 
 	RdrShadowPass shadowPasses[MAX_SHADOW_MAPS_PER_FRAME];
 	int shadowPassCount;
 
-	const Scene* pScene;
+	Scene* pScene;
 	Camera camera;
 
 	Rect primaryViewport;

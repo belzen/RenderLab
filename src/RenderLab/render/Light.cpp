@@ -1,6 +1,6 @@
 #include "Precompiled.h"
 #include "Light.h"
-#include "RdrScratchMem.h"
+#include "RdrFrameMem.h"
 #include "Renderer.h"
 #include "Scene.h"
 #include "Sky.h"
@@ -153,7 +153,7 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 	}
 
 	Camera lightCamera;
-	ShadowMapData* pShadowData = (ShadowMapData*)RdrScratchMem::Alloc(sizeof(ShadowMapData) * MAX_SHADOW_MAPS);
+	ShadowMapData* pShadowData = (ShadowMapData*)RdrFrameMem::Alloc(sizeof(ShadowMapData) * MAX_SHADOW_MAPS);
 	bool changed = false;
 	int curShadowMapIndex = 0;
 	int curShadowCubeMapIndex = 0;
@@ -278,9 +278,9 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 	if (changed)
 	{
 		// todo: size/resize buffers appropriately
-		DirectionalLightList* pDirectionalList = (DirectionalLightList*)RdrScratchMem::Alloc(sizeof(DirectionalLightList));
-		SpotLight* pSpotLights = (SpotLight*)RdrScratchMem::Alloc(sizeof(SpotLight) * 2048);
-		PointLight* pPointLights = (PointLight*)RdrScratchMem::Alloc(sizeof(PointLight) * 2048);
+		DirectionalLightList* pDirectionalList = (DirectionalLightList*)RdrFrameMem::Alloc(sizeof(DirectionalLightList));
+		SpotLight* pSpotLights = (SpotLight*)RdrFrameMem::Alloc(sizeof(SpotLight) * 2048);
+		PointLight* pPointLights = (PointLight*)RdrFrameMem::Alloc(sizeof(PointLight) * 2048);
 
 		uint numDirectionalLights = 0;
 		m_numSpotLights = 0;

@@ -1,7 +1,7 @@
 #include "Precompiled.h"
 #include "RdrResourceSystem.h"
 #include "RdrContext.h"
-#include "RdrScratchMem.h"
+#include "RdrFrameMem.h"
 #include "AssetLib/TextureAsset.h"
 #include "AssetLib/AssetLibrary.h"
 #include "UtilsLib/Hash.h"

@@ -1,16 +1,66 @@
 #include "Precompiled.h"
 #include "RdrFrameState.h"
 
+#define ENABLE_DRAWOP_VALIDATION 0
+
+namespace
+{
+	void validateDrawOp(const RdrDrawOp* pDrawOp)
+	{
+		assert(pDrawOp->hGeo);
+	}
+}
+
+void RdrDrawBuckets::AddDrawOp(const RdrDrawOp* pDrawOp, RdrBucketType eBucket)
+{
+#if ENABLE_DRAWOP_VALIDATION
+	validateDrawOp(pDrawOp);
+#endif
+	RdrDrawBucketEntry entry(pDrawOp);
+	m_drawOpBuckets[(int)eBucket].push_back(entry);
+}
+
+void RdrDrawBuckets::AddComputeOp(const RdrComputeOp* pComputeOp, RdrPass ePass)
+{
+	m_computeOpBuckets[(int)ePass].push_back(pComputeOp);
+}
+
+void RdrDrawBuckets::SortDrawOps(RdrBucketType eBucketType)
+{
+	RdrDrawOpBucket& rBucket = m_drawOpBuckets[(int)eBucketType];
+	std::sort(rBucket.begin(), rBucket.end(), RdrDrawBucketEntry::SortCompare);
+}
+
+const RdrDrawOpBucket& RdrDrawBuckets::GetDrawOpBucket(RdrBucketType eBucketType) const
+{
+	return m_drawOpBuckets[(int)eBucketType];
+}
+
+const RdrComputeOpBucket& RdrDrawBuckets::GetComputeOpBucket(RdrPass ePass) const
+{
+	return m_computeOpBuckets[(int)ePass];
+}
+
+void RdrDrawBuckets::Clear()
+{
+	for (RdrDrawOpBucket& rBucket : m_drawOpBuckets)
+	{
+		rBucket.clear();
+	}
+
+	for (RdrComputeOpBucket& rBucket : m_computeOpBuckets)
+	{
+		rBucket.clear();
+	}
+}
+
 void RdrAction::Reset()
 {
-	for (int i = 0; i < (int)RdrBucketType::Count; ++i)
-	{
-		buckets[i].clear();
-	}
+	opBuckets.Clear();
 
 	for (int i = 0; i < MAX_SHADOW_MAPS_PER_FRAME; ++i)
 	{
-		shadowPasses[i].bucket.clear();
+		shadowPasses[i].buckets.Clear();
 		memset(&shadowPasses[i].passData, 0, sizeof(shadowPasses[i].passData));
 	}
 
@@ -19,7 +69,6 @@ void RdrAction::Reset()
 		RdrPassData& rPass = passes[i];
 		memset(rPass.ahRenderTargets, 0, sizeof(rPass.ahRenderTargets));
 		rPass.hDepthTarget = 0;
-		rPass.computeOps.clear();
 		rPass.viewport = Rect(0, 0, 0, 0);
 		rPass.shaderMode = RdrShaderMode::Normal;
 		rPass.depthTestMode = RdrDepthTestMode::None;

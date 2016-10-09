@@ -151,17 +151,6 @@ void Scene::Update(float dt)
 	m_sky.Update(dt);
 }
 
-void Scene::PrepareDraw()
-{
-	for (uint i = 0; i < m_objects.size(); ++i)
-	{
-		m_objects[i]->PrepareDraw();
-	}
-	m_terrain.PrepareDraw();
-	m_sky.PrepareDraw();
-	m_postProcEffects.PrepareDraw();
-}
-
 void Scene::AddObject(WorldObject* pObject)
 {
 	m_objects.push_back(pObject);

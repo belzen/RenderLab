@@ -6,7 +6,6 @@ struct GlobalState
 	bool debugShaders;
 	bool debugDevice;
 	bool attachRenderDoc;
-	bool rebuildDrawOps;
 	bool wireframe;
 	int msaaLevel;
 

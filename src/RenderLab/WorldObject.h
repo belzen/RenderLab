@@ -2,6 +2,7 @@
 
 #include "render/ModelInstance.h"
 
+class RdrDrawBuckets;
 class WorldObject;
 typedef FreeList<WorldObject, 6 * 1024> WorldObjectFreeList;
 
@@ -29,7 +30,7 @@ public:
 
 	float GetRadius() const;
 
-	void PrepareDraw();
+	void QueueDraw(RdrDrawBuckets* pDrawBuckets);
 
 private:
 	friend WorldObjectFreeList;

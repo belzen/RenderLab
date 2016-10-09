@@ -3,7 +3,8 @@
 #include "RdrResourceSystem.h"
 #include "RdrShaderSystem.h"
 #include "RdrDrawOp.h"
-#include "RdrScratchMem.h"
+#include "RdrFrameMem.h"
+#include "RdrFrameState.h"
 
 namespace
 {
@@ -18,7 +19,7 @@ namespace
 
 void Terrain::Init()
 {
-	Vec2* aVertices = (Vec2*)RdrScratchMem::AllocAligned(sizeof(Vec2) * 4, 16);
+	Vec2* aVertices = (Vec2*)RdrFrameMem::AllocAligned(sizeof(Vec2) * 4, 16);
 	aVertices[0] = Vec2(0.f, 0.f);
 	aVertices[1] = Vec2(0.f, 1.f);
 	aVertices[2] = Vec2(1.f, 1.f);
@@ -31,7 +32,7 @@ void Terrain::Init()
 
 	int gridSize = 8;
 	float cellSize = 10.f;
-	Vec3* aInstanceData = (Vec3*)RdrScratchMem::AllocAligned(sizeof(Vec3) * gridSize * gridSize, 16);
+	Vec3* aInstanceData = (Vec3*)RdrFrameMem::AllocAligned(sizeof(Vec3) * gridSize * gridSize, 16);
 	for (int x = 0; x < gridSize; ++x)
 	{
 		for (int y = 0; y < gridSize; ++y)
@@ -54,17 +55,16 @@ void Terrain::Init()
 	m_material.texCount = 2;
 }
 
-void Terrain::PrepareDraw()
+void Terrain::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Camera& rCamera)
 {
-	if (!m_pDrawOp)
-	{
-		m_pDrawOp = RdrDrawOp::Allocate();
-		m_pDrawOp->hGeo = m_hGeo;
-		m_pDrawOp->hCustomInstanceBuffer = m_hInstanceData;
-		m_pDrawOp->hInputLayout = m_hInputLayout;
-		m_pDrawOp->vertexShader = kVertexShader;
-		m_pDrawOp->tessellationShader = kTessellationShader;
-		m_pDrawOp->pMaterial = &m_material;
-		m_pDrawOp->instanceCount = 8 * 8;
-	}
+	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+	pDrawOp->hGeo = m_hGeo;
+	pDrawOp->hCustomInstanceBuffer = m_hInstanceData;
+	pDrawOp->hInputLayout = m_hInputLayout;
+	pDrawOp->vertexShader = kVertexShader;
+	pDrawOp->tessellationShader = kTessellationShader;
+	pDrawOp->pMaterial = &m_material;
+	pDrawOp->instanceCount = 8 * 8;
+
+	pDrawBuckets->AddDrawOp(pDrawOp, RdrBucketType::Opaque);
 }

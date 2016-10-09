@@ -29,11 +29,11 @@ void WorldObject::Release()
 	s_worldObjects.releaseSafe(this);
 }
 
-void WorldObject::PrepareDraw()
+void WorldObject::QueueDraw(RdrDrawBuckets* pDrawBuckets)
 {
 	if (m_pModel)
 	{
-		m_pModel->PrepareDraw(GetTransform(), m_transformChanged);
+		m_pModel->QueueDraw(pDrawBuckets, GetTransform(), m_transformChanged);
 		m_transformChanged = false;
 	}
 }

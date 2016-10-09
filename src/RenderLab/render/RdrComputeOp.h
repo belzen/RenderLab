@@ -5,10 +5,6 @@
 
 struct RdrComputeOp
 {
-	static RdrComputeOp* Allocate();
-	static void QueueRelease(const RdrComputeOp* pDrawOp);
-	static void ProcessReleases();
-
 	RdrComputeShader shader;
 	uint threads[3];
 

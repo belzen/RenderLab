@@ -2,7 +2,7 @@
 #include "ModelData.h"
 #include "RdrContext.h"
 #include "RdrDrawOp.h"
-#include "RdrScratchMem.h"
+#include "RdrFrameMem.h"
 #include "RdrResourceSystem.h"
 #include "Camera.h"
 #include "AssetLib/ModelAsset.h"
@@ -44,8 +44,8 @@ ModelData* ModelData::LoadFromFile(const char* modelName)
 	for (uint i = 0; i < pModel->m_subObjectCount; ++i)
 	{
 		const AssetLib::Model::SubObject& rBinSubobject = pBinData->subobjects.ptr[i];
-		Vertex* pVerts = (Vertex*)RdrScratchMem::Alloc(sizeof(Vertex) * rBinSubobject.vertCount);
-		uint16* pIndices = (uint16*)RdrScratchMem::Alloc(sizeof(uint16) * rBinSubobject.indexCount);
+		Vertex* pVerts = (Vertex*)RdrFrameMem::Alloc(sizeof(Vertex) * rBinSubobject.vertCount);
+		uint16* pIndices = (uint16*)RdrFrameMem::Alloc(sizeof(uint16) * rBinSubobject.indexCount);
 
 		for (uint k = 0; k < rBinSubobject.indexCount; ++k)
 		{

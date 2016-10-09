@@ -143,7 +143,6 @@ int MainWindow::Run()
 		m_scene.Update(dt);
 		Debug::Update(dt);
 
-		m_scene.PrepareDraw();
 		m_renderWindow.Draw(m_scene, frameTimer);
 
 		// Wait for render thread.

@@ -59,9 +59,6 @@ static_assert(sizeof(RdrDrawOpSortKey) == sizeof(uint64) * 2, "RdrDrawOpSortKey 
 
 struct RdrDrawOp
 {
-	static RdrDrawOp* Allocate();
-	static void QueueRelease(const RdrDrawOp* pDrawOp);
-	static void ProcessReleases();
 	static void BuildSortKey(const RdrDrawOp* pDrawOp, const float minDepth, RdrDrawOpSortKey& rOutKey);
 
 	RdrConstantBufferHandle hVsConstants;
@@ -81,9 +78,7 @@ struct RdrDrawOp
 
 	uint8 bFreeGeo : 1;
 	uint8 bHasAlpha : 1;
-	uint8 bIsSky : 1;
-	uint8 bTempDrawOp : 1;
-	uint8 unused : 4;
+	uint8 unused : 6;
 };
 
 inline void RdrDrawOp::BuildSortKey(const RdrDrawOp* pDrawOp, const float minDepth, RdrDrawOpSortKey& rOutKey)

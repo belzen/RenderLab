@@ -1,11 +1,12 @@
 #include "Precompiled.h"
 #include "ModelInstance.h"
 #include "ModelData.h"
-#include "RdrScratchMem.h"
+#include "RdrFrameMem.h"
 #include "RdrDrawOp.h"
 #include "RdrResourceSystem.h"
 #include "RdrShaderSystem.h"
 #include "RdrInstancedObjectDataBuffer.h"
+#include "RdrFrameState.h"
 
 namespace
 {
@@ -28,7 +29,6 @@ ModelInstance* ModelInstance::Create(const char* modelAssetName)
 {
 	ModelInstance* pModel = s_modelInstances.allocSafe();
 	pModel->m_pModelData = ModelData::LoadFromFile(modelAssetName);
-	memset(pModel->m_pSubObjectDrawOps, 0, sizeof(pModel->m_pSubObjectDrawOps));
 	pModel->m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAY_SIZE(s_modelVertexDesc));
 
 	return pModel;
@@ -47,12 +47,12 @@ bool ModelInstance::CanInstance() const
 	return true;
 }
 
-void ModelInstance::PrepareDraw(const Matrix44& mtxWorld, bool transformChanged)
+void ModelInstance::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Matrix44& mtxWorld, bool transformChanged)
 {
 	if (transformChanged || !m_hVsPerObjectConstantBuffer)
 	{
 		uint constantsSize = sizeof(VsPerObject);
-		Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
+		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		memset(pConstants, 0, constantsSize);
 		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
 
@@ -79,29 +79,22 @@ void ModelInstance::PrepareDraw(const Matrix44& mtxWorld, bool transformChanged)
 	{
 		const ModelData::SubObject& rSubObject = m_pModelData->GetSubObject(i);
 
-		if ((transformChanged || g_debugState.rebuildDrawOps) && m_pSubObjectDrawOps[i])
+		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+
+		pDrawOp->instanceDataId = m_instancedDataId;
+		pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
+		pDrawOp->pMaterial = rSubObject.pMaterial;
+
+		pDrawOp->hInputLayout = m_hInputLayout;
+		pDrawOp->vertexShader = kVertexShader;
+		if (rSubObject.pMaterial->bAlphaCutout)
 		{
-			RdrDrawOp::QueueRelease(m_pSubObjectDrawOps[i]);
-			m_pSubObjectDrawOps[i] = nullptr;
+			pDrawOp->vertexShader.flags |= RdrShaderFlags::AlphaCutout;
 		}
-		
-		if (!m_pSubObjectDrawOps[i])
-		{
-			RdrDrawOp* pDrawOp = m_pSubObjectDrawOps[i] = RdrDrawOp::Allocate();
 
-			pDrawOp->instanceDataId = m_instancedDataId;
-			pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
-			pDrawOp->pMaterial = rSubObject.pMaterial;
+		pDrawOp->hGeo = rSubObject.hGeo;
+		pDrawOp->bHasAlpha = false;
 
-			pDrawOp->hInputLayout = m_hInputLayout;
-			pDrawOp->vertexShader = kVertexShader;
-			if (rSubObject.pMaterial->bAlphaCutout)
-			{
-				pDrawOp->vertexShader.flags |= RdrShaderFlags::AlphaCutout;
-			}
-
-			pDrawOp->hGeo = rSubObject.hGeo;
-			pDrawOp->bHasAlpha = false;
-		}
+		pDrawBuckets->AddDrawOp(pDrawOp, RdrBucketType::Opaque);
 	}
 }

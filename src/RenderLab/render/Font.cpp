@@ -2,7 +2,7 @@
 #include "Font.h"
 #include "Renderer.h"
 #include "RdrDrawOp.h"
-#include "RdrScratchMem.h"
+#include "RdrFrameMem.h"
 #include "Camera.h"
 #include "UI.h"
 
@@ -45,21 +45,20 @@ namespace
 	{
 		Vec3 pos = UI::PosToScreenSpace(uiPos, Vec2(rText.size.x, rText.size.y) * size, rRenderer.GetViewportSize());
 
-		RdrDrawOp* op = RdrDrawOp::Allocate();
-		op->hGeo = rText.hTextGeo;
-		op->bFreeGeo = bFreeGeo;
-		op->bTempDrawOp = true;
-		op->hInputLayout = s_text.hInputLayout;
-		op->vertexShader = kVertexShader;
-		op->pMaterial = &s_text.material;
+		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+		pDrawOp->hGeo = rText.hTextGeo;
+		pDrawOp->bFreeGeo = bFreeGeo;
+		pDrawOp->hInputLayout = s_text.hInputLayout;
+		pDrawOp->vertexShader = kVertexShader;
+		pDrawOp->pMaterial = &s_text.material;
 
 		uint constantsSize = sizeof(Vec4) * 2;
-		Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
+		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pConstants[0] = Vec4(color.r, color.g, color.b, color.a);
 		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
-		op->hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
+		pDrawOp->hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
 
-		rRenderer.AddDrawOpToBucket(op, RdrBucketType::UI);
+		rRenderer.AddDrawOpToBucket(pDrawOp, RdrBucketType::UI);
 	}
 }
 
@@ -87,8 +86,8 @@ TextObject Font::CreateText(const char* text)
 	int numQuads = 0;
 	int textLen = (int)strlen(text);
 
-	TextVertex* verts = (TextVertex*)RdrScratchMem::Alloc(sizeof(TextVertex) * textLen * 4);
-	uint16* indices = (uint16*)RdrScratchMem::Alloc(sizeof(uint16) * textLen * 6);
+	TextVertex* verts = (TextVertex*)RdrFrameMem::Alloc(sizeof(TextVertex) * textLen * 4);
+	uint16* indices = (uint16*)RdrFrameMem::Alloc(sizeof(uint16) * textLen * 6);
 
 	float x = 0.0f;
 	float y = 0.0f;

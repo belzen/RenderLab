@@ -8,7 +8,6 @@ namespace
 	void cmdSetInstancingEnabled(DebugCommandArg *args, int numArgs)
 	{
 		g_debugState.enableInstancing = args[0].val.inum;
-		g_debugState.rebuildDrawOps = 1;
 	}
 
 	void cmdSetWireframeEnabled(DebugCommandArg *args, int numArgs)

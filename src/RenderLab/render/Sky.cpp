@@ -3,7 +3,7 @@
 #include "ModelData.h"
 #include "RdrDrawOp.h"
 #include "RdrComputeOp.h"
-#include "RdrScratchMem.h"
+#include "RdrFrameMem.h"
 #include "Renderer.h"
 #include "AssetLib/SkyAsset.h"
 #include "AssetLib/AssetLibrary.h"
@@ -178,7 +178,7 @@ void Sky::Update(float dt)
 	}
 }
 
-void Sky::PrepareDraw()
+void Sky::QueueDraw(RdrDrawBuckets* pDrawBuckets)
 {
 	const uint kNumOrders = 4;
 	
@@ -200,7 +200,7 @@ void Sky::PrepareDraw()
 	{
 		Matrix44 mtxWorld = Matrix44Translation(Vec3::kZero);
 		uint constantsSize = sizeof(Vec4) * 4;
-		Vec4* pConstants = (Vec4*)RdrScratchMem::AllocAligned(constantsSize, 16);
+		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
 		m_hVsPerObjectConstantBuffer = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
 	}
@@ -211,31 +211,23 @@ void Sky::PrepareDraw()
 	{
 		const ModelData::SubObject& rSubObject = m_pModelData->GetSubObject(i);
 
-		if (g_debugState.rebuildDrawOps && m_pSubObjectDrawOps[i])
-		{
-			RdrDrawOp::QueueRelease(m_pSubObjectDrawOps[i]);
-			m_pSubObjectDrawOps[i] = nullptr;
-		}
+		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+		pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
+		pDrawOp->pMaterial = &s_material;
 
-		if (!m_pSubObjectDrawOps[i])
-		{
-			RdrDrawOp* pDrawOp = m_pSubObjectDrawOps[i] = RdrDrawOp::Allocate();
-			pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
-			pDrawOp->pMaterial = &s_material;
+		pDrawOp->hInputLayout = s_hSkyInputLayout;
+		pDrawOp->vertexShader = kVertexShader;
 
-			pDrawOp->hInputLayout = s_hSkyInputLayout;
-			pDrawOp->vertexShader = kVertexShader;
+		pDrawOp->hGeo = rSubObject.hGeo;
+		pDrawOp->bHasAlpha = false;
 
-			pDrawOp->hGeo = rSubObject.hGeo;
-			pDrawOp->bHasAlpha = false;
-			pDrawOp->bIsSky = true;
-		}
+		pDrawBuckets->AddDrawOp(pDrawOp, RdrBucketType::Sky);
 	}
 
 	// Update atmosphere constants
 	{
 		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(AtmosphereParams));
-		AtmosphereParams* pParams = (AtmosphereParams*)RdrScratchMem::AllocAligned(constantsSize, 16);
+		AtmosphereParams* pParams = (AtmosphereParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pParams->planetRadius = 6360.f;
 		pParams->atmosphereHeight = 60.f;
 		pParams->atmosphereRadius = pParams->planetRadius + pParams->atmosphereHeight;
@@ -260,7 +252,7 @@ void Sky::PrepareDraw()
 	{
 		// Transmittance
 		{
-			RdrComputeOp* pOp = RdrComputeOp::Allocate();
+			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
 			pOp->shader = RdrComputeShader::AtmosphereTransmittanceLut;
 			pOp->hWritableResources[0] = m_hTransmittanceLut;
 			pOp->writableResourceCount = 1;
@@ -270,13 +262,13 @@ void Sky::PrepareDraw()
 			pOp->threads[1] = (TRANSMITTANCE_LUT_HEIGHT + (LUT_THREADS_Y - 1)) / LUT_THREADS_Y;
 			pOp->threads[2] = 1;
 
-			m_pComputeOps[m_pendingComputeOps++] = pOp;
+			pDrawBuckets->AddComputeOp(pOp, RdrPass::Sky);
 		}
 
 
 		// Initial delta S (single scattering)
 		{
-			RdrComputeOp* pOp = RdrComputeOp::Allocate();
+			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
 			pOp->shader = RdrComputeShader::AtmosphereScatterLut_Single;
 			pOp->hResources[0] = m_hTransmittanceLut;
 			pOp->resourceCount = 1;
@@ -291,12 +283,12 @@ void Sky::PrepareDraw()
 			pOp->threads[1] = (SCATTERING_LUT_HEIGHT + (LUT_THREADS_Y - 1)) / LUT_THREADS_Y;
 			pOp->threads[2] = SCATTERING_LUT_DEPTH;
 
-			m_pComputeOps[m_pendingComputeOps++] = pOp;
+			pDrawBuckets->AddComputeOp(pOp, RdrPass::Sky);
 		}
 
 		// Initial delta E (irradiance)
 		{
-			RdrComputeOp* pOp = RdrComputeOp::Allocate();
+			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
 			pOp->shader = RdrComputeShader::AtmosphereIrradianceLut_Initial;
 			pOp->samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 			pOp->samplerCount = 1;
@@ -309,12 +301,12 @@ void Sky::PrepareDraw()
 			pOp->threads[1] = (IRRADIANCE_LUT_HEIGHT + (LUT_THREADS_X - 1)) / LUT_THREADS_Y;
 			pOp->threads[2] = 1;
 
-			m_pComputeOps[m_pendingComputeOps++] = pOp;
+			pDrawBuckets->AddComputeOp(pOp, RdrPass::Sky);
 		}
 
 		// Clear E (irradiance)
 		{
-			RdrComputeOp* pOp = RdrComputeOp::Allocate();
+			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
 			pOp->shader = RdrComputeShader::Clear2d;
 			pOp->samplerCount = 0;
 			pOp->resourceCount = 0;
@@ -325,7 +317,7 @@ void Sky::PrepareDraw()
 			pOp->threads[1] = (IRRADIANCE_LUT_HEIGHT + (LUT_THREADS_X - 1)) / LUT_THREADS_Y;
 			pOp->threads[2] = 1;
 
-			m_pComputeOps[m_pendingComputeOps++] = pOp;
+			pDrawBuckets->AddComputeOp(pOp, RdrPass::Sky);
 		}
 
 		uint currScatterIndex = 1;
@@ -334,7 +326,7 @@ void Sky::PrepareDraw()
 		{
 			// Delta J (radiance)
 			{
-				RdrComputeOp* pOp = RdrComputeOp::Allocate();
+				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
 				pOp->samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 				pOp->samplerCount = 1;
 				pOp->hResources[0] = m_hTransmittanceLut;
@@ -359,12 +351,12 @@ void Sky::PrepareDraw()
 				pOp->threads[1] = (RADIANCE_LUT_HEIGHT + (LUT_THREADS_X - 1)) / LUT_THREADS_Y;
 				pOp->threads[2] = RADIANCE_LUT_DEPTH;
 
-				m_pComputeOps[m_pendingComputeOps++] = pOp;
+				pDrawBuckets->AddComputeOp(pOp, RdrPass::Sky);
 			}
 
 			// Delta E (irradiance)
 			{
-				RdrComputeOp* pOp = RdrComputeOp::Allocate();
+				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
 				pOp->samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 				pOp->samplerCount = 1;
 				if (i == 0)
@@ -387,12 +379,12 @@ void Sky::PrepareDraw()
 				pOp->threads[1] = (IRRADIANCE_LUT_HEIGHT + (LUT_THREADS_X - 1)) / LUT_THREADS_Y;
 				pOp->threads[2] = 1;
 
-				m_pComputeOps[m_pendingComputeOps++] = pOp;
+				pDrawBuckets->AddComputeOp(pOp, RdrPass::Sky);
 			}
 
 			// Delta S (scatter)
 			{
-				RdrComputeOp* pOp = RdrComputeOp::Allocate();
+				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
 				pOp->shader = RdrComputeShader::AtmosphereScatterLut_N;
 				pOp->samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 				pOp->samplerCount = 1;
@@ -406,12 +398,12 @@ void Sky::PrepareDraw()
 				pOp->threads[1] = (SCATTERING_LUT_HEIGHT + (LUT_THREADS_X - 1)) / LUT_THREADS_Y;
 				pOp->threads[2] = SCATTERING_LUT_DEPTH;
 
-				m_pComputeOps[m_pendingComputeOps++] = pOp;
+				pDrawBuckets->AddComputeOp(pOp, RdrPass::Sky);
 			}
 
 			// Sum E (irradiance)
 			{
-				RdrComputeOp* pOp = RdrComputeOp::Allocate();
+				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
 				pOp->shader = RdrComputeShader::Add2d;
 				pOp->samplerCount = 0;
 				pOp->hResources[0] = m_hIrradianceDeltaLut;
@@ -424,12 +416,12 @@ void Sky::PrepareDraw()
 				pOp->threads[1] = (IRRADIANCE_LUT_HEIGHT + (ADD_THREADS_Y - 1)) / ADD_THREADS_Y;
 				pOp->threads[2] = 1;
 
-				m_pComputeOps[m_pendingComputeOps++] = pOp;
+				pDrawBuckets->AddComputeOp(pOp, RdrPass::Sky);
 			}
 
 			// Sum S (scatter)
 			{
-				RdrComputeOp* pOp = RdrComputeOp::Allocate();
+				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
 				pOp->shader = RdrComputeShader::Add3d;
 				pOp->samplerCount = 0;
 				pOp->hResources[0] = m_hScatteringCombinedDeltaLut;
@@ -442,7 +434,7 @@ void Sky::PrepareDraw()
 				pOp->threads[1] = (SCATTERING_LUT_HEIGHT + (ADD_THREADS_Y - 1)) / ADD_THREADS_Y;
 				pOp->threads[2] = SCATTERING_LUT_DEPTH;
 
-				m_pComputeOps[m_pendingComputeOps++] = pOp;
+				pDrawBuckets->AddComputeOp(pOp, RdrPass::Sky);
 			}
 
 			currIrradianceIndex = !currIrradianceIndex;

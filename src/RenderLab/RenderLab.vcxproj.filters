@@ -158,9 +158,6 @@
     <ClCompile Include="render\RdrDeviceTypes.cpp">
       <Filter>render</Filter>
     </ClCompile>
-    <ClCompile Include="render\RdrDrawOp.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
     <ClCompile Include="render\RdrFrameState.cpp">
       <Filter>render</Filter>
     </ClCompile>
@@ -179,9 +176,6 @@
     <ClCompile Include="render\RdrResourceSystem.cpp">
       <Filter>render</Filter>
     </ClCompile>
-    <ClCompile Include="render\RdrScratchMem.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
     <ClCompile Include="render\RdrShaderSystem.cpp">
       <Filter>render</Filter>
     </ClCompile>
@@ -194,9 +188,6 @@
     <ClCompile Include="render\Sprite.cpp">
       <Filter>render</Filter>
     </ClCompile>
-    <ClCompile Include="render\RdrComputeOp.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
     <ClCompile Include="GlobalState.cpp" />
     <ClCompile Include="render\RdrInstancedObjectDataBuffer.cpp">
       <Filter>render</Filter>
@@ -205,6 +196,9 @@
       <Filter>render</Filter>
     </ClCompile>
     <ClCompile Include="UserConfig.cpp" />
+    <ClCompile Include="render\RdrFrameMem.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -315,9 +309,6 @@
     <ClInclude Include="render\RdrResourceSystem.h">
       <Filter>render</Filter>
     </ClInclude>
-    <ClInclude Include="render\RdrScratchMem.h">
-      <Filter>render</Filter>
-    </ClInclude>
     <ClInclude Include="render\RdrShaderConstants.h">
       <Filter>render</Filter>
     </ClInclude>
@@ -350,6 +341,9 @@
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="UserConfig.h" />
+    <ClInclude Include="render\RdrFrameMem.h">
+      <Filter>render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\shaders\p_common.hlsli">

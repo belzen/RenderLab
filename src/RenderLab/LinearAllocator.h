@@ -41,3 +41,34 @@ private:
 	size_t m_size;
 	size_t m_availSize;
 };
+
+template<typename DataTypeT, uint kCapacityT>
+class StructLinearAllocator
+{
+public:
+	inline StructLinearAllocator::StructLinearAllocator()
+		: m_size(0)
+	{
+	}
+
+	inline ~StructLinearAllocator()
+	{
+	}
+
+	inline DataTypeT* Alloc()
+	{
+		uint elem = InterlockedIncrement(&m_size);
+		return &m_data[elem];
+	}
+
+	inline void Reset()
+	{
+		memset(m_data, 0, sizeof(DataTypeT) * m_size);
+		m_size = 1;
+	}
+
+private:
+	DataTypeT m_data[kCapacityT];
+	uint m_size;
+};
+

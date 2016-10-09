@@ -25,21 +25,21 @@ public:
 
 	void Update(float dt);
 
-	void PrepareDraw();
-
 	const Sky& GetSky() const;
+	Sky& GetSky();
 
 	const Terrain& GetTerrain() const;
+	Terrain& GetTerrain();
 
 	const WorldObjectList& GetWorldObjects() const;
 	WorldObjectList& GetWorldObjects();
 
 	void AddObject(WorldObject* pObject);
 
-
 	LightList& GetLightList();
 
 	const RdrPostProcessEffects* GetPostProcEffects() const;
+	RdrPostProcessEffects* GetPostProcEffects();
 
 	const char* GetName() const;
 
@@ -61,7 +61,17 @@ inline const Sky& Scene::GetSky() const
 	return m_sky;
 }
 
+inline Sky& Scene::GetSky()
+{
+	return m_sky;
+}
+
 inline const Terrain& Scene::GetTerrain() const
+{
+	return m_terrain;
+}
+
+inline Terrain& Scene::GetTerrain()
 {
 	return m_terrain;
 }
@@ -82,6 +92,11 @@ inline LightList& Scene::GetLightList()
 }
 
 inline const RdrPostProcessEffects* Scene::GetPostProcEffects() const
+{
+	return &m_postProcEffects;
+}
+
+inline RdrPostProcessEffects* Scene::GetPostProcEffects()
 {
 	return &m_postProcEffects;
 }

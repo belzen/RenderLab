@@ -370,6 +370,6 @@ float3 atmCalcSunColor(float3 viewPos, float3 viewDir, float3 sunDir, float alti
 // Convert a standard world units view position into planet-relative kilometers.
 float3 atmViewPosToPlanetPos(float3 viewPos)
 {
-	// todo2: origin should be somewhere high above planetRadius to avoid negative altitude
+	// todo: origin should be somewhere high above planetRadius to avoid negative altitude
 	return viewPos * 0.001f + float3(0.f, cbAtmosphere.planetRadius, 0.f);
 }

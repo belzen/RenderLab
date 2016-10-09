@@ -8,7 +8,6 @@
 
 namespace
 {
-	//todo2
 	std::string getAssetName(const std::string& srcFilename)
 	{
 		uint startPos = (uint)srcFilename.find_last_of('\\') + 1;
