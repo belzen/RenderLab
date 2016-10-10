@@ -8,13 +8,14 @@ HsPatchConstants CalcHSPatchConstants(
 {
 	HsPatchConstants patchConstants;
 
-	patchConstants.edgeTessFactor[0] = 15.f;
-	patchConstants.edgeTessFactor[1] = 15.f;
-	patchConstants.edgeTessFactor[2] = 15.f;
-	patchConstants.edgeTessFactor[3] = 15.f;
+	const float kTessFactor = 16.f;
+	patchConstants.edgeTessFactor[0] = kTessFactor;
+	patchConstants.edgeTessFactor[1] = kTessFactor;
+	patchConstants.edgeTessFactor[2] = kTessFactor;
+	patchConstants.edgeTessFactor[3] = kTessFactor;
 
-	patchConstants.insideTessFactors[0] = 15.f;
-	patchConstants.insideTessFactors[1] = 15.f;
+	patchConstants.insideTessFactors[0] = kTessFactor;
+	patchConstants.insideTessFactors[1] = kTessFactor;
 
 	return patchConstants;
 }
@@ -32,6 +33,7 @@ HsOutputTerrain main(
 	HsOutputTerrain output;
 
 	output.position_ws = input[pointId].position_ws;
+	output.lod = input[pointId].lod;
 
 	return output;
 }

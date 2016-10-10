@@ -3,25 +3,8 @@
 #include "RdrGeometry.h"
 #include "RdrShaders.h"
 #include "RdrMaterial.h"
+#include "RdrTessellationMaterial.h"
 #include "RdrInstancedObjectDataBuffer.h"
-
-struct RdrDispatchOp
-{
-	static RdrDispatchOp* Allocate();
-	static void QueueRelease(const RdrDispatchOp* pDrawOp);
-	static void ProcessReleases();
-
-	RdrComputeShader shader;
-	uint threads[3];
-
-	RdrResourceHandle hViews[8];
-	uint viewCount;
-
-	RdrResourceHandle hTextures[4];
-	uint texCount;
-
-	RdrConstantBufferHandle hCsConstants;
-};
 
 struct RdrDrawOpSortKey
 {
@@ -66,8 +49,8 @@ struct RdrDrawOp
 
 	RdrInputLayoutHandle  hInputLayout;
 	RdrVertexShader       vertexShader;
-	RdrTessellationShader tessellationShader;
 
+	const RdrTessellationMaterial* pTessellationMaterial;
 	const RdrMaterial* pMaterial;
 
 	RdrGeoHandle hGeo;

@@ -32,6 +32,7 @@ struct VsOutputSprite
 struct VsOutputTerrain
 {
 	float4 position_ws : POSITION;
+	float lod : TEXCOORD0;
 };
 
 
@@ -39,6 +40,7 @@ struct VsOutputTerrain
 struct HsOutputTerrain
 {
 	float4 position_ws : POSITION;
+	float lod : TEXCOORD0;
 };
 
 struct HsPatchConstants

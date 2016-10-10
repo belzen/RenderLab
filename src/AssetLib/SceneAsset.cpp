@@ -1,4 +1,5 @@
 #include "SceneAsset.h"
+#include "UtilsLib/Util.h"
 #include "UtilsLib/JsonUtils.h"
 #include "UtilsLib/FileLoader.h"
 #include "UtilsLib/Error.h"
@@ -40,6 +41,26 @@ Scene* Scene::Load(const char* assetName)
 	{
 		Json::Value jPostProc = jRoot.get("postProcessingEffects", Json::Value::null);
 		strcpy_s(pScene->postProcessingEffects, jPostProc.asCString());
+	}
+
+	// Terrain
+	{
+		Json::Value jTerrain = jRoot.get("terrain", Json::Value::null);
+		AssetLib::Terrain& rTerrain = pScene->terrain;
+
+		if (jTerrain.isNull())
+		{
+			rTerrain.enabled = false;
+		}
+		else
+		{
+			rTerrain.enabled = true;
+		
+			rTerrain.cornerMin = jsonReadVec2(jTerrain.get("cornerMin", Json::Value::null));
+			rTerrain.cornerMax = jsonReadVec2(jTerrain.get("cornerMax", Json::Value::null));
+			rTerrain.heightScale = jTerrain.get("heightScale", 1.f).asFloat();
+			jsonReadString(jTerrain.get("heightmap", Json::Value::null), rTerrain.heightmap, ARRAY_SIZE(rTerrain.heightmap));
+		}
 	}
 
 	// Lights

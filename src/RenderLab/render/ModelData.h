@@ -1,13 +1,10 @@
 #pragma once
 
+#include "AssetLib\AssetLibForwardDecl.h"
 #include "AssetLib\AssetDef.h"
 #include "RdrGeometry.h"
 
 struct RdrMaterial;
-namespace AssetLib
-{
-	struct Model;
-}
 
 class ModelData;
 typedef FreeList<ModelData, 1024> ModelDataFreeList;

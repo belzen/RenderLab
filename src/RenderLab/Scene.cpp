@@ -132,7 +132,11 @@ void Scene::Load(const char* sceneName)
 		m_objects.push_back(WorldObject::Create(rObjectData.name, pModel, rObjectData.position, rObjectData.orientation, rObjectData.scale));
 	}
 
-	m_terrain.Init();
+	if (pSceneData->terrain.enabled)
+	{
+		m_terrain.Init(pSceneData->terrain);
+	}
+
 	// TODO: quad/oct tree for scene
 }
 

@@ -31,27 +31,36 @@ public:
 	uint vertexCount;
 	uint indexCount;
 
+	// Vertex shader
+	RdrConstantBufferDeviceObj vsConstantBuffers[4];
 	RdrShaderResourceView vsResources[3];
+	uint vsConstantBufferCount;
 	uint vsResourceCount;
 
-	RdrShaderResourceView psResources[20];
-	uint psResourceCount;
+	// Geometry shader
+	RdrConstantBufferDeviceObj gsConstantBuffers[4];
+	uint gsConstantBufferCount;
 
+	// Domain shader
+	RdrConstantBufferDeviceObj dsConstantBuffers[4];
+	RdrShaderResourceView dsResources[4];
+	RdrSamplerState dsSamplers[4];
+	uint dsConstantBufferCount;
+	uint dsResourceCount;
+	uint dsSamplerCount;
+
+	// Pixel shader
+	RdrConstantBufferDeviceObj psConstantBuffers[4];
+	RdrShaderResourceView psResources[20];
 	RdrSamplerState psSamplers[16];
+	uint psConstantBufferCount;
+	uint psResourceCount;
 	uint psSamplerCount;
 
-	RdrShaderResourceView csResources[20];
-	RdrSamplerState csSamplers[16];
-	RdrUnorderedAccessView csUavs[8];
-
-	RdrConstantBufferDeviceObj vsConstantBuffers[4];
-	RdrConstantBufferDeviceObj dsConstantBuffers[4];
-	RdrConstantBufferDeviceObj gsConstantBuffers[4];
-	RdrConstantBufferDeviceObj psConstantBuffers[4];
+	// Compute shader
 	RdrConstantBufferDeviceObj csConstantBuffers[4];
-	uint vsConstantBufferCount;
-	uint dsConstantBufferCount;
-	uint gsConstantBufferCount;
-	uint psConstantBufferCount;
+	RdrShaderResourceView csResources[6];
+	RdrSamplerState csSamplers[6];
+	RdrUnorderedAccessView csUavs[4];
 	uint csConstantBufferCount;
 };

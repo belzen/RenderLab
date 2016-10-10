@@ -13,38 +13,61 @@ namespace
 
 	static const RdrVertexInputElement s_terrainVertexDesc[] = {
 		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RG_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Texcoord, 0, RdrVertexInputFormat::RGB_F32, 1, 0, RdrVertexInputClass::PerInstance, 1 },
+		{ RdrShaderSemantic::Texcoord, 0, RdrVertexInputFormat::RGBA_F32, 1, 0, RdrVertexInputClass::PerInstance, 1 },
 	};
 }
 
-void Terrain::Init()
+Terrain::Terrain()
+	: m_initialized(false)
 {
+
+}
+
+void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
+{
+	m_initialized = true;
+	m_srcData = rTerrainAsset;
+
 	Vec2* aVertices = (Vec2*)RdrFrameMem::AllocAligned(sizeof(Vec2) * 4, 16);
 	aVertices[0] = Vec2(0.f, 0.f);
 	aVertices[1] = Vec2(0.f, 1.f);
 	aVertices[2] = Vec2(1.f, 1.f);
 	aVertices[3] = Vec2(1.f, 0.f);
 
+	m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_terrainVertexDesc, ARRAY_SIZE(s_terrainVertexDesc));
 	m_hGeo = RdrResourceSystem::CreateGeo(
 		aVertices, sizeof(aVertices[0]), 4, 
 		nullptr, 0,
 		RdrTopology::Quad, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f));
 
-	int gridSize = 8;
-	float cellSize = 10.f;
-	Vec3* aInstanceData = (Vec3*)RdrFrameMem::AllocAligned(sizeof(Vec3) * gridSize * gridSize, 16);
-	for (int x = 0; x < gridSize; ++x)
+	// Instance buffer
+	float cellSize = 16.f;
+	m_gridSize.x = (uint)((m_srcData.cornerMax.x - m_srcData.cornerMin.x) / cellSize);
+	m_gridSize.y = (uint)((m_srcData.cornerMax.y - m_srcData.cornerMin.y) / cellSize);
+	Vec4* aInstanceData = (Vec4*)RdrFrameMem::AllocAligned(sizeof(Vec4) * m_gridSize.x * m_gridSize.y, 16);
+	for (uint x = 0; x < m_gridSize.x; ++x)
 	{
-		for (int y = 0; y < gridSize; ++y)
+		for (uint y = 0; y < m_gridSize.y; ++y)
 		{
-			aInstanceData[x + y * gridSize] = Vec3(x * cellSize, y * cellSize, cellSize);
+			aInstanceData[x + y * (int)m_gridSize.x] = Vec4(
+				m_srcData.cornerMin.x + x * cellSize, 
+				m_srcData.cornerMin.y + y * cellSize,
+				cellSize, 
+				0.f);
 		}
 	}
-	m_hInstanceData = RdrResourceSystem::CreateVertexBuffer(aInstanceData, sizeof(aInstanceData[0]), gridSize * gridSize, RdrResourceUsage::Immutable);
+	m_hInstanceData = RdrResourceSystem::CreateVertexBuffer(aInstanceData, sizeof(aInstanceData[0]), m_gridSize.x * m_gridSize.y, RdrResourceUsage::Immutable);
 
-	m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_terrainVertexDesc, ARRAY_SIZE(s_terrainVertexDesc));
+	// Tessellation material
+	RdrTextureInfo heightmapTexInfo;
+	m_tessMaterial.shader = kTessellationShader;
+	m_tessMaterial.hResources[0] = RdrResourceSystem::CreateTextureFromFile(m_srcData.heightmap, &heightmapTexInfo);
+	m_tessMaterial.samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+	m_tessMaterial.resourceCount = 1;
 
-	// Setup material
+	m_heightmapSize = UVec2(heightmapTexInfo.width, heightmapTexInfo.height);
+
+	// Setup pixel material
 	memset(&m_material, 0, sizeof(m_material));
 	m_material.bNeedsLighting = true;
 	m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_terrain.hlsl", nullptr, 0);
@@ -57,14 +80,35 @@ void Terrain::Init()
 
 void Terrain::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Camera& rCamera)
 {
+	// TODO: Remaining terrain tasks:
+	//	* Update instance buffer with LOD cells culled to the camera
+	//	* Terrain shadows
+	//	* Clipmapped height data
+	//	* Materials
+	if (!m_initialized)
+		return;
+
+	DsTerrain* pDsConstants = (DsTerrain*)RdrFrameMem::AllocAligned(sizeof(DsTerrain), 16);
+	pDsConstants->lods[0].minPos = m_srcData.cornerMin;
+	pDsConstants->lods[0].size = (m_srcData.cornerMax - m_srcData.cornerMin);
+	pDsConstants->heightmapTexelSize.x = 1.f / m_heightmapSize.x;
+	pDsConstants->heightmapTexelSize.y = 1.f / m_heightmapSize.y;
+	pDsConstants->heightScale = m_srcData.heightScale;
+	if (!m_tessMaterial.hDsConstants)
+		m_tessMaterial.hDsConstants = RdrResourceSystem::CreateConstantBuffer(pDsConstants, sizeof(DsTerrain), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+	else
+		RdrResourceSystem::UpdateConstantBuffer(m_tessMaterial.hDsConstants, pDsConstants);
+	
+	//////////////////////////////////////////////////////////////////////////
+	// Fill out the draw op
 	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
 	pDrawOp->hGeo = m_hGeo;
 	pDrawOp->hCustomInstanceBuffer = m_hInstanceData;
 	pDrawOp->hInputLayout = m_hInputLayout;
 	pDrawOp->vertexShader = kVertexShader;
-	pDrawOp->tessellationShader = kTessellationShader;
 	pDrawOp->pMaterial = &m_material;
-	pDrawOp->instanceCount = 8 * 8;
+	pDrawOp->pTessellationMaterial = &m_tessMaterial;
+	pDrawOp->instanceCount = m_gridSize.x * m_gridSize.y;
 
 	pDrawBuckets->AddDrawOp(pDrawOp, RdrBucketType::Opaque);
 }

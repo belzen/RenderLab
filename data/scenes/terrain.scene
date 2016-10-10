@@ -1,0 +1,20 @@
+{
+	"camera" : {
+		"position" : [ -1.0, 3.0, -5.0 ],
+		"rotation" : [ 15.0, 0.0, 0.0 ]
+	},
+
+	"sky" : "cloudy",
+	"postProcessingEffects" : "default",
+	"terrain" : {
+		"cornerMin" : [ -256, -256 ],
+		"cornerMax" : [ 256, 256 ],
+		"heightmap" : "terrain_h",
+		"heightScale" : 500.0
+	},
+	"lights" : [
+	],
+	"objects" : [
+	]
+
+}

@@ -38,6 +38,8 @@ enum class RdrProfileCounter
 	VsResource,
 	PsResource,
 	PsSamplers,
+	DsResource,
+	DsSamplers,
 	VsConstantBuffer,
 	DsConstantBuffer,
 	GsConstantBuffer,

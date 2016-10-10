@@ -247,6 +247,7 @@ float3 doLighting(in float3 pos_ws, in float3 color, in float3 normal, in float3
 #endif // VISUALIZE_LIGHT_LIST
 
 
+	float kEpsilon = 0.0001f; // Small value to prevent solid black color which can mess up tonemapping.
 	float3 ambient = color * ambient_color * ambient_intensity;
-	return ambient + litColor;
+	return ambient + litColor + kEpsilon;
 }

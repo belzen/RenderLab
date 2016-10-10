@@ -1384,12 +1384,33 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 		m_rProfiler.IncrementCounter(RdrProfileCounter::DomainShader);
 	}
 
-	if (rDrawState.pDomainShader &&
-		updateDataList<RdrConstantBufferDeviceObj>(rDrawState.dsConstantBuffers, m_drawState.dsConstantBuffers,
-			rDrawState.dsConstantBufferCount, &firstChanged, &lastChanged))
+	if (rDrawState.pDomainShader)
 	{
-		m_pDevContext->DSSetConstantBuffers(firstChanged, lastChanged - firstChanged + 1, (ID3D11Buffer**)rDrawState.dsConstantBuffers + firstChanged);
-		m_rProfiler.IncrementCounter(RdrProfileCounter::DsConstantBuffer);
+		if (updateDataList<RdrConstantBufferDeviceObj>(rDrawState.dsConstantBuffers, m_drawState.dsConstantBuffers,
+			rDrawState.dsConstantBufferCount, &firstChanged, &lastChanged))
+		{
+			m_pDevContext->DSSetConstantBuffers(firstChanged, lastChanged - firstChanged + 1, (ID3D11Buffer**)rDrawState.dsConstantBuffers + firstChanged);
+			m_rProfiler.IncrementCounter(RdrProfileCounter::DsConstantBuffer);
+		}
+
+		if (updateDataList<RdrShaderResourceView>(rDrawState.dsResources, m_drawState.dsResources,
+			rDrawState.dsResourceCount, &firstChanged, &lastChanged))
+		{
+			m_pDevContext->DSSetShaderResources(firstChanged, lastChanged - firstChanged + 1, (ID3D11ShaderResourceView**)rDrawState.dsResources + firstChanged);
+			m_rProfiler.IncrementCounter(RdrProfileCounter::DsResource);
+		}
+
+		if (updateDataList<RdrSamplerState>(rDrawState.dsSamplers, m_drawState.dsSamplers,
+			rDrawState.dsSamplerCount, &firstChanged, &lastChanged))
+		{
+			ID3D11SamplerState* apSamplers[ARRAY_SIZE(rDrawState.dsSamplers)] = { 0 };
+			for (int i = firstChanged; i <= lastChanged; ++i)
+			{
+				apSamplers[i] = GetSampler(rDrawState.dsSamplers[i]);
+			}
+			m_pDevContext->DSSetSamplers(firstChanged, lastChanged - firstChanged + 1, apSamplers + firstChanged);
+			m_rProfiler.IncrementCounter(RdrProfileCounter::DsSamplers);
+		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1428,7 +1449,7 @@ void RdrContextD3D11::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 	if (updateDataList<RdrSamplerState>(rDrawState.psSamplers, m_drawState.psSamplers,
 		rDrawState.psSamplerCount, &firstChanged, &lastChanged))
 	{
-		ID3D11SamplerState* apSamplers[16] = { 0 };
+		ID3D11SamplerState* apSamplers[ARRAY_SIZE(rDrawState.psSamplers)] = { 0 };
 		for (int i = firstChanged; i <= lastChanged; ++i)
 		{
 			apSamplers[i] = GetSampler(rDrawState.psSamplers[i]);

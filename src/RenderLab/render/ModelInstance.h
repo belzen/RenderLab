@@ -1,14 +1,11 @@
 #pragma once
 
+#include "AssetLib\AssetLibForwardDecl.h"
 #include "RdrResource.h"
 #include "RdrShaders.h"
 #include "ModelData.h"
 
 class RdrDrawBuckets;
-namespace AssetLib
-{
-	struct Model;
-}
 
 class ModelInstance;
 typedef FreeList<ModelInstance, 6 * 1024> ModelInstanceFreeList;

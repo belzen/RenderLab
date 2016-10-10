@@ -1,14 +1,10 @@
 #pragma once
 
+#include "AssetLib\AssetLibForwardDecl.h"
 #include "RdrResource.h"
 #include "ModelData.h"
 #include "UtilsLib\FileWatcher.h"
 #include "Light.h"
-
-namespace AssetLib
-{
-	struct Sky;
-}
 
 struct RdrDrawOp;
 struct RdrComputeOp;

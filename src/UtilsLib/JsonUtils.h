@@ -3,6 +3,26 @@
 #include "Json/json.h"
 #include "MathLib/Maths.h"
 
+inline void jsonReadString(const Json::Value& val, char* pOutStr, uint maxLen)
+{
+	if (val.isNull())
+	{
+		pOutStr[0] = 0;
+	}
+	else
+	{
+		strcpy_s(pOutStr, maxLen, val.asCString());
+	}
+}
+
+inline Vec2 jsonReadVec2(const Json::Value& val)
+{
+	Vec2 vec;
+	vec.x = val.get((uint)0, Json::Value(0.f)).asFloat();
+	vec.y = val.get((uint)1, Json::Value(0.f)).asFloat();
+	return vec;
+}
+
 inline Vec3 jsonReadVec3(const Json::Value& val)
 {
 	Vec3 vec;

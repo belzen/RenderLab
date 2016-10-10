@@ -18,5 +18,7 @@
     <ClInclude Include="SkyAsset.h" />
     <ClInclude Include="TextureAsset.h" />
     <ClInclude Include="PostProcessEffectsAsset.h" />
+    <ClInclude Include="AssetLibrary.h" />
+    <ClInclude Include="AssetLibForwardDecl.h" />
   </ItemGroup>
 </Project>

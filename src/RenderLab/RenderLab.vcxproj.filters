@@ -103,10 +103,10 @@
     <FxCompile Include="..\..\data\shaders\h_terrain.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\data\shaders\d_terrain.hlsl">
+    <FxCompile Include="..\..\data\shaders\p_terrain.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\data\shaders\p_terrain.hlsl">
+    <FxCompile Include="..\..\data\shaders\d_terrain.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
   </ItemGroup>
@@ -344,6 +344,10 @@
     <ClInclude Include="render\RdrFrameMem.h">
       <Filter>render</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\data\shaders\d_constants.h">
+      <Filter>shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrTessellationMaterial.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\shaders\p_common.hlsli">

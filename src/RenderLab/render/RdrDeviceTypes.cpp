@@ -37,6 +37,7 @@ int rdrGetTextureRows(const int height, const RdrResourceFormat eFormat)
 	{
 	case RdrResourceFormat::R16G16B16A16_FLOAT:
 	case RdrResourceFormat::R8_UNORM:
+	case RdrResourceFormat::R16_UNORM:
 	case RdrResourceFormat::B8G8R8A8_UNORM:
 	case RdrResourceFormat::B8G8R8A8_UNORM_sRGB:
 		return height;

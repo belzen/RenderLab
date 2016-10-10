@@ -92,7 +92,7 @@ namespace
 			if (!rCamera.CanSee(pObj->GetPosition(), pObj->GetRadius()))
 				continue;
 
-			// todo2 if pObj->hasOpaque
+			// todo: Flag to ignore non-opaque objects
 			pObj->QueueDraw(pBuckets);
 		}
 	}
@@ -128,7 +128,7 @@ namespace
 		}
 
 		// Terrain & Sky
-		//pScene->GetTerrain().QueueDraw(pDrawBuckets, rCamera);
+		pScene->GetTerrain().QueueDraw(pDrawBuckets, rCamera);
 		pScene->GetSky().QueueDraw(pDrawBuckets);
 
 		*pOutDepthMin = max(rCamera.GetNearDist(), depthMin);
@@ -1105,11 +1105,9 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 
 	// Vertex & tessellation shaders
 	RdrVertexShader vertexShader = pDrawOp->vertexShader;
-	RdrTessellationShader tessShader = pDrawOp->tessellationShader;
 	if (bDepthOnly)
 	{
 		vertexShader.flags |= RdrShaderFlags::DepthOnly;
-		tessShader.flags |= RdrShaderFlags::DepthOnly;
 	}
 
 	bool instanced = false;
@@ -1120,8 +1118,6 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 	}
 
 	m_drawState.pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
-	m_drawState.pHullShader = RdrShaderSystem::GetHullShader(tessShader);
-	m_drawState.pDomainShader = RdrShaderSystem::GetDomainShader(tessShader);
 
 	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerFrame;
 	m_drawState.vsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->bufferObj;
@@ -1152,6 +1148,33 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 		m_drawState.pGeometryShader = RdrShaderSystem::GetGeometryShader(geomShader);
 		m_drawState.gsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hGsCubeMap)->bufferObj;
 		m_drawState.gsConstantBufferCount = 1;
+	}
+
+	// Tessellation material
+	if (pDrawOp->pTessellationMaterial)
+	{
+		const RdrTessellationMaterial* pTessMaterial = pDrawOp->pTessellationMaterial;
+		RdrTessellationShader tessShader = pTessMaterial->shader;
+		if (bDepthOnly)
+		{
+			tessShader.flags |= RdrShaderFlags::DepthOnly;
+		}
+		m_drawState.pHullShader = RdrShaderSystem::GetHullShader(tessShader);
+		m_drawState.pDomainShader = RdrShaderSystem::GetDomainShader(tessShader);
+
+		m_drawState.dsResourceCount = pTessMaterial->resourceCount;
+		m_drawState.dsSamplerCount = pTessMaterial->resourceCount;
+		for (uint i = 0; i < pTessMaterial->resourceCount; ++i)
+		{
+			m_drawState.dsResources[i] = RdrResourceSystem::GetResource(pTessMaterial->hResources[i])->resourceView;
+			m_drawState.dsSamplers[i] = pTessMaterial->samplers[i];
+		}
+
+		if (pTessMaterial->hDsConstants)
+		{
+			m_drawState.dsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pTessMaterial->hDsConstants)->bufferObj;
+			m_drawState.dsConstantBufferCount = 2;
+		}
 	}
 
 	// Pixel shader

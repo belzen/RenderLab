@@ -29,6 +29,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetDef.h" />
+    <ClInclude Include="AssetLibForwardDecl.h" />
     <ClInclude Include="AssetLibrary.h" />
     <ClInclude Include="BinFile.h" />
     <ClInclude Include="MaterialAsset.h" />

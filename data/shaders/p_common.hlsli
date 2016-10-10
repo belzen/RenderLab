@@ -17,3 +17,13 @@ cbuffer AtmosphereParamsBuffer : register(b2)
 {
 	AtmosphereParams cbAtmosphere;
 }
+
+
+#if DEPTH_ONLY
+#define PsOutput void
+#else
+struct PsOutput
+{
+	float4 color : SV_TARGET;
+};
+#endif

@@ -15,12 +15,7 @@ Texture2D texAlphaMask : register(t2);
 SamplerState sampAlphaMask : register(s2);
 #endif
 
-
-#if DEPTH_ONLY
-void main(VsOutputModel input)
-#else
-float4 main(VsOutputModel input) : SV_TARGET
-#endif
+PsOutput main(VsOutputModel input)
 {
 #if ALPHA_CUTOUT
 	float4 mask = texAlphaMask.Sample(sampAlphaMask, input.texcoords);
@@ -42,7 +37,10 @@ float4 main(VsOutputModel input) : SV_TARGET
 
 	float3 cameraViewDir = normalize(cbPerAction.cameraPos - input.position_ws.xyz);
 
-	float3 litColor = doLighting(input.position_ws.xyz, color.rgb, normal, cameraViewDir, input.position.xy, cbPerAction.viewSize);
-	return float4(litColor + 0.001f, 1);
+
+	PsOutput output;
+	output.color.rgb = doLighting(input.position_ws.xyz, color.rgb, normal, cameraViewDir, input.position.xy, cbPerAction.viewSize);
+	output.color.a = 1.f;
+	return output;
 #endif
 }

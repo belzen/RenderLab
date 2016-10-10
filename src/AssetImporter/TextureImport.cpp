@@ -15,6 +15,7 @@ namespace
 		Srgb,
 		Linear,
 		NormalMap,
+		HeightMap,
 	};
 
 	TextureType extractTextureType(const std::string& srcFilename)
@@ -39,6 +40,10 @@ namespace
 				else if (_stricmp(typeStr, "spec") == 0)
 				{
 					return TextureType::Linear;
+				}
+				else if (_stricmp(typeStr, "h") == 0)
+				{
+					return TextureType::HeightMap;
 				}
 			}
 		}
@@ -71,6 +76,11 @@ bool TextureImport::Import(const std::string& srcFilename, std::string& dstFilen
 		hr = DirectX::LoadFromTGAMemory(pImageFileData, imageFileSize, &srcMetadata, srcImage);
 		assert(hr == S_OK);
 	}
+	else if (_stricmp(ext.c_str(), "tif") == 0)
+	{
+		hr = DirectX::LoadFromWICMemory(pImageFileData, imageFileSize, 0, &srcMetadata, srcImage);
+		assert(hr == S_OK);
+	}
 	else
 	{
 		Error("Unknown texture file type: %s", ext.c_str());
@@ -79,16 +89,12 @@ bool TextureImport::Import(const std::string& srcFilename, std::string& dstFilen
 	}
 
 	//////////////////////////////////////////////////////////////////////////
-	// Generate mip maps
-	DirectX::ScratchImage mipmaps;
-	hr = DirectX::GenerateMipMaps(*srcImage.GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT, 0, mipmaps);
-	assert(hr == S_OK);
-
-	//////////////////////////////////////////////////////////////////////////
-	// Compress image
+	// Determine image settings
 	TextureType texType = extractTextureType(srcFilename);
 	DXGI_FORMAT format = DXGI_FORMAT_BC1_UNORM;
 	DWORD compressFlags = DirectX::TEX_COMPRESS_DEFAULT;
+	bool bGenerateMipMaps = true;
+	bool bCompress = true;
 	switch (texType)
 	{
 	case TextureType::NormalMap:
@@ -102,16 +108,42 @@ bool TextureImport::Import(const std::string& srcFilename, std::string& dstFilen
 	case TextureType::Linear:
 		format = DXGI_FORMAT_BC1_UNORM;
 		break;
+	case TextureType::HeightMap:
+		if (srcImage.GetMetadata().format != DXGI_FORMAT_R16_UNORM)
+		{
+			Error("Invalid heightmap texture format: %d - %s", srcImage.GetMetadata().format, srcFilename.c_str());
+			return false;
+		}
+		format = DXGI_FORMAT_R16_FLOAT;
+		bGenerateMipMaps = false;
+		bCompress = false;
+		break;
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Generate mipmaps and compress
+	DirectX::ScratchImage mipmapImage;
 	DirectX::ScratchImage compressedImage;
-	hr = DirectX::Compress(mipmaps.GetImages(), mipmaps.GetImageCount(), mipmaps.GetMetadata(), format, compressFlags, 1.f, compressedImage);
-	assert(hr == S_OK);
+	DirectX::ScratchImage* pCurrImage = &srcImage;
+
+	if (bGenerateMipMaps)
+	{
+		hr = DirectX::GenerateMipMaps(*srcImage.GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT, 0, mipmapImage);
+		assert(hr == S_OK);
+		pCurrImage = &mipmapImage;
+	}
+
+	if (bCompress)
+	{
+		hr = DirectX::Compress(pCurrImage->GetImages(), pCurrImage->GetImageCount(), pCurrImage->GetMetadata(), format, compressFlags, 1.f, compressedImage);
+		assert(hr == S_OK);
+		pCurrImage = &compressedImage;
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Write images
 	DirectX::Blob blob;
-	hr = DirectX::SaveToDDSMemory(compressedImage.GetImages(), compressedImage.GetImageCount(), compressedImage.GetMetadata(), 0, blob);
+	hr = DirectX::SaveToDDSMemory(pCurrImage->GetImages(), pCurrImage->GetImageCount(), pCurrImage->GetMetadata(), 0, blob);
 	assert(hr == S_OK);
 
 	std::ofstream dstFile(dstFilename, std::ios::binary);

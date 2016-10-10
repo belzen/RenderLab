@@ -1,6 +1,7 @@
 #pragma once
 #include "AssetDef.h"
 #include "BinFile.h"
+#include "MathLib/Vec2.h"
 #include "MathLib/Vec3.h"
 #include "MathLib/Quaternion.h"
 #include <vector>
@@ -40,6 +41,15 @@ namespace AssetLib
 		char name[64];
 	};
 
+	struct Terrain
+	{
+		Vec2 cornerMin;
+		Vec2 cornerMax;
+		char heightmap[AssetLib::AssetDef::kMaxNameLen];
+		float heightScale;
+		bool enabled;
+	};
+
 	struct Scene
 	{
 		static AssetDef& GetAssetDef();
@@ -53,6 +63,7 @@ namespace AssetLib
 
 		std::vector<Light> lights;
 		std::vector<Object> objects;
+		Terrain terrain;
 
 		uint timeLastModified;
 		const char* assetName; // Filled in by the AssetLibrary during loading.
