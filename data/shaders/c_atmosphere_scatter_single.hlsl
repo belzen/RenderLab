@@ -58,7 +58,7 @@ y = y - 0.5;
 }
 */
 
-[numthreads(LUT_THREADS_X, LUT_THREADS_Y, 1)]
+[numthreads(ATM_LUT_THREADS_X, ATM_LUT_THREADS_Y, 1)]
 void main(uint3 globalId : SV_DispatchThreadID)
 {
 	uint3 scatteringLutDimensions;

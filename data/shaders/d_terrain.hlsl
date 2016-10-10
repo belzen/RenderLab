@@ -37,6 +37,7 @@ DsOutputTerrain main(
 #if !DEPTH_ONLY
 	output.texcoords = float2(output.position_ws.x, output.position_ws.z);
 
+	// Calculate normal from height data.
 	float2 texelSize = cbTerrain.heightmapTexelSize;
 	float4 heights;
 	heights.x = texHeightmap.SampleLevel(sampHeightmap, uvHeight + float2(-texelSize.x, 0.f), 0).r;

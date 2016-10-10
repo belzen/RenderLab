@@ -20,7 +20,7 @@ SamplerState g_sampler : register(s0);
 
 RWTexture2D<float4> g_outputTexIrradiance : register(u0);
 
-[numthreads(LUT_THREADS_X, LUT_THREADS_Y, 1)]
+[numthreads(ATM_LUT_THREADS_X, ATM_LUT_THREADS_Y, 1)]
 void main(uint3 globalId : SV_DispatchThreadID)
 {
 	uint2 dims;

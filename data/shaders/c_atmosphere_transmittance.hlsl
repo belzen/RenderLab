@@ -57,7 +57,7 @@ void main(uint3 globalId : SV_DispatchThreadID)
 
 		// TODO: Add ozone transmittance (Frostbite SIGGRAPH 2016)
 		float3 rayleighExtinction = cbAtmosphere.rayleighScatteringCoeff;
-		float3 mieExtinction = cbAtmosphere.mieScatteringCoeff / 0.9f;
+		float3 mieExtinction = cbAtmosphere.mieScatteringCoeff / 0.9f; // Bruneton08 Figure 6: Mie scattering / extinction = 0.9
 		transmittance = exp(-(rayleighExtinction * rayleighDepth + mieExtinction * mieDepth));
 	}
 

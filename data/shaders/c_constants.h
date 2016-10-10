@@ -18,8 +18,10 @@
 #define COPY_THREADS_X 8
 #define COPY_THREADS_Y 8
 
-#define LUT_THREADS_X 8
-#define LUT_THREADS_Y 8
+#define ATM_LUT_THREADS_X 8
+#define ATM_LUT_THREADS_Y 8
+
+
 
 struct ToneMapInputParams
 {
