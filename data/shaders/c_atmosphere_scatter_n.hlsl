@@ -1,6 +1,6 @@
 #include "c_constants.h"
 
-cbuffer AtmosphereParamsBuffer : register(c0)
+cbuffer AtmosphereParamsBuffer : register(b0)
 {
 	AtmosphereParams cbAtmosphere;
 };
@@ -15,7 +15,7 @@ RWTexture3D<float4> g_outputTexScatter : register(u0);
 
 // Calculating delta S for multiple scattering.
 // Line 9 of algorithm 4.1 from Bruneton08
-[numthreads(LUT_THREADS_X, LUT_THREADS_Y, 1)]
+[numthreads(ATM_LUT_THREADS_X, ATM_LUT_THREADS_Y, 1)]
 void main( uint3 globalId : SV_DispatchThreadID )
 {
 	uint3 dims;

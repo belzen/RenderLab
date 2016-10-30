@@ -46,8 +46,8 @@ typedef std::vector<const RdrComputeOp*> RdrComputeOpBucket;
 
 struct RdrGlobalConstants
 {
-	RdrConstantBufferHandle hVsPerFrame;
-	RdrConstantBufferHandle hPsPerFrame;
+	RdrConstantBufferHandle hVsPerAction;
+	RdrConstantBufferHandle hPsPerAction;
 	RdrConstantBufferHandle hPsAtmosphere;
 	RdrConstantBufferHandle hGsCubeMap;
 };
@@ -104,6 +104,7 @@ struct RdrLightParams
 	RdrResourceHandle hPointLightListRes;
 
 	RdrResourceHandle hSkyTransmittanceLut;
+	RdrResourceHandle hVolumetricFogLut;
 	RdrResourceHandle hShadowMapDataRes;
 	RdrResourceHandle hShadowMapTexArray;
 	RdrResourceHandle hShadowCubeMapTexArray;

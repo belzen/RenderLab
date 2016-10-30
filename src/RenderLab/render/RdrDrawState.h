@@ -59,8 +59,8 @@ public:
 
 	// Compute shader
 	RdrConstantBufferDeviceObj csConstantBuffers[4];
-	RdrShaderResourceView csResources[6];
-	RdrSamplerState csSamplers[6];
+	RdrShaderResourceView csResources[8];
+	RdrSamplerState csSamplers[4];
 	RdrUnorderedAccessView csUavs[4];
 	uint csConstantBufferCount;
 };

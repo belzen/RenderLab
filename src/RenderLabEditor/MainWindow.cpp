@@ -91,7 +91,7 @@ int MainWindow::Run()
 	m_renderWindow.Create(hWnd, GetWidth() - kDefaultPanelWidth, GetHeight(), &m_renderer);
 
 	// Load in default scene
-	m_scene.Load("terrain");
+	m_scene.Load("basic");
 
 	// Finish editor setup.
 	m_pPropertyPanel = PropertyPanel::Create(*this, GetWidth() - kDefaultPanelWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);

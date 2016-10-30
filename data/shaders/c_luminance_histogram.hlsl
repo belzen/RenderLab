@@ -13,7 +13,7 @@
 #define HISTOGRAM_TILE_SIZE_X 32
 #define HISTOGRAM_TILE_SIZE_Y 16
 
-cbuffer ToneMapHistogramParamsBuffer : register(c0)
+cbuffer ToneMapHistogramParamsBuffer : register(b0)
 {
 	ToneMapHistogramParams cbHistogram;
 };

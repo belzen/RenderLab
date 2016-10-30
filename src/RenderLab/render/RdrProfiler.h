@@ -11,6 +11,7 @@ enum class RdrProfileSection
 	Shadows,
 	ZPrepass,
 	LightCulling,
+	VolumetricFog,
 	Opaque,
 	Alpha,
 	Sky,

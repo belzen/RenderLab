@@ -61,9 +61,8 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	// Tessellation material
 	RdrTextureInfo heightmapTexInfo;
 	m_tessMaterial.shader = kTessellationShader;
-	m_tessMaterial.hResources[0] = RdrResourceSystem::CreateTextureFromFile(m_srcData.heightmap, &heightmapTexInfo);
-	m_tessMaterial.samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
-	m_tessMaterial.resourceCount = 1;
+	m_tessMaterial.ahResources.assign(0, RdrResourceSystem::CreateTextureFromFile(m_srcData.heightmap, &heightmapTexInfo));
+	m_tessMaterial.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 
 	m_heightmapSize = UVec2(heightmapTexInfo.width, heightmapTexInfo.height);
 
@@ -71,11 +70,9 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	memset(&m_material, 0, sizeof(m_material));
 	m_material.bNeedsLighting = true;
 	m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_terrain.hlsl", nullptr, 0);
-	m_material.hTextures[0] = RdrResourceSystem::CreateTextureFromFile("white", nullptr);
-	m_material.hTextures[1] = RdrResourceSystem::CreateTextureFromFile("test_ddn", nullptr);
-	m_material.samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
-	m_material.samplers[1] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
-	m_material.texCount = 2;
+	m_material.ahTextures.assign(0, RdrResourceSystem::CreateTextureFromFile("white", nullptr));
+	m_material.ahTextures.assign(1, RdrResourceSystem::CreateTextureFromFile("test_ddn", nullptr));
+	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 }
 
 void Terrain::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Camera& rCamera)
@@ -94,10 +91,8 @@ void Terrain::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Camera& rCamera)
 	pDsConstants->heightmapTexelSize.x = 1.f / m_heightmapSize.x;
 	pDsConstants->heightmapTexelSize.y = 1.f / m_heightmapSize.y;
 	pDsConstants->heightScale = m_srcData.heightScale;
-	if (!m_tessMaterial.hDsConstants)
-		m_tessMaterial.hDsConstants = RdrResourceSystem::CreateConstantBuffer(pDsConstants, sizeof(DsTerrain), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
-	else
-		RdrResourceSystem::UpdateConstantBuffer(m_tessMaterial.hDsConstants, pDsConstants);
+	m_tessMaterial.hDsConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_tessMaterial.hDsConstants, 
+		pDsConstants, sizeof(DsTerrain), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	
 	//////////////////////////////////////////////////////////////////////////
 	// Fill out the draw op

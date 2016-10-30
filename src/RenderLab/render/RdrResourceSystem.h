@@ -38,6 +38,7 @@ namespace RdrResourceSystem
 
 	RdrConstantBufferHandle CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
 	RdrConstantBufferHandle CreateTempConstantBuffer(const void* pData, uint size);
+	RdrConstantBufferHandle CreateUpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
 	void UpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData);
 	void ReleaseConstantBuffer(RdrConstantBufferHandle hBuffer);
 

@@ -4,6 +4,7 @@ namespace AssetLib
 {
 	struct Terrain;
 	struct Model;
+	struct VolumetricFogSettings;
 	struct Sky;
 	struct Texture;
 	struct Material;

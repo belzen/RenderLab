@@ -140,6 +140,9 @@ enum class RdrComputeShader
 	AtmosphereRadianceLut,
 	AtmosphereRadianceLut_CombinedScatter,
 
+	VolumetricFog_Light,
+	VolumetricFog_Accum,
+
 	Count
 };
 

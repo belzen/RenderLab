@@ -1,6 +1,6 @@
 #include "c_constants.h"
 
-cbuffer Blend2dParamsBuffer : register(c0)
+cbuffer Blend2dParamsBuffer : register(b0)
 {
 	Blend2dParams cbBlend;
 }

@@ -29,6 +29,7 @@
     <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Array.h" />
     <ClInclude Include="Color.h" />
     <ClInclude Include="Error.h" />
     <ClInclude Include="FileLoader.h" />
@@ -38,8 +39,8 @@
     <ClInclude Include="json\json-forwards.h" />
     <ClInclude Include="json\json.h" />
     <ClInclude Include="Paths.h" />
+    <ClInclude Include="FixedVector.h" />
     <ClInclude Include="ThreadMutex.h" />
-    <ClInclude Include="SizedArray.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Util.h" />
   </ItemGroup>

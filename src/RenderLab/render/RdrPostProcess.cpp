@@ -7,6 +7,7 @@
 #include "Renderer.h"
 #include "RdrShaderConstants.h"
 #include "input/Input.h"
+#include "RdrComputeOp.h"
 
 namespace
 {
@@ -82,14 +83,6 @@ namespace
 			rOutData.adaptedLum = tonemap.adaptedLum;
 		}
 	}
-
-	uint getThreadGroupCount(uint dataSize, uint workSize)
-	{
-		uint count = dataSize / workSize;
-		if (dataSize % workSize != 0)
-			++count;
-		return count;
-	}
 }
 
 void RdrPostProcess::Init()
@@ -141,7 +134,7 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 
 		if (rBloom.hBlendConstants)
 			RdrResourceSystem::ReleaseConstantBuffer(rBloom.hBlendConstants);
-		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(Blend2dParams));
+		uint constantsSize = sizeof(Blend2dParams);
 		Blend2dParams* pAddParams = (Blend2dParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pAddParams->size2.x = (float)w;
 		pAddParams->size2.y = (float)h;
@@ -172,7 +165,7 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 			float logLuminanceMax;
 			uint tileCount;
 		};
-		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(Test));
+		uint constantsSize = sizeof(Test);
 		Test* pTest = (Test*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pTest->logLuminanceMin = 0.f;
 		pTest->logLuminanceMax = 3.f;
@@ -217,8 +210,8 @@ void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawStat
 {
 	pRdrContext->BeginEvent(L"Lum Measurement");
 	
-	uint w = getThreadGroupCount(pColorBuffer->texInfo.width, 16);
-	uint h = getThreadGroupCount(pColorBuffer->texInfo.height, 16);
+	uint w = RdrComputeOp::getThreadGroupCount(pColorBuffer->texInfo.width, 16);
+	uint h = RdrComputeOp::getThreadGroupCount(pColorBuffer->texInfo.height, 16);
 
 	const RdrResource* pLumInput = pColorBuffer;
 	const RdrResource* pLumOutput = RdrResourceSystem::GetResource(m_hLumOutputs[0]);
@@ -241,8 +234,8 @@ void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawStat
 		rDrawState.csResources[0] = pLumInput->resourceView;
 		rDrawState.csUavs[0] = pLumOutput->uav;
 
-		w = getThreadGroupCount(w, 16);
-		h = getThreadGroupCount(h, 16);
+		w = RdrComputeOp::getThreadGroupCount(w, 16);
+		h = RdrComputeOp::getThreadGroupCount(h, 16);
 		++i;
 
 		pRdrContext->DispatchCompute(rDrawState, w, h, 1);
@@ -268,8 +261,8 @@ void RdrPostProcess::DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState&
 {
 	pRdrContext->BeginEvent(L"Lum Histogram");
 
-	uint w = getThreadGroupCount(pColorBuffer->texInfo.width, 32);
-	uint h = getThreadGroupCount(pColorBuffer->texInfo.height, 16);
+	uint w = RdrComputeOp::getThreadGroupCount(pColorBuffer->texInfo.width, 32);
+	uint h = RdrComputeOp::getThreadGroupCount(pColorBuffer->texInfo.height, 16);
 
 	const RdrResource* pLumInput = pColorBuffer;
 	const RdrResource* pTileHistograms = RdrResourceSystem::GetResource(m_hToneMapTileHistograms);
@@ -309,8 +302,8 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 
 	// High-pass filter and downsample to 1/2, 1/4, 1/8, and 1/16 res
 	{
-		uint w = getThreadGroupCount(pColorBuffer->texInfo.width, 16);
-		uint h = getThreadGroupCount(pColorBuffer->texInfo.height, 16);
+		uint w = RdrComputeOp::getThreadGroupCount(pColorBuffer->texInfo.width, 16);
+		uint h = RdrComputeOp::getThreadGroupCount(pColorBuffer->texInfo.height, 16);
 
 		const RdrResource* pLumInput = pColorBuffer;
 		const RdrResource* pTonemapBuffer = RdrResourceSystem::GetResource(m_hToneMapOutputConstants);
@@ -336,15 +329,15 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 	const RdrResource* pOutput = nullptr;
 	for (int i = ARRAY_SIZE(m_bloomBuffers) - 1; i >= 0; --i)
 	{
-		int blurTargetIdx = (i == 0);
+		int blurInputIdx = (i != (ARRAY_SIZE(m_bloomBuffers) - 1));
 		// Blur
 		{ 
 			// Vertical blur
-			pInput1 = RdrResourceSystem::GetResource(m_bloomBuffers[i].hResources[!blurTargetIdx]);
-			pOutput = RdrResourceSystem::GetResource(m_bloomBuffers[i].hResources[blurTargetIdx]);
+			pInput1 = RdrResourceSystem::GetResource(m_bloomBuffers[i].hResources[blurInputIdx]);
+			pOutput = RdrResourceSystem::GetResource(m_bloomBuffers[i].hResources[!blurInputIdx]);
 
-			uint w = getThreadGroupCount(pOutput->texInfo.width, BLUR_THREAD_COUNT);
-			uint h = getThreadGroupCount(pOutput->texInfo.height, BLUR_TEXELS_PER_THREAD);
+			uint w = RdrComputeOp::getThreadGroupCount(pOutput->texInfo.width, BLUR_THREAD_COUNT);
+			uint h = RdrComputeOp::getThreadGroupCount(pOutput->texInfo.height, BLUR_TEXELS_PER_THREAD);
 
 			rDrawState.Reset();
 			rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::BlurVertical);
@@ -359,8 +352,8 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 			pInput1 = pOutput;
 			pOutput = pTemp;
 
-			w = getThreadGroupCount(pOutput->texInfo.width, BLUR_TEXELS_PER_THREAD);
-			h = getThreadGroupCount(pOutput->texInfo.height, BLUR_THREAD_COUNT);
+			w = RdrComputeOp::getThreadGroupCount(pOutput->texInfo.width, BLUR_TEXELS_PER_THREAD);
+			h = RdrComputeOp::getThreadGroupCount(pOutput->texInfo.height, BLUR_THREAD_COUNT);
 
 			rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::BlurHorizontal);
 			rDrawState.csResources[0] = pInput1->resourceView;
@@ -377,8 +370,8 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 			pInput2 = pOutput;
 			pOutput = RdrResourceSystem::GetResource(m_bloomBuffers[i - 1].hResources[1]);
 
-			uint w = getThreadGroupCount(pOutput->texInfo.width, BLEND_THREADS_X);
-			uint h = getThreadGroupCount(pOutput->texInfo.height, BLEND_THREADS_Y);
+			uint w = RdrComputeOp::getThreadGroupCount(pOutput->texInfo.width, BLEND_THREADS_X);
+			uint h = RdrComputeOp::getThreadGroupCount(pOutput->texInfo.height, BLEND_THREADS_Y);
 
 			rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::Blend2d);
 			rDrawState.csResources[0] = pInput1->resourceView;

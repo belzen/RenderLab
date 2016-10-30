@@ -1,6 +1,6 @@
 #include "c_constants.h"
 
-cbuffer AtmosphereParamsBuffer : register(c0)
+cbuffer AtmosphereParamsBuffer : register(b0)
 {
 	AtmosphereParams cbAtmosphere;
 };
@@ -33,7 +33,7 @@ float calcOpticalDepth(float startAltitude, float distanceToEndPoint, float cosV
 	return result * dx;
 }
 
-[numthreads(LUT_THREADS_X, LUT_THREADS_Y, 1)]
+[numthreads(ATM_LUT_THREADS_X, ATM_LUT_THREADS_Y, 1)]
 void main(uint3 globalId : SV_DispatchThreadID)
 {
 	uint2 lutDimensions;

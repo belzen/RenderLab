@@ -1,12 +1,12 @@
 #pragma once
 
-// Fixed size array that maintains size state internally.
+// Fixed size vector that maintains size state internally.
 // Indices outside of the current size are inaccessible.
-template<typename T_object, uint T_arraySize>
-class SizedArray
+template<typename T_object, uint T_kCapacity>
+class FixedVector
 {
 public:
-	SizedArray()
+	FixedVector()
 	{
 		memset(m_objects, 0, sizeof(m_objects));
 		m_size = 0;
@@ -39,13 +39,13 @@ public:
 	// Increment the size of the array and return a reference to the new entry.
 	T_object& push()
 	{
-		assert(m_size < T_arraySize);
+		assert(m_size < T_kCapacity);
 		return m_objects[m_size++];
 	}
 	
 	T_object& pushSafe()
 	{
-		assert(m_size < T_arraySize);
+		assert(m_size < T_kCapacity);
 		uint i = InterlockedIncrement(&m_size) - 1;
 		return m_objects[i];
 	}
@@ -72,6 +72,6 @@ public:
 	}
 
 private:
-	T_object m_objects[T_arraySize];
+	T_object m_objects[T_kCapacity];
 	uint m_size;
 };

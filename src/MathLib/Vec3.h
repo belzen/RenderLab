@@ -15,6 +15,9 @@ struct Vec3 : public DirectX::XMFLOAT3
 	Vec3(float x, float y, float z);
 	Vec3(const float* pFloats);
 	Vec3(const DirectX::XMVECTOR& vec);
+
+	float& operator[](const int component);
+	const float& operator[](const int component) const;
 };
 
 inline Vec3::Vec3()
@@ -111,4 +114,14 @@ inline bool operator == (const Vec3& lhs, const Vec3& rhs)
 inline bool operator != (const Vec3& lhs, const Vec3& rhs)
 {
 	return lhs.x != rhs.x || lhs.y != rhs.y || lhs.z != rhs.z;
+}
+
+inline float& Vec3::operator[](const int component)
+{
+	return *(&x + component);
+}
+
+inline const float& Vec3::operator[](const int component) const
+{
+	return *(&x + component);
 }

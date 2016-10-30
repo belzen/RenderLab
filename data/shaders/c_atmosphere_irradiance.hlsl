@@ -1,6 +1,6 @@
 #include "c_constants.h"
 
-cbuffer AtmosphereParamsBuffer : register(c0)
+cbuffer AtmosphereParamsBuffer : register(b0)
 {
 	AtmosphereParams cbAtmosphere;
 };

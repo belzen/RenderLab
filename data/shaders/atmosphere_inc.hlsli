@@ -38,10 +38,9 @@ float atmCalcPhaseMie(float cosViewAngle)
 	float g = cbAtmosphere.mieG;
 	float g2 = g * g;
 
-	float k = 3.f / (8.f * kPi);
-	float num = (1 - g2) * (1 + cosViewAngle * cosViewAngle);
-	float div = (2 + g2) * pow(1 + g2 - 2 * g * cosViewAngle, 1.5f);
-	return k * num / div;
+	float num = 3.f * (1 - g2) * (1 + cosViewAngle * cosViewAngle);
+	float div = (8.f * kPi) * (2 + g2) * pow(1 + g2 - 2 * g * cosViewAngle, 1.5f);
+	return num / div;
 }
 
 // Rebuild single Mie scattering from the red component stored in the combined scattering results.

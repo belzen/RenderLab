@@ -21,7 +21,8 @@
 #define ATM_LUT_THREADS_X 8
 #define ATM_LUT_THREADS_Y 8
 
-
+#define VOLFOG_LUT_THREADS_X 8
+#define VOLFOG_LUT_THREADS_Y 8
 
 struct ToneMapInputParams
 {
@@ -59,6 +60,18 @@ struct AtmosphereParams
 
 	float3 sunColor;
 	float unused3;
+};
+
+struct VolumetricFogParams
+{
+	uint3 lutSize;
+	float farDepth;
+
+	float3 scatteringCoeff;
+	float phaseG;
+
+	float3 absorptionCoeff;
+	float unused;
 };
 
 #endif // SHADER_C_CONSTANTS_H

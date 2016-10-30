@@ -3,7 +3,13 @@
 	"material" : "skies/cloudy",
 	"sunAngleXAxis" : 90.0,
 	"sunAngleZAxis" : 90.0,
-	"sunIntensity" : 500.0,
+	"sunIntensity" : 5.0,
 	"sunColor" : [1.0, 1.0, 1.0],
-	"pssmLambda" : 0.6
+	"pssmLambda" : 0.6,
+	"volumetricFog" : {
+		"scatteringCoeff" : [0.008, 0.008, 0.008],
+		"absorptionCoeff" : [0.0, 0.0, 0.0],
+		"farDepth" : 64.0,
+		"phaseG" : 0.6
+	}
 }

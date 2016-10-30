@@ -2,7 +2,7 @@
 #include "RdrShaderSystem.h"
 #include "RdrContext.h"
 #include "UtilsLib/Hash.h"
-#include "UtilsLib/SizedArray.h"
+#include "UtilsLib/FixedVector.h"
 #include <d3dcompiler.h>
 #include "debug/DebugConsole.h"
 
@@ -73,7 +73,10 @@ namespace
 		{ "c_atmosphere_irradiance.hlsl",		{ 0 } },						// RdrComputeShader::AtmosphereIrradianceLut_N
 		{ "c_atmosphere_irradiance.hlsl",		{ "COMBINED_SCATTER", 0 } },	// RdrComputeShader::AtmosphereIrradianceLut_N_CombinedScatter
 		{ "c_atmosphere_radiance.hlsl",			{ 0 } },						// RdrComputeShader::AtmosphereRadianceLut
-		{ "c_atmosphere_radiance.hlsl",			{ "COMBINED_SCATTER", 0 } },	// RdrComputeShader::AtmosphereRadianceLut_CombinedScatter
+		{ "c_atmosphere_radiance.hlsl",			{ 0 } },						// RdrComputeShader::AtmosphereRadianceLut
+
+		{ "c_volumetric_fog_light.hlsl",		{ 0 } },						// RdrComputeShader::VolumetricFog_Light
+		{ "c_volumetric_fog_accum.hlsl",		{ 0 } },						// RdrComputeShader::VolumetricFog_Accum
 	};
 	static_assert(ARRAY_SIZE(kComputeShaderDefs) == (int)RdrComputeShader::Count, "Missing compute shader defs!");
 
@@ -109,9 +112,9 @@ namespace
 
 	struct ShdrFrameState
 	{
-		SizedArray<ShdrCmdCreatePixelShader, 128> pixelShaderCreates;
-		SizedArray<ShdrCmdCreateInputLayout, 128> layoutCreates;
-		SizedArray<ShdrCmdReloadShader, 128>      shaderReloads;
+		FixedVector<ShdrCmdCreatePixelShader, 128> pixelShaderCreates;
+		FixedVector<ShdrCmdCreateInputLayout, 128> layoutCreates;
+		FixedVector<ShdrCmdReloadShader, 128>      shaderReloads;
 	};
 
 	struct InputLayoutCache

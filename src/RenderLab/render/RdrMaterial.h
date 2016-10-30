@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UtilsLib/Array.h"
 #include "RdrShaders.h"
 #include "RdrResource.h"
 
@@ -13,9 +14,8 @@ struct RdrMaterial
 	static uint16 GetMaterialId(const RdrMaterial* pMaterial);
 
 	RdrShaderHandle hPixelShaders[(int)RdrShaderMode::Count];
-	RdrResourceHandle hTextures[kMaxTextures];
-	RdrSamplerState samplers[kMaxTextures];
-	uint texCount;
+	Array<RdrResourceHandle, kMaxTextures> ahTextures;
+	Array<RdrSamplerState, 4> aSamplers;
 	bool bNeedsLighting;
 	bool bAlphaCutout;
 };

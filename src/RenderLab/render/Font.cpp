@@ -72,13 +72,11 @@ void Font::Init()
 	s_text.hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_vertexDesc, ARRAY_SIZE(s_vertexDesc));
 
 	s_text.material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_text.hlsl", nullptr, 0);
-	s_text.material.samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
+	s_text.material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 
 	RdrTextureInfo texInfo;
-	s_text.material.hTextures[0] = RdrResourceSystem::CreateTextureFromFile("fonts/verdana", &texInfo);
+	s_text.material.ahTextures.assign(0, RdrResourceSystem::CreateTextureFromFile("fonts/verdana", &texInfo));
 	s_text.glyphPixelSize = texInfo.width / 16;
-
-	s_text.material.texCount = 1;
 }
 
 TextObject Font::CreateText(const char* text)

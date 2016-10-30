@@ -16,6 +16,8 @@
 #include "RdrInstancedObjectDataBuffer.h"
 #include "Scene.h"
 #include "../../data/shaders/light_types.h"
+#include "AssetLib/SkyAsset.h"
+
 namespace
 {
 	const uint kMaxInstancesPerDraw = 2048;
@@ -33,6 +35,7 @@ namespace
 
 	enum class RdrPsResourceSlots
 	{
+		VolumetricFogLut = 12,
 		SkyTransmittance = 13,
 		ShadowMaps = 14,
 		ShadowCubeMaps = 15,
@@ -50,12 +53,13 @@ namespace
 
 	// Pass to bucket mappings
 	RdrBucketType s_passBuckets[] = {
-		RdrBucketType::Opaque,	     // RdrPass::ZPrepass
-		RdrBucketType::LightCulling, // RdrPass::LightCulling
-		RdrBucketType::Opaque,	     // RdrPass::Opaque
-		RdrBucketType::Sky,	         // RdrPass::Sky
-		RdrBucketType::Alpha,		 // RdrPass::Alpha
-		RdrBucketType::UI,		     // RdrPass::UI
+		RdrBucketType::Opaque,	      // RdrPass::ZPrepass
+		RdrBucketType::LightCulling,  // RdrPass::LightCulling
+		RdrBucketType::VolumetricFog, // RdrPass::VolumetricFog
+		RdrBucketType::Opaque,	      // RdrPass::Opaque
+		RdrBucketType::Sky,	          // RdrPass::Sky
+		RdrBucketType::Alpha,		  // RdrPass::Alpha
+		RdrBucketType::UI,		      // RdrPass::UI
 	};
 	static_assert(sizeof(s_passBuckets) / sizeof(s_passBuckets[0]) == (int)RdrPass::Count, "Missing pass -> bucket mappings");
 
@@ -64,6 +68,7 @@ namespace
 	{
 		L"Z-Prepass",		// RdrPass::ZPrepass
 		L"Light Culling",	// RdrPass::LightCulling
+		L"Volumetric Fog",	// RdrPass::VolumetricFog
 		L"Opaque",			// RdrPass::Opaque
 		L"Sky",				// RdrPass::Sky
 		L"Alpha",			// RdrPass::Alpha
@@ -76,6 +81,7 @@ namespace
 	{
 		RdrProfileSection::ZPrepass,		// RdrPass::ZPrepass
 		RdrProfileSection::LightCulling,	// RdrPass::LightCulling
+		RdrProfileSection::VolumetricFog,	// RdrPass::VolumetricFog
 		RdrProfileSection::Opaque,			// RdrPass::Opaque
 		RdrProfileSection::Sky,				// RdrPass::Sky
 		RdrProfileSection::Alpha,			// RdrPass::Alpha
@@ -98,7 +104,8 @@ namespace
 	}
 
 	void cullSceneToCamera(const Camera& rCamera, Scene* pScene, 
-		RdrDrawBuckets* pDrawBuckets, float* pOutDepthMin, float* pOutDepthMax)
+		RdrDrawBuckets* pDrawBuckets, const RdrVolumetricFogData& rFogData,
+		float* pOutDepthMin, float* pOutDepthMax)
 	{
 		Vec3 camDir = rCamera.GetDirection();
 		Vec3 camPos = rCamera.GetPosition();
@@ -129,13 +136,13 @@ namespace
 
 		// Terrain & Sky
 		pScene->GetTerrain().QueueDraw(pDrawBuckets, rCamera);
-		pScene->GetSky().QueueDraw(pDrawBuckets);
+		pScene->GetSky().QueueDraw(pDrawBuckets, rFogData);
 
 		*pOutDepthMin = max(rCamera.GetNearDist(), depthMin);
 		*pOutDepthMax = min(rCamera.GetFarDist(), depthMax);
 	}
 
-	void createPerActionConstants(const Camera& rCamera, const Rect& rViewport, RdrGlobalConstants& rConstants)
+	void createPerActionConstants(const Camera& rCamera, const Rect& rViewport, const Sky& rSky, RdrGlobalConstants& rConstants)
 	{
 		Matrix44 mtxView;
 		Matrix44 mtxProj;
@@ -143,17 +150,17 @@ namespace
 		rCamera.GetMatrices(mtxView, mtxProj);
 
 		// VS
-		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(VsPerAction));
+		uint constantsSize = sizeof(VsPerAction);
 		VsPerAction* pVsPerAction = (VsPerAction*)RdrFrameMem::AllocAligned(constantsSize, 16);
 
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = rCamera.GetPosition();
 
-		rConstants.hVsPerFrame = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
+		rConstants.hVsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
 
 		// PS
-		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
+		constantsSize = sizeof(PsPerAction);
 		PsPerAction* pPsPerAction = (PsPerAction*)RdrFrameMem::AllocAligned(constantsSize, 16);
 
 		pPsPerAction->cameraPos = rCamera.GetPosition();
@@ -161,8 +168,13 @@ namespace
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
 		pPsPerAction->viewSize.x = (uint)rViewport.width;
 		pPsPerAction->viewSize.y = (uint)rViewport.height;
+		pPsPerAction->cameraNearDist = rCamera.GetNearDist();
+		pPsPerAction->cameraFarDist = rCamera.GetFarDist();
+		pPsPerAction->cameraFovY = rCamera.GetFieldOfViewY();
+		pPsPerAction->aspectRatio = rCamera.GetAspectRatio();
+		pPsPerAction->volumetricFogFarDepth = rSky.GetVolFogSettings().farDepth;
 
-		rConstants.hPsPerFrame = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
+		rConstants.hPsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
 
 	void createUiConstants(const Rect& rViewport, RdrGlobalConstants& rConstants)
@@ -171,17 +183,17 @@ namespace
 		Matrix44 mtxProj = DirectX::XMMatrixOrthographicLH((float)rViewport.width, (float)rViewport.height, 0.01f, 1000.f);
 
 		// VS
-		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(VsPerAction));
+		uint constantsSize = sizeof(VsPerAction);
 		VsPerAction* pVsPerAction = (VsPerAction*)RdrFrameMem::AllocAligned(constantsSize, 16);
 
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = Vec3::kZero;
 
-		rConstants.hVsPerFrame = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
+		rConstants.hVsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
 
 		// PS
-		constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(PsPerAction));
+		constantsSize = sizeof(PsPerAction);
 		PsPerAction* pPsPerAction = (PsPerAction*)RdrFrameMem::AllocAligned(constantsSize, 16);
 
 		pPsPerAction->cameraPos = Vec3::kOrigin;
@@ -190,7 +202,7 @@ namespace
 		pPsPerAction->viewSize.x = (uint)rViewport.width;
 		pPsPerAction->viewSize.y = (uint)rViewport.height;
 
-		rConstants.hPsPerFrame = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
+		rConstants.hPsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
 
 	RdrConstantBufferHandle createCubemapCaptureConstants(const Vec3& position, const float nearDist, const float farDist)
@@ -198,7 +210,7 @@ namespace
 		Camera cam;
 		Matrix44 mtxView, mtxProj;
 
-		uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(GsCubemapPerAction));
+		uint constantsSize = sizeof(GsCubemapPerAction);
 		GsCubemapPerAction* pGsConstants = (GsCubemapPerAction*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		for (uint f = 0; f < (uint)CubemapFace::Count; ++f)
 		{
@@ -255,7 +267,7 @@ bool Renderer::Init(HWND hWnd, int width, int height, InputManager* pInputManage
 		std::align(16, dataSize, pAlignedData, temp);
 
 		m_instanceIds[i].ids = (uint*)pAlignedData;
-		m_instanceIds[i].buffer.size = RdrConstantBuffer::GetRequiredSize(kMaxInstancesPerDraw * sizeof(uint));
+		m_instanceIds[i].buffer.size = kMaxInstancesPerDraw * sizeof(uint);
 		m_instanceIds[i].buffer.bufferObj = m_pContext->CreateConstantBuffer(nullptr, m_instanceIds[i].buffer.size, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	}
 
@@ -296,6 +308,10 @@ void Renderer::ApplyDeviceChanges()
 			RdrResourceSystem::ReleaseResource(m_hColorBufferMultisampled);
 		if (m_hColorBufferRenderTarget)
 			RdrResourceSystem::ReleaseRenderTargetView(m_hColorBufferRenderTarget);
+		if (m_volumetricFogData.hDensityLightLut)
+			RdrResourceSystem::ReleaseResource(m_volumetricFogData.hDensityLightLut);
+		if (m_volumetricFogData.hFinalLut)
+			RdrResourceSystem::ReleaseResource(m_volumetricFogData.hFinalLut);
 
 		// FP16 color
 		m_hColorBuffer = RdrResourceSystem::CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
@@ -318,6 +334,14 @@ void Renderer::ApplyDeviceChanges()
 		m_viewHeight = m_pendingViewHeight;
 
 		m_postProcess.HandleResize(m_viewWidth, m_viewHeight);
+
+		// Volumetric fog LUTs
+		UVec3 lutSize(m_viewWidth / 8, m_viewHeight / 8, 64);
+		m_volumetricFogData.lutSize = lutSize;
+		m_volumetricFogData.hDensityLightLut = RdrResourceSystem::CreateTexture3D(
+			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
+		m_volumetricFogData.hFinalLut = RdrResourceSystem::CreateTexture3D(
+			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
 	}
 }
 
@@ -343,8 +367,8 @@ void Renderer::QueueClusteredLightCulling()
 {
 	const Camera& rCamera = m_pCurrentAction->camera;
 
-	int clusterCountX = (m_viewWidth + (CLUSTEREDLIGHTING_TILE_SIZE - 1)) / CLUSTEREDLIGHTING_TILE_SIZE;
-	int clusterCountY = (m_viewHeight + (CLUSTEREDLIGHTING_TILE_SIZE - 1)) / CLUSTEREDLIGHTING_TILE_SIZE;
+	int clusterCountX = RdrComputeOp::getThreadGroupCount(m_viewWidth, CLUSTEREDLIGHTING_TILE_SIZE);
+	int clusterCountY = RdrComputeOp::getThreadGroupCount(m_viewHeight, CLUSTEREDLIGHTING_TILE_SIZE);
 	int clusterCountZ = CLUSTEREDLIGHTING_DEPTH_SLICES;
 	bool clusterCountChanged = false;
 
@@ -369,13 +393,11 @@ void Renderer::QueueClusteredLightCulling()
 	pCullOp->threads[0] = clusterCountX;
 	pCullOp->threads[1] = clusterCountY;
 	pCullOp->threads[2] = clusterCountZ;
-	pCullOp->hWritableResources[0] = m_clusteredLightData.hLightIndices;
-	pCullOp->writableResourceCount = 1;
-	pCullOp->hResources[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
-	pCullOp->hResources[1] = m_pCurrentAction->lightParams.hPointLightListRes;
-	pCullOp->resourceCount = 2;
+	pCullOp->ahWritableResources.assign(0, m_clusteredLightData.hLightIndices);
+	pCullOp->ahResources.assign(0, m_pCurrentAction->lightParams.hSpotLightListRes);
+	pCullOp->ahResources.assign(1, m_pCurrentAction->lightParams.hPointLightListRes);
 
-	uint constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(ClusteredLightCullingParams));
+	uint constantsSize = sizeof(ClusteredLightCullingParams);
 	ClusteredLightCullingParams* pParams = (ClusteredLightCullingParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
 
 	Matrix44 mtxProj;
@@ -393,15 +415,9 @@ void Renderer::QueueClusteredLightCulling()
 	pParams->spotLightCount = m_pCurrentAction->lightParams.spotLightCount;
 	pParams->pointLightCount = m_pCurrentAction->lightParams.pointLightCount;
 
-	if (m_clusteredLightData.hCullConstants)
-	{
-		RdrResourceSystem::UpdateConstantBuffer(m_clusteredLightData.hCullConstants, pParams);
-	}
-	else
-	{
-		m_clusteredLightData.hCullConstants = RdrResourceSystem::CreateConstantBuffer(pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
-	}
-	pCullOp->hCsConstants = m_clusteredLightData.hCullConstants;
+	m_clusteredLightData.hCullConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_clusteredLightData.hCullConstants, 
+		pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+	pCullOp->ahConstantBuffers.assign(0, m_clusteredLightData.hCullConstants);
 
 	AddComputeOpToPass(pCullOp, RdrPass::LightCulling);
 }
@@ -410,8 +426,8 @@ void Renderer::QueueTiledLightCulling()
 {
 	const Camera& rCamera = m_pCurrentAction->camera;
 
-	int tileCountX = (m_viewWidth + (TILEDLIGHTING_TILE_SIZE - 1)) / TILEDLIGHTING_TILE_SIZE;
-	int tileCountY = (m_viewHeight + (TILEDLIGHTING_TILE_SIZE - 1)) / TILEDLIGHTING_TILE_SIZE;
+	int tileCountX = RdrComputeOp::getThreadGroupCount(m_viewWidth, TILEDLIGHTING_TILE_SIZE);
+	int tileCountY = RdrComputeOp::getThreadGroupCount(m_viewHeight, TILEDLIGHTING_TILE_SIZE);
 	bool tileCountChanged = false;
 
 	if (m_tiledLightData.tileCountX != tileCountX || m_tiledLightData.tileCountY != tileCountY)
@@ -430,16 +446,7 @@ void Renderer::QueueTiledLightCulling()
 		m_tiledLightData.hDepthMinMaxTex = RdrResourceSystem::CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT, RdrResourceUsage::Default);
 	}
 
-	RdrComputeOp* pDepthOp = RdrFrameMem::AllocComputeOp();
-	pDepthOp->shader = RdrComputeShader::TiledDepthMinMax;
-	pDepthOp->threads[0] = tileCountX;
-	pDepthOp->threads[1] = tileCountY;
-	pDepthOp->threads[2] = 1;
-	pDepthOp->hWritableResources[0] = m_tiledLightData.hDepthMinMaxTex;
-	pDepthOp->writableResourceCount = 1;
-	pDepthOp->hResources[0] = m_hPrimaryDepthBuffer;
-	pDepthOp->resourceCount = 1;
-
+	// Update constants
 	Matrix44 viewMtx;
 	Matrix44 invProjMtx;
 	rCamera.GetMatrices(viewMtx, invProjMtx);
@@ -455,15 +462,19 @@ void Renderer::QueueTiledLightCulling()
 		pConstants[i].z = invProjMtx.m[i][2];
 		pConstants[i].w = invProjMtx.m[i][3];
 	}
-	if (m_tiledLightData.hDepthMinMaxConstants)
-	{
-		RdrResourceSystem::UpdateConstantBuffer(m_tiledLightData.hDepthMinMaxConstants, pConstants);
-	}
-	else
-	{
-		m_tiledLightData.hDepthMinMaxConstants = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
-	}
-	pDepthOp->hCsConstants = m_tiledLightData.hDepthMinMaxConstants;
+
+	m_tiledLightData.hDepthMinMaxConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_tiledLightData.hDepthMinMaxConstants,
+		pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+
+	// Fill draw op
+	RdrComputeOp* pDepthOp = RdrFrameMem::AllocComputeOp();
+	pDepthOp->shader = RdrComputeShader::TiledDepthMinMax;
+	pDepthOp->threads[0] = tileCountX;
+	pDepthOp->threads[1] = tileCountY;
+	pDepthOp->threads[2] = 1;
+	pDepthOp->ahWritableResources.assign(0, m_tiledLightData.hDepthMinMaxTex);
+	pDepthOp->ahResources.assign(0, m_hPrimaryDepthBuffer);
+	pDepthOp->ahConstantBuffers.assign(0, m_tiledLightData.hDepthMinMaxConstants);
 
 	AddComputeOpToPass(pDepthOp, RdrPass::LightCulling);
 
@@ -476,20 +487,10 @@ void Renderer::QueueTiledLightCulling()
 		m_tiledLightData.hLightIndices = RdrResourceSystem::CreateDataBuffer(nullptr, tileCountX * tileCountY * TILEDLIGHTING_BLOCK_SIZE, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
 	}
 
-	RdrComputeOp* pCullOp = RdrFrameMem::AllocComputeOp();
-	pCullOp->threads[0] = tileCountX;
-	pCullOp->threads[1] = tileCountY;
-	pCullOp->threads[2] = 1;
-	pCullOp->hWritableResources[0] = m_tiledLightData.hLightIndices;
-	pCullOp->writableResourceCount = 1;
-	pCullOp->hResources[0] = m_pCurrentAction->lightParams.hSpotLightListRes;
-	pCullOp->hResources[1] = m_pCurrentAction->lightParams.hPointLightListRes;
-	pCullOp->hResources[2] = m_tiledLightData.hDepthMinMaxTex;
-	pCullOp->resourceCount = 3;
-
-	constantsSize = RdrConstantBuffer::GetRequiredSize(sizeof(TiledLightCullingParams));
+	// Update constants
+	constantsSize = sizeof(TiledLightCullingParams);
 	TiledLightCullingParams* pParams = (TiledLightCullingParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
-	
+
 	Matrix44 mtxProj;
 	rCamera.GetMatrices(pParams->mtxView, mtxProj);
 
@@ -506,17 +507,80 @@ void Renderer::QueueTiledLightCulling()
 	pParams->tileCountX = tileCountX;
 	pParams->tileCountY = tileCountY;
 
-	if (m_tiledLightData.hCullConstants)
-	{
-		RdrResourceSystem::UpdateConstantBuffer(m_tiledLightData.hCullConstants, pParams);
-	}
-	else
-	{
-		m_tiledLightData.hCullConstants = RdrResourceSystem::CreateConstantBuffer(pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
-	}
-	pCullOp->hCsConstants = m_tiledLightData.hCullConstants;
+	m_tiledLightData.hCullConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_tiledLightData.hCullConstants,
+		pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+
+	// Fill draw op
+	RdrComputeOp* pCullOp = RdrFrameMem::AllocComputeOp();
+	pCullOp->threads[0] = tileCountX;
+	pCullOp->threads[1] = tileCountY;
+	pCullOp->threads[2] = 1;
+	pCullOp->ahWritableResources.assign(0, m_tiledLightData.hLightIndices);
+	pCullOp->ahResources.assign(0, m_pCurrentAction->lightParams.hSpotLightListRes);
+	pCullOp->ahResources.assign(1, m_pCurrentAction->lightParams.hPointLightListRes);
+	pCullOp->ahResources.assign(2, m_tiledLightData.hDepthMinMaxTex);
+	pCullOp->ahConstantBuffers.assign(0, m_tiledLightData.hCullConstants);
 
 	AddComputeOpToPass(pCullOp, RdrPass::LightCulling);
+}
+
+void Renderer::QueueVolumetricFog(const Sky& rSky)
+{
+	RdrLightParams& rLightParams = m_pCurrentAction->lightParams;
+	const AssetLib::VolumetricFogSettings& rFogSettings = rSky.GetVolFogSettings();
+
+	// Update constants
+	VolumetricFogParams* pFogParams = (VolumetricFogParams*)RdrFrameMem::AllocAligned(sizeof(VolumetricFogParams), 16);
+	pFogParams->lutSize = m_volumetricFogData.lutSize;
+	pFogParams->farDepth = rFogSettings.farDepth;
+	pFogParams->phaseG = rFogSettings.phaseG;
+	pFogParams->absorptionCoeff = rFogSettings.absorptionCoeff;
+	pFogParams->scatteringCoeff = rFogSettings.scatteringCoeff;
+
+	m_volumetricFogData.hFogConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_volumetricFogData.hFogConstants, 
+		pFogParams, sizeof(VolumetricFogParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Participating media density and per-froxel lighting.
+	RdrComputeOp* pLightOp = RdrFrameMem::AllocComputeOp();
+	pLightOp->shader = RdrComputeShader::VolumetricFog_Light;
+
+	pLightOp->ahWritableResources.assign(0, m_volumetricFogData.hDensityLightLut);
+
+	pLightOp->ahConstantBuffers.assign(0, m_pCurrentAction->constants.hPsPerAction);
+	pLightOp->ahConstantBuffers.assign(1, rLightParams.hDirectionalLightsCb);
+	pLightOp->ahConstantBuffers.assign(2, m_pCurrentAction->constants.hPsAtmosphere);
+	pLightOp->ahConstantBuffers.assign(3, m_volumetricFogData.hFogConstants);
+
+	pLightOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
+	pLightOp->aSamplers.assign(1, RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false));
+
+	pLightOp->ahResources.assign(0, rLightParams.hSkyTransmittanceLut);
+	pLightOp->ahResources.assign(1, rLightParams.hShadowMapTexArray);
+	pLightOp->ahResources.assign(2, rLightParams.hShadowCubeMapTexArray);
+	pLightOp->ahResources.assign(3, rLightParams.hSpotLightListRes);
+	pLightOp->ahResources.assign(4, rLightParams.hPointLightListRes);
+	pLightOp->ahResources.assign(5, GetLightIdsResource());
+	pLightOp->ahResources.assign(6, rLightParams.hShadowMapDataRes);
+
+	pLightOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_volumetricFogData.lutSize.x, VOLFOG_LUT_THREADS_X);
+	pLightOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_volumetricFogData.lutSize.y, VOLFOG_LUT_THREADS_Y);
+	pLightOp->threads[2] = m_volumetricFogData.lutSize.z;
+	AddComputeOpToPass(pLightOp, RdrPass::VolumetricFog);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Scattering accumulation
+	RdrComputeOp* pAccumOp = RdrFrameMem::AllocComputeOp();
+	pAccumOp->shader = RdrComputeShader::VolumetricFog_Accum;
+	pAccumOp->ahConstantBuffers.assign(0, m_pCurrentAction->constants.hPsPerAction);
+	pAccumOp->ahConstantBuffers.assign(1, m_volumetricFogData.hFogConstants);
+	pAccumOp->ahResources.assign(0, m_volumetricFogData.hDensityLightLut);
+	pAccumOp->ahWritableResources.assign(0, m_volumetricFogData.hFinalLut);
+
+	pAccumOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_volumetricFogData.lutSize.x, VOLFOG_LUT_THREADS_X);
+	pAccumOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_volumetricFogData.lutSize.y, VOLFOG_LUT_THREADS_Y);
+	pAccumOp->threads[2] = 1;
+	AddComputeOpToPass(pAccumOp, RdrPass::VolumetricFog);
 }
 
 void Renderer::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
@@ -546,7 +610,7 @@ void Renderer::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHand
 	cullSceneToCameraForShadows(rCamera, m_pCurrentAction->pScene, &rShadowPass.buckets);
 	rShadowPass.buckets.SortDrawOps(RdrBucketType::Opaque);
 
-	createPerActionConstants(rCamera, viewport, rShadowPass.constants);
+	createPerActionConstants(rCamera, viewport, m_pCurrentAction->pScene->GetSky(), rShadowPass.constants);
 	rShadowPass.constants.hPsAtmosphere = 0;
 }
 
@@ -579,7 +643,7 @@ void Renderer::QueueShadowCubeMapPass(const Light* pLight, RdrDepthStencilViewHa
 	cullSceneToCameraForShadows(rShadowPass.camera, m_pCurrentAction->pScene, &rShadowPass.buckets);
 	rShadowPass.buckets.SortDrawOps(RdrBucketType::Opaque);
 
-	createPerActionConstants(rShadowPass.camera, viewport, rShadowPass.constants);
+	createPerActionConstants(rShadowPass.camera, viewport, m_pCurrentAction->pScene->GetSky(), rShadowPass.constants);
 	rShadowPass.constants.hPsAtmosphere = 0;
 	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(pLight->position, 0.1f, pLight->radius * 2.f);
 }
@@ -588,7 +652,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 {
 	assert(m_pCurrentAction == nullptr);
 
-	Rect viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);;
+	Rect viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
 
 	m_pCurrentAction = GetNextAction();
 	m_pCurrentAction->name = L"Primary Action";
@@ -619,6 +683,18 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 
 	// Light Culling
 	pPass = &m_pCurrentAction->passes[(int)RdrPass::LightCulling];
+	{
+		pPass->viewport = viewport;
+		pPass->bEnabled = true;
+		pPass->bAlphaBlend = false;
+		pPass->bClearDepthTarget = false;
+		pPass->depthTestMode = RdrDepthTestMode::None;
+		pPass->bDepthWriteEnabled = false;
+		pPass->shaderMode = RdrShaderMode::Normal;
+	}
+
+	// Volumetric Fog
+	pPass = &m_pCurrentAction->passes[(int)RdrPass::VolumetricFog];
 	{
 		pPass->viewport = viewport;
 		pPass->bEnabled = true;
@@ -684,9 +760,10 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 
 	float sceneDepthMin, sceneDepthMax;
 	cullSceneToCamera(m_pCurrentAction->camera, m_pCurrentAction->pScene,
-		&m_pCurrentAction->opBuckets, &sceneDepthMin, &sceneDepthMax);
+		&m_pCurrentAction->opBuckets, m_volumetricFogData, 
+		&sceneDepthMin, &sceneDepthMax);
 
-	createPerActionConstants(m_pCurrentAction->camera, viewport, m_pCurrentAction->constants);
+	createPerActionConstants(m_pCurrentAction->camera, viewport, rScene.GetSky(), m_pCurrentAction->constants);
 	m_pCurrentAction->constants.hPsAtmosphere = rScene.GetSky().GetAtmosphereConstantBuffer();
 
 	createUiConstants(viewport, m_pCurrentAction->uiConstants);
@@ -704,7 +781,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 	m_pCurrentAction->lightParams.hShadowCubeMapTexArray = rLights.GetShadowCubeMapTexArray();
 	m_pCurrentAction->lightParams.hShadowMapTexArray = rLights.GetShadowMapTexArray();
 	m_pCurrentAction->lightParams.hSkyTransmittanceLut = rScene.GetSky().GetTransmittanceLut();
-
+	
 	if (m_eLightingMethod == RdrLightingMethod::Clustered)
 	{
 		QueueClusteredLightCulling();
@@ -713,6 +790,9 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 	{
 		QueueTiledLightCulling();
 	}
+
+	QueueVolumetricFog(rScene.GetSky());
+	m_pCurrentAction->lightParams.hVolumetricFogLut = m_volumetricFogData.hFinalLut;
 }
 
 void Renderer::EndAction()
@@ -999,6 +1079,7 @@ void Renderer::DrawFrame()
 
 			DrawPass(rAction, RdrPass::ZPrepass);
 			DrawPass(rAction, RdrPass::LightCulling);
+			DrawPass(rAction, RdrPass::VolumetricFog);
 			DrawPass(rAction, RdrPass::Opaque);
 			DrawPass(rAction, RdrPass::Sky);
 			DrawPass(rAction, RdrPass::Alpha);
@@ -1041,9 +1122,7 @@ void Renderer::DrawFrame()
 void Renderer::DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, 
 	const RdrGlobalConstants& rGlobalConstants, const RdrLightParams& rLightParams)
 {
-	const RdrResourceHandle hLightIndicesBuffer = (m_eLightingMethod == RdrLightingMethod::Clustered)
-		? m_clusteredLightData.hLightIndices
-		: m_tiledLightData.hLightIndices;
+	const RdrResourceHandle hLightIndicesBuffer = GetLightIdsResource();
 
 	if (g_debugState.enableInstancing & 1)
 	{
@@ -1119,7 +1198,7 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 
 	m_drawState.pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
 
-	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerFrame;
+	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerAction;
 	m_drawState.vsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->bufferObj;
 	m_drawState.vsConstantBufferCount = 1;
 
@@ -1162,12 +1241,16 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 		m_drawState.pHullShader = RdrShaderSystem::GetHullShader(tessShader);
 		m_drawState.pDomainShader = RdrShaderSystem::GetDomainShader(tessShader);
 
-		m_drawState.dsResourceCount = pTessMaterial->resourceCount;
-		m_drawState.dsSamplerCount = pTessMaterial->resourceCount;
-		for (uint i = 0; i < pTessMaterial->resourceCount; ++i)
+		m_drawState.dsResourceCount = pTessMaterial->ahResources.size();
+		for (uint i = 0; i < m_drawState.dsResourceCount; ++i)
 		{
-			m_drawState.dsResources[i] = RdrResourceSystem::GetResource(pTessMaterial->hResources[i])->resourceView;
-			m_drawState.dsSamplers[i] = pTessMaterial->samplers[i];
+			m_drawState.dsResources[i] = RdrResourceSystem::GetResource(pTessMaterial->ahResources.get(i))->resourceView;
+		}
+
+		m_drawState.dsSamplerCount = pTessMaterial->aSamplers.size();
+		for (uint i = 0; i < m_drawState.dsSamplerCount; ++i)
+		{
+			m_drawState.dsSamplers[i] = pTessMaterial->aSamplers.get(i);
 		}
 
 		if (pTessMaterial->hDsConstants)
@@ -1186,15 +1269,19 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 			nullptr;
 		if (m_drawState.pPixelShader)
 		{
-			for (uint i = 0; i < pMaterial->texCount; ++i)
+			m_drawState.psResourceCount = pMaterial->ahTextures.size();
+			for (uint i = 0; i < m_drawState.psResourceCount; ++i)
 			{
-				m_drawState.psResources[i] = RdrResourceSystem::GetResource(pMaterial->hTextures[i])->resourceView;
-				m_drawState.psSamplers[i] = pMaterial->samplers[i];
+				m_drawState.psResources[i] = RdrResourceSystem::GetResource(pMaterial->ahTextures.get(i))->resourceView;
 			}
-			m_drawState.psResourceCount = pMaterial->texCount;
-			m_drawState.psSamplerCount = pMaterial->texCount;
 
-			m_drawState.psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsPerFrame)->bufferObj;
+			m_drawState.psSamplerCount = pMaterial->aSamplers.size();
+			for (uint i = 0; i < m_drawState.psSamplerCount; ++i)
+			{
+				m_drawState.psSamplers[i] = pMaterial->aSamplers.get(i);
+			}
+
+			m_drawState.psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsPerAction)->bufferObj;
 			m_drawState.psConstantBufferCount++;
 
 			if (pMaterial->bNeedsLighting && !bDepthOnly)
@@ -1208,6 +1295,7 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 				m_drawState.psResources[(int)RdrPsResourceSlots::SpotLightList] = RdrResourceSystem::GetResource(rLightParams.hSpotLightListRes)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::PointLightList] = RdrResourceSystem::GetResource(rLightParams.hPointLightListRes)->resourceView;
 
+				m_drawState.psResources[(int)RdrPsResourceSlots::VolumetricFogLut] = RdrResourceSystem::GetResource(rLightParams.hVolumetricFogLut)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::SkyTransmittance] = RdrResourceSystem::GetResource(rLightParams.hSkyTransmittanceLut)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::TileLightIds] = RdrResourceSystem::GetResource(hTileLightIndices)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowMapTexArray)->resourceView;
@@ -1267,33 +1355,32 @@ void Renderer::DispatchCompute(const RdrComputeOp* pComputeOp)
 {
 	m_drawState.pComputeShader = RdrShaderSystem::GetComputeShader(pComputeOp->shader);
 
-	if (pComputeOp->hCsConstants)
+	m_drawState.csConstantBufferCount = pComputeOp->ahConstantBuffers.size();
+	for (uint i = 0; i < m_drawState.csConstantBufferCount; ++i)
 	{
-		m_drawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(pComputeOp->hCsConstants)->bufferObj;
-		m_drawState.csConstantBufferCount = 1;
-	}
-	else
-	{
-		m_drawState.csConstantBufferCount = 0;
+		m_drawState.csConstantBuffers[i] = RdrResourceSystem::GetConstantBuffer(pComputeOp->ahConstantBuffers.get(i))->bufferObj;
 	}
 
-	for (uint i = 0; i < pComputeOp->resourceCount; ++i)
+	uint count = pComputeOp->ahResources.size();
+	for (uint i = 0; i < count; ++i)
 	{
-		if (pComputeOp->hResources[i])
-			m_drawState.csResources[i] = RdrResourceSystem::GetResource(pComputeOp->hResources[i])->resourceView;
+		if (pComputeOp->ahResources.get(i))
+			m_drawState.csResources[i] = RdrResourceSystem::GetResource(pComputeOp->ahResources.get(i))->resourceView;
 		else
 			m_drawState.csResources[i].pTypeless = nullptr;
 	}
 
-	for (uint i = 0; i < pComputeOp->samplerCount; ++i)
+	count = pComputeOp->aSamplers.size();
+	for (uint i = 0; i < count; ++i)
 	{
-		m_drawState.csSamplers[i] = pComputeOp->samplers[i];
+		m_drawState.csSamplers[i] = pComputeOp->aSamplers.get(i);
 	}
 
-	for (uint i = 0; i < pComputeOp->writableResourceCount; ++i)
+	count = pComputeOp->ahWritableResources.size();
+	for (uint i = 0; i < count; ++i)
 	{
-		if (pComputeOp->hWritableResources[i])
-			m_drawState.csUavs[i] = RdrResourceSystem::GetResource(pComputeOp->hWritableResources[i])->uav;
+		if (pComputeOp->ahWritableResources.get(i))
+			m_drawState.csUavs[i] = RdrResourceSystem::GetResource(pComputeOp->ahWritableResources.get(i))->uav;
 		else
 			m_drawState.csUavs[i].pTypeless = nullptr;
 	}
@@ -1367,4 +1454,11 @@ void Renderer::ReleaseResourceReadbackRequest(RdrResourceReadbackRequestHandle h
 	SAFE_DELETE(pReq->pData);
 
 	m_readbackRequests.releaseId(hRequest);
+}
+
+RdrResourceHandle Renderer::GetLightIdsResource() const
+{
+	return (m_eLightingMethod == RdrLightingMethod::Clustered)
+		? m_clusteredLightData.hLightIndices
+		: m_tiledLightData.hLightIndices;
 }

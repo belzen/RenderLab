@@ -9,6 +9,7 @@
 struct RdrDrawOp;
 struct RdrComputeOp;
 struct RdrMaterial;
+struct RdrVolumetricFogData;
 class RdrDrawBuckets;
 
 class Sky
@@ -24,7 +25,7 @@ public:
 
 	void Update(float dt);
 
-	void QueueDraw(RdrDrawBuckets* pDrawBuckets);
+	void QueueDraw(RdrDrawBuckets* pDrawBuckets, const RdrVolumetricFogData& rFogData);
 
 	const char* GetName() const;
 
@@ -32,6 +33,8 @@ public:
 	Vec3 GetSunDirection() const;
 
 	float GetPssmLambda() const;
+
+	const AssetLib::VolumetricFogSettings& GetVolFogSettings() const;
 
 	RdrConstantBufferHandle GetAtmosphereConstantBuffer() const;
 	RdrResourceHandle GetTransmittanceLut() const;
@@ -69,4 +72,3 @@ inline RdrResourceHandle Sky::GetTransmittanceLut() const
 {
 	return m_hTransmittanceLut;
 }
-

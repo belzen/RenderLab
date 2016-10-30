@@ -4,12 +4,19 @@
 struct PsPerAction
 {
 	float4x4 mtxInvProj;
+
 	float3 cameraPos;
-	float unused;
+	float cameraNearDist;
+
 	float3 cameraDir;
-	float unused2;
+	float cameraFarDist;
+
 	uint2 viewSize;
-	float2 unused3;
+	float cameraFovY;
+	float aspectRatio;
+
+	float volumetricFogFarDepth;
+	float3 unused;
 };
 
 struct ToneMapOutputParams

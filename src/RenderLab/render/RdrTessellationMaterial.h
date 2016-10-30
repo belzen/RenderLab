@@ -6,7 +6,6 @@ struct RdrTessellationMaterial
 
 	RdrConstantBufferHandle hDsConstants;
 
-	RdrResourceHandle hResources[2];
-	RdrSamplerState samplers[2];
-	uint resourceCount;
+	Array<RdrResourceHandle, 2> ahResources;
+	Array<RdrSamplerState, 2> aSamplers;
 };

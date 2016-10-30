@@ -6,6 +6,7 @@
 #include "Vec3.h"
 #include "Vec4.h"
 #include "UVec2.h"
+#include "UVec3.h"
 #include "IVec3.h"
 #include "Quaternion.h"
 #include "Matrix44.h"

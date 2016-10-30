@@ -95,8 +95,6 @@ union RdrConstantBufferDeviceObj
 
 struct RdrConstantBuffer
 {
-	static inline uint GetRequiredSize(uint size) { return sizeof(Vec4) * (uint)ceilf(size / (float)sizeof(Vec4)); }
-
 	RdrUnorderedAccessView uav;
 	RdrConstantBufferDeviceObj bufferObj;
 	uint size;

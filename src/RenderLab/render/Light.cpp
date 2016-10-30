@@ -343,14 +343,8 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 		}
 
 		pDirectionalList->numLights = numDirectionalLights;
-		if (!m_hDirectionalLightListCb)
-		{
-			m_hDirectionalLightListCb = RdrResourceSystem::CreateConstantBuffer(pDirectionalList, sizeof(DirectionalLightList), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
-		}
-		else
-		{
-			RdrResourceSystem::UpdateConstantBuffer(m_hDirectionalLightListCb, pDirectionalList);
-		}
+		m_hDirectionalLightListCb = RdrResourceSystem::CreateUpdateConstantBuffer(m_hDirectionalLightListCb,
+			pDirectionalList, sizeof(DirectionalLightList), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 
 		if (m_hShadowMapDataRes)
 		{

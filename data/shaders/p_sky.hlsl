@@ -2,11 +2,12 @@
 #include "p_common.hlsli"
 #include "atmosphere_inc.hlsli"
 
-Texture3D<float4> g_texInscatterLut : register(t0);
+Texture3D<float4> g_texInscatterLut     : register(t0);
 Texture2D<float4> g_texTransmittanceLut : register(t1);
+Texture3D<float4> g_texVolumetricFogLut : register(t2);
 #if ENABLE_GROUND_REFLECTANCE
-	Texture2D<float4> g_texIrradianceLut : register(t2);
-	Texture2D<float4> g_texGroundReflectance : register(t3);
+	Texture2D<float4> g_texIrradianceLut : register(t3);
+	Texture2D<float4> g_texGroundReflectance : register(t4);
 #endif
 
 SamplerState g_sampler : register(s0);
@@ -106,7 +107,13 @@ float4 main(VsOutputSky input) : SV_TARGET
 		sunColor = atmCalcSunColor(viewPos, viewDir, -cbAtmosphere.sunDirection, altitude, cosViewAngle,
 			g_texTransmittanceLut, g_sampler);
 	}
+
+	// Acumulate lighting and apply fog.
+	float3 litColor = sunColor + groundColor + inscatterColor;
+	float3 fogLutCoords = float3(input.position.xy / cbPerAction.viewSize.xy, 1.f);
+	float4 fog = g_texVolumetricFogLut.SampleLevel(g_sampler, fogLutCoords, 0);
+	litColor = litColor * fog.a + fog.rgb;
 	
 	// Combine the components of equation 16 to get the final atmosphere lighting.
-	return float4(sunColor + groundColor + inscatterColor, 1.0);
+	return float4(litColor, 1.0);
 }

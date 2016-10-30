@@ -36,6 +36,15 @@ Sky* Sky::Load(const char* assetName)
 
 	pSky->shadows.pssmLambda = jRoot.get("pssmLambda", 0.f).asFloat();
 
+	// Volumetric fog
+	{
+		Json::Value jFog = jRoot.get("volumetricFog", Json::Value::null);
+		pSky->volumetricFog.scatteringCoeff = jsonReadVec3(jFog.get("scatteringCoeff", Json::Value::null));
+		pSky->volumetricFog.absorptionCoeff = jsonReadVec3(jFog.get("absorptionCoeff", Json::Value::null));
+		pSky->volumetricFog.phaseG = jFog.get("phaseG", 0.f).asFloat();
+		pSky->volumetricFog.farDepth = jFog.get("farDepth", 0.f).asFloat();
+	}
+
 	return pSky;
 }
 

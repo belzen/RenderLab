@@ -12,7 +12,7 @@ struct DirectionalLight
 
 struct DirectionalLightList
 {
-	DirectionalLight lights[8];
+	DirectionalLight lights[2];
 	uint numLights;
 	float3 unused;
 };

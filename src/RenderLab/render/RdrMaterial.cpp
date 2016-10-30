@@ -44,13 +44,11 @@ namespace
 
 		pOutMaterial->bNeedsLighting = pMaterial->bNeedsLighting;
 		pOutMaterial->bAlphaCutout = pMaterial->bAlphaCutout;
-		pOutMaterial->texCount = pMaterial->texCount;
 
-		int numTextures = pOutMaterial->texCount;
-		for (int n = 0; n < numTextures; ++n)
+		for (uint n = 0; n < pMaterial->texCount; ++n)
 		{
-			pOutMaterial->hTextures[n] = RdrResourceSystem::CreateTextureFromFile(pMaterial->textures[n], nullptr);
-			pOutMaterial->samplers[n] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
+			pOutMaterial->ahTextures.assign(n, RdrResourceSystem::CreateTextureFromFile(pMaterial->textures[n], nullptr));
+			pOutMaterial->aSamplers.assign(n, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 		}
 	}
 }

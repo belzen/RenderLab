@@ -41,6 +41,14 @@ struct RdrClusteredLightingData
 	int					    clusterCountZ;
 };
 
+struct RdrVolumetricFogData
+{
+	RdrConstantBufferHandle hFogConstants;
+	RdrResourceHandle hDensityLightLut;
+	RdrResourceHandle hFinalLut;
+	UVec3 lutSize;
+};
+
 class Renderer
 {
 public:
@@ -82,6 +90,7 @@ private:
 	void DrawShadowPass(const RdrShadowPass& rPass);
 	void QueueTiledLightCulling();
 	void QueueClusteredLightCulling();
+	void QueueVolumetricFog(const Sky& rSky);
 
 	RdrFrameState& GetQueueState();
 	RdrFrameState& GetActiveState();
@@ -95,6 +104,9 @@ private:
 
 	void ProcessReadbackRequests();
 
+	RdrResourceHandle GetLightIdsResource() const;
+
+private:
 	///
 	RdrContext* m_pContext;
 
@@ -124,6 +136,7 @@ private:
 	RdrLightingMethod m_eLightingMethod;
 	RdrTiledLightingData m_tiledLightData;
 	RdrClusteredLightingData m_clusteredLightData;
+	RdrVolumetricFogData m_volumetricFogData;
 
 	RdrPostProcess m_postProcess;
 

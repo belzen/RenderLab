@@ -1,6 +1,6 @@
 #include "c_constants.h"
 
-cbuffer AtmosphereParamsBuffer : register(c0)
+cbuffer AtmosphereParamsBuffer : register(b0)
 {
 	AtmosphereParams cbAtmosphere;
 };
@@ -111,17 +111,17 @@ void main(uint3 globalId : SV_DispatchThreadID)
 				transmittance = min(atmSampleTransmittance(g_texTransmittanceLut, g_sampler, altitude, -cosViewAngle1) / origTransmittance, 1.0);
 			}
 
-			// Scattering equation from Eksel09:
+			// Scattering equation from Elek09:
 			//		S = Density * exp(-T(x, sunAngle) - T(x, viewAngle)
 			// The transmittance lut already contains the exp(), so we can factor the exponent out into:
 			//		S = Density * T'(x, sunAngle) * T'(x, viewAngle)
-			transmittance = transmittance * atmSampleTransmittance(g_texTransmittanceLut, g_sampler, altitude, cosSunAngle1);
-			rayleigh += atmCalcDensityRayleigh(altitude) * transmittance * dx;
-			mie += atmCalcDensityMie(altitude) * transmittance * dx;
+			transmittance *= atmSampleTransmittance(g_texTransmittanceLut, g_sampler, altitude, cosSunAngle1);
+			rayleigh += atmCalcDensityRayleigh(altitude) * transmittance;
+			mie += atmCalcDensityMie(altitude) * transmittance;
 		}
 	}
-	rayleigh *= cbAtmosphere.rayleighScatteringCoeff;
-	mie *= cbAtmosphere.mieScatteringCoeff;
+	rayleigh *= cbAtmosphere.rayleighScatteringCoeff * dx;
+	mie *= cbAtmosphere.mieScatteringCoeff * dx;
 
 	// Independent scattering results to use in the first pass of irradiance and radiance.
 	g_outputTexRayleighScatteringLut[globalId.xyz] = float4(rayleigh, 0.f);

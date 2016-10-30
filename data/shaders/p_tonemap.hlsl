@@ -7,6 +7,7 @@
 
 #define TONEMAP_METHOD FILMIC
 
+
 Texture2D texColor : register(t0);
 Texture2D texBloom : register(t1);
 
@@ -15,7 +16,7 @@ SamplerState samClamp : register(s0);
 StructuredBuffer<ToneMapOutputParams> bufToneMapParams : register(t2);
 
 #if TONEMAP_HISTOGRAM
-cbuffer ToneMapHistogramParamsBuffer : register(c0)
+cbuffer ToneMapHistogramParamsBuffer : register(b0)
 {
 	ToneMapHistogramParams cbHistogram;
 };
@@ -33,7 +34,7 @@ float3 applyFilmicTonemap(float3 color)
 	const float E = 0.02f;
 	const float F = 0.3f;
 
-	return ((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - E / F;
+	return ((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - (E / F);
 }
 
 float4 main(VsOutputSprite input) : SV_TARGET
@@ -67,7 +68,7 @@ float4 main(VsOutputSprite input) : SV_TARGET
 		color.rgb *= Ld / Lw;
 
 	#elif TONEMAP_METHOD == FILMIC
-		const float kExposureBias = 2.f;
+		const float kExposureBias = 1.f;
 		color.rgb = applyFilmicTonemap(color.rgb * kExposureBias) / applyFilmicTonemap(tonemap.white);
 
 	#endif

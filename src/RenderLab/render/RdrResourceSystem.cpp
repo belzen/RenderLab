@@ -5,7 +5,7 @@
 #include "AssetLib/TextureAsset.h"
 #include "AssetLib/AssetLibrary.h"
 #include "UtilsLib/Hash.h"
-#include "UtilsLib/SizedArray.h"
+#include "UtilsLib/FixedVector.h"
 
 #include <DirectXTex/include/DirectXTex.h>
 #include <DirectXTex/include/Dds.h>
@@ -125,23 +125,23 @@ namespace
 
 	struct ResFrameState
 	{
-		SizedArray<CmdCreateTexture, 1024>				textureCreates;
-		SizedArray<CmdCreateBuffer, 1024>				bufferCreates;
-		SizedArray<CmdUpdateBuffer, 1024>				bufferUpdates;
-		SizedArray<CmdReleaseResource, 1024>			resourceReleases;
-		SizedArray<CmdCreateRenderTarget, 1024>			renderTargetCreates;
-		SizedArray<CmdReleaseRenderTarget, 1024>		renderTargetReleases;
-		SizedArray<CmdCreateDepthStencil, 1024>			depthStencilCreates;
-		SizedArray<CmdReleaseDepthStencil, 1024>		depthStencilReleases;
-		SizedArray<CmdCreateShaderResourceView, 1024>   shaderResourceViewCreates;
-		SizedArray<CmdReleaseShaderResourceView, 1024>  shaderResourceViewReleases;
-		SizedArray<CmdUpdateGeo, 1024>					geoUpdates;
-		SizedArray<CmdReleaseGeo, 1024>					geoReleases;
+		FixedVector<CmdCreateTexture, 1024>				textureCreates;
+		FixedVector<CmdCreateBuffer, 1024>				bufferCreates;
+		FixedVector<CmdUpdateBuffer, 1024>				bufferUpdates;
+		FixedVector<CmdReleaseResource, 1024>			resourceReleases;
+		FixedVector<CmdCreateRenderTarget, 1024>			renderTargetCreates;
+		FixedVector<CmdReleaseRenderTarget, 1024>		renderTargetReleases;
+		FixedVector<CmdCreateDepthStencil, 1024>			depthStencilCreates;
+		FixedVector<CmdReleaseDepthStencil, 1024>		depthStencilReleases;
+		FixedVector<CmdCreateShaderResourceView, 1024>   shaderResourceViewCreates;
+		FixedVector<CmdReleaseShaderResourceView, 1024>  shaderResourceViewReleases;
+		FixedVector<CmdUpdateGeo, 1024>					geoUpdates;
+		FixedVector<CmdReleaseGeo, 1024>					geoReleases;
 
-		SizedArray<CmdCreateConstantBuffer, 2048>		constantBufferCreates;
-		SizedArray<CmdUpdateConstantBuffer, 2048>		constantBufferUpdates;
-		SizedArray<CmdReleaseConstantBuffer, 2048>		constantBufferReleases;
-		SizedArray<RdrConstantBufferHandle, 2048>		tempConstantBuffers;
+		FixedVector<CmdCreateConstantBuffer, 2048>		constantBufferCreates;
+		FixedVector<CmdUpdateConstantBuffer, 2048>		constantBufferUpdates;
+		FixedVector<CmdReleaseConstantBuffer, 2048>		constantBufferReleases;
+		FixedVector<RdrConstantBufferHandle, 2048>		tempConstantBuffers;
 	};
 
 	struct ConstantBufferPool
@@ -412,7 +412,21 @@ RdrConstantBufferHandle RdrResourceSystem::CreateConstantBuffer(const void* pDat
 	cmd.eUsage = eUsage;
 	cmd.size = size;
 
+	assert((size % sizeof(Vec4)) == 0);
 	return cmd.hBuffer;
+}
+
+RdrConstantBufferHandle RdrResourceSystem::CreateUpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage)
+{
+	if (hBuffer)
+	{
+		UpdateConstantBuffer(hBuffer, pData);
+		return hBuffer;
+	}
+	else
+	{
+		return CreateConstantBuffer(pData, size, cpuAccessFlags, eUsage);
+	}
 }
 
 RdrConstantBufferHandle RdrResourceSystem::CreateTempConstantBuffer(const void* pData, uint size)

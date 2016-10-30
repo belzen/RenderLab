@@ -28,7 +28,9 @@
     <ClInclude Include="Color.h" />
     <ClInclude Include="Hash.h" />
     <ClInclude Include="ThreadMutex.h" />
-    <ClInclude Include="SizedArray.h" />
+    <ClInclude Include="JsonUtils.h" />
+    <ClInclude Include="FixedVector.h" />
+    <ClInclude Include="Array.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="json">

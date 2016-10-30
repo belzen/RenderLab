@@ -25,6 +25,7 @@
     <ClInclude Include="Matrix44.h" />
     <ClInclude Include="Quaternion.h" />
     <ClInclude Include="UVec2.h" />
+    <ClInclude Include="UVec3.h" />
     <ClInclude Include="Vec2.h" />
     <ClInclude Include="Vec3.h" />
     <ClInclude Include="Vec3Math.h" />

@@ -46,9 +46,8 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	m_hGeo = RdrResourceSystem::CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f));
 
 	m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_sprite.hlsl", nullptr, 0);
-	m_material.hTextures[0] = RdrResourceSystem::CreateTextureFromFile(textureName, nullptr);
-	m_material.samplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
-	m_material.texCount = 1;
+	m_material.ahTextures.assign(0, RdrResourceSystem::CreateTextureFromFile(textureName, nullptr));
+	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 }
 
 void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha)

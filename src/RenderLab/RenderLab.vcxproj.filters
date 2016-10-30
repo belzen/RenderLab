@@ -109,6 +109,12 @@
     <FxCompile Include="..\..\data\shaders\d_terrain.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_volumetric_fog_light.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_volumetric_fog_accum.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FrameTimer.cpp" />
@@ -347,7 +353,9 @@
     <ClInclude Include="..\..\data\shaders\d_constants.h">
       <Filter>shaders</Filter>
     </ClInclude>
-    <ClInclude Include="render\RdrTessellationMaterial.h" />
+    <ClInclude Include="render\RdrTessellationMaterial.h">
+      <Filter>render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\shaders\p_common.hlsli">
@@ -369,6 +377,9 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="..\..\data\shaders\atmosphere_inc.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\data\shaders\global_resources.hlsli">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

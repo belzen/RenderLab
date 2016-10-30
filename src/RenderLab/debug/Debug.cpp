@@ -116,6 +116,10 @@ void Debug::QueueDraw(Renderer& rRenderer, const Camera& rCamera, const FrameTim
 		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
+		sprintf_s(line, "  Volumetric Fog: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::VolumetricFog));
+		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
 		sprintf_s(line, "  Opaque: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Opaque));
 		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);
 

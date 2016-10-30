@@ -4,6 +4,14 @@
 
 namespace AssetLib
 {
+	struct VolumetricFogSettings
+	{
+		Vec3 scatteringCoeff;
+		Vec3 absorptionCoeff;
+		float phaseG;
+		float farDepth;
+	};
+
 	struct Sky
 	{
 		static AssetDef& GetAssetDef();
@@ -24,6 +32,8 @@ namespace AssetLib
 		{
 			float pssmLambda;
 		} shadows;
+
+		VolumetricFogSettings volumetricFog;
 
 		uint timeLastModified;
 		const char* assetName; // Filled in by the AssetLibrary during loading.

@@ -5,6 +5,7 @@ struct VsPerAction
 {
 	float4x4 mtxViewProj;
 	float3 cameraPosition;
+	float unused;
 };
 
 struct VsPerObject

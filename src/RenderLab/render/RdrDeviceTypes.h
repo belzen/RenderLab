@@ -52,6 +52,7 @@ enum class RdrPass
 {
 	ZPrepass,
 	LightCulling,
+	VolumetricFog,
 	Opaque,
 	Sky,
 	Alpha,
@@ -63,6 +64,7 @@ enum class RdrPass
 enum class RdrBucketType
 {
 	LightCulling,
+	VolumetricFog,
 	Opaque,
 	Sky,
 	Alpha,

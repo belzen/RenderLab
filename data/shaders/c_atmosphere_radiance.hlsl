@@ -1,6 +1,6 @@
 #include "c_constants.h"
 
-cbuffer AtmosphereParamsBuffer : register(c0)
+cbuffer AtmosphereParamsBuffer : register(b0)
 {
 	AtmosphereParams cbAtmosphere;
 };
@@ -22,7 +22,7 @@ Texture3D<float4> g_texScatterMie : register(t3);
 RWTexture3D<float4> g_outputTexRadiance : register(u0);
 
 // Equation 7 from Bruneton08 (and line 7 from algorithm 4.1).  Calculating the delta J/radiance
-[numthreads(LUT_THREADS_X, LUT_THREADS_Y, 1)]
+[numthreads(ATM_LUT_THREADS_X, ATM_LUT_THREADS_Y, 1)]
 void main( uint3 globalId : SV_DispatchThreadID )
 {
 	uint3 dims;

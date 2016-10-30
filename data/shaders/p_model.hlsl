@@ -1,6 +1,7 @@
 #include "p_common.hlsli"
 #include "v_output.hlsli"
 #if !DEPTH_ONLY
+#include "global_resources.hlsli"
 #include "light_inc.hlsli"
 #endif
 
@@ -37,9 +38,9 @@ PsOutput main(VsOutputModel input)
 
 	float3 cameraViewDir = normalize(cbPerAction.cameraPos - input.position_ws.xyz);
 
-
 	PsOutput output;
-	output.color.rgb = doLighting(input.position_ws.xyz, color.rgb, normal, cameraViewDir, input.position.xy, cbPerAction.viewSize);
+	output.color.rgb = doLighting(input.position_ws.xyz, color.rgb, normal, cameraViewDir, 
+		input.position.xy, g_texVolumetricFogLut);
 	output.color.a = 1.f;
 	return output;
 #endif
