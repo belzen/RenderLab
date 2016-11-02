@@ -20,19 +20,17 @@ void RdrPostProcessEffects::Init(const AssetLib::PostProcessEffects* pEffects)
 	}
 }
 
-void RdrPostProcessEffects::PrepareDraw()
+void RdrPostProcessEffects::PrepareDraw(float dt)
 {
-	if (!m_hToneMapInputConstants || m_pEffects->timeLastModified != m_updateTime)
-	{
-		uint constantsSize = sizeof(ToneMapInputParams);
-		ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
-		pTonemapSettings->white = m_pEffects->eyeAdaptation.white;
-		pTonemapSettings->middleGrey = m_pEffects->eyeAdaptation.middleGrey;
-		pTonemapSettings->bloomThreshold = m_pEffects->bloom.threshold;
+	uint constantsSize = sizeof(ToneMapInputParams);
+	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
+	pTonemapSettings->white = m_pEffects->eyeAdaptation.white;
+	pTonemapSettings->middleGrey = m_pEffects->eyeAdaptation.middleGrey;
+	pTonemapSettings->minExposure = pow(2.f, m_pEffects->eyeAdaptation.minExposure);
+	pTonemapSettings->maxExposure = pow(2.f, m_pEffects->eyeAdaptation.maxExposure);
+	pTonemapSettings->bloomThreshold = m_pEffects->bloom.threshold;
+	pTonemapSettings->frameTime = dt;
 
-		m_hToneMapInputConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_hToneMapInputConstants, 
-			pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
-
-		m_updateTime = m_pEffects->timeLastModified;
-	}
+	m_hToneMapInputConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_hToneMapInputConstants,
+		pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 }

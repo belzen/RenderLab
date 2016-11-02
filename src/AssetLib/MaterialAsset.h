@@ -14,6 +14,9 @@ namespace AssetLib
 		bool bNeedsLighting;
 		bool bAlphaCutout;
 
+		float roughness;
+		float metalness;
+
 		uint timeLastModified;
 		const char* assetName; // Filled in by the AssetLibrary during loading.
 	};

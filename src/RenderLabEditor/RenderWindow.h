@@ -15,7 +15,7 @@ public:
 
 	void EarlyUpdate();
 	void Update(float dt);
-	void Draw(Scene& rScene, const FrameTimer& rFrameTimer);
+	void Draw(Scene& rScene, const FrameTimer& rFrameTimer, float dt);
 
 private:
 	bool HandleResize(int newWidth, int newHeight);

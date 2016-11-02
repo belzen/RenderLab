@@ -16,6 +16,7 @@ struct RdrMaterial
 	RdrShaderHandle hPixelShaders[(int)RdrShaderMode::Count];
 	Array<RdrResourceHandle, kMaxTextures> ahTextures;
 	Array<RdrSamplerState, 4> aSamplers;
+	RdrConstantBufferHandle hConstants;
 	bool bNeedsLighting;
 	bool bAlphaCutout;
 };

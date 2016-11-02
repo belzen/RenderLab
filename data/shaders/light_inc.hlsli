@@ -4,7 +4,8 @@
 // Specular models
 #define PHONG 1
 #define BLINN_PHONG 2
-#define SPECULAR_MODEL BLINN_PHONG // Active specular model
+#define PBR 3
+#define SPECULAR_MODEL PBR // Active specular model
 
 static const float3 ambient_color = float3(1.f, 1.f, 1.f);
 static const float ambient_intensity = 0.05f;
@@ -110,25 +111,68 @@ uint getLightListIndex(in float2 screenPos, float depth)
 #endif
 }
 
+float specularD(float roughness, float ndh)
+{
+	float alpha = roughness * roughness;
+	float alphaSqr = alpha * alpha;
+
+	float div = ndh * ndh * (alphaSqr - 1) + 1;
+	div = max(0.001f, div);
+	return alphaSqr / (kPi * div * div);
+}
+
+float specularG(float roughness, float ndv, float ndl)
+{
+	float k = (roughness + 1) * (roughness + 1) / 8;
+	float g1v = ndv / (ndv * (1.f - k) + k);
+	float g1l = ndl / (ndl * (1.f - k) + k);
+	return g1v * g1l;
+}
+
+float3 specularF(float3 specColor, float3 viewDir, float3 halfDir)
+{
+	float vdh = dot(viewDir, halfDir);
+	return specColor + (1 - specColor) * exp2(-5.55473f * vdh - 6.98316f * vdh);
+}
+
 void accumulateLighting(
-	in float3 normal, in float3 dirToLight, 
-	in float3 lightColor, in float3 viewDir, 
-	in float shadowFactor, in float falloff,
+	in float3 normal, in float3 dirToLight, in float3 specColor, in float roughness,
+	in float3 lightColor, in float3 viewDir, in float shadowFactor, in float falloff,
 	inout float3 diffuse, inout float3 specular)
 {
 	float ndl = saturate(dot(normal, dirToLight));
-	diffuse += falloff * shadowFactor * (lightColor / kPi) * ndl;
+	if (ndl > 0)
+	{
+		diffuse += falloff * shadowFactor * (lightColor / kPi) * ndl;
 
-	const float kSpecExponent = 150.f;
-	const float kSpecIntensity = 0.1f;
+	#if SPECULAR_MODEL == PBR
+		float3 halfVec = normalize(dirToLight + viewDir);
+		float ndh = saturate(dot(normal, halfVec));
+		float ndv = saturate(dot(normal, viewDir)) + 0.00001f;
 
-#if SPECULAR_MODEL == PHONG
-	float3 reflectVec = normalize(2 * ndl * normal - dirToLight);
-	specular += falloff * shadowFactor * pow(saturate(dot(reflectVec, viewDir)), kSpecExponent) * kSpecIntensity;
-#elif SPECULAR_MODEL == BLINN_PHONG
-	float3 halfVec = normalize(dirToLight + viewDir);
-	specular += lightColor * falloff * shadowFactor * pow(saturate(dot(normal, halfVec)), kSpecExponent) * kSpecIntensity;
-#endif
+		float specD = specularD(roughness, ndh);
+		float specG = specularG(roughness, ndv, ndl);
+		float specF = specularF(specColor, viewDir, halfVec);
+		float3 brdf = (specD * specG * specF) / (4 * ndl * ndv);
+
+		specular += brdf * lightColor * falloff * shadowFactor;
+
+	#elif SPECULAR_MODEL == PHONG
+
+		const float kSpecExponent = 150.f;
+		const float kSpecIntensity = 0.1f;
+		float3 reflectVec = normalize(2 * ndl * normal - dirToLight);
+		specular += falloff * shadowFactor * pow(saturate(dot(reflectVec, viewDir)), kSpecExponent) * kSpecIntensity;
+
+	#elif SPECULAR_MODEL == BLINN_PHONG
+
+		const float kSpecExponent = 150.f;
+		const float kSpecIntensity = 0.1f;
+		float3 halfVec = normalize(dirToLight + viewDir);
+		specular += lightColor * falloff * shadowFactor * pow(saturate(dot(normal, halfVec)), kSpecExponent) * kSpecIntensity;
+
+	#endif
+	}
 }
 
 float3 applyVolumetricFog(in float3 litColor, in float viewDepth, 
@@ -139,7 +183,9 @@ float3 applyVolumetricFog(in float3 litColor, in float viewDepth,
 	return litColor * fog.a + fog.rgb;
 }
 
-float3 doLighting(in float3 pos_ws, in float3 albedo, in float3 normal, in float3 viewDir, 
+float3 doLighting(in float3 pos_ws, in float3 baseColor, 
+	in float roughness, in float metalness,
+	in float3 normal, in float3 viewDir, 
 	in float2 screenPos, in Texture3D<float4> texVolumetricFogLut)
 {
 	float viewDepth = dot((pos_ws - cbPerAction.cameraPos), cbPerAction.cameraDir);
@@ -152,6 +198,10 @@ float3 doLighting(in float3 pos_ws, in float3 albedo, in float3 normal, in float
 	uint i;
 	float3 diffuse = 0;
 	float3 specular = 0;
+
+	float3 albedo = baseColor - baseColor * metalness;
+	float3 dielectricColor = 0.04f;
+	float3 specColor = lerp(dielectricColor, baseColor, metalness);
 
 	/// Directional lights
 	for (i = 0; i < cbDirectionalLights.numLights; ++i)
@@ -178,7 +228,9 @@ float3 doLighting(in float3 pos_ws, in float3 albedo, in float3 normal, in float
 
 		// Calc shadow and apply the attenuated sun light.
 		float shadowFactor = calcShadowFactor(pos_ws, dirToLight, 1000000.f, shadowMapIndex);
-		accumulateLighting(normal, dirToLight, sunColor, viewDir, shadowFactor, 1.f, diffuse, specular);
+		accumulateLighting(normal, dirToLight, specColor, roughness, 
+			sunColor, viewDir, shadowFactor, 1.f, 
+			diffuse, specular);
 	}
 
 	/// Spot lights
@@ -202,7 +254,9 @@ float3 doLighting(in float3 pos_ws, in float3 albedo, in float3 normal, in float
 
 		float shadowFactor = calcShadowFactor(pos_ws, dirToLight, light.radius, light.shadowMapIndex);
 
-		accumulateLighting(normal, dirToLight, light.color, viewDir, shadowFactor, distFalloff * angularFalloff, diffuse, specular);
+		accumulateLighting(normal, dirToLight, specColor, roughness, 
+			light.color, viewDir, shadowFactor, distFalloff * angularFalloff, 
+			diffuse, specular);
 	}
 
 	/// Point lights
@@ -221,7 +275,9 @@ float3 doLighting(in float3 pos_ws, in float3 albedo, in float3 normal, in float
 
 		float shadowFactor = calcShadowFactorCubeMap(pos_ws, dirToLight, posToLight, light.radius, light.shadowMapIndex);
 
-		accumulateLighting(normal, dirToLight, light.color, viewDir, shadowFactor, distFalloff, diffuse, specular);
+		accumulateLighting(normal, dirToLight, specColor, roughness, 
+			light.color, viewDir, shadowFactor, distFalloff, 
+			diffuse, specular);
 	}
 
 	litColor = diffuse * albedo + specular;

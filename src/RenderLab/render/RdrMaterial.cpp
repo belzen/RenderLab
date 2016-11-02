@@ -2,6 +2,8 @@
 #include "RdrMaterial.h"
 #include "RdrShaderSystem.h"
 #include "RdrResourceSystem.h"
+#include "RdrFrameMem.h"
+#include "RdrShaderConstants.h"
 #include "AssetLib/MaterialAsset.h"
 #include "AssetLib/AssetLibrary.h"
 #include "UtilsLib/Hash.h"
@@ -50,6 +52,12 @@ namespace
 			pOutMaterial->ahTextures.assign(n, RdrResourceSystem::CreateTextureFromFile(pMaterial->textures[n], nullptr));
 			pOutMaterial->aSamplers.assign(n, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 		}
+
+		uint constantsSize = sizeof(MaterialParams);
+		MaterialParams* pConstants = (MaterialParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
+		pConstants->metalness = pMaterial->metalness;
+		pConstants->roughness = pMaterial->roughness;
+		pOutMaterial->hConstants = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
 	}
 }
 

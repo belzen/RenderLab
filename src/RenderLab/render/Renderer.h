@@ -59,7 +59,7 @@ public:
 
 	void ApplyDeviceChanges();
 
-	void BeginPrimaryAction(const Camera& rCamera, Scene& rScene);
+	void BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt);
 	void EndAction();
 
 	void QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);

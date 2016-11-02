@@ -34,4 +34,11 @@ struct ToneMapHistogramParams
 	uint tileCount;
 };
 
+struct MaterialParams
+{
+	float roughness;
+	float metalness;
+	float2 unused;
+};
+
 #endif // SHADER_P_CONSTANTS_H

@@ -13,8 +13,9 @@ PsOutput main(DsOutputTerrain input)
 	float3 cameraViewDir = normalize(cbPerAction.cameraPos - input.position_ws.xyz);
 
 	PsOutput output;
-	output.color.rgb = doLighting(input.position_ws.xyz, color.rgb, input.normal, cameraViewDir, 
-		input.position.xy, g_texVolumetricFogLut);
+	output.color.rgb = doLighting(input.position_ws.xyz, 
+		color.rgb, cbMaterial.roughness, cbMaterial.metalness,
+		input.normal, cameraViewDir, input.position.xy, g_texVolumetricFogLut);
 	output.color.a = 1.f;
 	return output;
 #endif

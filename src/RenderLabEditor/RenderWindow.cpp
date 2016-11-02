@@ -61,13 +61,13 @@ void RenderWindow::Update(float dt)
 	m_inputManager.GetActiveContext()->Update(m_inputManager, dt);
 }
 
-void RenderWindow::Draw(Scene& rScene, const FrameTimer& rFrameTimer)
+void RenderWindow::Draw(Scene& rScene, const FrameTimer& rFrameTimer, float dt)
 {
 	// Apply device changes (resizing, fullscreen, etc)
 	m_pRenderer->ApplyDeviceChanges();
 
 	// Primary render action
-	m_pRenderer->BeginPrimaryAction(m_mainCamera, rScene);
+	m_pRenderer->BeginPrimaryAction(m_mainCamera, rScene, dt);
 	{
 		Debug::QueueDraw(*m_pRenderer, m_mainCamera, rFrameTimer);
 	}

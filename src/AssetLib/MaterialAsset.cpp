@@ -27,11 +27,10 @@ Material* Material::Load(const char* assetName)
 	Json::Value jShader = jRoot.get("pixelShader", Json::Value::null);
 	strcpy_s(pMaterial->pixelShader, jShader.asCString());
 
-	Json::Value jNeedsLight = jRoot.get("needsLighting", false);
-	pMaterial->bNeedsLighting = jNeedsLight.asBool();
-
-	Json::Value jAlphaCutout = jRoot.get("alphaCutout", false);
-	pMaterial->bAlphaCutout = jAlphaCutout.asBool();
+	pMaterial->bNeedsLighting = jRoot.get("needsLighting", false).asBool();
+	pMaterial->bAlphaCutout = jRoot.get("alphaCutout", false).asBool();
+	pMaterial->roughness = jRoot.get("roughness", 1.0f).asFloat();
+	pMaterial->metalness = jRoot.get("metalness", 0.0f).asFloat();
 
 	Json::Value jTextures = jRoot.get("textures", Json::Value::null);
 	pMaterial->texCount = jTextures.size();

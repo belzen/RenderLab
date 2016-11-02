@@ -1,5 +1,7 @@
 {
 	"pixelShader" : "p_model.hlsl",
 	"textures" : [ "white", "test_ddn" ],
-	"needsLighting" : true
+	"needsLighting" : true,
+	"roughness" : 0.5,
+	"metalness" : 0.0
 }

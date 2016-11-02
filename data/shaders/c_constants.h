@@ -28,8 +28,12 @@ struct ToneMapInputParams
 {
 	float white;
 	float middleGrey;
+	float minExposure;
+	float maxExposure;
+
 	float bloomThreshold;
-	float unused;
+	float frameTime;
+	float2 unused;
 };
 
 struct Blend2dParams

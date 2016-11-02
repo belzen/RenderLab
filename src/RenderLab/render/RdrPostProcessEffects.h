@@ -10,7 +10,7 @@ public:
 
 	void Init(const AssetLib::PostProcessEffects* pEffects);
 
-	void PrepareDraw();
+	void PrepareDraw(float dt);
 
 	RdrConstantBufferHandle GetToneMapInputConstants() const;
 	const AssetLib::PostProcessEffects* GetEffectsAsset() const;

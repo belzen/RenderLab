@@ -648,7 +648,7 @@ void Renderer::QueueShadowCubeMapPass(const Light* pLight, RdrDepthStencilViewHa
 	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(pLight->position, 0.1f, pLight->radius * 2.f);
 }
 
-void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
+void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt)
 {
 	assert(m_pCurrentAction == nullptr);
 
@@ -666,7 +666,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 	m_pCurrentAction->primaryViewport = viewport;
 
 	m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
-	rScene.GetPostProcEffects()->PrepareDraw();
+	rScene.GetPostProcEffects()->PrepareDraw(dt);
 
 	// Z Prepass
 	RdrPassData* pPass = &m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
@@ -1100,6 +1100,12 @@ void Renderer::DrawFrame()
 				rasterState.bEnableMSAA = false;
 				m_pContext->SetRasterState(rasterState);
 			}
+			else
+			{
+				RdrRenderTargetView renderTargets[MAX_RENDER_TARGETS] = { 0 };
+				RdrDepthStencilView depthView = { 0 };
+				m_pContext->SetRenderTargets(MAX_RENDER_TARGETS, renderTargets, depthView);
+			}
 
 			if (rAction.bEnablePostProcessing)
 			{
@@ -1292,6 +1298,9 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 				m_drawState.psConstantBuffers[2] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsAtmosphere)->bufferObj;
 				m_drawState.psConstantBufferCount++;
 
+				m_drawState.psConstantBuffers[3] = RdrResourceSystem::GetConstantBuffer(pMaterial->hConstants)->bufferObj;
+				m_drawState.psConstantBufferCount++;
+
 				m_drawState.psResources[(int)RdrPsResourceSlots::SpotLightList] = RdrResourceSystem::GetResource(rLightParams.hSpotLightListRes)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::PointLightList] = RdrResourceSystem::GetResource(rLightParams.hPointLightListRes)->resourceView;
 
@@ -1306,6 +1315,7 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 				m_drawState.psSamplers[(int)RdrPsSamplerSlots::Clamp] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 				m_drawState.psSamplers[(int)RdrPsSamplerSlots::ShadowMap] = RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false);
 				m_drawState.psSamplerCount = max((uint)RdrPsSamplerSlots::ShadowMap + 1, m_drawState.psSamplerCount);
+			
 			}
 		}
 	}
