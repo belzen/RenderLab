@@ -42,8 +42,8 @@ struct ToneMapInputParams
 struct Blend2dParams
 {
 	float2 size1;
-	float weight;
-	float unused;
+	float weight1;
+	float weight2;
 };
 
 struct AtmosphereParams

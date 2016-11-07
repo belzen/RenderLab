@@ -118,7 +118,8 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 	// Bloom downsizing textures
 	w = width;
 	h = height;
-	for (i = 0; i < ARRAY_SIZE(m_bloomBuffers); ++i)
+	const uint numBloomBuffers = ARRAY_SIZE(m_bloomBuffers);
+	for (i = 0; i < numBloomBuffers; ++i)
 	{
 		BloomBuffer& rBloom = m_bloomBuffers[i];
 
@@ -134,11 +135,23 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 
 		if (rBloom.hBlendConstants)
 			RdrResourceSystem::ReleaseConstantBuffer(rBloom.hBlendConstants);
+
 		uint constantsSize = sizeof(Blend2dParams);
 		Blend2dParams* pBlendParams = (Blend2dParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pBlendParams->size1.x = (float)w;
 		pBlendParams->size1.y = (float)h;
-		pBlendParams->weight = 0.5f;
+		if (i == numBloomBuffers - 2)
+		{
+			pBlendParams->weight1 = 1.f / numBloomBuffers;
+			pBlendParams->weight2 = 1.f / numBloomBuffers;
+		}
+		else
+		{
+			// Blends after the first one need take the full weight from the smaller buffer.
+			pBlendParams->weight1 = 1.f / numBloomBuffers;
+			pBlendParams->weight2 = 1.f;
+		}
+
 		rBloom.hBlendConstants = RdrResourceSystem::CreateConstantBuffer(pBlendParams, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
 	}
 
