@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 		std::string outFilename = getOutputFilename(filename, AssetLib::Model::GetAssetDef());
 		ModelImport::ImportObj(filename, outFilename);
 	}
-	else if (_stricmp(ext, "tga") == 0 || _stricmp(ext, "tif") == 0)
+	else if (_stricmp(ext, "tga") == 0 || _stricmp(ext, "tif") == 0 || _stricmp(ext, "dds") == 0)
 	{
 		std::string outFilename = getOutputFilename(filename, AssetLib::Texture::GetAssetDef());
 		TextureImport::Import(filename, outFilename);

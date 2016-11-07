@@ -32,7 +32,7 @@ private:
 	void DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrConstantBufferHandle hToneMapInputConstants);
 	void DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
 	void DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrConstantBufferHandle hToneMapInputConstants);
-	void DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
+	void DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrResource* pBloomBuffer);
 
 	RdrShaderHandle m_hToneMapPs;
 	RdrResourceHandle m_hToneMapOutputConstants;
@@ -50,7 +50,7 @@ private:
 		RdrResourceHandle hResources[2];
 		RdrConstantBufferHandle hBlendConstants;
 	};
-	BloomBuffer m_bloomBuffers[4];
+	BloomBuffer m_bloomBuffers[6];
 
 	//////////////////////////////////////////////////////////////////////////
 	// Debug

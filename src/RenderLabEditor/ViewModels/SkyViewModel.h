@@ -23,6 +23,9 @@ private:
 	static float GetPssmLambda(void* pSource);
 	static bool SetPssmLambda(const float lambda, void* pSource);
 
+	static bool GetVolFogEnabled(void* pSource);
+	static bool SetVolFogEnabled(const bool enabled, void* pSource);
+
 	static Vec3 GetVolFogScattering(void* pSource);
 	static bool SetVolFogScattering(const Vec3& scattering, void* pSource);
 	static bool SetVolFogScatteringX(const float value, void* pSource);

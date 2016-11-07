@@ -24,6 +24,9 @@
 #define VOLFOG_LUT_THREADS_X 8
 #define VOLFOG_LUT_THREADS_Y 8
 
+#define SHRINK_THREADS_X 8
+#define SHRINK_THREADS_Y 8
+
 struct ToneMapInputParams
 {
 	float white;
@@ -39,7 +42,8 @@ struct ToneMapInputParams
 struct Blend2dParams
 {
 	float2 size1;
-	float2 size2;
+	float weight;
+	float unused;
 };
 
 struct AtmosphereParams

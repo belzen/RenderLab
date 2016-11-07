@@ -132,7 +132,7 @@ float specularG(float roughness, float ndv, float ndl)
 float3 specularF(float3 specColor, float3 viewDir, float3 halfDir)
 {
 	float vdh = dot(viewDir, halfDir);
-	return specColor + (1 - specColor) * exp2(-5.55473f * vdh - 6.98316f * vdh);
+	return specColor + (1 - specColor) * exp2((-5.55473f * vdh - 6.98316f) * vdh);
 }
 
 void accumulateLighting(
@@ -143,8 +143,13 @@ void accumulateLighting(
 	float ndl = saturate(dot(normal, dirToLight));
 	if (ndl > 0)
 	{
-		diffuse += falloff * shadowFactor * (lightColor / kPi) * ndl;
+		// Apply light attenuation
+		lightColor *= falloff * shadowFactor;
 
+		// Diffuse lighting
+		diffuse += (lightColor * kOneOverPi) * ndl;
+
+		// Specular lighting
 	#if SPECULAR_MODEL == PBR
 		float3 halfVec = normalize(dirToLight + viewDir);
 		float ndh = saturate(dot(normal, halfVec));
@@ -152,24 +157,24 @@ void accumulateLighting(
 
 		float specD = specularD(roughness, ndh);
 		float specG = specularG(roughness, ndv, ndl);
-		float specF = specularF(specColor, viewDir, halfVec);
+		float3 specF = specularF(specColor, viewDir, halfVec);
 		float3 brdf = (specD * specG * specF) / (4 * ndl * ndv);
 
-		specular += brdf * lightColor * falloff * shadowFactor;
+		specular += brdf * lightColor;
 
 	#elif SPECULAR_MODEL == PHONG
 
 		const float kSpecExponent = 150.f;
 		const float kSpecIntensity = 0.1f;
 		float3 reflectVec = normalize(2 * ndl * normal - dirToLight);
-		specular += falloff * shadowFactor * pow(saturate(dot(reflectVec, viewDir)), kSpecExponent) * kSpecIntensity;
+		specular += lightColor * pow(saturate(dot(reflectVec, viewDir)), kSpecExponent) * kSpecIntensity;
 
 	#elif SPECULAR_MODEL == BLINN_PHONG
 
 		const float kSpecExponent = 150.f;
 		const float kSpecIntensity = 0.1f;
 		float3 halfVec = normalize(dirToLight + viewDir);
-		specular += lightColor * falloff * shadowFactor * pow(saturate(dot(normal, halfVec)), kSpecExponent) * kSpecIntensity;
+		specular += lightColor * pow(saturate(dot(normal, halfVec)), kSpecExponent) * kSpecIntensity;
 
 	#endif
 	}

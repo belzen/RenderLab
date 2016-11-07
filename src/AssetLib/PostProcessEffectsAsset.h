@@ -20,6 +20,7 @@ namespace AssetLib
 		struct
 		{
 			float threshold;
+			bool enabled;
 		} bloom;
 
 		uint timeLastModified;

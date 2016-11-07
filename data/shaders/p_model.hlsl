@@ -29,11 +29,12 @@ PsOutput main(VsOutputModel input)
 #if !DEPTH_ONLY
 	float4 color = texDiffuse.Sample(sampDiffuse, input.texcoords);
 
-	float3 normal = texNormals.Sample(sampNormals, input.texcoords).xyz;
-	normal = (normal * 2.f) - 1.f; // Expand normal range
+	float3 normal;
+	normal.xy = (texNormals.Sample(sampNormals, input.texcoords).ga * 2.f) - 1.f; // Expand normal range
+	normal.z = normalize(sqrt(1 - normal.x * normal.x - normal.y * normal.y));
 
 	// Transform normal into world space.
-	normal = (normal.x * input.tangent) + (normal.y * input.bitangent) + (normal.z * input.normal);
+	normal = (normal.x * normalize(input.tangent)) + (normal.y * normalize(input.bitangent)) + (normal.z * normalize(input.normal));
 	normal = normalize(normal);
 
 	float3 cameraViewDir = normalize(cbPerAction.cameraPos - input.position_ws.xyz);

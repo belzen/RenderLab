@@ -5,6 +5,14 @@
 
 class RdrContext;
 
+enum class RdrDefaultResource
+{
+	kBlackTex2d,
+	kBlackTex3d,
+
+	kNumResources
+};
+
 namespace RdrResourceSystem
 {
 	static const uint kPrimaryRenderTargetHandle = 1;
@@ -53,6 +61,9 @@ namespace RdrResourceSystem
 	RdrRenderTargetViewHandle CreateRenderTargetView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize);
 	RdrRenderTargetView GetRenderTargetView(const RdrRenderTargetViewHandle hView);
 	void ReleaseRenderTargetView(const RdrRenderTargetViewHandle hView);
+
+	const RdrResource* GetDefaultResource(const RdrDefaultResource resType);
+	RdrResourceHandle GetDefaultResourceHandle(const RdrDefaultResource resType);
 
 	const RdrResource* GetResource(const RdrResourceHandle hRes);
 	const RdrConstantBuffer* GetConstantBuffer(const RdrConstantBufferHandle hBuffer);

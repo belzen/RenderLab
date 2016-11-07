@@ -8,6 +8,7 @@
 #include "c_constants.h"
 
 static const float kPi = 3.14159f;
+static const float kOneOverPi = 1.f / kPi;
 static const float kDegToRad = kPi / 180.f;
 
 // Minimum cos of the angle between the zenith and the view direction.

@@ -20,7 +20,7 @@ class Scene
 public:
 	Scene();
 
-	void Reload();
+	void QueueReload();
 	void Load(const char* sceneName);
 
 	void Update(float dt);
@@ -43,6 +43,9 @@ public:
 
 	const char* GetName() const;
 
+	const Vec3& GetCameraSpawnPosition() const;
+	const Vec3& GetCameraSpawnPitchYawRoll() const;
+
 private:
 	void Cleanup();
 
@@ -51,6 +54,10 @@ private:
 	Sky m_sky;
 	Terrain m_terrain;
 	RdrPostProcessEffects m_postProcEffects;
+
+	Vec3 m_cameraSpawnPosition;
+	Vec3 m_cameraSpawnPitchYawRoll;
+
 	FileWatcher::ListenerID m_reloadListenerId;
 	char m_sceneName[AssetLib::AssetDef::kMaxNameLen];
 	bool m_reloadPending;
@@ -99,9 +106,4 @@ inline const RdrPostProcessEffects* Scene::GetPostProcEffects() const
 inline RdrPostProcessEffects* Scene::GetPostProcEffects()
 {
 	return &m_postProcEffects;
-}
-
-inline const char* Scene::GetName() const
-{
-	return m_sceneName;
 }

@@ -135,10 +135,11 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 		if (rBloom.hBlendConstants)
 			RdrResourceSystem::ReleaseConstantBuffer(rBloom.hBlendConstants);
 		uint constantsSize = sizeof(Blend2dParams);
-		Blend2dParams* pAddParams = (Blend2dParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
-		pAddParams->size2.x = (float)w;
-		pAddParams->size2.y = (float)h;
-		rBloom.hBlendConstants = RdrResourceSystem::CreateConstantBuffer(pAddParams, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
+		Blend2dParams* pBlendParams = (Blend2dParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
+		pBlendParams->size1.x = (float)w;
+		pBlendParams->size1.y = (float)h;
+		pBlendParams->weight = 0.5f;
+		rBloom.hBlendConstants = RdrResourceSystem::CreateConstantBuffer(pBlendParams, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
 	}
 
 	if (m_useHistogramToneMap)
@@ -176,6 +177,7 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 
 void RdrPostProcess::DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrPostProcessEffects& rEffects)
 {
+	const AssetLib::PostProcessEffects* pEffectsDef = rEffects.GetEffectsAsset();
 	RdrConstantBufferHandle hToneMapInputConstants = rEffects.GetToneMapInputConstants();
 
 	pRdrContext->BeginEvent(L"Post-Process");
@@ -199,9 +201,18 @@ void RdrPostProcess::DoPostProcessing(const InputManager& rInputManager, RdrCont
 		DoLuminanceMeasurement(pRdrContext, rDrawState, pColorBuffer, hToneMapInputConstants);
 	}
 
-	DoBloom(pRdrContext, rDrawState, pColorBuffer, hToneMapInputConstants);
+	const RdrResource* pBloomBuffer = nullptr;
+	if (pEffectsDef->bloom.enabled)
+	{
+		DoBloom(pRdrContext, rDrawState, pColorBuffer, hToneMapInputConstants);
+		pBloomBuffer = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[1]);
+	}
+	else
+	{
+		pBloomBuffer = RdrResourceSystem::GetDefaultResource(RdrDefaultResource::kBlackTex2d);
+	}
 
-	DoTonemap(pRdrContext, rDrawState, pColorBuffer);
+	DoTonemap(pRdrContext, rDrawState, pColorBuffer, pBloomBuffer);
 
 	pRdrContext->EndEvent();
 }
@@ -300,30 +311,39 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 {
 	pRdrContext->BeginEvent(L"Bloom");
 
-	// High-pass filter and downsample to 1/2, 1/4, 1/8, and 1/16 res
+	// High-pass filter and downsample
+	const RdrResource* pLumInput = pColorBuffer;
+	const RdrResource* pTonemapBuffer = RdrResourceSystem::GetResource(m_hToneMapOutputConstants);
+	const RdrResource* pHighPassShrinkOutput = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[0]);
+
+	uint w = RdrComputeOp::getThreadGroupCount(pHighPassShrinkOutput->texInfo.width, SHRINK_THREADS_X);
+	uint h = RdrComputeOp::getThreadGroupCount(pHighPassShrinkOutput->texInfo.height, SHRINK_THREADS_Y);
+
+	rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::BloomShrink);
+	rDrawState.csResources[0] = pLumInput->resourceView;
+	rDrawState.csResources[1] = pTonemapBuffer->resourceView;
+	rDrawState.csUavs[0] = pHighPassShrinkOutput->uav;
+	rDrawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hToneMapInputConstants)->bufferObj;
+	rDrawState.csConstantBufferCount = 1;
+	pRdrContext->DispatchCompute(rDrawState, w, h, 1);
+
+	for (int i = 1; i < ARRAY_SIZE(m_bloomBuffers); ++i)
 	{
-		uint w = RdrComputeOp::getThreadGroupCount(pColorBuffer->texInfo.width, 16);
-		uint h = RdrComputeOp::getThreadGroupCount(pColorBuffer->texInfo.height, 16);
+		const RdrResource* pTexInput = RdrResourceSystem::GetResource(m_bloomBuffers[i - 1].hResources[0]);
+		const RdrResource* pTexOutput = RdrResourceSystem::GetResource(m_bloomBuffers[i].hResources[0]);
 
-		const RdrResource* pLumInput = pColorBuffer;
-		const RdrResource* pTonemapBuffer = RdrResourceSystem::GetResource(m_hToneMapOutputConstants);
-		const RdrResource* pBloomOutput2 = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[0]);
-		const RdrResource* pBloomOutput4 = RdrResourceSystem::GetResource(m_bloomBuffers[1].hResources[0]);
-		const RdrResource* pBloomOutput8 = RdrResourceSystem::GetResource(m_bloomBuffers[2].hResources[0]);
-		const RdrResource* pBloomOutput16 = RdrResourceSystem::GetResource(m_bloomBuffers[3].hResources[0]);
+		w = RdrComputeOp::getThreadGroupCount(pTexOutput->texInfo.width, SHRINK_THREADS_X);
+		h = RdrComputeOp::getThreadGroupCount(pTexOutput->texInfo.height, SHRINK_THREADS_Y);
 
-		rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::BloomShrink);
-		rDrawState.csResources[0] = pLumInput->resourceView;
-		rDrawState.csResources[1] = pTonemapBuffer->resourceView;
-		rDrawState.csUavs[0] = pBloomOutput2->uav;
-		rDrawState.csUavs[1] = pBloomOutput4->uav;
-		rDrawState.csUavs[2] = pBloomOutput8->uav;
-		rDrawState.csUavs[3] = pBloomOutput16->uav;
-		rDrawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hToneMapInputConstants)->bufferObj;
-		rDrawState.csConstantBufferCount = 1;
+		rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::Shrink);
+		rDrawState.csResources[0] = pTexInput->resourceView;
+		rDrawState.csUavs[0] = pTexOutput->uav;
+		rDrawState.csConstantBufferCount = 0;
 		pRdrContext->DispatchCompute(rDrawState, w, h, 1);
 	}
 	
+	//////////////////////////////////////////////////////////////////////////
+	// Blur and accumulate bloom
 	const RdrResource* pInput1 = nullptr;
 	const RdrResource* pInput2 = nullptr;
 	const RdrResource* pOutput = nullptr;
@@ -388,7 +408,7 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 	pRdrContext->EndEvent();
 }
 
-void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer)
+void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrResource* pBloomBuffer)
 {
 	pRdrContext->BeginEvent(L"Tonemap");
 	
@@ -405,7 +425,7 @@ void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState
 		rDrawState.pPixelShader = RdrShaderSystem::GetPixelShader(m_hToneMapHistogramPs);
 
 		rDrawState.psResources[0] = pColorBuffer->resourceView;
-		rDrawState.psResources[1] = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[1])->resourceView;
+		rDrawState.psResources[1] = pBloomBuffer ? pBloomBuffer->resourceView : RdrShaderResourceView();
 		rDrawState.psResources[2] = RdrResourceSystem::GetResource(m_hToneMapOutputConstants)->resourceView;
 		rDrawState.psResources[3] = RdrResourceSystem::GetResource(m_hToneMapHistogramResponseCurve)->resourceView;
 		rDrawState.psResourceCount = 4;
@@ -420,7 +440,7 @@ void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState
 	{
 		rDrawState.pPixelShader = RdrShaderSystem::GetPixelShader(m_hToneMapPs);
 		rDrawState.psResources[0] = pColorBuffer->resourceView;
-		rDrawState.psResources[1] = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[1])->resourceView;
+		rDrawState.psResources[1] = pBloomBuffer ? pBloomBuffer->resourceView : RdrShaderResourceView();
 		rDrawState.psResources[2] = RdrResourceSystem::GetResource(m_hToneMapOutputConstants)->resourceView;
 		rDrawState.psResourceCount = 3;
 

@@ -56,7 +56,8 @@ namespace
 		{ "c_luminance_histogram.hlsl",			{ "STEP_TILE", 0 } },			// RdrComputeShader::LuminanceHistogram_Tile,
 		{ "c_luminance_histogram.hlsl",			{ "STEP_MERGE", 0 } },			// RdrComputeShader::LuminanceHistogram_Merge
 		{ "c_luminance_histogram.hlsl",			{ "STEP_CURVE", 0 } },			// RdrComputeShader::LuminanceHistogram_ResponseCurve
-		{ "c_bloom_shrink.hlsl",				{ 0 } },						// RdrComputeShader::Bloom,
+		{ "c_shrink.hlsl",						{ "BLOOM_HIGHPASS", 0 } },		// RdrComputeShader::BloomShrink,
+		{ "c_shrink.hlsl",						{ 0 } },						// RdrComputeShader::Shrink,
 		{ "c_blend_2d.hlsl",					{ 0 } },						// RdrComputeShader::Blend2d,
 		{ "c_add_2d.hlsl",						{ 0 } },						// RdrComputeShader::Add2d,
 		{ "c_add_3d.hlsl",						{ 0 } },						// RdrComputeShader::Add3d,
@@ -114,7 +115,7 @@ namespace
 	{
 		FixedVector<ShdrCmdCreatePixelShader, 128> pixelShaderCreates;
 		FixedVector<ShdrCmdCreateInputLayout, 128> layoutCreates;
-		FixedVector<ShdrCmdReloadShader, 128>      shaderReloads;
+		FixedVector<ShdrCmdReloadShader, 256>      shaderReloads;
 	};
 
 	struct InputLayoutCache

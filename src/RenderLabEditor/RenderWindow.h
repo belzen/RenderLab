@@ -17,6 +17,8 @@ public:
 	void Update(float dt);
 	void Draw(Scene& rScene, const FrameTimer& rFrameTimer, float dt);
 
+	void SetCameraPosition(const Vec3& position, const Vec3& pitchYawRoll);
+
 private:
 	bool HandleResize(int newWidth, int newHeight);
 	bool HandleKeyDown(int key);

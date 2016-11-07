@@ -73,3 +73,9 @@ void RenderWindow::Draw(Scene& rScene, const FrameTimer& rFrameTimer, float dt)
 	}
 	m_pRenderer->EndAction();
 }
+
+void RenderWindow::SetCameraPosition(const Vec3& position, const Vec3& pitchYawRoll)
+{
+	m_mainCamera.SetPosition(position);
+	m_mainCamera.SetPitchYawRoll(pitchYawRoll);
+}

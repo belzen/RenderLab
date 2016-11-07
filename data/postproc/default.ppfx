@@ -8,6 +8,7 @@
 	},
 	"bloom" : 
 	{
+		"enabled" : true,
 		"threshold" : 5.5
 	}
 }

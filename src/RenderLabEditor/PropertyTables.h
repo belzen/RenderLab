@@ -107,14 +107,20 @@ private:
 class BooleanPropertyDef : public PropertyDef
 {
 public:
-	typedef bool (*ChangedFunc)(void* pSource, bool newValue);
+	typedef bool (*GetValueFunc)(void* pSource);
+	typedef bool (*ChangedFunc)(bool newValue, void* pSource);
 
-	BooleanPropertyDef(const char* name, const char* desc, ChangedFunc changedCallback);
+	BooleanPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback);
 
 	static const uint64 kTypeId;
 	uint64 GetTypeId() const;
 
+	ChangedFunc GetChangedCallback() const;
+
+	bool GetValue(void* pSource) const;
+
 private:
+	GetValueFunc m_getValueCallback;
 	ChangedFunc m_changedCallback;
 };
 
@@ -308,8 +314,9 @@ inline Vec3 Vector3PropertyDef::GetValue(void* pSource) const
 
 //////////////////////////////////////////////////////////////////////////
 // BooleanPropertyDef inlines
-inline BooleanPropertyDef::BooleanPropertyDef(const char* name, const char* desc, ChangedFunc changedCallback)
+inline BooleanPropertyDef::BooleanPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback)
 	: PropertyDef(name, desc)
+	, m_getValueCallback(getValueCallback)
 	, m_changedCallback(changedCallback)
 {
 
@@ -318,6 +325,16 @@ inline BooleanPropertyDef::BooleanPropertyDef(const char* name, const char* desc
 inline uint64 BooleanPropertyDef::GetTypeId() const
 {
 	return kTypeId;
+}
+
+inline BooleanPropertyDef::ChangedFunc BooleanPropertyDef::GetChangedCallback() const
+{
+	return m_changedCallback;
+}
+
+inline bool BooleanPropertyDef::GetValue(void* pSource) const
+{
+	return m_getValueCallback(pSource);
 }
 
 //////////////////////////////////////////////////////////////////////////

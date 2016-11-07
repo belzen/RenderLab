@@ -768,7 +768,7 @@ bool RdrContextD3D11::CreateTexture(const void* pSrcData, const RdrTextureInfo& 
 			{
 				pData[resIndex].pSysMem = pPos;
 				pData[resIndex].SysMemPitch = rdrGetTexturePitch(mipWidth, rTexInfo.format);
-				pData[resIndex].SysMemSlicePitch = 0;
+				pData[resIndex].SysMemSlicePitch = pData[resIndex].SysMemPitch * mipHeight;
 				pPos += pData[resIndex].SysMemPitch * rdrGetTextureRows(mipHeight, rTexInfo.format);
 				if (mipWidth > 1)
 					mipWidth >>= 1;

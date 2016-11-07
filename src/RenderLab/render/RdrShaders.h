@@ -121,6 +121,7 @@ enum class RdrComputeShader
 	LuminanceHistogram_ResponseCurve,
 
 	BloomShrink,
+	Shrink,
 	Blend2d,
 	Add2d,
 	Add3d,

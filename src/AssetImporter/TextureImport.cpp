@@ -81,6 +81,11 @@ bool TextureImport::Import(const std::string& srcFilename, std::string& dstFilen
 		hr = DirectX::LoadFromWICMemory(pImageFileData, imageFileSize, 0, &srcMetadata, srcImage);
 		assert(hr == S_OK);
 	}
+	else if (_stricmp(ext.c_str(), "dds") == 0)
+	{
+		hr = DirectX::LoadFromDDSMemory(pImageFileData, imageFileSize, 0, &srcMetadata, srcImage);
+		assert(hr == S_OK);
+	}
 	else
 	{
 		Error("Unknown texture file type: %s", ext.c_str());
@@ -92,14 +97,34 @@ bool TextureImport::Import(const std::string& srcFilename, std::string& dstFilen
 	// Determine image settings
 	TextureType texType = extractTextureType(srcFilename);
 	DXGI_FORMAT format = DXGI_FORMAT_BC1_UNORM;
-	DWORD compressFlags = DirectX::TEX_COMPRESS_DEFAULT;
+	DWORD compressFlags = DirectX::TEX_COMPRESS_PARALLEL;
 	bool bGenerateMipMaps = true;
 	bool bCompress = true;
 	switch (texType)
 	{
 	case TextureType::NormalMap:
-		// TODO: DXT5nm
-		format = DXGI_FORMAT_BC3_UNORM;
+		{
+			format = DXGI_FORMAT_BC3_UNORM;
+
+			assert(srcMetadata.format == DXGI_FORMAT_R8G8B8A8_UNORM);
+			// Prepare texture for DXT5nm compression
+			// TODO: Info from Dave Eberly: http://www.gamedev.net/topic/539608-mip-mapping-normal-maps/?whichpage=1%25EF%25BF%25BD
+			//		1) Start with 32-bit XYZ normals
+			//		2) Generate mip-maps
+			//		3) For each 4x4 block:
+			//			a) Fit points with a spherical arc
+			//			b) Use arc endpoints as DXT endpoints and write DXT 4x4
+			uint8* pPixels = srcImage.GetPixels();
+			uint count = (uint)(4 * srcMetadata.width * srcMetadata.height);
+			for (uint i = 0; i < count; i += 4)
+			{
+				// Red moved into alpha
+				pPixels[i + 3] = pPixels[i + 0];
+				// Clear red and blue channels.
+				pPixels[i + 0] = 0;
+				pPixels[i + 2] = 0;
+			}
+		}
 		break;
 	case TextureType::Srgb:
 		format = DXGI_FORMAT_BC1_UNORM_SRGB;
@@ -126,7 +151,7 @@ bool TextureImport::Import(const std::string& srcFilename, std::string& dstFilen
 	DirectX::ScratchImage compressedImage;
 	DirectX::ScratchImage* pCurrImage = &srcImage;
 
-	if (bGenerateMipMaps)
+	if (bGenerateMipMaps && srcMetadata.width >= 2 && srcMetadata.height >= 2)
 	{
 		hr = DirectX::GenerateMipMaps(*srcImage.GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT, 0, mipmapImage);
 		assert(hr == S_OK);

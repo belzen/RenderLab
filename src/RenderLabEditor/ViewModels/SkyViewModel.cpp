@@ -15,6 +15,7 @@ const PropertyDef** SkyViewModel::GetProperties()
 		new FloatPropertyDef("Sun Angle Z-Axis", "", -90.f, 270.f, 0.5f, GetSunAngleZAxis, SetSunAngleZAxis),
 		new FloatPropertyDef("PSSM Lambda", "", 0, 1.f, 0.01f, GetPssmLambda, SetPssmLambda),
 		new BeginGroupPropertyDef("Volumetric Fog"),
+		new BooleanPropertyDef("Enabled", nullptr, GetVolFogEnabled, SetVolFogEnabled),
 		new Vector3PropertyDef("Scattering", "", GetVolFogScattering, SetVolFogScattering, SetVolFogScatteringX, SetVolFogScatteringY, SetVolFogScatteringZ),
 		new Vector3PropertyDef("Absorption", "", GetVolFogAbsorption, SetVolFogAbsorption, SetVolFogAbsorptionX, SetVolFogAbsorptionY, SetVolFogAbsorptionZ),
 		new FloatPropertyDef("Phase G", "", -1.f, 1.f, 0.05f, GetVolFogPhaseG, SetVolFogPhaseG),
@@ -77,6 +78,20 @@ bool SkyViewModel::SetPssmLambda(const float lambda, void* pSource)
 {
 	SkyViewModel* pViewModel = (SkyViewModel*)pSource;
 	pViewModel->m_pSky->shadows.pssmLambda = lambda;
+	pViewModel->m_pSky->timeLastModified = timeGetTime();
+	return true;
+}
+
+bool SkyViewModel::GetVolFogEnabled(void* pSource)
+{
+	SkyViewModel* pViewModel = (SkyViewModel*)pSource;
+	return pViewModel->m_pSky->volumetricFog.enabled;
+}
+
+bool SkyViewModel::SetVolFogEnabled(const bool enabled, void* pSource)
+{
+	SkyViewModel* pViewModel = (SkyViewModel*)pSource;
+	pViewModel->m_pSky->volumetricFog.enabled = enabled;
 	pViewModel->m_pSky->timeLastModified = timeGetTime();
 	return true;
 }

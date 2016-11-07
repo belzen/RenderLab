@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AssetLib/AssetLibForwardDecl.h"
 #include "RdrContext.h"
 #include "RdrFrameState.h"
 #include "RdrShaderSystem.h"
@@ -90,7 +91,7 @@ private:
 	void DrawShadowPass(const RdrShadowPass& rPass);
 	void QueueTiledLightCulling();
 	void QueueClusteredLightCulling();
-	void QueueVolumetricFog(const Sky& rSky);
+	void QueueVolumetricFog(const AssetLib::VolumetricFogSettings& rFogSettings);
 
 	RdrFrameState& GetQueueState();
 	RdrFrameState& GetActiveState();

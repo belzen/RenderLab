@@ -104,7 +104,7 @@ namespace
 	}
 
 	void cullSceneToCamera(const Camera& rCamera, Scene* pScene, 
-		RdrDrawBuckets* pDrawBuckets, const RdrVolumetricFogData& rFogData,
+		RdrDrawBuckets* pDrawBuckets, RdrResourceHandle hVolumetricFogLut,
 		float* pOutDepthMin, float* pOutDepthMax)
 	{
 		Vec3 camDir = rCamera.GetDirection();
@@ -136,7 +136,7 @@ namespace
 
 		// Terrain & Sky
 		pScene->GetTerrain().QueueDraw(pDrawBuckets, rCamera);
-		pScene->GetSky().QueueDraw(pDrawBuckets, rFogData);
+		pScene->GetSky().QueueDraw(pDrawBuckets, hVolumetricFogLut);
 
 		*pOutDepthMin = max(rCamera.GetNearDist(), depthMin);
 		*pOutDepthMax = min(rCamera.GetFarDist(), depthMax);
@@ -524,10 +524,9 @@ void Renderer::QueueTiledLightCulling()
 	AddComputeOpToPass(pCullOp, RdrPass::LightCulling);
 }
 
-void Renderer::QueueVolumetricFog(const Sky& rSky)
+void Renderer::QueueVolumetricFog(const AssetLib::VolumetricFogSettings& rFogSettings)
 {
 	RdrLightParams& rLightParams = m_pCurrentAction->lightParams;
-	const AssetLib::VolumetricFogSettings& rFogSettings = rSky.GetVolFogSettings();
 
 	// Update constants
 	VolumetricFogParams* pFogParams = (VolumetricFogParams*)RdrFrameMem::AllocAligned(sizeof(VolumetricFogParams), 16);
@@ -758,9 +757,12 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt
 		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
+	const AssetLib::VolumetricFogSettings& rVolFogSettings = rScene.GetSky().GetVolFogSettings();
+	m_pCurrentAction->lightParams.hVolumetricFogLut = rVolFogSettings.enabled ? m_volumetricFogData.hFinalLut : RdrResourceSystem::GetDefaultResourceHandle(RdrDefaultResource::kBlackTex3d);
+
 	float sceneDepthMin, sceneDepthMax;
 	cullSceneToCamera(m_pCurrentAction->camera, m_pCurrentAction->pScene,
-		&m_pCurrentAction->opBuckets, m_volumetricFogData, 
+		&m_pCurrentAction->opBuckets, m_pCurrentAction->lightParams.hVolumetricFogLut,
 		&sceneDepthMin, &sceneDepthMax);
 
 	createPerActionConstants(m_pCurrentAction->camera, viewport, rScene.GetSky(), m_pCurrentAction->constants);
@@ -791,8 +793,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt
 		QueueTiledLightCulling();
 	}
 
-	QueueVolumetricFog(rScene.GetSky());
-	m_pCurrentAction->lightParams.hVolumetricFogLut = m_volumetricFogData.hFinalLut;
+	QueueVolumetricFog(rVolFogSettings);
 }
 
 void Renderer::EndAction()

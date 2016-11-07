@@ -18,7 +18,7 @@ namespace
 		Scene* pScene = (Scene*)pUserData;
 		if (_stricmp(pScene->GetName(), sceneName) == 0)
 		{
-			pScene->Reload();
+			pScene->QueueReload();
 		}
 	}
 
@@ -67,7 +67,7 @@ void Scene::Cleanup()
 	m_sceneName[0] = 0;
 }
 
-void Scene::Reload()
+void Scene::QueueReload()
 {
 	m_reloadPending = true;
 }
@@ -88,6 +88,10 @@ void Scene::Load(const char* sceneName)
 	char filePattern[AssetLib::AssetDef::kMaxNameLen];
 	AssetLib::Scene::GetAssetDef().GetFilePattern(filePattern, ARRAY_SIZE(filePattern));
 	m_reloadListenerId = FileWatcher::AddListener(filePattern, handleSceneFileChanged, this);
+
+	// Camera
+	m_cameraSpawnPosition = pSceneData->camPosition;
+	m_cameraSpawnPitchYawRoll = pSceneData->camPitchYawRoll;
 
 	// Sky
 	m_sky.Load(pSceneData->sky);
@@ -158,4 +162,20 @@ void Scene::Update(float dt)
 void Scene::AddObject(WorldObject* pObject)
 {
 	m_objects.push_back(pObject);
+}
+
+
+const char* Scene::GetName() const
+{
+	return m_sceneName;
+}
+
+const Vec3& Scene::GetCameraSpawnPosition() const
+{
+	return m_cameraSpawnPosition;
+}
+
+const Vec3& Scene::GetCameraSpawnPitchYawRoll() const
+{
+	return m_cameraSpawnPitchYawRoll;
 }

@@ -2,13 +2,13 @@
 
 #include "AssetLib\AssetLibForwardDecl.h"
 #include "RdrResource.h"
+#include "RdrMaterial.h"
 #include "ModelData.h"
 #include "UtilsLib\FileWatcher.h"
 #include "Light.h"
 
 struct RdrDrawOp;
 struct RdrComputeOp;
-struct RdrMaterial;
 struct RdrVolumetricFogData;
 class RdrDrawBuckets;
 
@@ -25,7 +25,7 @@ public:
 
 	void Update(float dt);
 
-	void QueueDraw(RdrDrawBuckets* pDrawBuckets, const RdrVolumetricFogData& rFogData);
+	void QueueDraw(RdrDrawBuckets* pDrawBuckets, RdrResourceHandle hVolumetricFogLut);
 
 	const char* GetName() const;
 
@@ -43,7 +43,7 @@ private:
 	ModelData* m_pModelData;
 	RdrConstantBufferHandle m_hVsPerObjectConstantBuffer;
 
-	const RdrMaterial* m_pMaterial;
+	RdrMaterial m_material;
 	const AssetLib::Sky* m_pSrcAsset;
 
 	FileWatcher::ListenerID m_reloadListenerId;

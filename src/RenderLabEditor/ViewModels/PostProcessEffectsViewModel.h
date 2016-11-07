@@ -27,6 +27,9 @@ private:
 	static float GetBloomThreshold(void* pSource);
 	static bool SetBloomThreshold(const float bloomThreshold, void* pSource);
 
+	static bool GetBloomEnabled(void* pSource);
+	static bool SetBloomEnabled(const bool enabled, void* pSource);
+
 private:
 	AssetLib::PostProcessEffects* m_pTarget;
 };

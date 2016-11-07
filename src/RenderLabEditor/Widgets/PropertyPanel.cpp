@@ -119,7 +119,10 @@ void PropertyPanel::SetViewModel(IViewModel* pViewModel, bool freeOldViewModel)
 		}
 		else if (typeId == BooleanPropertyDef::kTypeId)
 		{
-			CheckBox* pCheckBox = CheckBox::Create(*this, x, y, controlWidth, kRowHeight, nullptr);
+			const BooleanPropertyDef* pBoolDef = (const BooleanPropertyDef*)pDef;
+
+			CheckBox* pCheckBox = CheckBox::Create(*this, x, y, controlWidth, kRowHeight, pBoolDef->GetChangedCallback(), pViewModel);
+			pCheckBox->SetValue(pBoolDef->GetValue(pViewModel), false);
 			y += pCheckBox->GetHeight() + kPadding;
 
 			m_childWidgets.push_back(pCheckBox);

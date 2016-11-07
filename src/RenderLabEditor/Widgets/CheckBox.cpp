@@ -3,13 +3,14 @@
 #include "Types.h"
 
 CheckBox* CheckBox::Create(const Widget& rParent, int x, int y, int width, int height,
-	ToggledFunc toggledCallback)
+	ToggledFunc toggledCallback, void* pUserData)
 {
-	return new CheckBox(rParent, x, y, width, height, toggledCallback);
+	return new CheckBox(rParent, x, y, width, height, toggledCallback, pUserData);
 }
 
 CheckBox::CheckBox(const Widget& rParent, int x, int y, int width, int height,
-	ToggledFunc toggledCallback)
+	ToggledFunc toggledCallback, void* pUserData)
+	: m_pUserData(pUserData)
 {
 	HMODULE hInstance = ::GetModuleHandle(NULL);
 
@@ -33,6 +34,16 @@ CheckBox::~CheckBox()
 	DestroyWindow(m_hCheckBox);
 }
 
+void CheckBox::SetValue(const bool val, bool triggerCallback)
+{
+	CheckDlgButton(GetWindowHandle(), 0, val ? BST_CHECKED : BST_UNCHECKED);
+
+	if (triggerCallback && m_toggledCallback)
+	{
+		m_toggledCallback(val, m_pUserData);
+	}
+}
+
 LRESULT CALLBACK CheckBox::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
@@ -40,20 +51,7 @@ LRESULT CALLBACK CheckBox::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 	case WM_COMMAND:
 		CheckBox* pCheckBox = (CheckBox*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
 		uint checkedState = IsDlgButtonChecked(pCheckBox->GetWindowHandle(), 0);
-		if (checkedState == BST_CHECKED)
-		{
-			CheckDlgButton(hWnd, 0, BST_UNCHECKED);
-		}
-		else
-		{
-			CheckDlgButton(hWnd, 0, BST_CHECKED);
-		}
-
-		if (pCheckBox->m_toggledCallback)
-		{
-			pCheckBox->m_toggledCallback(pCheckBox, checkedState != BST_CHECKED);
-		}
-		
+		pCheckBox->SetValue(checkedState != BST_CHECKED, true);
 		break;
 	}
 

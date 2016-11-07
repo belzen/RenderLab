@@ -92,6 +92,7 @@ int MainWindow::Run()
 
 	// Load in default scene
 	m_scene.Load("basic");
+	m_renderWindow.SetCameraPosition(m_scene.GetCameraSpawnPosition(), m_scene.GetCameraSpawnPitchYawRoll());
 
 	// Finish editor setup.
 	m_pPropertyPanel = PropertyPanel::Create(*this, GetWidth() - kDefaultPanelWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);

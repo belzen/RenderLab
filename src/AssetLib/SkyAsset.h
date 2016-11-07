@@ -10,6 +10,7 @@ namespace AssetLib
 		Vec3 absorptionCoeff;
 		float phaseG;
 		float farDepth;
+		bool enabled;
 	};
 
 	struct Sky

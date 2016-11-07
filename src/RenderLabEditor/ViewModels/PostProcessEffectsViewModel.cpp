@@ -17,6 +17,7 @@ const PropertyDef** PostProcessEffectsViewModel::GetProperties()
 			new FloatPropertyDef("Max Exposure", "", -16.f, 16.f, 0.1f, GetMaxExposure, SetMaxExposure),
 			new EndGroupPropertyDef(),
 			new BeginGroupPropertyDef("Bloom"),
+			new BooleanPropertyDef("Enabled", nullptr, GetBloomEnabled, SetBloomEnabled),
 			new FloatPropertyDef("Threshold", nullptr, 0.1f, 30.f, 0.1f, GetBloomThreshold, SetBloomThreshold),
 			new EndGroupPropertyDef(),
 			nullptr
@@ -90,6 +91,20 @@ bool PostProcessEffectsViewModel::SetBloomThreshold(const float bloomThreshold, 
 {
 	PostProcessEffectsViewModel* pViewModel = (PostProcessEffectsViewModel*)pSource;
 	pViewModel->m_pTarget->bloom.threshold = bloomThreshold;
+	pViewModel->m_pTarget->timeLastModified = timeGetTime();
+	return true;
+}
+
+bool PostProcessEffectsViewModel::GetBloomEnabled(void* pSource)
+{
+	PostProcessEffectsViewModel* pViewModel = (PostProcessEffectsViewModel*)pSource;
+	return pViewModel->m_pTarget->bloom.enabled;
+}
+
+bool PostProcessEffectsViewModel::SetBloomEnabled(const bool enabled, void* pSource)
+{
+	PostProcessEffectsViewModel* pViewModel = (PostProcessEffectsViewModel*)pSource;
+	pViewModel->m_pTarget->bloom.enabled = enabled;
 	pViewModel->m_pTarget->timeLastModified = timeGetTime();
 	return true;
 }

@@ -25,7 +25,7 @@ namespace
 		RdrTextureInfo texInfo;
 		RdrResourceUsage eUsage;
 
-		char* pHeaderData; // Pointer to start of texture data when loaded from a file.
+		char* pFileData; // Pointer to start of texture data when loaded from a file.
 		char* pData; // Pointer to start of raw data.
 		uint dataSize;
 	};
@@ -153,6 +153,7 @@ namespace
 	struct 
 	{
 		RdrResourceHandleMap	textureCache;
+		RdrResourceHandle		defaultResourceHandles[(int)RdrDefaultResource::kNumResources];
 		RdrResourceList			resources;
 		RdrGeoList				geos;
 
@@ -206,7 +207,7 @@ namespace
 	}
 
 	RdrResourceHandle createTextureInternal(RdrTextureType texType, uint width, uint height, uint depth, 
-		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage)
+		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage, char* pTextureData)
 	{
 		RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
@@ -215,6 +216,7 @@ namespace
 
 		cmd.hResource = s_resourceSystem.resources.getId(pResource);
 		cmd.eUsage = eUsage;
+		cmd.pData = pTextureData;
 		cmd.texInfo.texType = texType;
 		cmd.texInfo.format = eFormat;
 		cmd.texInfo.width = width;
@@ -231,6 +233,13 @@ void RdrResourceSystem::Init()
 {
 	// Reserve id 1 for the primary render target.
 	s_resourceSystem.renderTargetViews.allocSafe();
+
+	// Create default resources.
+	static uchar blackTexData[4] = { 0, 0, 0, 255 };
+	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex2d] = 
+		createTextureInternal(RdrTextureType::k2D, 1, 1, 1, 1, RdrResourceFormat::B8G8R8A8_UNORM, 1, RdrResourceUsage::Immutable, (char*)blackTexData);
+	 s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex3d] =
+		 createTextureInternal(RdrTextureType::k3D, 1, 1, 1, 1, RdrResourceFormat::B8G8R8A8_UNORM, 1, RdrResourceUsage::Immutable, (char*)blackTexData);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, RdrTextureInfo* pOutInfo)
@@ -257,7 +266,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 
 	CmdCreateTexture& cmd = getQueueState().textureCreates.pushSafe();
 	memset(&cmd, 0, sizeof(cmd));
-	cmd.pHeaderData = pTexture->ddsData;
+	cmd.pFileData = pTexture->ddsData;
 	cmd.dataSize = pTexture->ddsDataSize;
 	cmd.hResource = s_resourceSystem.resources.getId(pResource);
 
@@ -298,32 +307,32 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 
 RdrResourceHandle RdrResourceSystem::CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage)
 {
-	return createTextureInternal(RdrTextureType::k2D, width, height, 1, 1, eFormat, 1, eUsage);
+	return createTextureInternal(RdrTextureType::k2D, width, height, 1, 1, eFormat, 1, eUsage, nullptr);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTexture2DMS(uint width, uint height, RdrResourceFormat eFormat, uint sampleCount)
 {
-	return createTextureInternal(RdrTextureType::k2D, width, height, 1, 1, eFormat, sampleCount, RdrResourceUsage::Default);
+	return createTextureInternal(RdrTextureType::k2D, width, height, 1, 1, eFormat, sampleCount, RdrResourceUsage::Default, nullptr);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat)
 {
-	return createTextureInternal(RdrTextureType::k2D, width, height, arraySize, 1, eFormat, 1, RdrResourceUsage::Default);
+	return createTextureInternal(RdrTextureType::k2D, width, height, arraySize, 1, eFormat, 1, RdrResourceUsage::Default, nullptr);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat)
 {
-	return createTextureInternal(RdrTextureType::kCube, width, height, 1, 1, eFormat, 1, RdrResourceUsage::Default);
+	return createTextureInternal(RdrTextureType::kCube, width, height, 1, 1, eFormat, 1, RdrResourceUsage::Default, nullptr);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat)
 {
-	return createTextureInternal(RdrTextureType::kCube, width, height, arraySize, 1, eFormat, 1, RdrResourceUsage::Default);
+	return createTextureInternal(RdrTextureType::kCube, width, height, arraySize, 1, eFormat, 1, RdrResourceUsage::Default, nullptr);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage)
 {
-	return createTextureInternal(RdrTextureType::k3D, width, height, depth, 1, eFormat, 1, eUsage);
+	return createTextureInternal(RdrTextureType::k3D, width, height, depth, 1, eFormat, 1, eUsage, nullptr);
 }
 
 RdrResourceHandle RdrResourceSystem::CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceUsage eUsage)
@@ -482,6 +491,16 @@ void RdrResourceSystem::ReleaseResource(RdrResourceHandle hRes)
 {
 	CmdReleaseResource& cmd = getQueueState().resourceReleases.pushSafe();
 	cmd.hResource = hRes;
+}
+
+const RdrResource* RdrResourceSystem::GetDefaultResource(const RdrDefaultResource resType)
+{
+	return GetResource(s_resourceSystem.defaultResourceHandles[(int)resType]);
+}
+
+RdrResourceHandle RdrResourceSystem::GetDefaultResourceHandle(const RdrDefaultResource resType)
+{
+	return s_resourceSystem.defaultResourceHandles[(int)resType];
 }
 
 const RdrResource* RdrResourceSystem::GetResource(const RdrResourceHandle hRes)
@@ -727,7 +746,7 @@ void RdrResourceSystem::ProcessCommands(RdrContext* pRdrContext)
 		pResource->eUsage = cmd.eUsage;
 		pResource->bIsTexture = true;
 
-		SAFE_DELETE(cmd.pHeaderData);
+		SAFE_DELETE(cmd.pFileData);
 	}
 
 	// Update buffers

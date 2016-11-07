@@ -24,6 +24,7 @@ PostProcessEffects* PostProcessEffects::Load(const char* assetName)
 
 	// Bloom
 	Json::Value jBloom = jRoot.get("bloom", Json::Value::null);
+	pEffects->bloom.enabled = jBloom.get("enabled", true).asBool();
 	pEffects->bloom.threshold = jBloom.get("threshold", 1.f).asFloat();
 
 	// Eye adaptation
