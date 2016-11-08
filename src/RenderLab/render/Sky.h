@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AssetLib\AssetLibForwardDecl.h"
+#include "AssetLib\AssetLibrary.h"
 #include "RdrResource.h"
 #include "RdrMaterial.h"
 #include "ModelData.h"
@@ -12,22 +13,18 @@ struct RdrComputeOp;
 struct RdrVolumetricFogData;
 class RdrDrawBuckets;
 
-class Sky
+class Sky : public IAssetReloadListener<AssetLib::Sky>
 {
 public:
 	Sky();
 
 	void Cleanup();
 
-	void Reload();
-
 	void Load(const char* skyName);
 
 	void Update(float dt);
 
 	void QueueDraw(RdrDrawBuckets* pDrawBuckets, RdrResourceHandle hVolumetricFogLut);
-
-	const char* GetName() const;
 
 	Light GetSunLight() const;
 	Vec3 GetSunDirection() const;
@@ -40,13 +37,15 @@ public:
 	RdrResourceHandle GetTransmittanceLut() const;
 
 private:
+	void OnAssetReloaded(const AssetLib::Sky* pSkyAsset);
+
+private:
 	ModelData* m_pModelData;
 	RdrConstantBufferHandle m_hVsPerObjectConstantBuffer;
 
 	RdrMaterial m_material;
 	const AssetLib::Sky* m_pSrcAsset;
 
-	FileWatcher::ListenerID m_reloadListenerId;
 	bool m_reloadPending;
 	
 	RdrConstantBufferHandle m_hAtmosphereConstants;

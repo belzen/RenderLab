@@ -7,7 +7,7 @@ namespace AssetLib
 	struct PostProcessEffects
 	{
 		static AssetDef& GetAssetDef();
-		static PostProcessEffects* Load(const char* assetName);
+		static PostProcessEffects* Load(const char* assetName, PostProcessEffects* pEffects);
 
 		struct
 		{

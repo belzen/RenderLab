@@ -7,7 +7,7 @@ namespace AssetLib
 	struct Texture
 	{
 		static AssetDef& GetAssetDef();
-		static Texture* Load(const char* assetName);
+		static Texture* Load(const char* assetName, Texture* pTexture);
 
 		char* ddsData;
 		uint ddsDataSize;

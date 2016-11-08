@@ -13,16 +13,19 @@ AssetDef& Material::GetAssetDef()
 	return s_assetDef;
 }
 
-Material* Material::Load(const char* assetName)
+Material* Material::Load(const char* assetName, Material* pMaterial)
 {
 	Json::Value jRoot;
 	if (!GetAssetDef().LoadAssetJson(assetName, &jRoot))
 	{
 		Error("Failed to load material asset: %s", assetName);
-		return nullptr;
+		return pMaterial;
 	}
 
-	Material* pMaterial = new Material();
+	if (!pMaterial)
+	{
+		pMaterial = new Material();
+	}
 
 	Json::Value jShader = jRoot.get("pixelShader", Json::Value::null);
 	strcpy_s(pMaterial->pixelShader, jShader.asCString());

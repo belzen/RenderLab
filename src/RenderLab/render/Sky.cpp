@@ -41,27 +41,12 @@ namespace
 	};
 
 	RdrInputLayoutHandle s_hSkyInputLayout = 0;
-
-
-	void handleSkyFileChanged(const char* filename, void* pUserData)
-	{
-		char skyName[AssetLib::AssetDef::kMaxNameLen];
-		AssetLib::Sky::GetAssetDef().ExtractAssetName(filename, skyName, ARRAY_SIZE(skyName));
-
-		Sky* pSky = (Sky*)pUserData;
-		if (_stricmp(pSky->GetName(), skyName) == 0)
-		{
-			pSky->Reload();
-		}
-	}
-
 }
 
 Sky::Sky()
 	: m_pModelData(nullptr)
 	, m_hVsPerObjectConstantBuffer(0)
 	, m_pSrcAsset(nullptr)
-	, m_reloadListenerId(0)
 	, m_reloadPending(false)
 	, m_hAtmosphereConstants(0)
 	, m_hTransmittanceLut(0)
@@ -79,10 +64,10 @@ Sky::Sky()
 
 void Sky::Cleanup()
 {
+	AssetLibrary<AssetLib::Sky>::RemoveReloadListener(this);
+
 	m_pModelData = nullptr;
 	m_pSrcAsset = nullptr;
-	FileWatcher::RemoveListener(m_reloadListenerId);
-	m_reloadListenerId = 0;
 	m_reloadPending = false;
 	m_bNeedsTransmittanceLutUpdate = true;
 	m_pendingComputeOps = 0;
@@ -112,19 +97,18 @@ void Sky::Cleanup()
 	memset(m_hIrradianceSumLuts, 0, sizeof(m_hIrradianceSumLuts));
 }
 
-void Sky::Reload()
+void Sky::OnAssetReloaded(const AssetLib::Sky* pSkyAsset)
 {
-	m_reloadPending = true;
-}
-
-const char* Sky::GetName() const
-{
-	return m_pSrcAsset->assetName;
+	if (_stricmp(m_pSrcAsset->assetName, pSkyAsset->assetName) == 0)
+	{
+		m_reloadPending = true;
+	}
 }
 
 void Sky::Load(const char* skyName)
 {
 	m_pSrcAsset = AssetLibrary<AssetLib::Sky>::LoadAsset(skyName);
+	AssetLibrary<AssetLib::Sky>::AddReloadListener(this);
 
 	m_pModelData = ModelData::LoadFromFile(m_pSrcAsset->model);
 
@@ -132,11 +116,6 @@ void Sky::Load(const char* skyName)
 	{
 		s_hSkyInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_skyVertexDesc, ARRAY_SIZE(s_skyVertexDesc));
 	}
-
-	// Listen for changes of the sky file.
-	char filePattern[AssetLib::AssetDef::kMaxNameLen];
-	AssetLib::Sky::GetAssetDef().GetFilePattern(filePattern, ARRAY_SIZE(filePattern));
-	m_reloadListenerId = FileWatcher::AddListener(filePattern, handleSkyFileChanged, this);
 
 	// Transmittance LUTs
 	m_hTransmittanceLut = RdrResourceSystem::CreateTexture2D(TRANSMITTANCE_LUT_WIDTH, TRANSMITTANCE_LUT_HEIGHT, 

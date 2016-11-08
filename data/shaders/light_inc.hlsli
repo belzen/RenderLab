@@ -249,8 +249,7 @@ float3 doLighting(in float3 pos_ws, in float3 baseColor,
 		// Distance falloff
 		// todo: constant, linear, quadratic attenuation instead?
 		float lightDist = length(posToLight);
-		float distFalloff = 1.f / (lightDist * lightDist);
-		distFalloff *= saturate(1 - (lightDist / light.radius));
+		float distFalloff = (lightDist <= light.radius) / (lightDist * lightDist);
 
 		// Angular falloff
 		float spotEffect = dot(light.direction, -dirToLight); //angle
@@ -275,8 +274,7 @@ float3 doLighting(in float3 pos_ws, in float3 baseColor,
 		// Distance falloff
 		// todo: constant, linear, quadratic attenuation instead?
 		float lightDist = length(posToLight);
-		float distFalloff = 1.f / (lightDist * lightDist);
-		distFalloff *= saturate(1 - (lightDist / light.radius));
+		float distFalloff = (lightDist <= light.radius) / (lightDist * lightDist);
 
 		float shadowFactor = calcShadowFactorCubeMap(pos_ws, dirToLight, posToLight, light.radius, light.shadowMapIndex);
 

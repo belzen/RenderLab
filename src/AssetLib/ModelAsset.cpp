@@ -1,5 +1,6 @@
 #include "ModelAsset.h"
 #include "UtilsLib/Error.h"
+#include "UtilsLib/Util.h"
 
 using namespace AssetLib;
 
@@ -9,15 +10,17 @@ AssetDef& Model::GetAssetDef()
 	return s_assetDef;
 }
 
-Model* Model::Load(const char* assetName)
+Model* Model::Load(const char* assetName, Model* pModel)
 {
 	char* pFileData = nullptr;
 	uint fileSize = 0;
 
+	SAFE_DELETE(pModel);
+
 	if (!GetAssetDef().LoadAsset(assetName, &pFileData, &fileSize))
 	{
 		Error("Failed to load model asset: %s", assetName);
-		return nullptr;
+		return pModel;
 	}
 
 	if (((uint*)pFileData)[0] == BinFileHeader::kUID)
@@ -27,7 +30,7 @@ Model* Model::Load(const char* assetName)
 		pFileData += sizeof(BinFileHeader);
 	}
 
-	Model* pModel = (Model*)pFileData;
+	pModel = (Model*)pFileData;
 	char* pDataMem = pFileData + sizeof(Model);
 
 	pModel->subobjects.PatchPointer(pDataMem);

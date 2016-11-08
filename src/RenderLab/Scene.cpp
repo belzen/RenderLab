@@ -10,18 +10,6 @@
 
 namespace
 {
-	void handleSceneFileChanged(const char* filename, void* pUserData)
-	{
-		char sceneName[AssetLib::AssetDef::kMaxNameLen];
-		AssetLib::Scene::GetAssetDef().ExtractAssetName(filename, sceneName, ARRAY_SIZE(sceneName));
-
-		Scene* pScene = (Scene*)pUserData;
-		if (_stricmp(pScene->GetName(), sceneName) == 0)
-		{
-			pScene->QueueReload();
-		}
-	}
-
 	uint s_stressTestLights = 0;
 	void spawnLightStressTest(LightList& rLightList)
 	{
@@ -44,14 +32,15 @@ namespace
 }
 
 Scene::Scene()
-	: m_reloadListenerId(0)
-	, m_reloadPending(false)
+	: m_reloadPending(false)
 {
 	m_sceneName[0] = 0;
 }
 
 void Scene::Cleanup()
 {
+	AssetLibrary<AssetLib::Scene>::RemoveReloadListener(this);
+
 	uint numObjects = (uint)m_objects.size();
 	for (uint i = 0; i < numObjects; ++i)
 	{
@@ -60,16 +49,16 @@ void Scene::Cleanup()
 	m_objects.clear();
 
 	m_lights.Cleanup();
-
 	m_sky.Cleanup();
-
-	FileWatcher::RemoveListener(m_reloadListenerId);
 	m_sceneName[0] = 0;
 }
 
-void Scene::QueueReload()
+void Scene::OnAssetReloaded(const AssetLib::Scene* pSceneAsset)
 {
-	m_reloadPending = true;
+	if (_stricmp(m_sceneName, pSceneAsset->assetName) == 0)
+	{
+		m_reloadPending = true;
+	}
 }
 
 void Scene::Load(const char* sceneName)
@@ -78,16 +67,12 @@ void Scene::Load(const char* sceneName)
 	strcpy_s(m_sceneName, sceneName);
 
 	AssetLib::Scene* pSceneData = AssetLibrary<AssetLib::Scene>::LoadAsset(sceneName);
+	AssetLibrary<AssetLib::Scene>::AddReloadListener(this);
 	if (!pSceneData)
 	{
 		assert(false);
 		return;
 	}
-
-	// Listen for changes of the scene file.
-	char filePattern[AssetLib::AssetDef::kMaxNameLen];
-	AssetLib::Scene::GetAssetDef().GetFilePattern(filePattern, ARRAY_SIZE(filePattern));
-	m_reloadListenerId = FileWatcher::AddListener(filePattern, handleSceneFileChanged, this);
 
 	// Camera
 	m_cameraSpawnPosition = pSceneData->camPosition;
@@ -163,7 +148,6 @@ void Scene::AddObject(WorldObject* pObject)
 {
 	m_objects.push_back(pObject);
 }
-
 
 const char* Scene::GetName() const
 {

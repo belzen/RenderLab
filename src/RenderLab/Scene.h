@@ -6,6 +6,8 @@
 #include "render/Sky.h"
 #include "render/Terrain.h"
 #include <vector>
+#include "AssetLib/SceneAsset.h"
+#include "AssetLib/AssetLibrary.h"
 
 class Camera;
 class Renderer;
@@ -15,12 +17,11 @@ class RdrPostProcessEffects;
 
 typedef std::vector<WorldObject*> WorldObjectList;
 
-class Scene
+class Scene : public IAssetReloadListener<AssetLib::Scene>
 {
 public:
 	Scene();
 
-	void QueueReload();
 	void Load(const char* sceneName);
 
 	void Update(float dt);
@@ -47,8 +48,11 @@ public:
 	const Vec3& GetCameraSpawnPitchYawRoll() const;
 
 private:
+	void OnAssetReloaded(const AssetLib::Scene* pSceneAsset);
+
 	void Cleanup();
 
+private:
 	WorldObjectList m_objects;
 	LightList m_lights;
 	Sky m_sky;
@@ -58,7 +62,6 @@ private:
 	Vec3 m_cameraSpawnPosition;
 	Vec3 m_cameraSpawnPitchYawRoll;
 
-	FileWatcher::ListenerID m_reloadListenerId;
 	char m_sceneName[AssetLib::AssetDef::kMaxNameLen];
 	bool m_reloadPending;
 };

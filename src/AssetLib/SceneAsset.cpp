@@ -12,16 +12,19 @@ AssetDef& Scene::GetAssetDef()
 	return s_assetDef;
 }
 
-Scene* Scene::Load(const char* assetName)
+Scene* Scene::Load(const char* assetName, Scene* pScene)
 {
 	Json::Value jRoot;
 	if (!GetAssetDef().LoadAssetJson(assetName, &jRoot))
 	{
 		Error("Failed to load scene asset: %s", assetName);
-		return nullptr;
+		return pScene;
 	}
 
-	Scene* pScene = new Scene();
+	if (!pScene)
+	{
+		pScene = new Scene();
+	}
 
 	Json::Value jCamera = jRoot.get("camera", Json::Value::null);
 

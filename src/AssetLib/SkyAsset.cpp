@@ -12,16 +12,19 @@ AssetDef& Sky::GetAssetDef()
 	return s_assetDef;
 }
 
-Sky* Sky::Load(const char* assetName)
+Sky* Sky::Load(const char* assetName, Sky* pSky)
 {
 	Json::Value jRoot;
 	if (!GetAssetDef().LoadAssetJson(assetName, &jRoot))
 	{
 		Error("Failed to load sky asset: %s", assetName);
-		return nullptr;
+		return pSky;
 	}
 
-	Sky* pSky = new Sky();
+	if (!pSky)
+	{
+		pSky = new Sky();
+	}
 
 	Json::Value jModel = jRoot.get("model", Json::Value::null);
 	strcpy_s(pSky->model, jModel.asCString());

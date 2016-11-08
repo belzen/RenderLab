@@ -2,7 +2,7 @@
 
 #include <string>
 
-#define SAFE_DELETE(mem) if ( mem ) { delete mem; }
+#define SAFE_DELETE(mem) if ( mem ) { delete mem; mem = nullptr; }
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0])) // TODO: Does this compile out in for loops?
 

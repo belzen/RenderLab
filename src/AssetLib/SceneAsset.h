@@ -53,7 +53,7 @@ namespace AssetLib
 	struct Scene
 	{
 		static AssetDef& GetAssetDef();
-		static Scene* Load(const char* assetName);
+		static Scene* Load(const char* assetName, Scene* pScene);
 
 		char postProcessingEffects[AssetLib::AssetDef::kMaxNameLen];
 		char sky[AssetLib::AssetDef::kMaxNameLen];

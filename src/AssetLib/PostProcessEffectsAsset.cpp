@@ -11,16 +11,19 @@ AssetDef& PostProcessEffects::GetAssetDef()
 	return s_assetDef;
 }
 
-PostProcessEffects* PostProcessEffects::Load(const char* assetName)
+PostProcessEffects* PostProcessEffects::Load(const char* assetName, PostProcessEffects* pEffects)
 {
 	Json::Value jRoot;
 	if (!GetAssetDef().LoadAssetJson(assetName, &jRoot))
 	{
 		Error("Failed to load post-processing effects asset: %s", assetName);
-		return nullptr;
+		return pEffects;
 	}
 
-	PostProcessEffects* pEffects = new PostProcessEffects();
+	if (!pEffects)
+	{
+		pEffects = new PostProcessEffects();
+	}
 
 	// Bloom
 	Json::Value jBloom = jRoot.get("bloom", Json::Value::null);

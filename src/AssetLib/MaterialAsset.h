@@ -6,7 +6,7 @@ namespace AssetLib
 	struct Material
 	{
 		static AssetDef& GetAssetDef();
-		static Material* Load(const char* assetName);
+		static Material* Load(const char* assetName, Material* pMaterial);
 
 		char pixelShader[AssetLib::AssetDef::kMaxNameLen];
 		char textures[16][AssetLib::AssetDef::kMaxNameLen];

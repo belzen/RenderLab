@@ -10,7 +10,7 @@ namespace AssetLib
 	struct Model
 	{
 		static AssetDef& GetAssetDef();
-		static Model* Load(const char* assetName);
+		static Model* Load(const char* assetName, Model* pModel);
 
 		struct SubObject
 		{

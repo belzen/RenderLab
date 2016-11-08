@@ -7,8 +7,6 @@
 
 namespace
 {
-	const uint kSunLightIndex = 0;
-
 	static uint s_shadowMapSize = 2048;
 	static uint s_shadowCubeMapSize = 512;
 
@@ -44,7 +42,7 @@ namespace
 }
 
 LightList::LightList()
-	: m_lightCount(kSunLightIndex + 1)
+	: m_lightCount(0)
 	, m_prevLightCount(0)
 {
 
@@ -125,7 +123,8 @@ void LightList::AddLight(const Light& light)
 
 void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax)
 {
-	m_lights[kSunLightIndex] = rSky.GetSunLight();
+	// Temporarily add sky light to the light list.
+	m_lights[m_lightCount] = rSky.GetSunLight();
 
 	if (!m_hShadowMapTexArray)
 	{
@@ -160,7 +159,7 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 	int shadowMapsThisFrame = 0;
 
 	// todo: Choose shadow lights based on location and dynamic object movement
-	for (uint i = 0; i < m_lightCount; ++i)
+	for (uint i = 0; i <= m_lightCount; ++i)
 	{
 		Light& light = m_lights[i];
 		if (!light.castsShadows)
@@ -286,7 +285,7 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 		m_numSpotLights = 0;
 		m_numPointLights = 0;
 
-		for (uint i = 0; i < m_lightCount; ++i)
+		for (uint i = 0; i <= m_lightCount; ++i)
 		{
 			Light& light = m_lights[i];
 			switch (light.type)
