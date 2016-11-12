@@ -49,6 +49,7 @@ struct RdrGlobalConstants
 	RdrConstantBufferHandle hVsPerAction;
 	RdrConstantBufferHandle hPsPerAction;
 	RdrConstantBufferHandle hPsAtmosphere;
+	RdrConstantBufferHandle hPsGlobalLights;
 	RdrConstantBufferHandle hGsCubeMap;
 };
 
@@ -99,13 +100,11 @@ struct RdrShadowPass
 
 struct RdrLightParams
 {
-	RdrConstantBufferHandle hDirectionalLightsCb;
 	RdrResourceHandle hSpotLightListRes;
 	RdrResourceHandle hPointLightListRes;
 
 	RdrResourceHandle hSkyTransmittanceLut;
 	RdrResourceHandle hVolumetricFogLut;
-	RdrResourceHandle hShadowMapDataRes;
 	RdrResourceHandle hShadowMapTexArray;
 	RdrResourceHandle hShadowCubeMapTexArray;
 
@@ -134,6 +133,7 @@ struct RdrAction
 	const RdrPostProcessEffects* pPostProcEffects;
 
 	RdrLightParams lightParams;
+
 	RdrGlobalConstants constants;
 	RdrGlobalConstants uiConstants;
 

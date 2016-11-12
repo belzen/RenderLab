@@ -8,9 +8,9 @@ cbuffer PerAction : register(b0)
 	PsPerAction cbPerAction;
 };
 
-cbuffer DirectionalLightsBuffer : register(b1)
+cbuffer GlobalLightsBuffer : register(b1)
 {
-	DirectionalLightList cbDirectionalLights;
+	GlobalLightData cbGlobalLights;
 }
 
 cbuffer AtmosphereParamsBuffer : register(b2)

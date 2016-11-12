@@ -33,6 +33,7 @@ namespace
 		g_pRenderer->SetLightingMethod((RdrLightingMethod)args[0].val.inum);
 	}
 
+	// todo2 - move these to start at slot 0
 	enum class RdrPsResourceSlots
 	{
 		VolumetricFogLut = 12,
@@ -41,8 +42,7 @@ namespace
 		ShadowCubeMaps = 15,
 		SpotLightList = 16,
 		PointLightList = 17,
-		TileLightIds = 18,
-		ShadowMapData = 19,
+		LightIds = 18,
 	};
 
 	enum class RdrPsSamplerSlots
@@ -350,11 +350,87 @@ const Camera& Renderer::GetCurrentCamera(void) const
 	return m_pCurrentAction->camera;
 }
 
-RdrAction* Renderer::GetNextAction()
+RdrAction* Renderer::GetNextAction(const wchar_t* actionName, const Rect& viewport)
 {
 	RdrFrameState& state = GetQueueState();
 	assert(state.numActions < MAX_ACTIONS_PER_FRAME);
-	return &state.actions[state.numActions++];
+	RdrAction* pAction = &state.actions[state.numActions++];
+
+	// Setup default action and pass states
+	pAction->name = actionName;
+	pAction->primaryViewport = viewport;
+
+	// Z Prepass
+	RdrPassData* pPass = &pAction->passes[(int)RdrPass::ZPrepass];
+	{
+		pPass->viewport = viewport;
+		pPass->bAlphaBlend = false;
+		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
+		pPass->bClearDepthTarget = true;
+		pPass->depthTestMode = RdrDepthTestMode::Less;
+		pPass->bDepthWriteEnabled = true;
+		pPass->shaderMode = RdrShaderMode::DepthOnly;
+	}
+
+	// Light Culling
+	pPass = &pAction->passes[(int)RdrPass::LightCulling];
+	{
+		pPass->viewport = viewport;
+		pPass->bAlphaBlend = false;
+		pPass->bClearDepthTarget = false;
+		pPass->depthTestMode = RdrDepthTestMode::None;
+		pPass->bDepthWriteEnabled = false;
+		pPass->shaderMode = RdrShaderMode::Normal;
+	}
+
+	// Volumetric Fog
+	pPass = &pAction->passes[(int)RdrPass::VolumetricFog];
+	{
+		pPass->viewport = viewport;
+		pPass->bAlphaBlend = false;
+		pPass->bClearDepthTarget = false;
+		pPass->depthTestMode = RdrDepthTestMode::None;
+		pPass->bDepthWriteEnabled = false;
+		pPass->shaderMode = RdrShaderMode::Normal;
+	}
+
+	// Opaque
+	pPass = &pAction->passes[(int)RdrPass::Opaque];
+	{
+		pPass->viewport = viewport;
+		pPass->ahRenderTargets[0] = m_hColorBufferRenderTarget;
+		pPass->bClearRenderTargets = true;
+		pPass->bAlphaBlend = false;
+		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
+		pPass->depthTestMode = RdrDepthTestMode::Equal;
+		pPass->bDepthWriteEnabled = false;
+		pPass->shaderMode = RdrShaderMode::Normal;
+	}
+
+	// Sky
+	pPass = &pAction->passes[(int)RdrPass::Sky];
+	{
+		pPass->viewport = viewport;
+		pPass->ahRenderTargets[0] = m_hColorBufferRenderTarget;
+		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
+		pPass->depthTestMode = RdrDepthTestMode::Equal;
+		pPass->bDepthWriteEnabled = false;
+		pPass->shaderMode = RdrShaderMode::Normal;
+	}
+
+	// UI
+	pPass = &pAction->passes[(int)RdrPass::UI];
+	{
+		pPass->viewport = viewport;
+		pPass->bEnabled = true;
+		pPass->ahRenderTargets[0] = RdrResourceSystem::kPrimaryRenderTargetHandle;
+		pPass->bAlphaBlend = true;
+		pPass->depthTestMode = RdrDepthTestMode::None;
+		pPass->bDepthWriteEnabled = false;
+		pPass->shaderMode = RdrShaderMode::Normal;
+	}
+
+	return pAction;
 }
 
 void Renderer::SetLightingMethod(RdrLightingMethod eLightingMethod)
@@ -547,7 +623,7 @@ void Renderer::QueueVolumetricFog(const AssetLib::VolumetricFogSettings& rFogSet
 	pLightOp->ahWritableResources.assign(0, m_volumetricFogData.hDensityLightLut);
 
 	pLightOp->ahConstantBuffers.assign(0, m_pCurrentAction->constants.hPsPerAction);
-	pLightOp->ahConstantBuffers.assign(1, rLightParams.hDirectionalLightsCb);
+	pLightOp->ahConstantBuffers.assign(1, m_pCurrentAction->constants.hPsGlobalLights);
 	pLightOp->ahConstantBuffers.assign(2, m_pCurrentAction->constants.hPsAtmosphere);
 	pLightOp->ahConstantBuffers.assign(3, m_volumetricFogData.hFogConstants);
 
@@ -560,7 +636,6 @@ void Renderer::QueueVolumetricFog(const AssetLib::VolumetricFogSettings& rFogSet
 	pLightOp->ahResources.assign(3, rLightParams.hSpotLightListRes);
 	pLightOp->ahResources.assign(4, rLightParams.hPointLightListRes);
 	pLightOp->ahResources.assign(5, GetLightIdsResource());
-	pLightOp->ahResources.assign(6, rLightParams.hShadowMapDataRes);
 
 	pLightOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_volumetricFogData.lutSize.x, VOLFOG_LUT_THREADS_X);
 	pLightOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_volumetricFogData.lutSize.y, VOLFOG_LUT_THREADS_Y);
@@ -653,8 +728,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt
 
 	Rect viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
 
-	m_pCurrentAction = GetNextAction();
-	m_pCurrentAction->name = L"Primary Action";
+	m_pCurrentAction = GetNextAction(L"Primary Action", viewport);
 
 	m_pCurrentAction->pScene = &rScene;
 
@@ -662,100 +736,16 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt
 	m_pCurrentAction->camera.SetAspectRatio(m_viewWidth / (float)m_viewHeight);
 	m_pCurrentAction->camera.UpdateFrustum();
 
-	m_pCurrentAction->primaryViewport = viewport;
-
-	m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
-	rScene.GetPostProcEffects()->PrepareDraw(dt);
-
-	// Z Prepass
-	RdrPassData* pPass = &m_pCurrentAction->passes[(int)RdrPass::ZPrepass];
-	{
-		pPass->viewport = viewport;
-		pPass->bEnabled = true;
-		pPass->bAlphaBlend = false;
-		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
-		pPass->bClearDepthTarget = true;
-		pPass->depthTestMode = RdrDepthTestMode::Less;
-		pPass->bDepthWriteEnabled = true;
-		pPass->shaderMode = RdrShaderMode::DepthOnly;
-	}
-
-	// Light Culling
-	pPass = &m_pCurrentAction->passes[(int)RdrPass::LightCulling];
-	{
-		pPass->viewport = viewport;
-		pPass->bEnabled = true;
-		pPass->bAlphaBlend = false;
-		pPass->bClearDepthTarget = false;
-		pPass->depthTestMode = RdrDepthTestMode::None;
-		pPass->bDepthWriteEnabled = false;
-		pPass->shaderMode = RdrShaderMode::Normal;
-	}
-
-	// Volumetric Fog
-	pPass = &m_pCurrentAction->passes[(int)RdrPass::VolumetricFog];
-	{
-		pPass->viewport = viewport;
-		pPass->bEnabled = true;
-		pPass->bAlphaBlend = false;
-		pPass->bClearDepthTarget = false;
-		pPass->depthTestMode = RdrDepthTestMode::None;
-		pPass->bDepthWriteEnabled = false;
-		pPass->shaderMode = RdrShaderMode::Normal;
-	}
-
-	// Opaque
-	pPass = &m_pCurrentAction->passes[(int)RdrPass::Opaque];
-	{
-		pPass->viewport = viewport;
-		pPass->bEnabled = true;
-		pPass->ahRenderTargets[0] = m_hColorBufferRenderTarget;
-		pPass->bClearRenderTargets = true;
-		pPass->bAlphaBlend = false;
-		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
-		pPass->depthTestMode = RdrDepthTestMode::Equal;
-		pPass->bDepthWriteEnabled = false;
-		pPass->shaderMode = RdrShaderMode::Normal;
-	}
-
-	// Sky
-	pPass = &m_pCurrentAction->passes[(int)RdrPass::Sky];
-	{
-		pPass->viewport = viewport;
-		pPass->bEnabled = true;
-		pPass->ahRenderTargets[0] = m_hColorBufferRenderTarget;
-		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
-		pPass->depthTestMode = RdrDepthTestMode::Equal;
-		pPass->bDepthWriteEnabled = false;
-		pPass->shaderMode = RdrShaderMode::Normal;
-	}
-
-	// Alpha
-	pPass = &m_pCurrentAction->passes[(int)RdrPass::Alpha];
-	{
-		pPass->viewport = viewport;
-		pPass->bEnabled = true;
-		pPass->ahRenderTargets[0] = m_hColorBufferRenderTarget;
-		pPass->hDepthTarget = m_hPrimaryDepthStencilView;
-		pPass->depthTestMode = RdrDepthTestMode::Equal;
-		pPass->shaderMode = RdrShaderMode::Normal;
-		pPass->bDepthWriteEnabled = false;
-		pPass->bAlphaBlend = true;
-	}
+	m_pCurrentAction->passes[(int)RdrPass::ZPrepass].bEnabled = true;
+	m_pCurrentAction->passes[(int)RdrPass::LightCulling].bEnabled = true;
+	m_pCurrentAction->passes[(int)RdrPass::Opaque].bEnabled = true;
+	m_pCurrentAction->passes[(int)RdrPass::Sky].bEnabled = true;
+	m_pCurrentAction->passes[(int)RdrPass::Alpha].bEnabled = true;
+	m_pCurrentAction->passes[(int)RdrPass::UI].bEnabled = true;
 
 	m_pCurrentAction->bEnablePostProcessing = true;
-
-	// UI
-	pPass = &m_pCurrentAction->passes[(int)RdrPass::UI];
-	{
-		pPass->viewport = viewport;
-		pPass->bEnabled = true;
-		pPass->ahRenderTargets[0] = RdrResourceSystem::kPrimaryRenderTargetHandle;
-		pPass->bAlphaBlend = true;
-		pPass->depthTestMode = RdrDepthTestMode::None;
-		pPass->bDepthWriteEnabled = false;
-		pPass->shaderMode = RdrShaderMode::Normal;
-	}
+	m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
+	rScene.GetPostProcEffects()->PrepareDraw(dt);
 
 	const AssetLib::VolumetricFogSettings& rVolFogSettings = rScene.GetSky().GetVolFogSettings();
 	m_pCurrentAction->lightParams.hVolumetricFogLut = rVolFogSettings.enabled ? m_volumetricFogData.hFinalLut : RdrResourceSystem::GetDefaultResourceHandle(RdrDefaultResource::kBlackTex3d);
@@ -772,18 +762,77 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt
 
 	// Lighting
 	LightList& rLights = rScene.GetLightList();
-	rLights.PrepareDraw(*this, rScene.GetSky(), m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax);
+	rLights.PrepareDraw(*this, rScene.GetSky(), m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax, 
+		&m_pCurrentAction->constants.hPsGlobalLights);
 
-	m_pCurrentAction->lightParams.hDirectionalLightsCb = rLights.GetDirectionalLightListCb();
 	m_pCurrentAction->lightParams.hSpotLightListRes = rLights.GetSpotLightListRes();
 	m_pCurrentAction->lightParams.hPointLightListRes = rLights.GetPointLightListRes();
 	m_pCurrentAction->lightParams.spotLightCount = rLights.GetSpotLightCount();
 	m_pCurrentAction->lightParams.pointLightCount = rLights.GetPointLightCount();
-	m_pCurrentAction->lightParams.hShadowMapDataRes = rLights.GetShadowMapDataRes();
 	m_pCurrentAction->lightParams.hShadowCubeMapTexArray = rLights.GetShadowCubeMapTexArray();
 	m_pCurrentAction->lightParams.hShadowMapTexArray = rLights.GetShadowMapTexArray();
 	m_pCurrentAction->lightParams.hSkyTransmittanceLut = rScene.GetSky().GetTransmittanceLut();
 	
+	if (m_eLightingMethod == RdrLightingMethod::Clustered)
+	{
+		QueueClusteredLightCulling();
+	}
+	else
+	{
+		QueueTiledLightCulling();
+	}
+
+	QueueVolumetricFog(rVolFogSettings);
+}
+
+void Renderer::BeginOffscreenAction(const wchar_t* actionName, const Camera& rCamera, Scene& rScene)
+{
+	assert(m_pCurrentAction == nullptr);
+
+	Rect viewport = Rect(0.f, 0.f, (float)m_viewWidth, (float)m_viewHeight);
+
+	m_pCurrentAction = GetNextAction(actionName, viewport);
+
+	m_pCurrentAction->pScene = &rScene;
+
+	m_pCurrentAction->camera = rCamera;
+	m_pCurrentAction->camera.SetAspectRatio(m_viewWidth / (float)m_viewHeight);
+	m_pCurrentAction->camera.UpdateFrustum();
+
+	m_pCurrentAction->passes[(int)RdrPass::ZPrepass].bEnabled = true;
+	m_pCurrentAction->passes[(int)RdrPass::LightCulling].bEnabled = true;
+	m_pCurrentAction->passes[(int)RdrPass::Opaque].bEnabled = true;
+	m_pCurrentAction->passes[(int)RdrPass::Sky].bEnabled = true;
+	m_pCurrentAction->passes[(int)RdrPass::Alpha].bEnabled = true;
+
+	m_pCurrentAction->bEnablePostProcessing = true;
+	m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
+	rScene.GetPostProcEffects()->PrepareDraw(0.f);
+
+	const AssetLib::VolumetricFogSettings& rVolFogSettings = rScene.GetSky().GetVolFogSettings();
+	m_pCurrentAction->lightParams.hVolumetricFogLut = rVolFogSettings.enabled ? m_volumetricFogData.hFinalLut : RdrResourceSystem::GetDefaultResourceHandle(RdrDefaultResource::kBlackTex3d);
+
+	float sceneDepthMin, sceneDepthMax;
+	cullSceneToCamera(m_pCurrentAction->camera, m_pCurrentAction->pScene,
+		&m_pCurrentAction->opBuckets, m_pCurrentAction->lightParams.hVolumetricFogLut,
+		&sceneDepthMin, &sceneDepthMax);
+
+	createPerActionConstants(m_pCurrentAction->camera, viewport, rScene.GetSky(), m_pCurrentAction->constants);
+	m_pCurrentAction->constants.hPsAtmosphere = rScene.GetSky().GetAtmosphereConstantBuffer();
+
+	// Lighting
+	LightList& rLights = rScene.GetLightList();
+	rLights.PrepareDraw(*this, rScene.GetSky(), m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax, 
+		&m_pCurrentAction->constants.hPsGlobalLights);
+
+	m_pCurrentAction->lightParams.hSpotLightListRes = rLights.GetSpotLightListRes();
+	m_pCurrentAction->lightParams.hPointLightListRes = rLights.GetPointLightListRes();
+	m_pCurrentAction->lightParams.spotLightCount = rLights.GetSpotLightCount();
+	m_pCurrentAction->lightParams.pointLightCount = rLights.GetPointLightCount();
+	m_pCurrentAction->lightParams.hShadowCubeMapTexArray = rLights.GetShadowCubeMapTexArray();
+	m_pCurrentAction->lightParams.hShadowMapTexArray = rLights.GetShadowMapTexArray();
+	m_pCurrentAction->lightParams.hSkyTransmittanceLut = rScene.GetSky().GetTransmittanceLut();
+
 	if (m_eLightingMethod == RdrLightingMethod::Clustered)
 	{
 		QueueClusteredLightCulling();
@@ -1293,7 +1342,7 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 
 			if (pMaterial->bNeedsLighting && !bDepthOnly)
 			{
-				m_drawState.psConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(rLightParams.hDirectionalLightsCb)->bufferObj;
+				m_drawState.psConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsGlobalLights)->bufferObj;
 				m_drawState.psConstantBufferCount++;
 
 				m_drawState.psConstantBuffers[2] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsAtmosphere)->bufferObj;
@@ -1307,11 +1356,10 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 
 				m_drawState.psResources[(int)RdrPsResourceSlots::VolumetricFogLut] = RdrResourceSystem::GetResource(rLightParams.hVolumetricFogLut)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::SkyTransmittance] = RdrResourceSystem::GetResource(rLightParams.hSkyTransmittanceLut)->resourceView;
-				m_drawState.psResources[(int)RdrPsResourceSlots::TileLightIds] = RdrResourceSystem::GetResource(hTileLightIndices)->resourceView;
+				m_drawState.psResources[(int)RdrPsResourceSlots::LightIds] = RdrResourceSystem::GetResource(hTileLightIndices)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowMapTexArray)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowCubeMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowCubeMapTexArray)->resourceView;
-				m_drawState.psResources[(int)RdrPsResourceSlots::ShadowMapData] = RdrResourceSystem::GetResource(rLightParams.hShadowMapDataRes)->resourceView;
-				m_drawState.psResourceCount = max((uint)RdrPsResourceSlots::ShadowMapData + 1, m_drawState.psResourceCount);
+				m_drawState.psResourceCount = max((uint)RdrPsResourceSlots::ShadowCubeMaps + 1, m_drawState.psResourceCount);
 
 				m_drawState.psSamplers[(int)RdrPsSamplerSlots::Clamp] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 				m_drawState.psSamplers[(int)RdrPsSamplerSlots::ShadowMap] = RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false);

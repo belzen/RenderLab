@@ -85,18 +85,6 @@ void LightList::Cleanup()
 		m_hPointLightListRes = 0;
 	}
 
-	if (m_hDirectionalLightListCb)
-	{
-		RdrResourceSystem::ReleaseConstantBuffer(m_hDirectionalLightListCb);
-		m_hDirectionalLightListCb = 0;
-	}
-
-	if (m_hShadowMapDataRes)
-	{
-		RdrResourceSystem::ReleaseResource(m_hShadowMapDataRes);
-		m_hShadowMapDataRes = 0;
-	}
-
 	if (m_hShadowMapTexArray)
 	{
 		RdrResourceSystem::ReleaseResource(m_hShadowMapTexArray);
@@ -121,7 +109,8 @@ void LightList::AddLight(const Light& light)
 	++m_lightCount;
 }
 
-void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax)
+void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
+	RdrConstantBufferHandle* phOutLightConstants)
 {
 	// Temporarily add sky light to the light list.
 	m_lights[m_lightCount] = rSky.GetSunLight();
@@ -152,13 +141,14 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 	}
 
 	Camera lightCamera;
-	ShadowMapData* pShadowData = (ShadowMapData*)RdrFrameMem::Alloc(sizeof(ShadowMapData) * MAX_SHADOW_MAPS);
 	bool changed = false;
 	int curShadowMapIndex = 0;
 	int curShadowCubeMapIndex = 0;
 	int shadowMapsThisFrame = 0;
 
+	// Update shadow casting lights and the global light constants
 	// todo: Choose shadow lights based on location and dynamic object movement
+	GlobalLightData* pGlobalLights = (GlobalLightData*)RdrFrameMem::AllocAligned(sizeof(GlobalLightData), 16);
 	for (uint i = 0; i <= m_lightCount; ++i)
 	{
 		Light& light = m_lights[i];
@@ -213,15 +203,20 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 					Matrix44 mtxView;
 					Matrix44 mtxProj;
 					lightCamera.GetMatrices(mtxView, mtxProj);
-					pShadowData[curShadowMapIndex].mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
-					pShadowData[curShadowMapIndex].mtxViewProj = Matrix44Transpose(pShadowData[curShadowMapIndex].mtxViewProj);
-					pShadowData[curShadowMapIndex].partitionEndZ = (iPartition == kNumCascades - 1) ? FLT_MAX : farDepth;
+					pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
+					pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj = Matrix44Transpose(pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj);
+					pGlobalLights->shadowData[curShadowMapIndex].partitionEndZ = (iPartition == kNumCascades - 1) ? FLT_MAX : farDepth;
 
 					++shadowMapsThisFrame;
 					++curShadowMapIndex;
 					nearDepth = farDepth;
 				}
 			}
+
+			DirectionalLight& rDirLight = pGlobalLights->directionalLights[pGlobalLights->numDirectionalLights++];
+			rDirLight.direction = light.direction;
+			rDirLight.color = light.color;
+			rDirLight.shadowMapIndex = light.shadowMapIndex;
 		}
 		else if (light.type == LightType::Spot && remainingShadowMaps)
 		{
@@ -238,8 +233,8 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 			lightCamera.SetAsPerspective(light.position, light.direction, angle * 2.f, 1.f, 0.1f, 1000.f);
 			lightCamera.GetMatrices(mtxView, mtxProj);
 
-			pShadowData[curShadowMapIndex].mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
-			pShadowData[curShadowMapIndex].mtxViewProj = Matrix44Transpose(pShadowData[curShadowMapIndex].mtxViewProj);
+			pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
+			pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj = Matrix44Transpose(pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj);
 
 			Rect viewport(0.f, 0.f, (float)s_shadowMapSize, (float)s_shadowMapSize);
 			rRenderer.QueueShadowMapPass(lightCamera, m_shadowMapDepthViews[curShadowMapIndex], viewport);
@@ -273,15 +268,18 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 			break;
 	}
 
+	// Update global lights constant buffer.
+	*phOutLightConstants = RdrResourceSystem::CreateUpdateConstantBuffer(*phOutLightConstants,
+		pGlobalLights, sizeof(GlobalLightData), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+
+	// Update light resources, if necessary.
 	changed = changed || (m_prevLightCount != m_lightCount);
 	if (changed)
 	{
 		// todo: size/resize buffers appropriately
-		DirectionalLightList* pDirectionalList = (DirectionalLightList*)RdrFrameMem::Alloc(sizeof(DirectionalLightList));
 		SpotLight* pSpotLights = (SpotLight*)RdrFrameMem::Alloc(sizeof(SpotLight) * 2048);
 		PointLight* pPointLights = (PointLight*)RdrFrameMem::Alloc(sizeof(PointLight) * 2048);
 
-		uint numDirectionalLights = 0;
 		m_numSpotLights = 0;
 		m_numPointLights = 0;
 
@@ -290,14 +288,6 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 			Light& light = m_lights[i];
 			switch (light.type)
 			{
-			case LightType::Directional:
-			{
-				DirectionalLight& rDirLight = pDirectionalList->lights[numDirectionalLights++];
-				rDirLight.direction = light.direction;
-				rDirLight.color = light.color;
-				rDirLight.shadowMapIndex = light.shadowMapIndex;
-			}
-			break;
 			case LightType::Point:
 			{
 				PointLight& rPointLight = pPointLights[m_numPointLights++];
@@ -339,19 +329,6 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 		else
 		{
 			RdrResourceSystem::UpdateBuffer(m_hPointLightListRes, pPointLights, m_numPointLights);
-		}
-
-		pDirectionalList->numLights = numDirectionalLights;
-		m_hDirectionalLightListCb = RdrResourceSystem::CreateUpdateConstantBuffer(m_hDirectionalLightListCb,
-			pDirectionalList, sizeof(DirectionalLightList), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
-
-		if (m_hShadowMapDataRes)
-		{
-			RdrResourceSystem::UpdateBuffer(m_hShadowMapDataRes, pShadowData);
-		}
-		else
-		{
-			m_hShadowMapDataRes = RdrResourceSystem::CreateStructuredBuffer(pShadowData, MAX_SHADOW_MAPS, sizeof(ShadowMapData), RdrResourceUsage::Dynamic);
 		}
 
 		m_prevLightCount = m_lightCount;

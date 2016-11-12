@@ -10,4 +10,3 @@ TextureCubeArray  g_texShadowCubemaps      : register(t15);
 StructuredBuffer<SpotLight>        g_bufSpotLights   : register(t16);
 StructuredBuffer<PointLight>       g_bufPointLights  : register(t17);
 Buffer<uint>                       g_bufLightIndices : register(t18);
-StructuredBuffer<ShaderShadowData> g_bufShadowData   : register(t19);

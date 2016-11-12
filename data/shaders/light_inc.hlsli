@@ -16,7 +16,7 @@ float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float lightRadi
 	float result = 1.f;
 	if (shadowMapIndex < MAX_SHADOW_MAPS + MAX_SHADOW_CUBEMAPS)
 	{
-		float4 pos = mul(float4(pos_ws, 1), g_bufShadowData[shadowMapIndex].mtxViewProj);
+		float4 pos = mul(float4(pos_ws, 1), cbGlobalLights.shadowData[shadowMapIndex].mtxViewProj);
 
 		// Shift from [-1,1] range to [0,1]
 		float2 uv;
@@ -209,14 +209,14 @@ float3 doLighting(in float3 pos_ws, in float3 baseColor,
 	float3 specColor = lerp(dielectricColor, baseColor, metalness);
 
 	/// Directional lights
-	for (i = 0; i < cbDirectionalLights.numLights; ++i)
+	for (i = 0; i < cbGlobalLights.numDirectionalLights; ++i)
 	{
-		DirectionalLight light = cbDirectionalLights.lights[i];
+		DirectionalLight light = cbGlobalLights.directionalLights[i];
 		float3 dirToLight = -light.direction;
 
 		// Find actual shadow map index
 		int shadowMapIndex = light.shadowMapIndex;
-		while (viewDepth > g_bufShadowData[shadowMapIndex].partitionEndZ)
+		while (viewDepth > cbGlobalLights.shadowData[shadowMapIndex].partitionEndZ)
 		{
 			++shadowMapIndex;
 		}

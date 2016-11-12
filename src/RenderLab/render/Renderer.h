@@ -61,6 +61,7 @@ public:
 	void ApplyDeviceChanges();
 
 	void BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt);
+	void BeginOffscreenAction(const wchar_t* actionName, const Camera& rCamera, Scene& rScene);
 	void EndAction();
 
 	void QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
@@ -96,7 +97,7 @@ private:
 	RdrFrameState& GetQueueState();
 	RdrFrameState& GetActiveState();
 
-	RdrAction* GetNextAction();
+	RdrAction* GetNextAction(const wchar_t* actionName, const Rect& viewport);
 
 	void DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants, const RdrLightParams& rLightParams);
 	void DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants,

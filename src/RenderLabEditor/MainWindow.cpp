@@ -9,6 +9,7 @@
 #include "AssetLib/SkyAsset.h"
 #include "WorldObject.h"
 #include "RenderDoc\RenderDocUtil.h"
+#include "UserConfig.h"
 
 MainWindow::MainWindow()
 	: m_pPropertyPanel(nullptr)
@@ -91,7 +92,7 @@ int MainWindow::Run()
 	m_renderWindow.Create(hWnd, GetWidth() - kDefaultPanelWidth, GetHeight(), &m_renderer);
 
 	// Load in default scene
-	m_scene.Load("basic");
+	m_scene.Load(g_userConfig.defaultScene.c_str());
 	m_renderWindow.SetCameraPosition(m_scene.GetCameraSpawnPosition(), m_scene.GetCameraSpawnPitchYawRoll());
 
 	// Finish editor setup.

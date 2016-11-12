@@ -7,9 +7,9 @@ cbuffer PerAction : register(b0)
 	PsPerAction cbPerAction;
 };
 
-cbuffer DirectionalLightsBuffer : register(b1)
+cbuffer GlobalLightsBuffer : register(b1)
 {
-	DirectionalLightList cbDirectionalLights;
+	GlobalLightData cbGlobalLights;
 }
 
 cbuffer AtmosphereParamsBuffer : register(b2)
@@ -34,15 +34,8 @@ TextureCubeArray g_texShadowCubemaps      : register(t2);
 StructuredBuffer<SpotLight>        g_bufSpotLights   : register(t3);
 StructuredBuffer<PointLight>       g_bufPointLights  : register(t4);
 Buffer<uint>                       g_bufLightIndices : register(t5);
-StructuredBuffer<ShaderShadowData> g_bufShadowData   : register(t6);
 
 #include "light_inc.hlsli"
-
-void accumulateDiffuseLighting(
-	in float3 lightColor, in float shadowFactor, in float falloff, 
-	inout float3 diffuse)
-{
-}
 
 float3 getWorldPosFromLutCoord(uint3 lutCoord, float viewDepth)
 {
@@ -100,7 +93,7 @@ void main( uint3 globalId : SV_DispatchThreadID )
 	// TODO: Experiment with jittered/sequenced sampling instead of stepping along the ray in the center of the froxel. 
 	// TODO: Optimize this loop.  Most of the per-light data can be calculated once,
 	//		it isn't going to change much within a single froxel.
-	const uint kNumSteps = 8;
+	const uint kNumSteps = 2;
 	const float kStepDiv = 1.f / kNumSteps;
 	uint cachedLightListIdx = lightListIdx;
 	for (uint x = 0; x < kNumSteps; ++x)
@@ -110,14 +103,14 @@ void main( uint3 globalId : SV_DispatchThreadID )
 		lightListIdx = cachedLightListIdx;
 
 		// Accumulate lighting
-		for (uint i = 0; i < cbDirectionalLights.numLights; ++i)
+		for (uint i = 0; i < cbGlobalLights.numDirectionalLights; ++i)
 		{
-			DirectionalLight light = cbDirectionalLights.lights[i];
+			DirectionalLight light = cbGlobalLights.directionalLights[i];
 			float3 dirToLight = -light.direction;
 
 			// Find actual shadow map index
 			int shadowMapIndex = light.shadowMapIndex;
-			while (viewDepth > g_bufShadowData[shadowMapIndex].partitionEndZ)
+			while (viewDepth > cbGlobalLights.shadowData[shadowMapIndex].partitionEndZ)
 			{
 				++shadowMapIndex;
 			}
@@ -148,8 +141,7 @@ void main( uint3 globalId : SV_DispatchThreadID )
 			// Distance falloff
 			// todo: constant, linear, quadratic attenuation instead?
 			float lightDist = length(posToLight);
-			float distFalloff = 1.f / (lightDist * lightDist);
-			distFalloff *= saturate(1 - (lightDist / light.radius));
+			float distFalloff = (lightDist <= light.radius) / (lightDist * lightDist);
 
 			// Angular falloff
 			float spotEffect = dot(light.direction, -dirToLight); //angle
@@ -173,8 +165,7 @@ void main( uint3 globalId : SV_DispatchThreadID )
 			// Distance falloff
 			// todo: constant, linear, quadratic attenuation instead?
 			float lightDist = length(posToLight);
-			float distFalloff = 1.f / (lightDist * lightDist);
-			distFalloff *= saturate(1 - (lightDist / light.radius));
+			float distFalloff = (lightDist <= light.radius) / (lightDist * lightDist);
 
 			float shadowFactor = calcShadowFactorCubeMap(pos_ws, dirToLight, posToLight, light.radius, light.shadowMapIndex);
 			float3 lightDiffuse = light.color * distFalloff * shadowFactor;

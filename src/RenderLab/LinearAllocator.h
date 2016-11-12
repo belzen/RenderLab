@@ -9,6 +9,7 @@ public:
 		, m_availSize(AllocatorSizeT)
 	{
 		m_pMemory = m_pPos = new char[AllocatorSizeT];
+		memset(m_pMemory, 0, m_size);
 	}
 
 	inline ~LinearAllocator()
@@ -31,6 +32,7 @@ public:
 
 	inline void Reset()
 	{
+		memset(m_pMemory, 0, (m_size - m_availSize));
 		m_pPos = m_pMemory;
 		m_availSize = m_size;
 	}
@@ -49,6 +51,7 @@ public:
 	inline StructLinearAllocator::StructLinearAllocator()
 		: m_size(0)
 	{
+		memset(m_data, 0, sizeof(DataTypeT) * kCapacityT);
 	}
 
 	inline ~StructLinearAllocator()
@@ -64,7 +67,7 @@ public:
 	inline void Reset()
 	{
 		memset(m_data, 0, sizeof(DataTypeT) * m_size);
-		m_size = 1;
+		m_size = 0;
 	}
 
 private:

@@ -13,9 +13,11 @@ void UserConfig::Load()
 	if (FileLoader::LoadJson(path, jRoot))
 	{
 		g_userConfig.renderDocPath = jRoot.get("renderDocPath", Json::nullValue).asString();
+		g_userConfig.defaultScene = jRoot.get("defaultScene", "basic").asString();
 	}
 	else
 	{
 		g_userConfig.renderDocPath = "";
+		g_userConfig.defaultScene = "basic";
 	}
 }

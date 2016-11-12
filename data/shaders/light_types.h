@@ -1,6 +1,9 @@
 #ifndef LIGHT_TYPES_H
 #define LIGHT_TYPES_H
 
+#define MAX_SHADOW_MAPS 10
+#define MAX_SHADOW_CUBEMAPS 2
+
 struct DirectionalLight
 {
 	float3 direction;
@@ -8,13 +11,6 @@ struct DirectionalLight
 
 	float3 color;
 	uint shadowMapIndex;
-};
-
-struct DirectionalLightList
-{
-	DirectionalLight lights[2];
-	uint numLights;
-	float3 unused;
 };
 
 struct SpotLight
@@ -46,6 +42,15 @@ struct ShaderShadowData
 {
 	float4x4 mtxViewProj;
 	float partitionEndZ;
+	float3 unused;
+};
+
+struct GlobalLightData
+{
+	DirectionalLight directionalLights[2];
+	ShaderShadowData shadowData[MAX_SHADOW_MAPS];
+	uint numDirectionalLights;
+	float3 unused;
 };
 
 struct ClusteredLightCullingParams
@@ -85,9 +90,6 @@ struct TiledLightCullingParams
 	uint spotLightCount;
 	uint pointLightCount;
 };
-
-#define MAX_SHADOW_MAPS 10
-#define MAX_SHADOW_CUBEMAPS 2
 
 #define LIGHTLIST_NUM_LIGHT_TYPES 2
 

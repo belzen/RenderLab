@@ -39,17 +39,15 @@ public:
 
 	void AddLight(const Light& light);
 
-	void PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax);
+	void PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
+		RdrConstantBufferHandle* phOutLightConstants);
 
-	RdrResourceHandle GetShadowMapDataRes() const;
 	RdrResourceHandle GetShadowMapTexArray() const;
 	RdrResourceHandle GetShadowCubeMapTexArray() const;
 
 	RdrResourceHandle GetSpotLightListRes() const;
 	RdrResourceHandle GetPointLightListRes() const;
-	RdrConstantBufferHandle GetDirectionalLightListCb() const;
 
-	uint GetLightCount() const;
 	uint GetSpotLightCount() const;
 	uint GetPointLightCount() const;
 
@@ -58,14 +56,12 @@ private:
 	uint m_lightCount;
 	uint m_prevLightCount;
 
-	RdrConstantBufferHandle m_hDirectionalLightListCb;
 	RdrResourceHandle m_hSpotLightListRes;
 	RdrResourceHandle m_hPointLightListRes;
 
 	uint m_numSpotLights;
 	uint m_numPointLights;
 
-	RdrResourceHandle m_hShadowMapDataRes;
 	RdrResourceHandle m_hShadowMapTexArray;
 	RdrResourceHandle m_hShadowCubeMapTexArray;
 	RdrDepthStencilViewHandle m_shadowMapDepthViews[MAX_SHADOW_MAPS];
@@ -75,11 +71,6 @@ private:
 	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * CubemapFace::Count];
 #endif
 };
-
-inline RdrResourceHandle LightList::GetShadowMapDataRes() const
-{ 
-	return m_hShadowMapDataRes; 
-}
 
 inline RdrResourceHandle LightList::GetShadowMapTexArray() const
 { 
@@ -101,11 +92,6 @@ inline RdrResourceHandle LightList::GetPointLightListRes() const
 	return m_hPointLightListRes;
 }
 
-inline RdrConstantBufferHandle LightList::GetDirectionalLightListCb() const
-{
-	return m_hDirectionalLightListCb;
-}
-
 inline uint LightList::GetSpotLightCount() const
 {
 	return m_numSpotLights;
@@ -116,7 +102,3 @@ inline uint LightList::GetPointLightCount() const
 	return m_numPointLights;
 }
 
-inline uint LightList::GetLightCount() const
-{ 
-	return m_lightCount; 
-}

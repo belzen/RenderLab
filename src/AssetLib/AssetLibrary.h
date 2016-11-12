@@ -82,7 +82,7 @@ private:
 		if (iter == m_assetCache.end())
 			return nullptr; // File hasn't been loaded, nothing to reload
 
-		AssetTypeT::Load(assetName, iter->second);
+		iter->second = AssetTypeT::Load(assetName, iter->second);
 
 		for (IAssetReloadListener<AssetTypeT>* pListener : m_reloadListeners)
 		{

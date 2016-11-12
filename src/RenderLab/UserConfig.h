@@ -3,6 +3,7 @@
 struct UserConfig
 {
 	std::string renderDocPath;
+	std::string defaultScene;
 
 	static void Load();
 };
