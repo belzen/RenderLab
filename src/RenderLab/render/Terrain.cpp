@@ -61,7 +61,7 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	// Tessellation material
 	RdrTextureInfo heightmapTexInfo;
 	m_tessMaterial.shader = kTessellationShader;
-	m_tessMaterial.ahResources.assign(0, RdrResourceSystem::CreateTextureFromFile(m_srcData.heightmap, &heightmapTexInfo));
+	m_tessMaterial.ahResources.assign(0, RdrResourceSystem::CreateTextureFromFile(m_srcData.heightmapName, &heightmapTexInfo));
 	m_tessMaterial.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 
 	m_heightmapSize = UVec2(heightmapTexInfo.width, heightmapTexInfo.height);

@@ -12,12 +12,12 @@ AssetDef& Scene::GetAssetDef()
 	return s_assetDef;
 }
 
-Scene* Scene::Load(const char* assetName, Scene* pScene)
+Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 {
 	Json::Value jRoot;
-	if (!GetAssetDef().LoadAssetJson(assetName, &jRoot))
+	if (!GetAssetDef().LoadAssetJson(assetName.getString(), &jRoot))
 	{
-		Error("Failed to load scene asset: %s", assetName);
+		Error("Failed to load scene asset: %s", assetName.getString());
 		return pScene;
 	}
 
@@ -25,6 +25,8 @@ Scene* Scene::Load(const char* assetName, Scene* pScene)
 	{
 		pScene = new Scene();
 	}
+
+	pScene->assetName = assetName;
 
 	Json::Value jCamera = jRoot.get("camera", Json::Value::null);
 
@@ -34,17 +36,9 @@ Scene* Scene::Load(const char* assetName, Scene* pScene)
 	Json::Value jRot = jCamera.get("rotation", Json::Value::null);
 	pScene->camPitchYawRoll = jsonReadPitchYawRoll(jRot);
 
-	// Sky
-	{
-		Json::Value jSky = jRoot.get("sky", Json::Value::null);
-		strcpy_s(pScene->sky, jSky.asCString());
-	}
-
-	// Post-processing effects
-	{
-		Json::Value jPostProc = jRoot.get("postProcessingEffects", Json::Value::null);
-		strcpy_s(pScene->postProcessingEffects, jPostProc.asCString());
-	}
+	// Sky & Post-processing effects
+	jsonReadCachedString(jRoot.get("sky", Json::Value::null), &pScene->skyName);
+	jsonReadCachedString(jRoot.get("postProcessingEffects", Json::Value::null), &pScene->postProcessingEffectsName);
 
 	// Terrain
 	{
@@ -62,7 +56,7 @@ Scene* Scene::Load(const char* assetName, Scene* pScene)
 			rTerrain.cornerMin = jsonReadVec2(jTerrain.get("cornerMin", Json::Value::null));
 			rTerrain.cornerMax = jsonReadVec2(jTerrain.get("cornerMax", Json::Value::null));
 			rTerrain.heightScale = jTerrain.get("heightScale", 1.f).asFloat();
-			jsonReadString(jTerrain.get("heightmap", Json::Value::null), rTerrain.heightmap, ARRAY_SIZE(rTerrain.heightmap));
+			jsonReadCachedString(jTerrain.get("heightmap", Json::Value::null), &rTerrain.heightmapName);
 		}
 	}
 
@@ -104,6 +98,10 @@ Scene* Scene::Load(const char* assetName, Scene* pScene)
 			{
 				rLight.type = LightType::Point;
 			}
+			else if (_stricmp(typeStr, "environment") == 0)
+			{
+				rLight.type = LightType::Environment;
+			}
 			else
 			{
 				assert(false);
@@ -129,6 +127,12 @@ Scene* Scene::Load(const char* assetName, Scene* pScene)
 		}
 	}
 
+	// Global environment light
+	{
+		Json::Value jGlobalEnvLight = jRoot.get("globalEnvironmentLight", Json::Value::null);
+		pScene->globalEnvironmentLightPosition = jsonReadVec3(jGlobalEnvLight.get("position", Json::Value::null));
+	}
+
 	// Objects
 	{
 		Json::Value jObjects = jRoot.get("objects", Json::Value::null);
@@ -144,12 +148,21 @@ Scene* Scene::Load(const char* assetName, Scene* pScene)
 			rObj.position = jsonReadVec3(jObj.get("position", Json::Value::null));
 			rObj.orientation = jsonReadRotation(jObj.get("rotation", Json::Value::null));
 			rObj.scale = jsonReadScale(jObj.get("scale", Json::Value::null));
+			jsonReadCachedString(jObj.get("model", Json::Value::null), &rObj.modelName);
+			jsonReadString(jObj.get("name", Json::Value::null), rObj.name, ARRAY_SIZE(rObj.name));
 
-			Json::Value jModel = jObj.get("model", Json::Value::null);
-			strcpy_s(rObj.model, jModel.asCString());
-
-			Json::Value jName = jObj.get("name", Json::Value::null);
-			strcpy_s(rObj.name, jModel.asCString());
+			Json::Value jMaterialSwaps = jObj.get("materialSwaps", Json::Value::null);
+			if (jMaterialSwaps.isObject())
+			{
+				int numSwaps = jMaterialSwaps.size();
+				assert(numSwaps < ARRAY_SIZE(rObj.materialSwaps));
+				for (auto iter = jMaterialSwaps.begin(); iter != jMaterialSwaps.end(); ++iter)
+				{
+					rObj.materialSwaps[rObj.numMaterialSwaps].from = iter.name().c_str();
+					jsonReadCachedString(*iter, &rObj.materialSwaps[rObj.numMaterialSwaps].to);
+					++rObj.numMaterialSwaps;
+				}
+			}
 		}
 	}
 

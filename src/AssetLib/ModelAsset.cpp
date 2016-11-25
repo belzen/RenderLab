@@ -10,16 +10,16 @@ AssetDef& Model::GetAssetDef()
 	return s_assetDef;
 }
 
-Model* Model::Load(const char* assetName, Model* pModel)
+Model* Model::Load(const CachedString& assetName, Model* pModel)
 {
 	char* pFileData = nullptr;
 	uint fileSize = 0;
 
 	SAFE_DELETE(pModel);
 
-	if (!GetAssetDef().LoadAsset(assetName, &pFileData, &fileSize))
+	if (!GetAssetDef().LoadAsset(assetName.getString(), &pFileData, &fileSize))
 	{
-		Error("Failed to load model asset: %s", assetName);
+		Error("Failed to load model asset: %s", assetName.getString());
 		return pModel;
 	}
 
@@ -42,5 +42,6 @@ Model* Model::Load(const char* assetName, Model* pModel)
 	pModel->bitangents.PatchPointer(pDataMem);
 	pModel->indices.PatchPointer(pDataMem);
 
+	pModel->assetName = assetName.getString();
 	return pModel;
 }

@@ -129,14 +129,14 @@ namespace
 		FixedVector<CmdCreateBuffer, 1024>				bufferCreates;
 		FixedVector<CmdUpdateBuffer, 1024>				bufferUpdates;
 		FixedVector<CmdReleaseResource, 1024>			resourceReleases;
-		FixedVector<CmdCreateRenderTarget, 1024>			renderTargetCreates;
+		FixedVector<CmdCreateRenderTarget, 1024>		renderTargetCreates;
 		FixedVector<CmdReleaseRenderTarget, 1024>		renderTargetReleases;
-		FixedVector<CmdCreateDepthStencil, 1024>			depthStencilCreates;
+		FixedVector<CmdCreateDepthStencil, 1024>		depthStencilCreates;
 		FixedVector<CmdReleaseDepthStencil, 1024>		depthStencilReleases;
-		FixedVector<CmdCreateShaderResourceView, 1024>   shaderResourceViewCreates;
-		FixedVector<CmdReleaseShaderResourceView, 1024>  shaderResourceViewReleases;
+		FixedVector<CmdCreateShaderResourceView, 1024>  shaderResourceViewCreates;
+		FixedVector<CmdReleaseShaderResourceView, 1024> shaderResourceViewReleases;
 		FixedVector<CmdUpdateGeo, 1024>					geoUpdates;
-		FixedVector<CmdReleaseGeo, 1024>					geoReleases;
+		FixedVector<CmdReleaseGeo, 1024>				geoReleases;
 
 		FixedVector<CmdCreateConstantBuffer, 2048>		constantBufferCreates;
 		FixedVector<CmdUpdateConstantBuffer, 2048>		constantBufferUpdates;
@@ -242,11 +242,10 @@ void RdrResourceSystem::Init()
 		 createTextureInternal(RdrTextureType::k3D, 1, 1, 1, 1, RdrResourceFormat::B8G8R8A8_UNORM, 1, RdrResourceUsage::Immutable, (char*)blackTexData);
 }
 
-RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, RdrTextureInfo* pOutInfo)
+RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const CachedString& texName, RdrTextureInfo* pOutInfo)
 {
 	// Find texture in cache
-	Hashing::StringHash nameHash = Hashing::HashString(texName);
-	RdrResourceHandleMap::iterator iter = s_resourceSystem.textureCache.find(nameHash);
+	RdrResourceHandleMap::iterator iter = s_resourceSystem.textureCache.find(texName.getHash());
 	if (iter != s_resourceSystem.textureCache.end())
 		return iter->second;
 
@@ -262,7 +261,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 
 	// Create new texture info
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
-	pResource->texInfo.filename = _strdup(texName); // todo: string cache
+	pResource->texInfo.filename = texName.getString();
 
 	CmdCreateTexture& cmd = getQueueState().textureCreates.pushSafe();
 	memset(&cmd, 0, sizeof(cmd));
@@ -296,7 +295,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const char* texName, 
 		cmd.pData += sizeof(DirectX::DDS_HEADER_DXT10);
 	}
 
-	s_resourceSystem.textureCache.insert(std::make_pair(nameHash, cmd.hResource));
+	s_resourceSystem.textureCache.insert(std::make_pair(texName.getHash(), cmd.hResource));
 
 	if (pOutInfo)
 	{

@@ -25,11 +25,27 @@ namespace
 	ModelInstanceFreeList s_modelInstances;
 }
 
-ModelInstance* ModelInstance::Create(const char* modelAssetName)
+ModelInstance* ModelInstance::Create(const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps)
 {
 	ModelInstance* pModel = s_modelInstances.allocSafe();
 	pModel->m_pModelData = ModelData::LoadFromFile(modelAssetName);
 	pModel->m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAY_SIZE(s_modelVertexDesc));
+
+	// Apply material swaps.
+	uint numSubObjects = pModel->m_pModelData->GetNumSubObjects();
+	for (uint i = 0; i < numSubObjects; ++i)
+	{
+		const ModelData::SubObject& rSubObject = pModel->m_pModelData->GetSubObject(i);
+		pModel->m_pMaterials[i] = rSubObject.pMaterial;
+
+		for (uint n = 0; n < numMaterialSwaps; ++n)
+		{
+			if (pModel->m_pMaterials[i]->name == aMaterialSwaps[n].from)
+			{
+				pModel->m_pMaterials[i] = RdrMaterial::LoadFromFile(aMaterialSwaps[n].to);
+			}
+		}
+	}
 
 	return pModel;
 }
@@ -83,7 +99,7 @@ void ModelInstance::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Matrix44& mtxW
 
 		pDrawOp->instanceDataId = m_instancedDataId;
 		pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
-		pDrawOp->pMaterial = rSubObject.pMaterial;
+		pDrawOp->pMaterial = m_pMaterials[i];
 
 		pDrawOp->hInputLayout = m_hInputLayout;
 		pDrawOp->vertexShader = kVertexShader;

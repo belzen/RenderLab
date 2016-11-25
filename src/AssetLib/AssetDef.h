@@ -1,6 +1,7 @@
 #pragma once
 #include "../Types.h"
 #include "UtilsLib/Paths.h"
+#include "UtilsLib/StringCache.h"
 #include "UtilsLib/json/json-forwards.h"
 
 namespace AssetLib

@@ -20,13 +20,13 @@ public:
 
 	void Cleanup();
 
-	void Load(const char* skyName);
+	void Load(const CachedString& skyName);
 
 	void Update(float dt);
 
 	void QueueDraw(RdrDrawBuckets* pDrawBuckets, RdrResourceHandle hVolumetricFogLut);
 
-	Light GetSunLight() const;
+	DirectionalLight GetSunLight() const;
 	Vec3 GetSunDirection() const;
 
 	float GetPssmLambda() const;

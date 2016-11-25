@@ -41,7 +41,7 @@ void MainWindow::Create(int width, int height, const char* title)
 	m_addMenu.Init();
 	m_addMenu.AddItem("Add Object", [](void* pUserData) {
 		MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
-		ModelInstance* pModel = ModelInstance::Create("box");
+		ModelInstance* pModel = ModelInstance::Create("box", nullptr, 0);
 		WorldObject* pObject = WorldObject::Create("New Object", pModel, Vec3::kZero, Quaternion::kIdentity, Vec3::kOne);
 		pWindow->m_sceneViewModel.AddObject(pObject);
 	}, this);
@@ -49,6 +49,9 @@ void MainWindow::Create(int width, int height, const char* title)
 	m_debugMenu.Init();
 	m_debugMenu.AddItem("RenderDoc Capture", [](void* pUserData) {
 		RenderDoc::Capture();
+	}, this);
+	m_debugMenu.AddItem("Invalidate Spec Probes", [](void* pUserData) {
+		static_cast<MainWindow*>(pUserData)->m_scene.GetLightList().InvalidateEnvironmentLights();
 	}, this);
 
 	m_mainMenu.Init();

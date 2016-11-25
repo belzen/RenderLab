@@ -17,15 +17,7 @@ namespace
 		{
 			for (float y = -150.f; y < 150.f; y += 8.f)
 			{
-				Light light;
-				light.type = LightType::Point;
-				light.color = Vec3(800.f, 0.f, 0.f);
-				light.position.x = x;
-				light.position.y = 5.f;
-				light.position.z = y;
-				light.radius = 16.f;
-				light.castsShadows = false;
-				rLightList.AddLight(light);
+				rLightList.AddPointLight(Vec3(x, 5.f, y), Vec3(800.f, 0.f, 0.f), 16.f);
 			}
 		}
 	}
@@ -34,7 +26,6 @@ namespace
 Scene::Scene()
 	: m_reloadPending(false)
 {
-	m_sceneName[0] = 0;
 }
 
 void Scene::Cleanup()
@@ -50,12 +41,12 @@ void Scene::Cleanup()
 
 	m_lights.Cleanup();
 	m_sky.Cleanup();
-	m_sceneName[0] = 0;
+	m_sceneName = nullptr;
 }
 
 void Scene::OnAssetReloaded(const AssetLib::Scene* pSceneAsset)
 {
-	if (_stricmp(m_sceneName, pSceneAsset->assetName) == 0)
+	if (m_sceneName == pSceneAsset->assetName)
 	{
 		m_reloadPending = true;
 	}
@@ -63,10 +54,10 @@ void Scene::OnAssetReloaded(const AssetLib::Scene* pSceneAsset)
 
 void Scene::Load(const char* sceneName)
 {
-	assert(m_sceneName[0] == 0);
-	strcpy_s(m_sceneName, sceneName);
+	assert(!m_sceneName.getString());
+	m_sceneName = sceneName;
 
-	AssetLib::Scene* pSceneData = AssetLibrary<AssetLib::Scene>::LoadAsset(sceneName);
+	AssetLib::Scene* pSceneData = AssetLibrary<AssetLib::Scene>::LoadAsset(m_sceneName);
 	AssetLibrary<AssetLib::Scene>::AddReloadListener(this);
 	if (!pSceneData)
 	{
@@ -79,11 +70,11 @@ void Scene::Load(const char* sceneName)
 	m_cameraSpawnPitchYawRoll = pSceneData->camPitchYawRoll;
 
 	// Sky
-	m_sky.Load(pSceneData->sky);
+	m_sky.Load(pSceneData->skyName);
 
 	// Post-processing effects
 	{
-		AssetLib::PostProcessEffects* pEffects = AssetLibrary<AssetLib::PostProcessEffects>::LoadAsset(pSceneData->postProcessingEffects);
+		AssetLib::PostProcessEffects* pEffects = AssetLibrary<AssetLib::PostProcessEffects>::LoadAsset(pSceneData->postProcessingEffectsName);
 		if (!pEffects)
 		{
 			assert(false);
@@ -93,37 +84,43 @@ void Scene::Load(const char* sceneName)
 		m_postProcEffects.Init(pEffects);
 	}
 
-	// Lights
-	for (const AssetLib::Light& rLightData : pSceneData->lights)
-	{
-		Light light;
-		light.type = rLightData.type;
-		light.color = rLightData.color;
-		light.position = rLightData.position;
-		light.direction = rLightData.direction;
-		light.radius = rLightData.radius;
-		light.innerConeAngle = rLightData.innerConeAngle;
-		light.outerConeAngle = rLightData.outerConeAngle;
-		light.castsShadows = rLightData.bCastsShadows;
-
-		m_lights.AddLight(light);
-	}
-
-	if (s_stressTestLights)
-	{
-		spawnLightStressTest(m_lights);
-	}
-
 	// Objects
 	for (const AssetLib::Object& rObjectData : pSceneData->objects)
 	{
-		ModelInstance* pModel = ModelInstance::Create(rObjectData.model);
+		ModelInstance* pModel = ModelInstance::Create(rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps);
 		m_objects.push_back(WorldObject::Create(rObjectData.name, pModel, rObjectData.position, rObjectData.orientation, rObjectData.scale));
 	}
 
 	if (pSceneData->terrain.enabled)
 	{
 		m_terrain.Init(pSceneData->terrain);
+	}
+
+	// Lights
+	m_lights.Init(this);
+	m_lights.SetGlobalEnvironmentLight(pSceneData->globalEnvironmentLightPosition);
+	for (const AssetLib::Light& rLightData : pSceneData->lights)
+	{
+		switch (rLightData.type)
+		{
+		case LightType::Directional:
+			m_lights.AddDirectionalLight(rLightData.direction, rLightData.color);
+			break;
+		case LightType::Point:
+			m_lights.AddPointLight(rLightData.position, rLightData.color, rLightData.radius);
+			break;
+		case LightType::Spot:
+			m_lights.AddSpotLight(rLightData.position, rLightData.direction, rLightData.color, rLightData.radius, rLightData.innerConeAngle, rLightData.outerConeAngle);
+			break;
+		case LightType::Environment:
+			m_lights.AddEnvironmentLight(rLightData.position);
+			break;
+		}
+	}
+
+	if (s_stressTestLights)
+	{
+		spawnLightStressTest(m_lights);
 	}
 
 	// TODO: quad/oct tree for scene
@@ -133,11 +130,8 @@ void Scene::Update(float dt)
 {
 	if (m_reloadPending)
 	{
-		char sceneName[AssetLib::AssetDef::kMaxNameLen];
-		strcpy_s(sceneName, m_sceneName);
-
 		Cleanup();
-		Load(sceneName);
+		Load(m_sceneName.getString());
 		m_reloadPending = false;
 	}
 
@@ -151,7 +145,7 @@ void Scene::AddObject(WorldObject* pObject)
 
 const char* Scene::GetName() const
 {
-	return m_sceneName;
+	return m_sceneName.getString();
 }
 
 const Vec3& Scene::GetCameraSpawnPosition() const

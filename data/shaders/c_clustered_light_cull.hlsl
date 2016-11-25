@@ -51,7 +51,7 @@ void constructFrustum(uint3 clusterId, out Frustum frustum)
 	// Get the non-rounded number of clusters on the screen.  
 	// This is necessary for screens that are not divisible by the cluster size.
 	// We're converting from NDC space to view space, so we need the actual visible clusters on the screen, not the rounded number.
-	float2 actualScreenClusters = cbCullParams.screenSize / CLUSTEREDLIGHTING_TILE_SIZE;
+	float2 actualScreenClusters = cbCullParams.screenSize / float(cbCullParams.clusterTileSize);
 
 	// Convert from NDC [-1, 1] space to view space.
 	float nearMinX = -(1 - 2.0f / actualScreenClusters.x * (clusterId.x - 0) ) * depthMin / cbCullParams.proj_11;

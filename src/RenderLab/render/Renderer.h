@@ -17,37 +17,18 @@ struct Light;
 class LightList;
 class RdrPostProcessEffects;
 
-enum class RdrLightingMethod
-{
-	Tiled,
-	Clustered
-};
-
-struct RdrTiledLightingData
-{
-	RdrResourceHandle       hLightIndices;
-	RdrConstantBufferHandle hDepthMinMaxConstants;
-	RdrConstantBufferHandle hCullConstants;
-	RdrResourceHandle	    hDepthMinMaxTex;
-	int					    tileCountX;
-	int					    tileCountY;
-};
-
-struct RdrClusteredLightingData
-{
-	RdrResourceHandle       hLightIndices;
-	RdrConstantBufferHandle hCullConstants;
-	int					    clusterCountX;
-	int					    clusterCountY;
-	int					    clusterCountZ;
-};
-
 struct RdrVolumetricFogData
 {
 	RdrConstantBufferHandle hFogConstants;
 	RdrResourceHandle hDensityLightLut;
 	RdrResourceHandle hFinalLut;
 	UVec3 lutSize;
+};
+
+struct RdrSurface
+{
+	RdrRenderTargetViewHandle hRenderTarget;
+	RdrDepthStencilViewHandle hDepthTarget;
 };
 
 class Renderer
@@ -61,11 +42,12 @@ public:
 	void ApplyDeviceChanges();
 
 	void BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt);
-	void BeginOffscreenAction(const wchar_t* actionName, const Camera& rCamera, Scene& rScene);
+	void BeginOffscreenAction(const wchar_t* actionName, const Camera& rCamera, Scene& rScene,
+		bool enablePostprocessing, const Rect& viewport, const RdrSurface& outputSurface);
 	void EndAction();
 
 	void QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
-	void QueueShadowCubeMapPass(const Light* pLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
+	void QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 
 	void AddDrawOpToBucket(const RdrDrawOp* pDrawOp, RdrBucketType eBucket);
 	void AddComputeOpToPass(const RdrComputeOp* pComputeOp, RdrPass ePass);
@@ -85,28 +67,27 @@ public:
 
 	void SetLightingMethod(RdrLightingMethod eLightingMethod);
 
-	const RdrProfiler& GetProfiler();
+	const RdrProfiler& GetProfiler() const;
+
+	RdrResourceHandle GetPrimaryDepthBuffer() const;
+	RdrResourceHandle GetPrimaryDepthStencilView() const;
 
 private:
 	void DrawPass(const RdrAction& rAction, RdrPass ePass);
 	void DrawShadowPass(const RdrShadowPass& rPass);
-	void QueueTiledLightCulling();
-	void QueueClusteredLightCulling();
 	void QueueVolumetricFog(const AssetLib::VolumetricFogSettings& rFogSettings);
 
 	RdrFrameState& GetQueueState();
 	RdrFrameState& GetActiveState();
 
-	RdrAction* GetNextAction(const wchar_t* actionName, const Rect& viewport);
+	RdrAction* GetNextAction(const wchar_t* actionName, const Rect& viewport, bool enablePostProcessing, const RdrSurface& outputSurface);
 
-	void DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants, const RdrLightParams& rLightParams);
+	void DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants, const RdrLightResources& rLightParams);
 	void DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants,
-		const RdrDrawOp* pDrawOp, const RdrLightParams& rLightParams, const RdrResourceHandle hTileLightIndices, uint instanceCount);
+		const RdrDrawOp* pDrawOp, const RdrLightResources& rLightParams, uint instanceCount);
 	void DispatchCompute(const RdrComputeOp* pComputeOp);
 
 	void ProcessReadbackRequests();
-
-	RdrResourceHandle GetLightIdsResource() const;
 
 private:
 	///
@@ -136,8 +117,6 @@ private:
 
 	RdrLightingMethod m_ePendingLightingMethod;
 	RdrLightingMethod m_eLightingMethod;
-	RdrTiledLightingData m_tiledLightData;
-	RdrClusteredLightingData m_clusteredLightData;
 	RdrVolumetricFogData m_volumetricFogData;
 
 	RdrPostProcess m_postProcess;
@@ -183,7 +162,17 @@ inline RdrFrameState& Renderer::GetActiveState()
 	return m_frameStates[!m_queueState]; 
 }
 
-inline const RdrProfiler& Renderer::GetProfiler()
+inline const RdrProfiler& Renderer::GetProfiler() const
 {
 	return m_profiler;
+}
+
+inline RdrResourceHandle Renderer::GetPrimaryDepthBuffer() const
+{
+	return m_hPrimaryDepthBuffer;
+}
+
+inline RdrResourceHandle Renderer::GetPrimaryDepthStencilView() const
+{
+	return m_hPrimaryDepthStencilView;
 }

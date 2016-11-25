@@ -13,12 +13,12 @@ AssetDef& Material::GetAssetDef()
 	return s_assetDef;
 }
 
-Material* Material::Load(const char* assetName, Material* pMaterial)
+Material* Material::Load(const CachedString& assetName, Material* pMaterial)
 {
 	Json::Value jRoot;
-	if (!GetAssetDef().LoadAssetJson(assetName, &jRoot))
+	if (!GetAssetDef().LoadAssetJson(assetName.getString(), &jRoot))
 	{
-		Error("Failed to load material asset: %s", assetName);
+		Error("Failed to load material asset: %s", assetName.getString());
 		return pMaterial;
 	}
 
@@ -43,5 +43,6 @@ Material* Material::Load(const char* assetName, Material* pMaterial)
 		strcpy_s(pMaterial->textures[n], jTex.asCString());
 	}
 
+	pMaterial->assetName = assetName;
 	return pMaterial;
 }

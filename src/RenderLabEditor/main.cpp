@@ -22,7 +22,7 @@ int main(int argc, char** argv)
 {
 	GlobalState::Init();
 	UserConfig::Load();
-	if (g_debugState.attachRenderDoc)
+	if (g_userConfig.attachRenderDoc)
 	{
 		RenderDoc::Init();
 	}

@@ -79,6 +79,5 @@ void RdrAction::Reset()
 		rPass.bIsCubeMapCapture = false;
 	}
 
-	memset(&lightParams, 0, sizeof(lightParams));
 	shadowPassCount = 0;
 }

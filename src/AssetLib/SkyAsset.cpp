@@ -12,12 +12,12 @@ AssetDef& Sky::GetAssetDef()
 	return s_assetDef;
 }
 
-Sky* Sky::Load(const char* assetName, Sky* pSky)
+Sky* Sky::Load(const CachedString& assetName, Sky* pSky)
 {
 	Json::Value jRoot;
-	if (!GetAssetDef().LoadAssetJson(assetName, &jRoot))
+	if (!GetAssetDef().LoadAssetJson(assetName.getString(), &jRoot))
 	{
-		Error("Failed to load sky asset: %s", assetName);
+		Error("Failed to load sky asset: %s", assetName.getString());
 		return pSky;
 	}
 
@@ -26,11 +26,8 @@ Sky* Sky::Load(const char* assetName, Sky* pSky)
 		pSky = new Sky();
 	}
 
-	Json::Value jModel = jRoot.get("model", Json::Value::null);
-	strcpy_s(pSky->model, jModel.asCString());
-
-	Json::Value jMaterialName = jRoot.get("material", Json::Value::null);
-	strcpy_s(pSky->material, jMaterialName.asCString());
+	jsonReadCachedString(jRoot.get("model", Json::Value::null), &pSky->modelName);
+	jsonReadCachedString(jRoot.get("material", Json::Value::null), &pSky->materialName);
 
 	pSky->sun.angleXAxis = jRoot.get("sunAngleXAxis", 0.f).asFloat();
 	pSky->sun.angleZAxis = jRoot.get("sunAngleZAxis", 0.f).asFloat();
@@ -49,6 +46,7 @@ Sky* Sky::Load(const char* assetName, Sky* pSky)
 		pSky->volumetricFog.farDepth = jFog.get("farDepth", 0.f).asFloat();
 	}
 
+	pSky->assetName = assetName;
 	return pSky;
 }
 

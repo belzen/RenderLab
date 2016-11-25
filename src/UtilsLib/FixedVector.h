@@ -32,7 +32,7 @@ public:
 
 	const T_object& operator[] (uint idx) const
 	{
-		assert(index < m_size);
+		assert(idx < m_size);
 		return m_objects[idx];
 	}
 
@@ -61,6 +61,16 @@ public:
 		return (pushSafe() = other);
 	}
 
+	const T_object& pop()
+	{
+		return m_objects[--m_size];
+	}
+
+	const T_object* getData() const
+	{
+		return m_objects;
+	}
+
 	void clear()
 	{
 		m_size = 0;
@@ -69,6 +79,11 @@ public:
 	uint size()
 	{
 		return m_size;
+	}
+
+	uint capacity()
+	{
+		return T_kCapacity;
 	}
 
 private:

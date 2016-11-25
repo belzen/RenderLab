@@ -17,11 +17,10 @@ namespace
 	ModelDataMap s_modelCache;
 }
 
-ModelData* ModelData::LoadFromFile(const char* modelName)
+ModelData* ModelData::LoadFromFile(const CachedString& modelName)
 {
 	// Find model in cache
-	Hashing::StringHash nameHash = Hashing::HashString(modelName);
-	ModelDataMap::iterator iter = s_modelCache.find(nameHash);
+	ModelDataMap::iterator iter = s_modelCache.find(modelName.getHash());
 	if (iter != s_modelCache.end())
 		return iter->second;
 
@@ -36,8 +35,8 @@ ModelData* ModelData::LoadFromFile(const char* modelName)
 	pModel->m_pBinData = pBinData;
 	pModel->m_subObjectCount = pBinData->subObjectCount;
 
-	assert(pModel->m_modelName[0] == 0);
-	strcpy_s(pModel->m_modelName, modelName);
+	assert(!pModel->m_modelName.getString());
+	pModel->m_modelName = modelName;
 
 	uint vertAccum = 0;
 	uint indicesAccum = 0;
@@ -76,7 +75,7 @@ ModelData* ModelData::LoadFromFile(const char* modelName)
 	float minLen = Vec3Length(pBinData->boundsMin);
 	pModel->m_radius = std::max(minLen, maxLen);
 
-	s_modelCache.insert(std::make_pair(nameHash, pModel));
+	s_modelCache.insert(std::make_pair(modelName.getHash(), pModel));
 
 	return pModel;
 }

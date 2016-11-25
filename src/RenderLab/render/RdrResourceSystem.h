@@ -19,7 +19,7 @@ namespace RdrResourceSystem
 
 	void Init();
 
-	RdrResourceHandle CreateTextureFromFile(const char* filename, RdrTextureInfo* pOutInfo);
+	RdrResourceHandle CreateTextureFromFile(const CachedString& texName, RdrTextureInfo* pOutInfo);
 
 	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
 	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount);

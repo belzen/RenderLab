@@ -7,7 +7,7 @@ namespace AssetLib
 	struct PostProcessEffects
 	{
 		static AssetDef& GetAssetDef();
-		static PostProcessEffects* Load(const char* assetName, PostProcessEffects* pEffects);
+		static PostProcessEffects* Load(const CachedString& assetName, PostProcessEffects* pEffects);
 
 		struct
 		{
@@ -24,6 +24,6 @@ namespace AssetLib
 		} bloom;
 
 		uint timeLastModified;
-		const char* assetName; // Filled in by the AssetLibrary during loading.
+		CachedString assetName;
 	};
 }

@@ -2,7 +2,7 @@
 #include "RenderWindow.h"
 #include "render\Renderer.h"
 #include "RenderDoc/RenderDocUtil.h"
-
+#include "render\RdrOffscreenTasks.h"
 
 void RenderWindow::Create(HWND hParentWnd, int width, int height, Renderer* pRenderer)
 {
@@ -65,6 +65,8 @@ void RenderWindow::Draw(Scene& rScene, const FrameTimer& rFrameTimer, float dt)
 {
 	// Apply device changes (resizing, fullscreen, etc)
 	m_pRenderer->ApplyDeviceChanges();
+
+	RdrOffscreenTasks::IssuePendingActions(*m_pRenderer);
 
 	// Primary render action
 	m_pRenderer->BeginPrimaryAction(m_mainCamera, rScene, dt);

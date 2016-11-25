@@ -4,6 +4,7 @@
 #include "RdrContext.h"
 #include "AssetLib/SceneAsset.h"
 #include "RdrShaderTypes.h"
+#include "UtilsLib/FixedVector.h"
 #include "../../data/shaders/light_types.h"
 
 struct ID3D11Buffer;
@@ -17,17 +18,45 @@ class Sky;
 #define MAX_SHADOW_MAPS_PER_FRAME 10
 #define USE_SINGLEPASS_SHADOW_CUBEMAP 1
 
-struct Light
+enum class RdrLightingMethod
 {
-	LightType type;
-	Vec3 position;
-	Vec3 direction;
-	Vec3 color;
-	float radius;
-	float innerConeAngle; // Angle where light begins to fall off
-	float outerConeAngle; // No more light
-	uint shadowMapIndex;
-	uint castsShadows;
+	Tiled,
+	Clustered
+};
+
+struct RdrTiledLightingData
+{
+	RdrResourceHandle       hLightIndices;
+	RdrConstantBufferHandle hDepthMinMaxConstants;
+	RdrConstantBufferHandle hCullConstants;
+	RdrResourceHandle	    hDepthMinMaxTex;
+	int					    tileCountX;
+	int					    tileCountY;
+};
+
+struct RdrClusteredLightingData
+{
+	RdrResourceHandle       hLightIndices;
+	RdrConstantBufferHandle hCullConstants;
+	int					    clusterCountX;
+	int					    clusterCountY;
+	int					    clusterCountZ;
+	int						clusterTileSize;
+};
+
+struct RdrLightResources
+{
+	RdrConstantBufferHandle hGlobalLightsCb;
+	RdrResourceHandle hSpotLightListRes;
+	RdrResourceHandle hPointLightListRes;
+	RdrResourceHandle hEnvironmentLightListRes;
+	RdrResourceHandle hLightIndicesRes;
+
+	RdrResourceHandle hSkyTransmittanceLut;
+	RdrResourceHandle hVolumetricFogLut;
+	RdrResourceHandle hEnvironmentMapTexArray;
+	RdrResourceHandle hShadowMapTexArray;
+	RdrResourceHandle hShadowCubeMapTexArray;
 };
 
 class LightList
@@ -35,32 +64,36 @@ class LightList
 public:
 	LightList();
 
+	void Init(Scene* pScene);
 	void Cleanup();
 
-	void AddLight(const Light& light);
+	void AddDirectionalLight(const Vec3& direction, const Vec3& color);
+	void AddSpotLight(const Vec3& position, const Vec3& direction, const Vec3& color, float radius, float innerConeAngle, float outerConeAngle);
+	void AddPointLight(const Vec3& position, const Vec3& color, float radius);
+	void AddEnvironmentLight(const Vec3& position);
+	void SetGlobalEnvironmentLight(const Vec3& position);
 
-	void PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
-		RdrConstantBufferHandle* phOutLightConstants);
+	void InvalidateEnvironmentLights();
 
-	RdrResourceHandle GetShadowMapTexArray() const;
-	RdrResourceHandle GetShadowCubeMapTexArray() const;
-
-	RdrResourceHandle GetSpotLightListRes() const;
-	RdrResourceHandle GetPointLightListRes() const;
-
-	uint GetSpotLightCount() const;
-	uint GetPointLightCount() const;
+	void QueueDraw(Renderer* pRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
+		RdrLightingMethod lightingMethod, RdrLightResources* pOutResources);
 
 private:
-	Light m_lights[2048];
-	uint m_lightCount;
-	uint m_prevLightCount;
+	void QueueClusteredLightCulling(Renderer* pRenderer, const Camera& rCamera, const RdrLightResources& rLightResources);
+	void QueueTiledLightCulling(Renderer* pRenderer, const Camera& rCamera, const RdrLightResources& rLightResources);
 
-	RdrResourceHandle m_hSpotLightListRes;
-	RdrResourceHandle m_hPointLightListRes;
+private:
+	// Light lists
+	FixedVector<DirectionalLight, 4> m_directionalLights;
+	FixedVector<PointLight, 256> m_pointLights;
+	FixedVector<SpotLight, 256> m_spotLights;
+	FixedVector<EnvironmentLight, 64> m_environmentLights;
+	EnvironmentLight m_globalEnvironmentLight;
 
-	uint m_numSpotLights;
-	uint m_numPointLights;
+	// Render resources
+	RdrResourceHandle m_hEnvironmentMapTexArray;
+	RdrResourceHandle m_hEnvironmentMapDepthBuffer;
+	RdrDepthStencilViewHandle m_hEnvironmentMapDepthView;
 
 	RdrResourceHandle m_hShadowMapTexArray;
 	RdrResourceHandle m_hShadowCubeMapTexArray;
@@ -70,35 +103,11 @@ private:
 #else
 	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * CubemapFace::Count];
 #endif
+
+	// Lighting mode data.
+	RdrTiledLightingData m_tiledLightData;
+	RdrClusteredLightingData m_clusteredLightData;
+
+	Scene* m_pScene; // Scene the lights belong to.  Used for environment light captures.
 };
-
-inline RdrResourceHandle LightList::GetShadowMapTexArray() const
-{ 
-	return m_hShadowMapTexArray; 
-}
-
-inline RdrResourceHandle LightList::GetShadowCubeMapTexArray() const
-{ 
-	return m_hShadowCubeMapTexArray; 
-}
-
-inline RdrResourceHandle LightList::GetSpotLightListRes() const
-{ 
-	return m_hSpotLightListRes; 
-}
-
-inline RdrResourceHandle LightList::GetPointLightListRes() const
-{
-	return m_hPointLightListRes;
-}
-
-inline uint LightList::GetSpotLightCount() const
-{
-	return m_numSpotLights;
-}
-
-inline uint LightList::GetPointLightCount() const
-{
-	return m_numPointLights;
-}
 

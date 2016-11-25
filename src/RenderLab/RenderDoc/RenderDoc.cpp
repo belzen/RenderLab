@@ -22,7 +22,7 @@ bool RenderDoc::Init()
 	if (!pGetApiFunc(eRENDERDOC_API_Version_1_1_0, (void**)&s_pRenderDocApi))
 		return false;
 
-	s_pRenderDocApi->SetCaptureOptionU32(RENDERDOC_CaptureOption::eRENDERDOC_Option_APIValidation, g_debugState.debugDevice);
+	s_pRenderDocApi->SetCaptureOptionU32(RENDERDOC_CaptureOption::eRENDERDOC_Option_APIValidation, g_userConfig.debugDevice);
 	s_pRenderDocApi->SetCaptureOptionU32(RENDERDOC_CaptureOption::eRENDERDOC_Option_DebugOutputMute, 0);
 
 	return true;

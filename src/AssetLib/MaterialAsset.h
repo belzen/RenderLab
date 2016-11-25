@@ -6,7 +6,7 @@ namespace AssetLib
 	struct Material
 	{
 		static AssetDef& GetAssetDef();
-		static Material* Load(const char* assetName, Material* pMaterial);
+		static Material* Load(const CachedString& assetName, Material* pMaterial);
 
 		char pixelShader[AssetLib::AssetDef::kMaxNameLen];
 		char textures[16][AssetLib::AssetDef::kMaxNameLen];
@@ -18,6 +18,6 @@ namespace AssetLib
 		float metalness;
 
 		uint timeLastModified;
-		const char* assetName; // Filled in by the AssetLibrary during loading.
+		CachedString assetName;
 	};
 }

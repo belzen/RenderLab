@@ -2,6 +2,7 @@
 
 #include "AssetLib\AssetLibForwardDecl.h"
 #include "AssetLib\AssetDef.h"
+#include "UtilsLib\StringCache.h"
 #include "RdrGeometry.h"
 
 struct RdrMaterial;
@@ -14,7 +15,7 @@ class ModelData
 public:
 	static const uint kMaxSubObjects = 16;
 
-	static ModelData* LoadFromFile(const char* modelName);
+	static ModelData* LoadFromFile(const CachedString& modelName);
 
 	struct SubObject
 	{
@@ -36,14 +37,14 @@ private:
 	friend ModelDataFreeList;
 	ModelData() {}
 
+private:
 	AssetLib::Model* m_pBinData;
+	CachedString m_modelName;
 
 	SubObject m_subObjects[kMaxSubObjects];
 	uint m_subObjectCount;
 
 	float m_radius;
-
-	char m_modelName[AssetLib::AssetDef::kMaxNameLen];
 };
 
 inline float ModelData::GetRadius() const
@@ -63,5 +64,5 @@ inline uint ModelData::GetNumSubObjects() const
 
 inline const char* ModelData::GetName() const
 {
-	return m_modelName;
+	return m_modelName.getString();
 }

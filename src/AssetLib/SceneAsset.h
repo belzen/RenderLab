@@ -4,6 +4,7 @@
 #include "MathLib/Vec2.h"
 #include "MathLib/Vec3.h"
 #include "MathLib/Quaternion.h"
+#include "UtilsLib/StringCache.h"
 #include <vector>
 
 enum class LightType : int
@@ -32,12 +33,20 @@ namespace AssetLib
 		bool bCastsShadows;
 	};
 
+	struct MaterialSwap
+	{
+		CachedString from;
+		CachedString to;
+	};
+
 	struct Object
 	{
 		Vec3 position;
 		Quaternion orientation;
 		Vec3 scale;
-		char model[AssetLib::AssetDef::kMaxNameLen];
+		MaterialSwap materialSwaps[4];
+		uint numMaterialSwaps;
+		CachedString modelName;
 		char name[64];
 	};
 
@@ -45,7 +54,7 @@ namespace AssetLib
 	{
 		Vec2 cornerMin;
 		Vec2 cornerMax;
-		char heightmap[AssetLib::AssetDef::kMaxNameLen];
+		CachedString heightmapName;
 		float heightScale;
 		bool enabled;
 	};
@@ -53,10 +62,10 @@ namespace AssetLib
 	struct Scene
 	{
 		static AssetDef& GetAssetDef();
-		static Scene* Load(const char* assetName, Scene* pScene);
+		static Scene* Load(const CachedString& assetName, Scene* pScene);
 
-		char postProcessingEffects[AssetLib::AssetDef::kMaxNameLen];
-		char sky[AssetLib::AssetDef::kMaxNameLen];
+		CachedString postProcessingEffectsName;
+		CachedString skyName;
 
 		Vec3 camPosition;
 		Vec3 camPitchYawRoll;
@@ -64,8 +73,9 @@ namespace AssetLib
 		std::vector<Light> lights;
 		std::vector<Object> objects;
 		Terrain terrain;
+		Vec3 globalEnvironmentLightPosition;
 
 		uint timeLastModified;
-		const char* assetName; // Filled in by the AssetLibrary during loading.
+		CachedString assetName;
 	};
 }

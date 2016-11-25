@@ -99,18 +99,18 @@ void Sky::Cleanup()
 
 void Sky::OnAssetReloaded(const AssetLib::Sky* pSkyAsset)
 {
-	if (_stricmp(m_pSrcAsset->assetName, pSkyAsset->assetName) == 0)
+	if (m_pSrcAsset->assetName == pSkyAsset->assetName)
 	{
 		m_reloadPending = true;
 	}
 }
 
-void Sky::Load(const char* skyName)
+void Sky::Load(const CachedString& skyName)
 {
 	m_pSrcAsset = AssetLibrary<AssetLib::Sky>::LoadAsset(skyName);
 	AssetLibrary<AssetLib::Sky>::AddReloadListener(this);
 
-	m_pModelData = ModelData::LoadFromFile(m_pSrcAsset->model);
+	m_pModelData = ModelData::LoadFromFile(m_pSrcAsset->modelName);
 
 	if (!s_hSkyInputLayout)
 	{
@@ -157,7 +157,7 @@ void Sky::Update(float dt)
 {
 	if (m_reloadPending)
 	{
-		const char* assetName = m_pSrcAsset->assetName;
+		CachedString assetName = m_pSrcAsset->assetName;
 		Cleanup();
 		Load(assetName);
 		m_reloadPending = false;
@@ -392,11 +392,9 @@ Vec3 Sky::GetSunDirection() const
 	return -Vec3(cosf(xAxis), sinf(xAxis), 0.f);
 }
 
-Light Sky::GetSunLight() const
+DirectionalLight Sky::GetSunLight() const
 {
-	Light light;
-	light.type = LightType::Directional;
-	light.castsShadows = true;
+	DirectionalLight light;
 	light.color = m_pSrcAsset->sun.color * m_pSrcAsset->sun.intensity;
 	light.direction = GetSunDirection();
 	light.shadowMapIndex = -1;

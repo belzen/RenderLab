@@ -16,7 +16,7 @@ namespace
 	RdrMaterialList s_materials;
 	RdrMaterialMap s_materialCache;
 
-	void loadMaterial(const char* materialName, RdrMaterial* pOutMaterial)
+	void loadMaterial(const CachedString& materialName, RdrMaterial* pOutMaterial)
 	{
 		AssetLib::Material* pMaterial = AssetLibrary<AssetLib::Material>::LoadAsset(materialName);
 		if (!pMaterial)
@@ -58,10 +58,12 @@ namespace
 		pConstants->metalness = pMaterial->metalness;
 		pConstants->roughness = pMaterial->roughness;
 		pOutMaterial->hConstants = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
+
+		pOutMaterial->name = materialName;
 	}
 }
 
-const RdrMaterial* RdrMaterial::LoadFromFile(const char* materialName)
+const RdrMaterial* RdrMaterial::LoadFromFile(const CachedString& materialName)
 {
 	if (!AssetLib::Material::GetAssetDef().HasReloadHandler())
 	{
@@ -69,8 +71,7 @@ const RdrMaterial* RdrMaterial::LoadFromFile(const char* materialName)
 	}
 
 	// Check if the material's already been loaded
-	Hashing::StringHash nameHash = Hashing::HashString(materialName);
-	RdrMaterialMap::iterator iter = s_materialCache.find(nameHash);
+	RdrMaterialMap::iterator iter = s_materialCache.find(materialName.getHash());
 	if (iter != s_materialCache.end())
 		return iter->second;
 
@@ -79,7 +80,7 @@ const RdrMaterial* RdrMaterial::LoadFromFile(const char* materialName)
 
 	loadMaterial(materialName, pMaterial);
 
-	s_materialCache.insert(std::make_pair(nameHash, pMaterial));
+	s_materialCache.insert(std::make_pair(materialName.getHash(), pMaterial));
 
 	return pMaterial;
 }

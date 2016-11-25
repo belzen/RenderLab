@@ -428,7 +428,7 @@ void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState
 	RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(RdrResourceSystem::kPrimaryRenderTargetHandle);
 	RdrDepthStencilView depthView = { 0 };
 	pRdrContext->SetRenderTargets(1, &renderTarget, depthView);
-	pRdrContext->SetViewport(Rect(0.f, 0.f, pColorBuffer->texInfo.width, pColorBuffer->texInfo.height));
+	pRdrContext->SetViewport(Rect(0.f, 0.f, (float)pColorBuffer->texInfo.width, (float)pColorBuffer->texInfo.height));
 
 	// Vertex shader
 	rDrawState.pVertexShader = RdrShaderSystem::GetVertexShader(kScreenVertexShader);

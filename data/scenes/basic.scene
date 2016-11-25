@@ -6,6 +6,10 @@
 
 	"sky" : "cloudy",
 	"postProcessingEffects" : "default",
+	"globalEnvironmentLight" :
+		{
+			"position" : [ -3.0, 1.5, 0.0 ]
+		},
 	"lights" : [
 		{
 			"type" : "spot",
@@ -40,7 +44,10 @@
 			"position" : [ -3.0, 1.5, 0.0 ],
 			"rotation" : [ 0.0, 45.0, 0.0 ],
 			"scale" : [ 1.5, 1.5, 1.5 ],
-			"model" : "sphere"
+			"model" : "sphere",
+			"materialSwaps" : {
+				"white" : "white_metal"
+			}
 		},
 		{
 			"name" : "box1",

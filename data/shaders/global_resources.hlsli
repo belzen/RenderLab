@@ -2,6 +2,7 @@
 SamplerState           g_samClamp         : register(s14);
 SamplerComparisonState g_samShadowMaps    : register(s15);
 
+TextureCubeArray  g_texEnvironmentMaps     : register(t11);
 Texture3D<float4> g_texVolumetricFogLut    : register(t12);
 Texture2D<float4> g_texSkyTransmittanceLut : register(t13);
 Texture2DArray    g_texShadowMaps          : register(t14);

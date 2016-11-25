@@ -80,7 +80,12 @@ void main( uint3 globalId : SV_DispatchThreadID, uint3 groupId : SV_GroupId, uin
 
 		// Decay luminance
 		// todo: exp decay should be based on time, right now it's fixed per frame
-		float adaptedLum = bufToneMapOutput[0].adaptedLum + (avgLum - bufToneMapOutput[0].adaptedLum) * (1.f - exp(0.01f * -0.2f));
+		float prevLum = bufToneMapOutput[0].adaptedLum;
+		float adaptedLum = prevLum + (avgLum - bufToneMapOutput[0].adaptedLum) * (1.f - exp(0.01f * -0.2f));
+		if (isnan(adaptedLum))
+		{
+			adaptedLum = prevLum;
+		}
 
 		bufToneMapOutput[0].linearExposure = clamp(cbTonemapInput.middleGrey / adaptedLum, cbTonemapInput.minExposure, cbTonemapInput.maxExposure);
 		bufToneMapOutput[0].white = cbTonemapInput.white;

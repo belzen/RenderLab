@@ -10,7 +10,7 @@ namespace AssetLib
 	struct Model
 	{
 		static AssetDef& GetAssetDef();
-		static Model* Load(const char* assetName, Model* pModel);
+		static Model* Load(const CachedString& assetName, Model* pModel);
 
 		struct SubObject
 		{
@@ -36,6 +36,6 @@ namespace AssetLib
 		BinDataPtr<uint16> indices;
 
 		uint timeLastModified;
-		const char* assetName; // Filled in by the AssetLibrary during loading.
+		const char* assetName;
 	};
 }

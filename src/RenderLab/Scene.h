@@ -62,7 +62,7 @@ private:
 	Vec3 m_cameraSpawnPosition;
 	Vec3 m_cameraSpawnPitchYawRoll;
 
-	char m_sceneName[AssetLib::AssetDef::kMaxNameLen];
+	CachedString m_sceneName;
 	bool m_reloadPending;
 };
 

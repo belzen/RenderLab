@@ -13,7 +13,7 @@ typedef FreeList<ModelInstance, 6 * 1024> ModelInstanceFreeList;
 class ModelInstance
 {
 public:
-	static ModelInstance* Create(const char* modelAssetName);
+	static ModelInstance* Create(const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps);
 
 	void Release();
 
@@ -30,10 +30,14 @@ private:
 	// Whether the model should allow GPU hardware instancing.
 	bool CanInstance() const;
 
+private:
 	ModelData* m_pModelData;
+	const RdrMaterial* m_pMaterials[ModelData::kMaxSubObjects];
+
 	RdrConstantBufferHandle m_hVsPerObjectConstantBuffer;
-	uint16 m_instancedDataId;
+
 	RdrInputLayoutHandle m_hInputLayout;
+	uint16 m_instancedDataId;
 };
 
 inline float ModelInstance::GetRadius() const

@@ -49,7 +49,6 @@ struct RdrGlobalConstants
 	RdrConstantBufferHandle hVsPerAction;
 	RdrConstantBufferHandle hPsPerAction;
 	RdrConstantBufferHandle hPsAtmosphere;
-	RdrConstantBufferHandle hPsGlobalLights;
 	RdrConstantBufferHandle hGsCubeMap;
 };
 
@@ -98,20 +97,6 @@ struct RdrShadowPass
 	RdrDepthStencilViewHandle hDepthView;
 };
 
-struct RdrLightParams
-{
-	RdrResourceHandle hSpotLightListRes;
-	RdrResourceHandle hPointLightListRes;
-
-	RdrResourceHandle hSkyTransmittanceLut;
-	RdrResourceHandle hVolumetricFogLut;
-	RdrResourceHandle hShadowMapTexArray;
-	RdrResourceHandle hShadowCubeMapTexArray;
-
-	uint spotLightCount;
-	uint pointLightCount;
-};
-
 struct RdrAction
 {
 	void Reset();
@@ -132,7 +117,7 @@ struct RdrAction
 
 	const RdrPostProcessEffects* pPostProcEffects;
 
-	RdrLightParams lightParams;
+	RdrLightResources lightParams;
 
 	RdrGlobalConstants constants;
 	RdrGlobalConstants uiConstants;

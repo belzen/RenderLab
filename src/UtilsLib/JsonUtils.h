@@ -2,6 +2,7 @@
 #include "../Types.h"
 #include "Json/json.h"
 #include "MathLib/Maths.h"
+#include "StringCache.h"
 
 inline void jsonReadString(const Json::Value& val, char* pOutStr, uint maxLen)
 {
@@ -12,6 +13,14 @@ inline void jsonReadString(const Json::Value& val, char* pOutStr, uint maxLen)
 	else
 	{
 		strcpy_s(pOutStr, maxLen, val.asCString());
+	}
+}
+
+inline void jsonReadCachedString(const Json::Value& val, CachedString* pOutStr)
+{
+	if (!val.isNull())
+	{
+		*pOutStr = val.asCString();
 	}
 }
 

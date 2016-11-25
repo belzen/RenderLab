@@ -1,6 +1,7 @@
 #pragma once
 #include "AssetDef.h"
 #include "MathLib/Vec3.h"
+#include "UtilsLib/StringCache.h"
 
 namespace AssetLib
 {
@@ -16,10 +17,10 @@ namespace AssetLib
 	struct Sky
 	{
 		static AssetDef& GetAssetDef();
-		static Sky* Load(const char* assetName, Sky* pSky);
+		static Sky* Load(const CachedString& assetName, Sky* pSky);
 
-		char model[AssetLib::AssetDef::kMaxNameLen];
-		char material[AssetLib::AssetDef::kMaxNameLen];
+		CachedString modelName;
+		CachedString materialName;
 
 		struct
 		{
@@ -37,6 +38,6 @@ namespace AssetLib
 		VolumetricFogSettings volumetricFog;
 
 		uint timeLastModified;
-		const char* assetName; // Filled in by the AssetLibrary during loading.
+		CachedString assetName;
 	};
 }

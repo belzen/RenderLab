@@ -9,4 +9,5 @@ namespace AssetLib
 	struct Texture;
 	struct Material;
 	struct PostProcessEffects;
+	struct MaterialSwap;
 }

@@ -205,6 +205,9 @@
     <ClCompile Include="render\RdrFrameMem.cpp">
       <Filter>render</Filter>
     </ClCompile>
+    <ClCompile Include="render\RdrOffscreenTasks.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -354,6 +357,9 @@
       <Filter>shaders</Filter>
     </ClInclude>
     <ClInclude Include="render\RdrTessellationMaterial.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrOffscreenTasks.h">
       <Filter>render</Filter>
     </ClInclude>
   </ItemGroup>

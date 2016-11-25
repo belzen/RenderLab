@@ -19,7 +19,7 @@ class AssetLibrary
 public:
 	typedef std::map<Hashing::StringHash, AssetTypeT*> AssetMap;
 
-	static AssetTypeT* LoadAsset(const char* assetName)
+	static AssetTypeT* LoadAsset(const CachedString& assetName)
 	{
 		return GetInstance()->LoadAssetInternal(assetName);
 	}
@@ -55,10 +55,9 @@ private:
 		GetInstance()->ReloadAssetInternal(assetName);
 	}
 
-	AssetTypeT* LoadAssetInternal(const char* assetName)
+	AssetTypeT* LoadAssetInternal(const CachedString& assetName)
 	{
-		Hashing::StringHash nameHash = Hashing::HashString(assetName);
-		AssetMap::iterator iter = m_assetCache.find(nameHash);
+		AssetMap::iterator iter = m_assetCache.find(assetName.getHash());
 		if (iter != m_assetCache.end())
 			return iter->second;
 
@@ -70,15 +69,13 @@ private:
 		}
 
 		AssetTypeT* pAsset = AssetTypeT::Load(assetName, nullptr);
-		pAsset->assetName = _strdup(assetName);
-		m_assetCache.insert(std::make_pair(nameHash, pAsset));
+		m_assetCache.insert(std::make_pair(assetName.getHash(), pAsset));
 		return pAsset;
 	}
 
-	AssetTypeT* ReloadAssetInternal(const char* assetName)
+	AssetTypeT* ReloadAssetInternal(const CachedString& assetName)
 	{
-		Hashing::StringHash nameHash = Hashing::HashString(assetName);
-		AssetMap::iterator iter = m_assetCache.find(nameHash);
+		AssetMap::iterator iter = m_assetCache.find(assetName.getHash());
 		if (iter == m_assetCache.end())
 			return nullptr; // File hasn't been loaded, nothing to reload
 

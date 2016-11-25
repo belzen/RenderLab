@@ -1,11 +1,9 @@
 #pragma once
 
+// Global state values for debugging and feature testing.
 struct GlobalState
 {
 	int enableInstancing;
-	bool debugShaders;
-	bool debugDevice;
-	bool attachRenderDoc;
 	bool wireframe;
 	int msaaLevel;
 

@@ -1,6 +1,7 @@
 #ifndef LIGHT_TYPES_H
 #define LIGHT_TYPES_H
 
+#define MAX_ENVIRONMENT_MAPS 8
 #define MAX_SHADOW_MAPS 10
 #define MAX_SHADOW_CUBEMAPS 2
 
@@ -38,6 +39,12 @@ struct PointLight
 	uint shadowMapIndex;
 };
 
+struct EnvironmentLight
+{
+	float3 position;
+	uint environmentMapIndex;
+};
+
 struct ShaderShadowData
 {
 	float4x4 mtxViewProj;
@@ -47,10 +54,13 @@ struct ShaderShadowData
 
 struct GlobalLightData
 {
-	DirectionalLight directionalLights[2];
+	EnvironmentLight globalEnvironmentLight;
+	DirectionalLight directionalLights[4];
 	ShaderShadowData shadowData[MAX_SHADOW_MAPS];
+
 	uint numDirectionalLights;
-	float3 unused;
+	uint clusterTileSize;
+	float2 unused;
 };
 
 struct ClusteredLightCullingParams
@@ -69,7 +79,7 @@ struct ClusteredLightCullingParams
 	uint clusterCountX;
 	uint clusterCountY;
 	uint clusterCountZ;
-	uint unused;
+	uint clusterTileSize;
 };
 
 struct TiledLightCullingParams
@@ -97,8 +107,7 @@ struct TiledLightCullingParams
 #define TILEDLIGHTING_MAX_LIGHTS_PER 128
 #define TILEDLIGHTING_BLOCK_SIZE (LIGHTLIST_NUM_LIGHT_TYPES + TILEDLIGHTING_MAX_LIGHTS_PER)
 
-#define CLUSTEREDLIGHTING_TILE_SIZE 64
-#define CLUSTEREDLIGHTING_DEPTH_SLICES 16
+#define CLUSTEREDLIGHTING_DEPTH_SLICES 24
 #define CLUSTEREDLIGHTING_SPECIAL_NEAR_DEPTH 5.f
 #define CLUSTEREDLIGHTING_MAX_DEPTH 1500.f
 #define CLUSTEREDLIGHTING_MAX_LIGHTS_PER 64

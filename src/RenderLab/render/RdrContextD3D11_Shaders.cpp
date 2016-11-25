@@ -14,7 +14,7 @@ namespace
 		ID3D10Blob* pCompiledData;
 		ID3D10Blob* pErrors = nullptr;
 
-		uint flags = (g_debugState.debugShaders ? D3DCOMPILE_DEBUG : D3DCOMPILE_OPTIMIZATION_LEVEL3);
+		uint flags = (g_userConfig.debugShaders ? D3DCOMPILE_DEBUG : D3DCOMPILE_OPTIMIZATION_LEVEL3);
 
 		hr = D3DCompile(pShaderText, textLen, nullptr, nullptr, nullptr, entrypoint, shadermodel, flags, 0, &pCompiledData, &pErrors);
 		if (hr != S_OK)

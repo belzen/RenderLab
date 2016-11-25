@@ -17,6 +17,7 @@ using std::max;
 
 #include "../Types.h"
 #include "MathLib/Maths.h"
+#include "UtilsLib/UtilsLibForwardDecl.h"
 #include "UtilsLib/Util.h"
 #include "UtilsLib/FileWatcher.h"
 #include "UtilsLib/FileLoader.h"
@@ -29,4 +30,5 @@ using std::max;
 #include "shapes/Plane.h"
 #include "FreeList.h"
 #include "GlobalState.h"
+#include "UserConfig.h"
 #include "Debug/DebugConsole.h"

@@ -11,12 +11,12 @@ AssetDef& PostProcessEffects::GetAssetDef()
 	return s_assetDef;
 }
 
-PostProcessEffects* PostProcessEffects::Load(const char* assetName, PostProcessEffects* pEffects)
+PostProcessEffects* PostProcessEffects::Load(const CachedString& assetName, PostProcessEffects* pEffects)
 {
 	Json::Value jRoot;
-	if (!GetAssetDef().LoadAssetJson(assetName, &jRoot))
+	if (!GetAssetDef().LoadAssetJson(assetName.getString(), &jRoot))
 	{
-		Error("Failed to load post-processing effects asset: %s", assetName);
+		Error("Failed to load post-processing effects asset: %s", assetName.getString());
 		return pEffects;
 	}
 
@@ -37,5 +37,6 @@ PostProcessEffects* PostProcessEffects::Load(const char* assetName, PostProcessE
 	pEffects->eyeAdaptation.minExposure = jEyeAdaptation.get("minExposure", -16.f).asFloat();
 	pEffects->eyeAdaptation.maxExposure = jEyeAdaptation.get("maxExposure", 16.f).asFloat();
 
+	pEffects->assetName = assetName;
 	return pEffects;
 }

@@ -7,6 +7,7 @@
 	"sunColor" : [1.0, 1.0, 1.0],
 	"pssmLambda" : 0.6,
 	"volumetricFog" : {
+		"enabled" : false,
 		"scatteringCoeff" : [0.008, 0.008, 0.008],
 		"absorptionCoeff" : [0.0, 0.0, 0.0],
 		"farDepth" : 64.0,

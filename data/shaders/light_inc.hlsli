@@ -75,10 +75,10 @@ float calcShadowFactorCubeMap(in float3 pos_ws, in float3 light_dir, in float3 p
 
 uint getClusterId(in float2 screenPos, in float depth)
 {
-	uint clusterX = screenPos.x / CLUSTEREDLIGHTING_TILE_SIZE;
-	uint clusterY = screenPos.y / CLUSTEREDLIGHTING_TILE_SIZE;
-	uint numClusterX = ceil(cbPerAction.viewSize.x / float(CLUSTEREDLIGHTING_TILE_SIZE));
-	uint numClusterY = ceil(cbPerAction.viewSize.y / float(CLUSTEREDLIGHTING_TILE_SIZE));
+	uint clusterX = screenPos.x / cbGlobalLights.clusterTileSize;
+	uint clusterY = screenPos.y / cbGlobalLights.clusterTileSize;
+	uint numClusterX = ceil(cbPerAction.viewSize.x / float(cbGlobalLights.clusterTileSize));
+	uint numClusterY = ceil(cbPerAction.viewSize.y / float(cbGlobalLights.clusterTileSize));
 
 	uint clusterZ = 0;
 	float maxDepth = CLUSTEREDLIGHTING_SPECIAL_NEAR_DEPTH;
@@ -191,7 +191,8 @@ float3 applyVolumetricFog(in float3 litColor, in float viewDepth,
 float3 doLighting(in float3 pos_ws, in float3 baseColor, 
 	in float roughness, in float metalness,
 	in float3 normal, in float3 viewDir, 
-	in float2 screenPos, in Texture3D<float4> texVolumetricFogLut)
+	in float2 screenPos, 
+	in TextureCubeArray texEnvironmentMaps, in Texture3D<float4> texVolumetricFogLut)
 {
 	float viewDepth = dot((pos_ws - cbPerAction.cameraPos), cbPerAction.cameraDir);
 	float3 litColor = 0;
@@ -283,7 +284,11 @@ float3 doLighting(in float3 pos_ws, in float3 baseColor,
 			diffuse, specular);
 	}
 
-	litColor = diffuse * albedo + specular;
+	// Reflection
+	float3 reflectionVec = reflect(-viewDir, normal);
+	float3 reflection = texEnvironmentMaps.Sample(g_samClamp, float4(reflectionVec, cbGlobalLights.globalEnvironmentLight.environmentMapIndex)).rgb;
+
+	litColor = diffuse * albedo + specular + reflection * specColor;
 	litColor = applyVolumetricFog(litColor, viewDepth, screenPos, texVolumetricFogLut);
 
 #if VISUALIZE_LIGHT_LIST

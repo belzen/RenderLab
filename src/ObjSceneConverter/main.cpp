@@ -148,14 +148,14 @@ int main(int argc, char** argv)
 		}
 		else if (strcmp(tok, "g") == 0)
 		{
-			objects.push_back(Object());
+			objects.emplace_back();
 			pActiveObj = &objects.back();
 
 			pActiveObj->name = strtok_s(nullptr, " ", &context);
 		}
 		else if (strcmp(tok, "usemtl") == 0)
 		{
-			pActiveObj->subobjects.push_back(SubObject());
+			pActiveObj->subobjects.emplace_back();
 			pActiveSubObject = &pActiveObj->subobjects.back();
 
 			pActiveSubObject->material = strtok_s(nullptr, " ", &context);

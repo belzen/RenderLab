@@ -4,9 +4,12 @@
 #include "Renderer.h"
 #include "Scene.h"
 #include "Sky.h"
+#include "RdrComputeOp.h"
+#include "RdrOffscreenTasks.h"
 
 namespace
 {
+	static uint s_environmentMapSize = 128;
 	static uint s_shadowMapSize = 2048;
 	static uint s_shadowCubeMapSize = 512;
 
@@ -42,14 +45,48 @@ namespace
 }
 
 LightList::LightList()
-	: m_lightCount(0)
-	, m_prevLightCount(0)
+	: m_pScene(nullptr)
 {
 
 }
 
+void LightList::Init(Scene* pScene)
+{
+	m_pScene = pScene;
+
+	m_hEnvironmentMapTexArray = RdrResourceSystem::CreateTextureCubeArray(s_environmentMapSize, s_environmentMapSize, MAX_ENVIRONMENT_MAPS, RdrResourceFormat::R16G16B16A16_FLOAT);
+	m_hEnvironmentMapDepthBuffer = RdrResourceSystem::CreateTexture2D(s_environmentMapSize, s_environmentMapSize, RdrResourceFormat::D24_UNORM_S8_UINT, RdrResourceUsage::Default);
+	m_hEnvironmentMapDepthView = RdrResourceSystem::CreateDepthStencilView(m_hEnvironmentMapDepthBuffer);
+	
+	m_hShadowMapTexArray = RdrResourceSystem::CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, RdrResourceFormat::D24_UNORM_S8_UINT);
+	for (int i = 0; i < MAX_SHADOW_MAPS; ++i)
+	{
+		m_shadowMapDepthViews[i] = RdrResourceSystem::CreateDepthStencilView(m_hShadowMapTexArray, i, 1);
+	}
+	
+	m_hShadowCubeMapTexArray = RdrResourceSystem::CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, RdrResourceFormat::D24_UNORM_S8_UINT);
+
+#if USE_SINGLEPASS_SHADOW_CUBEMAP
+	for (int i = 0; i < MAX_SHADOW_CUBEMAPS; ++i)
+	{
+		m_shadowCubeMapDepthViews[i] = RdrResourceSystem::CreateDepthStencilView(m_hShadowCubeMapTexArray, i * (int)CubemapFace::Count, (int)CubemapFace::Count);
+	}
+#else
+	for (int i = 0; i < MAX_SHADOW_CUBEMAPS * CubemapFace::Count; ++i)
+	{
+		m_shadowCubeMapDepthViews[i] = RdrResourceSystem::CreateDepthStencilView(m_hShadowCubeMapTexArray, i, 1);
+	}
+#endif
+}
+
 void LightList::Cleanup()
 {
+	if (m_hEnvironmentMapTexArray)
+	{
+		RdrResourceSystem::ReleaseResource(m_hEnvironmentMapTexArray);
+		m_hEnvironmentMapTexArray = 0;
+	}
+
 	for (uint i = 0; i < MAX_SHADOW_MAPS; ++i)
 	{
 		if (m_shadowMapDepthViews[i])
@@ -73,18 +110,6 @@ void LightList::Cleanup()
 		}
 	}
 
-	if (m_hSpotLightListRes)
-	{
-		RdrResourceSystem::ReleaseResource(m_hSpotLightListRes);
-		m_hSpotLightListRes = 0;
-	}
-
-	if (m_hPointLightListRes)
-	{
-		RdrResourceSystem::ReleaseResource(m_hPointLightListRes);
-		m_hPointLightListRes = 0;
-	}
-
 	if (m_hShadowMapTexArray)
 	{
 		RdrResourceSystem::ReleaseResource(m_hShadowMapTexArray);
@@ -97,51 +122,84 @@ void LightList::Cleanup()
 		m_hShadowCubeMapTexArray = 0;
 	}
 
-	m_prevLightCount = 0;
-	m_lightCount = 0;
+	m_directionalLights.clear();
+	m_environmentLights.clear();
+	m_spotLights.clear();
+	m_pointLights.clear();
 }
 
-void LightList::AddLight(const Light& light)
+void LightList::AddDirectionalLight(const Vec3& direction, const Vec3& color)
 {
-	assert(m_lightCount < ARRAY_SIZE(m_lights));
-
-	m_lights[m_lightCount] = light;
-	++m_lightCount;
+	DirectionalLight light;
+	light.direction = direction;
+	light.color = color;
+	light.shadowMapIndex = -1;
+	m_directionalLights.push(light);
 }
 
-void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
-	RdrConstantBufferHandle* phOutLightConstants)
+void LightList::AddSpotLight(const Vec3& position, const Vec3& direction, const Vec3& color, float radius, float innerConeAngle, float outerConeAngle)
 {
-	// Temporarily add sky light to the light list.
-	m_lights[m_lightCount] = rSky.GetSunLight();
+	SpotLight light;
+	light.position = position;
+	light.direction = direction;
+	light.color = color;
+	light.radius = radius;
+	light.innerConeAngleCos = cosf(innerConeAngle);
+	light.outerConeAngle = outerConeAngle;
+	light.outerConeAngleCos = cosf(outerConeAngle);
+	light.shadowMapIndex = -1;
+	m_spotLights.push(light);
+}
 
-	if (!m_hShadowMapTexArray)
+void LightList::AddPointLight(const Vec3& position, const Vec3& color, float radius)
+{
+	PointLight light;
+	light.position = position;
+	light.color = color;
+	light.radius = radius;
+	light.shadowMapIndex = -1;
+	m_pointLights.push(light);
+}
+
+void LightList::AddEnvironmentLight(const Vec3& position)
+{
+	EnvironmentLight light;
+	light.position = position;
+	light.environmentMapIndex = m_environmentLights.size() + 1;
+	m_environmentLights.push(light);
+
+	Rect viewport(0.f, 0.f, (float)s_environmentMapSize, (float)s_environmentMapSize);
+	RdrOffscreenTasks::QueueSpecularProbeCapture(position, m_pScene, viewport, m_hEnvironmentMapTexArray, light.environmentMapIndex, m_hEnvironmentMapDepthView);
+}
+
+void LightList::SetGlobalEnvironmentLight(const Vec3& position)
+{
+	m_globalEnvironmentLight.position = position;
+	m_globalEnvironmentLight.environmentMapIndex = 0;
+
+	Rect viewport(0.f, 0.f, (float)s_environmentMapSize, (float)s_environmentMapSize);
+	RdrOffscreenTasks::QueueSpecularProbeCapture(position, m_pScene, viewport, m_hEnvironmentMapTexArray, m_globalEnvironmentLight.environmentMapIndex, m_hEnvironmentMapDepthView);
+}
+
+void LightList::InvalidateEnvironmentLights()
+{
+	Rect viewport(0.f, 0.f, (float)s_environmentMapSize, (float)s_environmentMapSize);
+
+	// Global
+	RdrOffscreenTasks::QueueSpecularProbeCapture(m_globalEnvironmentLight.position, m_pScene, viewport, m_hEnvironmentMapTexArray, m_globalEnvironmentLight.environmentMapIndex, m_hEnvironmentMapDepthView);
+
+	// Local
+	for (uint i = 0, count = m_environmentLights.size(); i < count; ++i)
 	{
-		m_hShadowMapTexArray = RdrResourceSystem::CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, RdrResourceFormat::D24_UNORM_S8_UINT);
-		for (int i = 0; i < MAX_SHADOW_MAPS; ++i)
-		{
-			m_shadowMapDepthViews[i] = RdrResourceSystem::CreateDepthStencilView(m_hShadowMapTexArray, i, 1);
-		}
+		RdrOffscreenTasks::QueueSpecularProbeCapture(m_environmentLights[i].position, m_pScene, viewport, 
+			m_hEnvironmentMapTexArray, (m_environmentLights.size() - 1), m_hEnvironmentMapDepthView);
 	}
-	if (!m_hShadowCubeMapTexArray)
-	{
-		m_hShadowCubeMapTexArray = RdrResourceSystem::CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, RdrResourceFormat::D24_UNORM_S8_UINT);
+}
 
-#if USE_SINGLEPASS_SHADOW_CUBEMAP
-		for (int i = 0; i < MAX_SHADOW_CUBEMAPS; ++i)
-		{
-			m_shadowCubeMapDepthViews[i] = RdrResourceSystem::CreateDepthStencilView(m_hShadowCubeMapTexArray, i * (int)CubemapFace::Count, (int)CubemapFace::Count);
-		}
-#else
-		for (int i = 0; i < MAX_SHADOW_CUBEMAPS * CubemapFace::Count; ++i)
-		{
-			m_shadowCubeMapDepthViews[i] = RdrResourceSystem::CreateDepthStencilView(m_hShadowCubeMapTexArray, i, 1);
-		}
-#endif
-	}
-
+void LightList::QueueDraw(Renderer* pRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
+	RdrLightingMethod lightingMethod, RdrLightResources* pOutResources)
+{
 	Camera lightCamera;
-	bool changed = false;
 	int curShadowMapIndex = 0;
 	int curShadowCubeMapIndex = 0;
 	int shadowMapsThisFrame = 0;
@@ -149,110 +207,112 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 	// Update shadow casting lights and the global light constants
 	// todo: Choose shadow lights based on location and dynamic object movement
 	GlobalLightData* pGlobalLights = (GlobalLightData*)RdrFrameMem::AllocAligned(sizeof(GlobalLightData), 16);
-	for (uint i = 0; i <= m_lightCount; ++i)
+
+	// Temporarily add sky light to the light list.
+	m_directionalLights.push(rSky.GetSunLight());
+
+	for (uint i = 0, count = m_directionalLights.size(); i < count; ++i)
 	{
-		Light& light = m_lights[i];
-		if (!light.castsShadows)
-			continue;
-
+		DirectionalLight& rDirLight = m_directionalLights[i];
 		int remainingShadowMaps = MAX_SHADOW_MAPS - curShadowMapIndex - 1;
-		int remainingShadowCubeMaps = MAX_SHADOW_CUBEMAPS - curShadowCubeMapIndex - 1;
-		if (light.type == LightType::Directional)
+		const int kNumCascades = 4;
+		if (remainingShadowMaps >= kNumCascades)
 		{
-			const int kNumCascades = 4;
-			if (remainingShadowMaps >= kNumCascades)
+			// Directional lights always change because they're based on camera position/rotation
+			rDirLight.shadowMapIndex = curShadowMapIndex;
+
+			Rect viewport(0.f, 0.f, (float)s_shadowMapSize, (float)s_shadowMapSize);
+			float zMin = sceneDepthMin;
+			float zMax = sceneDepthMax;
+			float zDiff = (zMax - zMin);
+
+			float nearDepth = zMin;
+			float lamda = rSky.GetPssmLambda();
+
+			for (int iPartition = 0; iPartition < kNumCascades; ++iPartition)
 			{
-				// Directional lights always change because they're based on camera position/rotation
-				changed = true;
-				light.shadowMapIndex = curShadowMapIndex;
+				float zUni = zMin + (zDiff / kNumCascades) * (iPartition + 1);
+				float zLog = zMin * powf(zMax / zMin, (iPartition + 1) / (float)kNumCascades);
+				float farDepth = lamda * zLog + (1.f - lamda) * zUni;
 
-				Rect viewport(0.f, 0.f, (float)s_shadowMapSize, (float)s_shadowMapSize);
-				float zMin = sceneDepthMin;
-				float zMax = sceneDepthMax;
-				float zDiff = (zMax - zMin);
+				Vec3 center = rCamera.GetPosition() + rCamera.GetDirection() * ((farDepth + nearDepth) * 0.5f);
+				Matrix44 lightViewMtx = getLightViewMatrix(center, rDirLight.direction);
 
-				float nearDepth = zMin;
-				float lamda = rSky.GetPssmLambda();
+				Quad nearQuad = rCamera.GetFrustumQuad(nearDepth);
+				QuadTransform(nearQuad, lightViewMtx);
 
-				for (int iPartition = 0; iPartition < kNumCascades; ++iPartition)
-				{
-					float zUni = zMin + (zDiff / kNumCascades) * (iPartition + 1);
-					float zLog = zMin * powf(zMax / zMin, (iPartition + 1) / (float)kNumCascades);
-					float farDepth = lamda * zLog + (1.f - lamda) * zUni;
+				Quad farQuad = rCamera.GetFrustumQuad(farDepth);
+				QuadTransform(farQuad, lightViewMtx);
 
-					Vec3 center = rCamera.GetPosition() + rCamera.GetDirection() * ((farDepth + nearDepth) * 0.5f);
-					Matrix44 lightViewMtx = getLightViewMatrix(center, light.direction);
+				Vec3 boundsMin(FLT_MAX, FLT_MAX, FLT_MAX);
+				Vec3 boundsMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+				accumQuadMinMax(nearQuad, boundsMin, boundsMax);
+				accumQuadMinMax(farQuad, boundsMin, boundsMax);
 
-					Quad nearQuad = rCamera.GetFrustumQuad(nearDepth);
-					QuadTransform(nearQuad, lightViewMtx);
+				float height = (boundsMax.y - boundsMin.y);
+				float width = (boundsMax.x - boundsMin.x);
+				lightCamera.SetAsOrtho(center, rDirLight.direction, std::max(width, height), -500.f, 500.f);
 
-					Quad farQuad = rCamera.GetFrustumQuad(farDepth);
-					QuadTransform(farQuad, lightViewMtx);
+				pRenderer->QueueShadowMapPass(lightCamera, m_shadowMapDepthViews[curShadowMapIndex], viewport);
 
-					Vec3 boundsMin(FLT_MAX, FLT_MAX, FLT_MAX);
-					Vec3 boundsMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-					accumQuadMinMax(nearQuad, boundsMin, boundsMax);
-					accumQuadMinMax(farQuad, boundsMin, boundsMax);
+				Matrix44 mtxView;
+				Matrix44 mtxProj;
+				lightCamera.GetMatrices(mtxView, mtxProj);
+				pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
+				pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj = Matrix44Transpose(pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj);
+				pGlobalLights->shadowData[curShadowMapIndex].partitionEndZ = (iPartition == kNumCascades - 1) ? FLT_MAX : farDepth;
 
-					float height = (boundsMax.y - boundsMin.y);
-					float width = (boundsMax.x - boundsMin.x);
-					lightCamera.SetAsOrtho(center, light.direction, std::max(width, height), -500.f, 500.f);
-
-					rRenderer.QueueShadowMapPass(lightCamera, m_shadowMapDepthViews[curShadowMapIndex], viewport);
-
-					Matrix44 mtxView;
-					Matrix44 mtxProj;
-					lightCamera.GetMatrices(mtxView, mtxProj);
-					pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
-					pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj = Matrix44Transpose(pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj);
-					pGlobalLights->shadowData[curShadowMapIndex].partitionEndZ = (iPartition == kNumCascades - 1) ? FLT_MAX : farDepth;
-
-					++shadowMapsThisFrame;
-					++curShadowMapIndex;
-					nearDepth = farDepth;
-				}
+				++shadowMapsThisFrame;
+				++curShadowMapIndex;
+				nearDepth = farDepth;
 			}
-
-			DirectionalLight& rDirLight = pGlobalLights->directionalLights[pGlobalLights->numDirectionalLights++];
-			rDirLight.direction = light.direction;
-			rDirLight.color = light.color;
-			rDirLight.shadowMapIndex = light.shadowMapIndex;
 		}
-		else if (light.type == LightType::Spot && remainingShadowMaps)
+		else
 		{
-			if (curShadowMapIndex != light.shadowMapIndex)
-			{
-				light.shadowMapIndex = curShadowMapIndex;
-				changed = true;
-			}
+			rDirLight.shadowMapIndex = -1;
+		}
+	}
 
+	for (uint i = 0, count = m_spotLights.size(); i < count; ++i)
+	{
+		SpotLight& rSpotLight = m_spotLights[i];
+		int remainingShadowMaps = MAX_SHADOW_MAPS - curShadowMapIndex - 1;
+		if (remainingShadowMaps)
+		{
 			Matrix44 mtxView;
 			Matrix44 mtxProj;
 
-			float angle = light.outerConeAngle + Maths::DegToRad(5.f);
-			lightCamera.SetAsPerspective(light.position, light.direction, angle * 2.f, 1.f, 0.1f, 1000.f);
+			float angle = rSpotLight.outerConeAngle + Maths::DegToRad(5.f);
+			lightCamera.SetAsPerspective(rSpotLight.position, rSpotLight.direction, angle * 2.f, 1.f, 0.1f, 1000.f);
 			lightCamera.GetMatrices(mtxView, mtxProj);
 
 			pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 			pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj = Matrix44Transpose(pGlobalLights->shadowData[curShadowMapIndex].mtxViewProj);
 
 			Rect viewport(0.f, 0.f, (float)s_shadowMapSize, (float)s_shadowMapSize);
-			rRenderer.QueueShadowMapPass(lightCamera, m_shadowMapDepthViews[curShadowMapIndex], viewport);
+			pRenderer->QueueShadowMapPass(lightCamera, m_shadowMapDepthViews[curShadowMapIndex], viewport);
 
+			rSpotLight.shadowMapIndex = curShadowMapIndex;
 			++shadowMapsThisFrame;
 			++curShadowMapIndex;
 		}
-		else if (light.type == LightType::Point && remainingShadowCubeMaps)
+		else
 		{
-			if (curShadowCubeMapIndex != (light.shadowMapIndex - MAX_SHADOW_MAPS))
-			{
-				light.shadowMapIndex = curShadowCubeMapIndex + MAX_SHADOW_MAPS;
-				changed = true;
-			}
+			rSpotLight.shadowMapIndex = -1;
+		}
+	}
+
+	for (uint i = 0, count = m_pointLights.size(); i < count; ++i)
+	{
+		PointLight& rPointLight = m_pointLights[i];
+		int remainingShadowCubeMaps = MAX_SHADOW_CUBEMAPS - curShadowCubeMapIndex - 1;
+		if (remainingShadowCubeMaps)
+		{
+			rPointLight.shadowMapIndex = curShadowCubeMapIndex + MAX_SHADOW_MAPS;
 
 			Rect viewport(0.f, 0.f, (float)s_shadowCubeMapSize, (float)s_shadowCubeMapSize);
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
-			rRenderer.QueueShadowCubeMapPass(&light, m_shadowCubeMapDepthViews[curShadowCubeMapIndex], viewport);
+			pRenderer->QueueShadowCubeMapPass(rPointLight, m_shadowCubeMapDepthViews[curShadowCubeMapIndex], viewport);
 #else
 			for (uint face = 0; face < 6; ++face)
 			{
@@ -263,74 +323,224 @@ void LightList::PrepareDraw(Renderer& rRenderer, const Sky& rSky, const Camera& 
 			++shadowMapsThisFrame;
 			++curShadowCubeMapIndex;
 		}
-
-		if ((shadowMapsThisFrame >= MAX_SHADOW_MAPS_PER_FRAME) || (!remainingShadowMaps && !remainingShadowCubeMaps))
-			break;
+		else
+		{
+			rPointLight.shadowMapIndex = -1;
+		}
 	}
+
+	// todo2: reuse these buffers between actions.
 
 	// Update global lights constant buffer.
-	*phOutLightConstants = RdrResourceSystem::CreateUpdateConstantBuffer(*phOutLightConstants,
+	pGlobalLights->numDirectionalLights = m_directionalLights.size();
+	pGlobalLights->globalEnvironmentLight = m_globalEnvironmentLight;
+	pGlobalLights->clusterTileSize = m_clusteredLightData.clusterTileSize;
+	memcpy(pGlobalLights->directionalLights, m_directionalLights.getData(), sizeof(DirectionalLight) * pGlobalLights->numDirectionalLights);
+	pOutResources->hGlobalLightsCb = RdrResourceSystem::CreateUpdateConstantBuffer(pOutResources->hGlobalLightsCb,
 		pGlobalLights, sizeof(GlobalLightData), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 
-	// Update light resources, if necessary.
-	changed = changed || (m_prevLightCount != m_lightCount);
-	if (changed)
+	// Update spot lights
+	SpotLight* pSpotLights = (SpotLight*)RdrFrameMem::Alloc(sizeof(SpotLight) * m_spotLights.size());
+	memcpy(pSpotLights, m_spotLights.getData(), sizeof(SpotLight) * m_spotLights.size());
+	if (!pOutResources->hSpotLightListRes)
+		pOutResources->hSpotLightListRes = RdrResourceSystem::CreateStructuredBuffer(pSpotLights, m_spotLights.capacity(), sizeof(SpotLight), RdrResourceUsage::Dynamic);
+	else
+		RdrResourceSystem::UpdateBuffer(pOutResources->hSpotLightListRes, pSpotLights, sizeof(SpotLight) * m_spotLights.size());
+
+	// Update point lights
+	PointLight* pPointLights = (PointLight*)RdrFrameMem::Alloc(sizeof(PointLight) * m_pointLights.size());
+	memcpy(pPointLights, m_pointLights.getData(), sizeof(PointLight) * m_pointLights.size());
+	if (!pOutResources->hPointLightListRes)
+		pOutResources->hPointLightListRes = RdrResourceSystem::CreateStructuredBuffer(pPointLights, m_pointLights.capacity(), sizeof(PointLight), RdrResourceUsage::Dynamic);
+	else
+		RdrResourceSystem::UpdateBuffer(pOutResources->hPointLightListRes, pPointLights, sizeof(PointLight) * m_pointLights.size());
+
+	// Update environment lights
+	EnvironmentLight* pEnvironmentLights = (EnvironmentLight*)RdrFrameMem::Alloc(sizeof(EnvironmentLight) * m_environmentLights.size());
+	memcpy(pEnvironmentLights, m_environmentLights.getData(), sizeof(EnvironmentLight) * m_environmentLights.size());
+	if (!pOutResources->hEnvironmentLightListRes)
+		pOutResources->hEnvironmentLightListRes = RdrResourceSystem::CreateStructuredBuffer(pEnvironmentLights, m_environmentLights.capacity(), sizeof(EnvironmentLight), RdrResourceUsage::Dynamic);
+	else
+		RdrResourceSystem::UpdateBuffer(pOutResources->hEnvironmentLightListRes, pEnvironmentLights, sizeof(EnvironmentLight) * m_environmentLights.size());
+
+	// Light culling
+	if (lightingMethod == RdrLightingMethod::Clustered)
 	{
-		// todo: size/resize buffers appropriately
-		SpotLight* pSpotLights = (SpotLight*)RdrFrameMem::Alloc(sizeof(SpotLight) * 2048);
-		PointLight* pPointLights = (PointLight*)RdrFrameMem::Alloc(sizeof(PointLight) * 2048);
-
-		m_numSpotLights = 0;
-		m_numPointLights = 0;
-
-		for (uint i = 0; i <= m_lightCount; ++i)
-		{
-			Light& light = m_lights[i];
-			switch (light.type)
-			{
-			case LightType::Point:
-			{
-				PointLight& rPointLight = pPointLights[m_numPointLights++];
-				rPointLight.color = light.color;
-				rPointLight.radius = light.radius;
-				rPointLight.position = light.position;
-				rPointLight.shadowMapIndex = light.shadowMapIndex;
-			}
-			break;
-			case LightType::Spot:
-			{
-				SpotLight& rSpotLight = pSpotLights[m_numSpotLights++];
-				rSpotLight.color = light.color;
-				rSpotLight.direction = light.direction;
-				rSpotLight.radius = light.radius;
-				rSpotLight.innerConeAngleCos = cosf(light.innerConeAngle);
-				rSpotLight.outerConeAngleCos = cosf(light.outerConeAngle);
-				rSpotLight.outerConeAngle = light.outerConeAngle;
-				rSpotLight.position = light.position;
-				rSpotLight.shadowMapIndex = light.shadowMapIndex;
-			}
-			break;
-			}
-		}
-
-		if (!m_hSpotLightListRes)
-		{
-			m_hSpotLightListRes = RdrResourceSystem::CreateStructuredBuffer(pSpotLights, 2048, sizeof(SpotLight), RdrResourceUsage::Dynamic);
-		}
-		else
-		{
-			RdrResourceSystem::UpdateBuffer(m_hSpotLightListRes, pSpotLights, m_numSpotLights);
-		}
-
-		if (!m_hPointLightListRes)
-		{
-			m_hPointLightListRes = RdrResourceSystem::CreateStructuredBuffer(pPointLights, 2048, sizeof(PointLight), RdrResourceUsage::Dynamic);
-		}
-		else
-		{
-			RdrResourceSystem::UpdateBuffer(m_hPointLightListRes, pPointLights, m_numPointLights);
-		}
-
-		m_prevLightCount = m_lightCount;
+		QueueClusteredLightCulling(pRenderer, rCamera, *pOutResources);
+		pOutResources->hLightIndicesRes = m_clusteredLightData.hLightIndices;
 	}
+	else
+	{
+		QueueTiledLightCulling(pRenderer, rCamera, *pOutResources);
+		pOutResources->hLightIndicesRes = m_tiledLightData.hLightIndices;
+	}
+
+	pOutResources->hShadowCubeMapTexArray = m_hShadowCubeMapTexArray;
+	pOutResources->hShadowMapTexArray = m_hShadowMapTexArray;
+	pOutResources->hEnvironmentMapTexArray = m_hEnvironmentMapTexArray;
+
+	// Remove sky light.
+	m_directionalLights.pop();
+}
+
+void LightList::QueueClusteredLightCulling(Renderer* pRenderer, const Camera& rCamera, const RdrLightResources& rLightResources)
+{
+	Vec2 viewportSize = pRenderer->GetViewportSize();
+
+	// Determine the cluster tile size given two rules:
+	//	1) The larger viewport dimension will have 16 tiles.
+	//	2) Tile size must be a multiple of 8.
+	const uint kMaxTilesPerDimension = 16;
+	float maxDim = max(viewportSize.x, viewportSize.y);
+	m_clusteredLightData.clusterTileSize = ((uint)ceil(maxDim / kMaxTilesPerDimension) + 7) & ~7;
+
+	int clusterCountX = (int)ceil(viewportSize.x / m_clusteredLightData.clusterTileSize);
+	int clusterCountY = (int)ceil(viewportSize.y / m_clusteredLightData.clusterTileSize);
+
+	if (m_clusteredLightData.clusterCountX < clusterCountX || m_clusteredLightData.clusterCountY < clusterCountY)
+	{
+		// Resize buffers
+		m_clusteredLightData.clusterCountX = max(16, clusterCountX);
+		m_clusteredLightData.clusterCountY = max(16, clusterCountY);
+
+		if (m_clusteredLightData.hLightIndices)
+			RdrResourceSystem::ReleaseResource(m_clusteredLightData.hLightIndices);
+		m_clusteredLightData.hLightIndices = RdrResourceSystem::CreateDataBuffer(nullptr, m_clusteredLightData.clusterCountX * m_clusteredLightData.clusterCountY * CLUSTEREDLIGHTING_DEPTH_SLICES * CLUSTEREDLIGHTING_BLOCK_SIZE, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
+	}
+
+	RdrComputeOp* pCullOp = RdrFrameMem::AllocComputeOp();
+	pCullOp->shader = RdrComputeShader::ClusteredLightCull;
+	pCullOp->threads[0] = clusterCountX;
+	pCullOp->threads[1] = clusterCountY;
+	pCullOp->threads[2] = CLUSTEREDLIGHTING_DEPTH_SLICES;
+	pCullOp->ahWritableResources.assign(0, m_clusteredLightData.hLightIndices);
+	pCullOp->ahResources.assign(0, rLightResources.hSpotLightListRes);
+	pCullOp->ahResources.assign(1, rLightResources.hPointLightListRes);
+
+	uint constantsSize = sizeof(ClusteredLightCullingParams);
+	ClusteredLightCullingParams* pParams = (ClusteredLightCullingParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
+
+	Matrix44 mtxProj;
+	rCamera.GetMatrices(pParams->mtxView, mtxProj);
+
+	pParams->mtxView = Matrix44Transpose(pParams->mtxView);
+	pParams->proj_11 = mtxProj._11;
+	pParams->proj_22 = mtxProj._22;
+	pParams->screenSize = viewportSize;
+	pParams->fovY = rCamera.GetFieldOfViewY();
+	pParams->aspectRatio = rCamera.GetAspectRatio();
+	pParams->clusterCountX = clusterCountX;
+	pParams->clusterCountY = clusterCountY;
+	pParams->clusterCountZ = CLUSTEREDLIGHTING_DEPTH_SLICES;
+	pParams->clusterTileSize = m_clusteredLightData.clusterTileSize;
+	pParams->spotLightCount = m_spotLights.size();
+	pParams->pointLightCount = m_pointLights.size();
+
+	m_clusteredLightData.hCullConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_clusteredLightData.hCullConstants,
+		pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+	pCullOp->ahConstantBuffers.assign(0, m_clusteredLightData.hCullConstants);
+
+	pRenderer->AddComputeOpToPass(pCullOp, RdrPass::LightCulling);
+}
+
+void LightList::QueueTiledLightCulling(Renderer* pRenderer, const Camera& rCamera, const RdrLightResources& rLightResources)
+{
+	Vec2 viewportSize = pRenderer->GetViewportSize();
+
+	uint tileCountX = RdrComputeOp::getThreadGroupCount((uint)viewportSize.x, TILEDLIGHTING_TILE_SIZE);
+	uint tileCountY = RdrComputeOp::getThreadGroupCount((uint)viewportSize.y, TILEDLIGHTING_TILE_SIZE);
+	bool tileCountChanged = false;
+
+	if (m_tiledLightData.tileCountX != tileCountX || m_tiledLightData.tileCountY != tileCountY)
+	{
+		m_tiledLightData.tileCountX = tileCountX;
+		m_tiledLightData.tileCountY = tileCountY;
+		tileCountChanged = true;
+	}
+
+	//////////////////////////////////////
+	// Depth min max
+	if (tileCountChanged)
+	{
+		if (m_tiledLightData.hDepthMinMaxTex)
+			RdrResourceSystem::ReleaseResource(m_tiledLightData.hDepthMinMaxTex);
+		m_tiledLightData.hDepthMinMaxTex = RdrResourceSystem::CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT, RdrResourceUsage::Default);
+	}
+
+	// Update constants
+	Matrix44 viewMtx;
+	Matrix44 invProjMtx;
+	rCamera.GetMatrices(viewMtx, invProjMtx);
+	invProjMtx = Matrix44Inverse(invProjMtx);
+	invProjMtx = Matrix44Transpose(invProjMtx);
+
+	uint constantsSize = sizeof(Vec4) * 4;
+	Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
+	for (int i = 0; i < 4; ++i)
+	{
+		pConstants[i].x = invProjMtx.m[i][0];
+		pConstants[i].y = invProjMtx.m[i][1];
+		pConstants[i].z = invProjMtx.m[i][2];
+		pConstants[i].w = invProjMtx.m[i][3];
+	}
+
+	m_tiledLightData.hDepthMinMaxConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_tiledLightData.hDepthMinMaxConstants,
+		pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+
+	// Fill draw op
+	RdrComputeOp* pDepthOp = RdrFrameMem::AllocComputeOp();
+	pDepthOp->shader = RdrComputeShader::TiledDepthMinMax;
+	pDepthOp->threads[0] = tileCountX;
+	pDepthOp->threads[1] = tileCountY;
+	pDepthOp->threads[2] = 1;
+	pDepthOp->ahWritableResources.assign(0, m_tiledLightData.hDepthMinMaxTex);
+	pDepthOp->ahResources.assign(0, pRenderer->GetPrimaryDepthBuffer());
+	pDepthOp->ahConstantBuffers.assign(0, m_tiledLightData.hDepthMinMaxConstants);
+
+	pRenderer->AddComputeOpToPass(pDepthOp, RdrPass::LightCulling);
+
+	//////////////////////////////////////
+	// Light culling
+	if (tileCountChanged)
+	{
+		if (m_tiledLightData.hLightIndices)
+			RdrResourceSystem::ReleaseResource(m_tiledLightData.hLightIndices);
+		m_tiledLightData.hLightIndices = RdrResourceSystem::CreateDataBuffer(nullptr, tileCountX * tileCountY * TILEDLIGHTING_BLOCK_SIZE, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
+	}
+
+	// Update constants
+	constantsSize = sizeof(TiledLightCullingParams);
+	TiledLightCullingParams* pParams = (TiledLightCullingParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
+
+	Matrix44 mtxProj;
+	rCamera.GetMatrices(pParams->mtxView, mtxProj);
+
+	pParams->mtxView = Matrix44Transpose(pParams->mtxView);
+	pParams->proj_11 = mtxProj._11;
+	pParams->proj_22 = mtxProj._22;
+	pParams->cameraNearDist = rCamera.GetNearDist();
+	pParams->cameraFarDist = rCamera.GetFarDist();
+	pParams->screenSize = viewportSize;
+	pParams->fovY = rCamera.GetFieldOfViewY();
+	pParams->aspectRatio = rCamera.GetAspectRatio();
+	pParams->spotLightCount = m_spotLights.size();
+	pParams->pointLightCount = m_pointLights.size();
+	pParams->tileCountX = tileCountX;
+	pParams->tileCountY = tileCountY;
+
+	m_tiledLightData.hCullConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_tiledLightData.hCullConstants,
+		pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+
+	// Fill draw op
+	RdrComputeOp* pCullOp = RdrFrameMem::AllocComputeOp();
+	pCullOp->threads[0] = tileCountX;
+	pCullOp->threads[1] = tileCountY;
+	pCullOp->threads[2] = 1;
+	pCullOp->ahWritableResources.assign(0, m_tiledLightData.hLightIndices);
+	pCullOp->ahResources.assign(0, rLightResources.hSpotLightListRes);
+	pCullOp->ahResources.assign(1, rLightResources.hPointLightListRes);
+	pCullOp->ahResources.assign(2, m_tiledLightData.hDepthMinMaxTex);
+	pCullOp->ahConstantBuffers.assign(0, m_tiledLightData.hCullConstants);
+
+	pRenderer->AddComputeOpToPass(pCullOp, RdrPass::LightCulling);
 }

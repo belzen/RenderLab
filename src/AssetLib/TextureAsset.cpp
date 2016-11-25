@@ -11,12 +11,12 @@ AssetDef& Texture::GetAssetDef()
 	return s_assetDef;
 }
 
-Texture* Texture::Load(const char* assetName, Texture* pTexture)
+Texture* Texture::Load(const CachedString& assetName, Texture* pTexture)
 {
 	char* pFileData = nullptr;
 	uint fileSize = 0;
 
-	if (!GetAssetDef().LoadAsset(assetName, &pFileData, &fileSize))
+	if (!GetAssetDef().LoadAsset(assetName.getString(), &pFileData, &fileSize))
 	{
 		Error("Failed to load texture asset: %s", assetName);
 		return pTexture;
@@ -29,5 +29,6 @@ Texture* Texture::Load(const char* assetName, Texture* pTexture)
 
 	pTexture->ddsData = pFileData;
 	pTexture->ddsDataSize = fileSize;
+	pTexture->assetName = assetName;
 	return pTexture;
 }
