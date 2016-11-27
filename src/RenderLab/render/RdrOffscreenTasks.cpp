@@ -11,17 +11,14 @@ namespace
 		kSpecularProbe,
 	};
 
-	enum class RdrOffscreenTaskState
-	{
-		kPending,
-		kCleanup
-	};
-
 	struct RdrOffscreenTask
 	{
 		RdrOffscreenTaskType type;
-		RdrOffscreenTaskState state;
-		RdrSurface outputSurfaces[(int)CubemapFace::Count];
+
+		RdrDepthStencilViewHandle hDepthView;
+		RdrResourceHandle hTargetResource;
+		uint targetArrayIndex;
+
 		Vec3 position;
 		Rect viewport;
 		Scene* pScene;
@@ -35,56 +32,45 @@ void RdrOffscreenTasks::QueueSpecularProbeCapture(const Vec3& position, Scene* p
 {
 	RdrOffscreenTask task;
 	task.type = RdrOffscreenTaskType::kSpecularProbe;
-	task.state = RdrOffscreenTaskState::kPending;
 	task.position = position;
 	task.viewport = viewport;
 	task.pScene = pScene;
-
-	for (int i = 0; i < 6; ++i)
-	{
-		task.outputSurfaces[i].hRenderTarget = RdrResourceSystem::CreateRenderTargetView(hCubemapTex, (cubemapArrayIndex * (int)CubemapFace::Count) + i, 1);
-		task.outputSurfaces[i].hDepthTarget = hDepthView;
-	}
+	task.hTargetResource = hCubemapTex;
+	task.targetArrayIndex = cubemapArrayIndex;
+	task.hDepthView = hDepthView;
 
 	s_offscreenTasks.push_back(task);
 }
 
 void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 {
+	RdrResourceCommandList& rPrimaryCommandList = rRenderer.GetPreFrameCommandList();
+	RdrResourceCommandList& rCleanupCommandList = rRenderer.GetPostFrameCommandList();
+
 	for (int i = 0; i < s_offscreenTasks.size(); ++i)
 	{
 		RdrOffscreenTask& rTask = s_offscreenTasks[i];
-
-		// Cleanup resources a frame after the task is done when we know they are unused.
-		if (rTask.state == RdrOffscreenTaskState::kCleanup)
-		{
-			for (int face = 0; face < (int)CubemapFace::Count; ++face)
-			{
-				if (rTask.outputSurfaces[face].hRenderTarget)
-				{
-					RdrResourceSystem::ReleaseRenderTargetView(rTask.outputSurfaces[face].hRenderTarget);
-					rTask.outputSurfaces[face].hRenderTarget = 0;
-				}
-			}
-
-			s_offscreenTasks.erase(s_offscreenTasks.begin() + i);
-			--i;
-			continue;
-		}
-
-		// 
 		switch (rTask.type)
 		{
 		case RdrOffscreenTaskType::kSpecularProbe:
 		{
 			Camera cam;
+			RdrSurface surface;
 			for (int face = 0; face < (int)CubemapFace::Count; ++face)
 			{
+				surface.hRenderTarget = rPrimaryCommandList.CreateRenderTargetView(rTask.hTargetResource, (rTask.targetArrayIndex * (uint)CubemapFace::Count) + face, 1);
+				surface.hDepthTarget = rTask.hDepthView;
+
 				cam.SetAsCubemapFace(rTask.position, (CubemapFace)face, 0.01f, 1000.f);
-				rRenderer.BeginOffscreenAction(L"Spec Probe Capture", cam, *rTask.pScene, false, rTask.viewport, rTask.outputSurfaces[face]);
+				rRenderer.BeginOffscreenAction(L"Spec Probe Capture", cam, *rTask.pScene, false, rTask.viewport, surface);
 				rRenderer.EndAction();
+
+				// Clean up render target view
+				rCleanupCommandList.ReleaseRenderTargetView(surface.hRenderTarget);
 			}
-			rTask.state = RdrOffscreenTaskState::kCleanup;
+
+			s_offscreenTasks.erase(s_offscreenTasks.begin() + i);
+			--i;
 		}
 		break;
 		}

@@ -56,7 +56,7 @@ namespace
 		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pConstants[0] = Vec4(color.r, color.g, color.b, color.a);
 		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
-		pDrawOp->hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
+		pDrawOp->hVsConstants = rRenderer.GetActionCommandList()->CreateTempConstantBuffer(pConstants, constantsSize);
 
 		rRenderer.AddDrawOpToBucket(pDrawOp, RdrBucketType::UI);
 	}
@@ -75,7 +75,7 @@ void Font::Init()
 	s_text.material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 
 	RdrTextureInfo texInfo;
-	s_text.material.ahTextures.assign(0, RdrResourceSystem::CreateTextureFromFile("fonts/verdana", &texInfo));
+	s_text.material.ahTextures.assign(0, g_pRenderer->GetPreFrameCommandList().CreateTextureFromFile("fonts/verdana", &texInfo));
 	s_text.glyphPixelSize = texInfo.width / 16;
 }
 
@@ -151,7 +151,7 @@ TextObject Font::CreateText(const char* text)
 	TextObject obj;
 	obj.size.x = size.x;
 	obj.size.y = size.y;
-	obj.hTextGeo = RdrResourceSystem::CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, RdrTopology::TriangleList, Vec3::kZero, size);
+	obj.hTextGeo = g_pRenderer->GetPreFrameCommandList().CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, RdrTopology::TriangleList, Vec3::kZero, size);
 	return obj;
 }
 

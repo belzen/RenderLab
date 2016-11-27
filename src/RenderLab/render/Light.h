@@ -75,12 +75,12 @@ public:
 
 	void InvalidateEnvironmentLights();
 
-	void QueueDraw(Renderer* pRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
+	void QueueDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
 		RdrLightingMethod lightingMethod, RdrLightResources* pOutResources);
 
 private:
-	void QueueClusteredLightCulling(Renderer* pRenderer, const Camera& rCamera, const RdrLightResources& rLightResources);
-	void QueueTiledLightCulling(Renderer* pRenderer, const Camera& rCamera, const RdrLightResources& rLightResources);
+	void QueueClusteredLightCulling(Renderer& rRenderer, const Camera& rCamera);
+	void QueueTiledLightCulling(Renderer& rRenderer, const Camera& rCamera);
 
 private:
 	// Light lists
@@ -91,6 +91,12 @@ private:
 	EnvironmentLight m_globalEnvironmentLight;
 
 	// Render resources
+	RdrConstantBufferHandle m_hGlobalLightsCb;
+	RdrResourceHandle m_hSpotLightListRes;
+	RdrResourceHandle m_hPointLightListRes;
+	RdrResourceHandle m_hEnvironmentLightListRes;
+	RdrResourceHandle m_hLightIndicesRes;
+
 	RdrResourceHandle m_hEnvironmentMapTexArray;
 	RdrResourceHandle m_hEnvironmentMapDepthBuffer;
 	RdrDepthStencilViewHandle m_hEnvironmentMapDepthView;

@@ -43,15 +43,18 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	indices[4] = 3;
 	indices[5] = 2;
 
-	m_hGeo = RdrResourceSystem::CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f));
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
+	m_hGeo = rResCommandList.CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f));
 
 	m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_sprite.hlsl", nullptr, 0);
-	m_material.ahTextures.assign(0, RdrResourceSystem::CreateTextureFromFile(textureName, nullptr));
+	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile(textureName, nullptr));
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 }
 
 void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha)
 {
+	RdrResourceCommandList* pResCommandList = rRenderer.GetActionCommandList();
+
 	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
 	pDrawOp->hGeo = m_hGeo;
 	pDrawOp->bFreeGeo = false;
@@ -63,7 +66,7 @@ void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, 
 	Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 	pConstants[0] = Vec4(pos.x - rRenderer.GetViewportWidth() * 0.5f, pos.y + rRenderer.GetViewportHeight() * 0.5f, pos.z + 1.f, 0.f);
 	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
-	pDrawOp->hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize);
+	pDrawOp->hVsConstants = pResCommandList->CreateTempConstantBuffer(pConstants, constantsSize);
 
 	rRenderer.AddDrawOpToBucket(pDrawOp, RdrBucketType::UI);
 }

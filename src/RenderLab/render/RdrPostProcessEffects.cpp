@@ -3,6 +3,7 @@
 #include "RdrResourceSystem.h"
 #include "RdrShaderConstants.h"
 #include "RdrFrameMem.h"
+#include "Renderer.h"
 
 RdrPostProcessEffects::RdrPostProcessEffects()
 	: m_hToneMapInputConstants(0)
@@ -15,7 +16,7 @@ void RdrPostProcessEffects::Init(const AssetLib::PostProcessEffects* pEffects)
 	m_pEffects = pEffects;
 	if (m_hToneMapInputConstants)
 	{
-		RdrResourceSystem::ReleaseConstantBuffer(m_hToneMapInputConstants);
+		g_pRenderer->GetPreFrameCommandList().ReleaseConstantBuffer(m_hToneMapInputConstants);
 		m_hToneMapInputConstants = 0;
 	}
 }
@@ -31,6 +32,6 @@ void RdrPostProcessEffects::PrepareDraw(float dt)
 	pTonemapSettings->bloomThreshold = m_pEffects->bloom.threshold;
 	pTonemapSettings->frameTime = dt;
 
-	m_hToneMapInputConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_hToneMapInputConstants,
+	m_hToneMapInputConstants = g_pRenderer->GetActionCommandList()->CreateUpdateConstantBuffer(m_hToneMapInputConstants,
 		pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 }

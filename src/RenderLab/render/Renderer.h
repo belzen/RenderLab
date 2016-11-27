@@ -16,6 +16,7 @@ struct RdrDrawOp;
 struct Light;
 class LightList;
 class RdrPostProcessEffects;
+class Renderer;
 
 struct RdrVolumetricFogData
 {
@@ -30,6 +31,9 @@ struct RdrSurface
 	RdrRenderTargetViewHandle hRenderTarget;
 	RdrDepthStencilViewHandle hDepthTarget;
 };
+
+// Global pointer to active renderer.
+extern Renderer* g_pRenderer;
 
 class Renderer
 {
@@ -46,6 +50,10 @@ public:
 		bool enablePostprocessing, const Rect& viewport, const RdrSurface& outputSurface);
 	void EndAction();
 
+	RdrResourceCommandList& GetPreFrameCommandList();
+	RdrResourceCommandList& GetPostFrameCommandList();
+	RdrResourceCommandList* GetActionCommandList();
+
 	void QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 	void QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 
@@ -55,7 +63,7 @@ public:
 	void DrawFrame();
 	void PostFrameSync();
 
-	const Camera& GetCurrentCamera(void) const;
+	const Camera& GetCurrentCamera() const;
 
 	int GetViewportWidth() const;
 	int GetViewportHeight() const;

@@ -4,6 +4,7 @@
 #include "RdrDrawOp.h"
 #include "RdrFrameMem.h"
 #include "RdrResourceSystem.h"
+#include "Renderer.h"
 #include "Camera.h"
 #include "AssetLib/ModelAsset.h"
 #include "AssetLib/AssetLibrary.h"
@@ -64,7 +65,7 @@ ModelData* ModelData::LoadFromFile(const CachedString& modelName)
 			++vertAccum;
 		}
 
-		pModel->m_subObjects[i].hGeo = RdrResourceSystem::CreateGeo(pVerts, sizeof(Vertex), rBinSubobject.vertCount, 
+		pModel->m_subObjects[i].hGeo = g_pRenderer->GetPreFrameCommandList().CreateGeo(pVerts, sizeof(Vertex), rBinSubobject.vertCount,
 			pIndices, rBinSubobject.indexCount, RdrTopology::TriangleList, rBinSubobject.boundsMin, rBinSubobject.boundsMax);
 		pModel->m_subObjects[i].pMaterial = RdrMaterial::LoadFromFile(rBinSubobject.materialName);
 

@@ -2,6 +2,7 @@
 
 #include "RdrDeviceTypes.h"
 #include "RdrResource.h"
+#include "RdrResourceSystem.h"
 #include "RdrShaders.h"
 #include "RdrGeometry.h"
 #include "RdrDrawOp.h"
@@ -41,7 +42,7 @@ struct RdrDrawBucketEntry
 typedef std::vector<RdrDrawBucketEntry> RdrDrawOpBucket;
 typedef std::vector<const RdrComputeOp*> RdrComputeOpBucket;
 
-#define MAX_ACTIONS_PER_FRAME 16
+#define MAX_ACTIONS_PER_FRAME 8
 #define MAX_RENDER_TARGETS 6
 
 struct RdrGlobalConstants
@@ -92,7 +93,7 @@ struct RdrShadowPass
 {
 	RdrPassData               passData;
 	RdrGlobalConstants        constants;
-	RdrDrawBuckets              buckets;
+	RdrDrawBuckets            buckets;
 	Camera                    camera;
 	RdrDepthStencilViewHandle hDepthView;
 };
@@ -103,6 +104,8 @@ struct RdrAction
 
 	///
 	LPCWSTR name;
+
+	RdrResourceCommandList resourceCommands;
 
 	RdrDrawBuckets opBuckets;
 	RdrPassData passes[(int)RdrPass::Count];
@@ -130,4 +133,7 @@ struct RdrFrameState
 {
 	RdrAction actions[MAX_ACTIONS_PER_FRAME];
 	uint      numActions;
+
+	RdrResourceCommandList preFrameResourceCommands;
+	RdrResourceCommandList postFrameResourceCommands;
 };

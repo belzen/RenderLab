@@ -91,7 +91,7 @@ void RdrPostProcess::Init()
 	m_useHistogramToneMap = false;
 
 	m_hToneMapPs = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", nullptr, 0);
-	m_hToneMapOutputConstants = RdrResourceSystem::CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapOutputParams), RdrResourceUsage::Default);
+	m_hToneMapOutputConstants = g_pRenderer->GetPreFrameCommandList().CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapOutputParams), RdrResourceUsage::Default);
 
 	const char* histogramDefines[] = { "TONEMAP_HISTOGRAM" };
 	m_hToneMapHistogramPs = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", histogramDefines, 1);
@@ -99,6 +99,8 @@ void RdrPostProcess::Init()
 
 void RdrPostProcess::HandleResize(uint width, uint height)
 {
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
+
 	// Update luminance measure textures
 	uint i = 0;
 	uint w = width;
@@ -106,12 +108,12 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 	while (w > 16 || h > 16)
 	{
 		if (m_hLumOutputs[i])
-			RdrResourceSystem::ReleaseResource(m_hLumOutputs[i]);
+			rResCommandList.ReleaseResource(m_hLumOutputs[i]);
 
 		w = (uint)ceil(w / 16.f);
 		h = (uint)ceil(h / 16.f);
 
-		m_hLumOutputs[i] = RdrResourceSystem::CreateTexture2D(w, h, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
+		m_hLumOutputs[i] = rResCommandList.CreateTexture2D(w, h, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
 		++i;
 	}
 
@@ -129,12 +131,12 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 		for (int n = 0; n < ARRAY_SIZE(rBloom.hResources); ++n)
 		{
 			if (rBloom.hResources[n])
-				RdrResourceSystem::ReleaseResource(rBloom.hResources[n]);
-			rBloom.hResources[n] = RdrResourceSystem::CreateTexture2D(w, h, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
+				rResCommandList.ReleaseResource(rBloom.hResources[n]);
+			rBloom.hResources[n] = rResCommandList.CreateTexture2D(w, h, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
 		}
 
 		if (rBloom.hBlendConstants)
-			RdrResourceSystem::ReleaseConstantBuffer(rBloom.hBlendConstants);
+			rResCommandList.ReleaseConstantBuffer(rBloom.hBlendConstants);
 
 		uint constantsSize = sizeof(Blend2dParams);
 		Blend2dParams* pBlendParams = (Blend2dParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
@@ -152,27 +154,28 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 			pBlendParams->weight2 = 1.f;
 		}
 
-		rBloom.hBlendConstants = RdrResourceSystem::CreateConstantBuffer(pBlendParams, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
+		rBloom.hBlendConstants = rResCommandList.CreateConstantBuffer(pBlendParams, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
 	}
 
 	if (m_useHistogramToneMap)
 	{
 		uint numTiles = (uint)ceilf(width / 32.f) * (uint)ceilf(height / 16.f); // todo - share tile sizes & histogram bin sizes with shader
 		if (m_hToneMapTileHistograms)
-			RdrResourceSystem::ReleaseResource(m_hToneMapTileHistograms);
-		m_hToneMapTileHistograms = RdrResourceSystem::CreateDataBuffer(nullptr, numTiles * 64, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
+			rResCommandList.ReleaseResource(m_hToneMapTileHistograms);
+		m_hToneMapTileHistograms = rResCommandList.CreateDataBuffer(nullptr, numTiles * 64, RdrResourceFormat::R16_UINT, RdrResourceUsage::Default);
 	
 		if (m_hToneMapMergedHistogram)
-			RdrResourceSystem::ReleaseResource(m_hToneMapMergedHistogram);
-		m_hToneMapMergedHistogram = RdrResourceSystem::CreateDataBuffer(nullptr, 64, RdrResourceFormat::R32_UINT, RdrResourceUsage::Default);
+			rResCommandList.ReleaseResource(m_hToneMapMergedHistogram);
+		m_hToneMapMergedHistogram = rResCommandList.CreateDataBuffer(nullptr, 64, RdrResourceFormat::R32_UINT, RdrResourceUsage::Default);
 
 		if (m_hToneMapHistogramResponseCurve)
-			RdrResourceSystem::ReleaseResource(m_hToneMapHistogramResponseCurve);
-		m_hToneMapHistogramResponseCurve = RdrResourceSystem::CreateDataBuffer(nullptr, 64, RdrResourceFormat::R16_FLOAT, RdrResourceUsage::Default);
+			rResCommandList.ReleaseResource(m_hToneMapHistogramResponseCurve);
+		m_hToneMapHistogramResponseCurve = rResCommandList.CreateDataBuffer(nullptr, 64, RdrResourceFormat::R16_FLOAT, RdrResourceUsage::Default);
 
 
 		if (m_hToneMapHistogramSettings)
-			RdrResourceSystem::ReleaseConstantBuffer(m_hToneMapHistogramSettings);
+			rResCommandList.ReleaseConstantBuffer(m_hToneMapHistogramSettings);
+
 		struct Test
 		{
 			float logLuminanceMin;
@@ -184,7 +187,7 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 		pTest->logLuminanceMin = 0.f;
 		pTest->logLuminanceMax = 3.f;
 		pTest->tileCount = numTiles;
-		m_hToneMapHistogramSettings = RdrResourceSystem::CreateConstantBuffer(pTest, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
+		m_hToneMapHistogramSettings = rResCommandList.CreateConstantBuffer(pTest, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
 	}
 }
 

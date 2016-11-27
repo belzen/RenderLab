@@ -58,6 +58,8 @@ void RdrAction::Reset()
 {
 	opBuckets.Clear();
 
+	memset(&lightParams, 0, sizeof(lightParams));
+
 	for (int i = 0; i < MAX_SHADOW_MAPS_PER_FRAME; ++i)
 	{
 		shadowPasses[i].buckets.Clear();

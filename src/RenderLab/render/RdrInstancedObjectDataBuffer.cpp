@@ -1,6 +1,7 @@
 #include "Precompiled.h"
 #include "RdrInstancedObjectDataBuffer.h"
 #include "RdrResourceSystem.h"
+#include "Renderer.h"
 
 namespace
 {
@@ -30,18 +31,20 @@ void RdrInstancedObjectDataBuffer::ReleaseEntry(RdrInstancedObjectDataId id)
 	s_objectBuffer.data.releaseIdSafe(id);
 }
 
-void RdrInstancedObjectDataBuffer::UpdateBuffer()
+void RdrInstancedObjectDataBuffer::UpdateBuffer(Renderer& rRenderer)
 {
+	RdrResourceCommandList& rResCommandList = rRenderer.GetPreFrameCommandList();
+
 	// TODO: This is not safe.  The buffer data could be changing on the main thread
 	//	while the render thread processes the update.  This should use immediate commands instead.
 	uint lastObject = s_objectBuffer.data.getMaxUsedId();
 	if (!s_objectBuffer.hResource)
 	{
-		s_objectBuffer.hResource = RdrResourceSystem::CreateStructuredBuffer(s_objectBuffer.data.data(), s_objectBuffer.data.kMaxEntries, sizeof(VsPerObject), RdrResourceUsage::Default);
+		s_objectBuffer.hResource = rResCommandList.CreateStructuredBuffer(s_objectBuffer.data.data(), s_objectBuffer.data.kMaxEntries, sizeof(VsPerObject), RdrResourceUsage::Default);
 	}
 	else if (lastObject > 0)
 	{
-		RdrResourceSystem::UpdateBuffer(s_objectBuffer.hResource, s_objectBuffer.data.data(), lastObject);
+		rResCommandList.UpdateBuffer(s_objectBuffer.hResource, s_objectBuffer.data.data(), lastObject);
 	}
 }
 

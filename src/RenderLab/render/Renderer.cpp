@@ -18,15 +18,11 @@
 #include "../../data/shaders/light_types.h"
 #include "AssetLib/SkyAsset.h"
 
+Renderer* g_pRenderer = nullptr;
+
 namespace
 {
 	const uint kMaxInstancesPerDraw = 2048;
-
-	// Hidden global reference to the Renderer for debug commands.
-	// There should only ever be one renderer, but I don't want every system to be
-	// able to access it through a singleton or other global pattern.
-	// This keeps the global ref contained to only this file.
-	static Renderer* g_pRenderer = nullptr;
 
 	void cmdSetLightingMethod(DebugCommandArg *args, int numArgs)
 	{
@@ -143,7 +139,7 @@ namespace
 		*pOutDepthMax = min(rCamera.GetFarDist(), depthMax);
 	}
 
-	void createPerActionConstants(const Camera& rCamera, const Rect& rViewport, const Sky& rSky, RdrGlobalConstants& rConstants)
+	void createPerActionConstants(RdrResourceCommandList& rResCommandList, const Camera& rCamera, const Rect& rViewport, const Sky& rSky, RdrGlobalConstants& rConstants)
 	{
 		Matrix44 mtxView;
 		Matrix44 mtxProj;
@@ -158,7 +154,7 @@ namespace
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = rCamera.GetPosition();
 
-		rConstants.hVsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
+		rConstants.hVsPerAction = rResCommandList.CreateTempConstantBuffer(pVsPerAction, constantsSize);
 
 		// PS
 		constantsSize = sizeof(PsPerAction);
@@ -175,10 +171,10 @@ namespace
 		pPsPerAction->aspectRatio = rCamera.GetAspectRatio();
 		pPsPerAction->volumetricFogFarDepth = rSky.GetVolFogSettings().farDepth;
 
-		rConstants.hPsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
+		rConstants.hPsPerAction = rResCommandList.CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
 
-	void createUiConstants(const Rect& rViewport, RdrGlobalConstants& rConstants)
+	void createUiConstants(RdrResourceCommandList& rResCommandList, const Rect& rViewport, RdrGlobalConstants& rConstants)
 	{
 		Matrix44 mtxView = Matrix44::kIdentity;
 		Matrix44 mtxProj = DirectX::XMMatrixOrthographicLH((float)rViewport.width, (float)rViewport.height, 0.01f, 1000.f);
@@ -191,7 +187,7 @@ namespace
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = Vec3::kZero;
 
-		rConstants.hVsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize);
+		rConstants.hVsPerAction = rResCommandList.CreateTempConstantBuffer(pVsPerAction, constantsSize);
 
 		// PS
 		constantsSize = sizeof(PsPerAction);
@@ -203,10 +199,10 @@ namespace
 		pPsPerAction->viewSize.x = (uint)rViewport.width;
 		pPsPerAction->viewSize.y = (uint)rViewport.height;
 
-		rConstants.hPsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize);
+		rConstants.hPsPerAction = rResCommandList.CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
 
-	RdrConstantBufferHandle createCubemapCaptureConstants(const Vec3& position, const float nearDist, const float farDist)
+	RdrConstantBufferHandle createCubemapCaptureConstants(RdrResourceCommandList& rResCommandList, const Vec3& position, const float nearDist, const float farDist)
 	{
 		Camera cam;
 		Matrix44 mtxView, mtxProj;
@@ -221,7 +217,7 @@ namespace
 			pGsConstants->mtxViewProj[f] = Matrix44Transpose(pGsConstants->mtxViewProj[f]);
 		}
 
-		return RdrResourceSystem::CreateTempConstantBuffer(pGsConstants, constantsSize);
+		return rResCommandList.CreateTempConstantBuffer(pGsConstants, constantsSize);
 	}
 }
 
@@ -241,7 +237,7 @@ bool Renderer::Init(HWND hWnd, int width, int height, InputManager* pInputManage
 	m_profiler.Init(m_pContext);
 	m_pInputManager = pInputManager;
 
-	RdrResourceSystem::Init();
+	RdrResourceSystem::Init(*this);
 
 	// Set default lighting method before initialized shaders so global defines can be applied first.
 	m_eLightingMethod = RdrLightingMethod::Clustered;
@@ -296,40 +292,41 @@ void Renderer::ApplyDeviceChanges()
 {
 	if (m_pendingViewWidth != m_viewWidth || m_pendingViewHeight != m_viewHeight)
 	{
+		RdrResourceCommandList& rResCommandList = GetPreFrameCommandList();
 		m_pContext->Resize(m_pendingViewWidth, m_pendingViewHeight);
 
 		// Release existing resources
 		if (m_hPrimaryDepthStencilView)
-			RdrResourceSystem::ReleaseDepthStencilView(m_hPrimaryDepthStencilView);
+			rResCommandList.ReleaseDepthStencilView(m_hPrimaryDepthStencilView);
 		if (m_hPrimaryDepthBuffer)
-			RdrResourceSystem::ReleaseResource(m_hPrimaryDepthBuffer);
+			rResCommandList.ReleaseResource(m_hPrimaryDepthBuffer);
 		if (m_hColorBuffer)
-			RdrResourceSystem::ReleaseResource(m_hColorBuffer);
+			rResCommandList.ReleaseResource(m_hColorBuffer);
 		if (m_hColorBufferMultisampled)
-			RdrResourceSystem::ReleaseResource(m_hColorBufferMultisampled);
+			rResCommandList.ReleaseResource(m_hColorBufferMultisampled);
 		if (m_hColorBufferRenderTarget)
-			RdrResourceSystem::ReleaseRenderTargetView(m_hColorBufferRenderTarget);
+			rResCommandList.ReleaseRenderTargetView(m_hColorBufferRenderTarget);
 		if (m_volumetricFogData.hDensityLightLut)
-			RdrResourceSystem::ReleaseResource(m_volumetricFogData.hDensityLightLut);
+			rResCommandList.ReleaseResource(m_volumetricFogData.hDensityLightLut);
 		if (m_volumetricFogData.hFinalLut)
-			RdrResourceSystem::ReleaseResource(m_volumetricFogData.hFinalLut);
+			rResCommandList.ReleaseResource(m_volumetricFogData.hFinalLut);
 
 		// FP16 color
-		m_hColorBuffer = RdrResourceSystem::CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
+		m_hColorBuffer = rResCommandList.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
 		if (g_debugState.msaaLevel > 1)
 		{
-			m_hColorBufferMultisampled = RdrResourceSystem::CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, g_debugState.msaaLevel);
-			m_hColorBufferRenderTarget = RdrResourceSystem::CreateRenderTargetView(m_hColorBufferMultisampled);
+			m_hColorBufferMultisampled = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, g_debugState.msaaLevel);
+			m_hColorBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hColorBufferMultisampled);
 		}
 		else
 		{
 			m_hColorBufferMultisampled = 0;
-			m_hColorBufferRenderTarget = RdrResourceSystem::CreateRenderTargetView(m_hColorBuffer);
+			m_hColorBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hColorBuffer);
 		}
 
 		// Depth Buffer
-		m_hPrimaryDepthBuffer = RdrResourceSystem::CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::D24_UNORM_S8_UINT, g_debugState.msaaLevel);
-		m_hPrimaryDepthStencilView = RdrResourceSystem::CreateDepthStencilView(m_hPrimaryDepthBuffer);
+		m_hPrimaryDepthBuffer = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::D24_UNORM_S8_UINT, g_debugState.msaaLevel);
+		m_hPrimaryDepthStencilView = rResCommandList.CreateDepthStencilView(m_hPrimaryDepthBuffer);
 
 		m_viewWidth = m_pendingViewWidth;
 		m_viewHeight = m_pendingViewHeight;
@@ -339,14 +336,14 @@ void Renderer::ApplyDeviceChanges()
 		// Volumetric fog LUTs
 		UVec3 lutSize(m_viewWidth / 8, m_viewHeight / 8, 64);
 		m_volumetricFogData.lutSize = lutSize;
-		m_volumetricFogData.hDensityLightLut = RdrResourceSystem::CreateTexture3D(
-			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
-		m_volumetricFogData.hFinalLut = RdrResourceSystem::CreateTexture3D(
-			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default);
+		m_volumetricFogData.hDensityLightLut = rResCommandList.CreateTexture3D(
+			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		m_volumetricFogData.hFinalLut = rResCommandList.CreateTexture3D(
+			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
 	}
 }
 
-const Camera& Renderer::GetCurrentCamera(void) const
+const Camera& Renderer::GetCurrentCamera() const
 {
 	return m_pCurrentAction->camera;
 }
@@ -458,7 +455,7 @@ void Renderer::QueueVolumetricFog(const AssetLib::VolumetricFogSettings& rFogSet
 	pFogParams->absorptionCoeff = rFogSettings.absorptionCoeff;
 	pFogParams->scatteringCoeff = rFogSettings.scatteringCoeff;
 
-	m_volumetricFogData.hFogConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_volumetricFogData.hFogConstants, 
+	m_volumetricFogData.hFogConstants = GetActionCommandList()->CreateUpdateConstantBuffer(m_volumetricFogData.hFogConstants, 
 		pFogParams, sizeof(VolumetricFogParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 
 	//////////////////////////////////////////////////////////////////////////
@@ -530,7 +527,7 @@ void Renderer::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHand
 	cullSceneToCameraForShadows(rCamera, m_pCurrentAction->pScene, &rShadowPass.buckets);
 	rShadowPass.buckets.SortDrawOps(RdrBucketType::Opaque);
 
-	createPerActionConstants(rCamera, viewport, m_pCurrentAction->pScene->GetSky(), rShadowPass.constants);
+	createPerActionConstants(m_pCurrentAction->resourceCommands, rCamera, viewport, m_pCurrentAction->pScene->GetSky(), rShadowPass.constants);
 	rShadowPass.constants.hPsAtmosphere = 0;
 }
 
@@ -563,9 +560,9 @@ void Renderer::QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencilV
 	cullSceneToCameraForShadows(rShadowPass.camera, m_pCurrentAction->pScene, &rShadowPass.buckets);
 	rShadowPass.buckets.SortDrawOps(RdrBucketType::Opaque);
 
-	createPerActionConstants(rShadowPass.camera, viewport, m_pCurrentAction->pScene->GetSky(), rShadowPass.constants);
+	createPerActionConstants(m_pCurrentAction->resourceCommands, rShadowPass.camera, viewport, m_pCurrentAction->pScene->GetSky(), rShadowPass.constants);
 	rShadowPass.constants.hPsAtmosphere = 0;
-	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(rLight.position, 0.1f, rLight.radius * 2.f);
+	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(m_pCurrentAction->resourceCommands, rLight.position, 0.1f, rLight.radius * 2.f);
 }
 
 void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt)
@@ -605,13 +602,13 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt
 		&m_pCurrentAction->opBuckets, m_pCurrentAction->lightParams.hVolumetricFogLut,
 		&sceneDepthMin, &sceneDepthMax);
 
-	createPerActionConstants(m_pCurrentAction->camera, viewport, rScene.GetSky(), m_pCurrentAction->constants);
+	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, rScene.GetSky(), m_pCurrentAction->constants);
 	m_pCurrentAction->constants.hPsAtmosphere = rScene.GetSky().GetAtmosphereConstantBuffer();
 
-	createUiConstants(viewport, m_pCurrentAction->uiConstants);
+	createUiConstants(m_pCurrentAction->resourceCommands, viewport, m_pCurrentAction->uiConstants);
 
 	// Lighting
-	rScene.GetLightList().QueueDraw(this, rScene.GetSky(), m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax,
+	rScene.GetLightList().QueueDraw(*this, rScene.GetSky(), m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax,
 		m_eLightingMethod, &m_pCurrentAction->lightParams);
 
 	QueueVolumetricFog(rVolFogSettings);
@@ -636,8 +633,11 @@ void Renderer::BeginOffscreenAction(const wchar_t* actionName, const Camera& rCa
 	m_pCurrentAction->passes[(int)RdrPass::Sky].bEnabled = true;
 	m_pCurrentAction->passes[(int)RdrPass::Alpha].bEnabled = true;
 
-	m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
-	rScene.GetPostProcEffects()->PrepareDraw(0.f);
+	if (enablePostprocessing)
+	{
+		m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
+		rScene.GetPostProcEffects()->PrepareDraw(0.f);
+	}
 
 	const AssetLib::VolumetricFogSettings& rVolFogSettings = rScene.GetSky().GetVolFogSettings();
 	m_pCurrentAction->lightParams.hVolumetricFogLut = rVolFogSettings.enabled ? m_volumetricFogData.hFinalLut : RdrResourceSystem::GetDefaultResourceHandle(RdrDefaultResource::kBlackTex3d);
@@ -648,11 +648,11 @@ void Renderer::BeginOffscreenAction(const wchar_t* actionName, const Camera& rCa
 		&m_pCurrentAction->opBuckets, m_pCurrentAction->lightParams.hVolumetricFogLut,
 		&sceneDepthMin, &sceneDepthMax);
 
-	createPerActionConstants(m_pCurrentAction->camera, viewport, rScene.GetSky(), m_pCurrentAction->constants);
+	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, rScene.GetSky(), m_pCurrentAction->constants);
 	m_pCurrentAction->constants.hPsAtmosphere = rScene.GetSky().GetAtmosphereConstantBuffer();
 
 	// Lighting
-	rScene.GetLightList().QueueDraw(this, rScene.GetSky(), m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax,
+	rScene.GetLightList().QueueDraw(*this, rScene.GetSky(), m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax,
 		m_eLightingMethod, &m_pCurrentAction->lightParams);
 
 	QueueVolumetricFog(rVolFogSettings);
@@ -661,6 +661,21 @@ void Renderer::BeginOffscreenAction(const wchar_t* actionName, const Camera& rCa
 void Renderer::EndAction()
 {
 	m_pCurrentAction = nullptr;
+}
+
+RdrResourceCommandList& Renderer::GetPreFrameCommandList()
+{
+	return GetQueueState().preFrameResourceCommands;
+}
+
+RdrResourceCommandList& Renderer::GetPostFrameCommandList()
+{
+	return GetQueueState().postFrameResourceCommands;
+}
+
+RdrResourceCommandList* Renderer::GetActionCommandList()
+{
+	return m_pCurrentAction ? &m_pCurrentAction->resourceCommands : nullptr;
 }
 
 void Renderer::AddDrawOpToBucket(const RdrDrawOp* pDrawOp, RdrBucketType eBucket)
@@ -821,12 +836,13 @@ void Renderer::PostFrameSync()
 		}
 
 		// Update global data
-		RdrInstancedObjectDataBuffer::UpdateBuffer();
+		RdrInstancedObjectDataBuffer::UpdateBuffer(*this);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Clear the data that we just rendered with.
 	RdrFrameState& rActiveState = GetActiveState();
+	RdrResourceCommandList& rResCommandList = GetPostFrameCommandList();
 	assert(!m_pCurrentAction);
 
 	// Return old frame actions to the pool.
@@ -843,7 +859,7 @@ void Renderer::PostFrameSync()
 				const RdrDrawOp* pDrawOp = rEntry.pDrawOp;
 				if (pDrawOp->bFreeGeo)
 				{
-					RdrResourceSystem::ReleaseGeo(pDrawOp->hGeo);
+					rResCommandList.ReleaseGeo(pDrawOp->hGeo);
 				}
 			}
 		}
@@ -856,7 +872,6 @@ void Renderer::PostFrameSync()
 
 	// Swap state
 	m_queueState = !m_queueState;
-	RdrResourceSystem::FlipState(m_pContext);
 	RdrShaderSystem::FlipState();
 	RdrFrameMem::FlipState();
 	RdrInstancedObjectDataBuffer::FlipState();
@@ -897,10 +912,10 @@ void Renderer::ProcessReadbackRequests()
 void Renderer::DrawFrame()
 {
 	RdrFrameState& rFrameState = GetActiveState();
-	
+
 	// Process threaded render commands.
 	RdrShaderSystem::ProcessCommands(m_pContext);
-	RdrResourceSystem::ProcessCommands(m_pContext);
+	rFrameState.preFrameResourceCommands.ProcessCommands(m_pContext);
 
 	ProcessReadbackRequests();
 
@@ -911,6 +926,9 @@ void Renderer::DrawFrame()
 
 		for (uint iAction = 0; iAction < rFrameState.numActions; ++iAction)
 		{
+			// Process resource system commands for this action
+			rFrameState.actions[iAction].resourceCommands.ProcessCommands(m_pContext);
+
 			const RdrAction& rAction = rFrameState.actions[iAction];
 			m_pContext->BeginEvent(rAction.name);
 
@@ -984,8 +1002,19 @@ void Renderer::DrawFrame()
 
 		m_profiler.EndFrame();
 	}
+	else
+	{
+		// Process commands even though we're not rendering.
+		for (uint iAction = 0; iAction < rFrameState.numActions; ++iAction)
+		{
+			rFrameState.actions[iAction].resourceCommands.ProcessCommands(m_pContext);
+		}
+	}
 
 	m_pContext->Present();
+
+	// Process post-frame commands.
+	rFrameState.postFrameResourceCommands.ProcessCommands(m_pContext);
 }
 
 void Renderer::DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, 
@@ -1269,7 +1298,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueTextureReadbackRequest(RdrResour
 	pReq->frameCount = 0;
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(pixelCoord.x, pixelCoord.y, 0, 1, 1, 1);
-	pReq->hDstResource = RdrResourceSystem::CreateTexture2D(1, 1, pSrcResource->texInfo.format, RdrResourceUsage::Staging);
+	pReq->hDstResource = GetPreFrameCommandList().CreateTexture2D(1, 1, pSrcResource->texInfo.format, RdrResourceUsage::Staging, nullptr);
 	pReq->dataSize = rdrGetTexturePitch(1, pSrcResource->texInfo.format);
 	pReq->pData = new char[pReq->dataSize]; // todo: custom heap
 
@@ -1286,7 +1315,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueStructuredBufferReadbackRequest(
 	pReq->frameCount = 0;
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(startByteOffset, 0, 0, numBytesToRead, 1, 1);
-	pReq->hDstResource = RdrResourceSystem::CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceUsage::Staging);
+	pReq->hDstResource = GetPreFrameCommandList().CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceUsage::Staging);
 	pReq->dataSize = numBytesToRead;
 	pReq->pData = new char[numBytesToRead]; // todo: custom heap
 
@@ -1320,7 +1349,7 @@ void Renderer::ReleaseResourceReadbackRequest(RdrResourceReadbackRequestHandle h
 	}
 
 	// todo: pool/reuse dest resources.
-	RdrResourceSystem::ReleaseResource(pReq->hDstResource);
+	GetPreFrameCommandList().ReleaseResource(pReq->hDstResource);
 	SAFE_DELETE(pReq->pData);
 
 	m_readbackRequests.releaseId(hRequest);

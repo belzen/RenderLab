@@ -92,7 +92,9 @@ int MainWindow::Run()
 	// Initialize renderer first.
 	HWND hWnd = GetWindowHandle();
 	const int kDefaultPanelWidth = 300;
-	m_renderWindow.Create(hWnd, GetWidth() - kDefaultPanelWidth, GetHeight(), &m_renderer);
+	m_renderWindow.Create(hWnd, GetWidth() - kDefaultPanelWidth, GetHeight(), m_renderer);
+
+	Debug::Init();
 
 	// Load in default scene
 	m_scene.Load(g_userConfig.defaultScene.c_str());

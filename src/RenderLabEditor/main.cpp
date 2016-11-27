@@ -26,11 +26,10 @@ int main(int argc, char** argv)
 	{
 		RenderDoc::Init();
 	}
-	Debug::Init();
 	FileWatcher::Init(Paths::GetDataDir());
 
-	MainWindow mainWindow;
-	mainWindow.Create(kClientWidth, kClientHeight, "Render Lab");
+	MainWindow* pMainWindow = new MainWindow();
+	pMainWindow->Create(kClientWidth, kClientHeight, "Render Lab");
 
-	return mainWindow.Run();
+	return pMainWindow->Run();
 }

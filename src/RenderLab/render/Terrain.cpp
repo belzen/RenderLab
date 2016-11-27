@@ -5,6 +5,7 @@
 #include "RdrDrawOp.h"
 #include "RdrFrameMem.h"
 #include "RdrFrameState.h"
+#include "Renderer.h"
 
 namespace
 {
@@ -25,6 +26,8 @@ Terrain::Terrain()
 
 void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 {
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
+
 	m_initialized = true;
 	m_srcData = rTerrainAsset;
 
@@ -35,7 +38,7 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	aVertices[3] = Vec2(1.f, 0.f);
 
 	m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_terrainVertexDesc, ARRAY_SIZE(s_terrainVertexDesc));
-	m_hGeo = RdrResourceSystem::CreateGeo(
+	m_hGeo = rResCommandList.CreateGeo(
 		aVertices, sizeof(aVertices[0]), 4, 
 		nullptr, 0,
 		RdrTopology::Quad, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f));
@@ -56,12 +59,12 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 				0.f);
 		}
 	}
-	m_hInstanceData = RdrResourceSystem::CreateVertexBuffer(aInstanceData, sizeof(aInstanceData[0]), m_gridSize.x * m_gridSize.y, RdrResourceUsage::Immutable);
+	m_hInstanceData = rResCommandList.CreateVertexBuffer(aInstanceData, sizeof(aInstanceData[0]), m_gridSize.x * m_gridSize.y, RdrResourceUsage::Immutable);
 
 	// Tessellation material
 	RdrTextureInfo heightmapTexInfo;
 	m_tessMaterial.shader = kTessellationShader;
-	m_tessMaterial.ahResources.assign(0, RdrResourceSystem::CreateTextureFromFile(m_srcData.heightmapName, &heightmapTexInfo));
+	m_tessMaterial.ahResources.assign(0, rResCommandList.CreateTextureFromFile(m_srcData.heightmapName, &heightmapTexInfo));
 	m_tessMaterial.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 
 	m_heightmapSize = UVec2(heightmapTexInfo.width, heightmapTexInfo.height);
@@ -70,8 +73,8 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	memset(&m_material, 0, sizeof(m_material));
 	m_material.bNeedsLighting = true;
 	m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_terrain.hlsl", nullptr, 0);
-	m_material.ahTextures.assign(0, RdrResourceSystem::CreateTextureFromFile("white", nullptr));
-	m_material.ahTextures.assign(1, RdrResourceSystem::CreateTextureFromFile("test_ddn", nullptr));
+	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile("white", nullptr));
+	m_material.ahTextures.assign(1, rResCommandList.CreateTextureFromFile("test_ddn", nullptr));
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 }
 
@@ -91,7 +94,7 @@ void Terrain::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Camera& rCamera)
 	pDsConstants->heightmapTexelSize.x = 1.f / m_heightmapSize.x;
 	pDsConstants->heightmapTexelSize.y = 1.f / m_heightmapSize.y;
 	pDsConstants->heightScale = m_srcData.heightScale;
-	m_tessMaterial.hDsConstants = RdrResourceSystem::CreateUpdateConstantBuffer(m_tessMaterial.hDsConstants, 
+	m_tessMaterial.hDsConstants = g_pRenderer->GetActionCommandList()->CreateUpdateConstantBuffer(m_tessMaterial.hDsConstants,
 		pDsConstants, sizeof(DsTerrain), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	
 	//////////////////////////////////////////////////////////////////////////

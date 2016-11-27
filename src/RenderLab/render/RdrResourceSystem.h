@@ -2,7 +2,10 @@
 
 #include "RdrResource.h"
 #include "RdrGeometry.h"
+#include "UtilsLib/FixedVector.h"
+#include "UtilsLib/StringCache.h"
 
+class Renderer;
 class RdrContext;
 
 enum class RdrDefaultResource
@@ -17,23 +20,38 @@ namespace RdrResourceSystem
 {
 	static const uint kPrimaryRenderTargetHandle = 1;
 
-	void Init();
+	void Init(Renderer& rRenderer);
+
+	const RdrGeometry* GetGeo(const RdrGeoHandle hGeo);
+	RdrDepthStencilView GetDepthStencilView(const RdrDepthStencilViewHandle hView);
+	RdrRenderTargetView GetRenderTargetView(const RdrRenderTargetViewHandle hView);
+
+	const RdrResource* GetDefaultResource(const RdrDefaultResource resType);
+	RdrResourceHandle GetDefaultResourceHandle(const RdrDefaultResource resType);
+
+	const RdrResource* GetResource(const RdrResourceHandle hRes);
+	const RdrConstantBuffer* GetConstantBuffer(const RdrConstantBufferHandle hBuffer);
+}
+
+class RdrResourceCommandList
+{
+public:
+	void ProcessCommands(RdrContext* pRdrContext);
 
 	RdrResourceHandle CreateTextureFromFile(const CachedString& texName, RdrTextureInfo* pOutInfo);
 
-	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
+	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage, char* pTexData);
 	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount);
 	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat);
 
 	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat);
 	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat);
 
-	RdrResourceHandle CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
+	RdrResourceHandle CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage, char* pTexData);
 
 	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
 		RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax);
 	void ReleaseGeo(const RdrGeoHandle hGeo);
-	const RdrGeometry* GetGeo(const RdrGeoHandle hGeo);
 
 	RdrResourceHandle CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceUsage eUsage);
 
@@ -54,20 +72,135 @@ namespace RdrResourceSystem
 
 	RdrDepthStencilViewHandle CreateDepthStencilView(RdrResourceHandle hResource);
 	RdrDepthStencilViewHandle CreateDepthStencilView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize);
-	RdrDepthStencilView GetDepthStencilView(const RdrDepthStencilViewHandle hView);
 	void ReleaseDepthStencilView(const RdrRenderTargetViewHandle hView);
 
 	RdrRenderTargetViewHandle CreateRenderTargetView(RdrResourceHandle hResource);
 	RdrRenderTargetViewHandle CreateRenderTargetView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize);
-	RdrRenderTargetView GetRenderTargetView(const RdrRenderTargetViewHandle hView);
 	void ReleaseRenderTargetView(const RdrRenderTargetViewHandle hView);
 
-	const RdrResource* GetDefaultResource(const RdrDefaultResource resType);
-	RdrResourceHandle GetDefaultResourceHandle(const RdrDefaultResource resType);
+private:
+	RdrResourceHandle CreateTextureCommon(RdrTextureType texType, uint width, uint height, uint depth,
+		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage, char* pTextureData);
 
-	const RdrResource* GetResource(const RdrResourceHandle hRes);
-	const RdrConstantBuffer* GetConstantBuffer(const RdrConstantBufferHandle hBuffer);
+private:
+	// Command definitions
+	struct CmdCreateTexture
+	{
+		RdrResourceHandle hResource;
+		RdrTextureInfo texInfo;
+		RdrResourceUsage eUsage;
 
-	void FlipState(RdrContext* pRdrContext);
-	void ProcessCommands(RdrContext* pRdrContext);
-}
+		char* pFileData; // Pointer to start of texture data when loaded from a file.
+		char* pData; // Pointer to start of raw data.
+		uint dataSize;
+	};
+
+	struct CmdCreateBuffer
+	{
+		RdrResourceHandle hResource;
+		const void* pData;
+		RdrBufferInfo info;
+		RdrResourceUsage eUsage;
+	};
+
+	struct CmdUpdateBuffer
+	{
+		RdrResourceHandle hResource;
+		const void* pData;
+		uint numElements;
+	};
+
+	struct CmdReleaseResource
+	{
+		RdrResourceHandle hResource;
+	};
+
+	struct CmdCreateConstantBuffer
+	{
+		RdrConstantBufferHandle hBuffer;
+		RdrCpuAccessFlags cpuAccessFlags;
+		RdrResourceUsage eUsage;
+		const void* pData;
+		uint size;
+	};
+
+	struct CmdUpdateConstantBuffer
+	{
+		RdrConstantBufferHandle hBuffer;
+		const void* pData;
+		bool bIsTemp;
+	};
+
+	struct CmdReleaseConstantBuffer
+	{
+		RdrConstantBufferHandle hBuffer;
+	};
+
+	struct CmdCreateRenderTarget
+	{
+		RdrRenderTargetViewHandle hView;
+		RdrResourceHandle hResource;
+		int arrayStartIndex;
+		int arraySize;
+	};
+
+	struct CmdReleaseRenderTarget
+	{
+		RdrRenderTargetViewHandle hView;
+	};
+
+	struct CmdCreateDepthStencil
+	{
+		RdrDepthStencilViewHandle hView;
+		RdrResourceHandle hResource;
+		int arrayStartIndex;
+		int arraySize;
+	};
+
+	struct CmdReleaseDepthStencil
+	{
+		RdrDepthStencilViewHandle hView;
+	};
+
+	struct CmdCreateShaderResourceView
+	{
+		RdrShaderResourceViewHandle hView;
+		RdrResourceHandle hResource;
+		int firstElement;
+	};
+
+	struct CmdReleaseShaderResourceView
+	{
+		RdrShaderResourceViewHandle hView;
+	};
+
+	struct CmdUpdateGeo
+	{
+		RdrGeoHandle hGeo;
+		const void* pVertData;
+		const uint16* pIndexData;
+		RdrGeoInfo info;
+	};
+
+	struct CmdReleaseGeo
+	{
+		RdrGeoHandle hGeo;
+	};
+
+private:
+	FixedVector<CmdCreateTexture, 1024>				m_textureCreates;
+	FixedVector<CmdCreateBuffer, 1024>				m_bufferCreates;
+	FixedVector<CmdUpdateBuffer, 1024>				m_bufferUpdates;
+	FixedVector<CmdReleaseResource, 1024>			m_resourceReleases;
+	FixedVector<CmdCreateRenderTarget, 1024>		m_renderTargetCreates;
+	FixedVector<CmdReleaseRenderTarget, 1024>		m_renderTargetReleases;
+	FixedVector<CmdCreateDepthStencil, 1024>		m_depthStencilCreates;
+	FixedVector<CmdReleaseDepthStencil, 1024>		m_depthStencilReleases;
+	FixedVector<CmdCreateShaderResourceView, 1024>  m_shaderResourceViewCreates;
+	FixedVector<CmdReleaseShaderResourceView, 1024> m_shaderResourceViewReleases;
+	FixedVector<CmdUpdateGeo, 1024>					m_geoUpdates;
+	FixedVector<CmdReleaseGeo, 1024>				m_geoReleases;
+	FixedVector<CmdCreateConstantBuffer, 2048>		m_constantBufferCreates;
+	FixedVector<CmdUpdateConstantBuffer, 2048>		m_constantBufferUpdates;
+	FixedVector<CmdReleaseConstantBuffer, 2048>		m_constantBufferReleases;
+};

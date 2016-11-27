@@ -4,6 +4,7 @@
 #include "RdrResourceSystem.h"
 #include "RdrFrameMem.h"
 #include "RdrShaderConstants.h"
+#include "Renderer.h"
 #include "AssetLib/MaterialAsset.h"
 #include "AssetLib/AssetLibrary.h"
 #include "UtilsLib/Hash.h"
@@ -47,9 +48,10 @@ namespace
 		pOutMaterial->bNeedsLighting = pMaterial->bNeedsLighting;
 		pOutMaterial->bAlphaCutout = pMaterial->bAlphaCutout;
 
+		RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
 		for (uint n = 0; n < pMaterial->texCount; ++n)
 		{
-			pOutMaterial->ahTextures.assign(n, RdrResourceSystem::CreateTextureFromFile(pMaterial->textures[n], nullptr));
+			pOutMaterial->ahTextures.assign(n, rResCommandList.CreateTextureFromFile(pMaterial->textures[n], nullptr));
 			pOutMaterial->aSamplers.assign(n, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 		}
 
@@ -57,7 +59,7 @@ namespace
 		MaterialParams* pConstants = (MaterialParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pConstants->metalness = pMaterial->metalness;
 		pConstants->roughness = pMaterial->roughness;
-		pOutMaterial->hConstants = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
+		pOutMaterial->hConstants = rResCommandList.CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
 
 		pOutMaterial->name = materialName;
 	}

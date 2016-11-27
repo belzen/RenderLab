@@ -12,7 +12,7 @@ namespace RdrInstancedObjectDataBuffer
 	VsPerObject* GetEntry(RdrInstancedObjectDataId id);
 	
 	RdrResourceHandle GetResourceHandle();
-	void UpdateBuffer();
+	void UpdateBuffer(Renderer& rRenderer);
 
 	void FlipState();
 }

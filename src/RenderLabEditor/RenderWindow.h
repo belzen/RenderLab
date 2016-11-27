@@ -11,7 +11,7 @@ class FrameTimer;
 class RenderWindow : public WindowBase
 {
 public:
-	void Create(HWND hParentWnd, int width, int height, Renderer* pRenderer);
+	void Create(HWND hParentWnd, int width, int height, Renderer& rRenderer);
 
 	void EarlyUpdate();
 	void Update(float dt);

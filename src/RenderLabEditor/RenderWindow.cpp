@@ -4,9 +4,9 @@
 #include "RenderDoc/RenderDocUtil.h"
 #include "render\RdrOffscreenTasks.h"
 
-void RenderWindow::Create(HWND hParentWnd, int width, int height, Renderer* pRenderer)
+void RenderWindow::Create(HWND hParentWnd, int width, int height, Renderer& rRenderer)
 {
-	m_pRenderer = pRenderer;
+	m_pRenderer = &rRenderer;
 	WindowBase::Create(hParentWnd, width, height, "RenderViewport");
 
 	m_pRenderer->Init(GetWindowHandle(), width, height, &m_inputManager);

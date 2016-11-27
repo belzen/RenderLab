@@ -7,6 +7,7 @@
 #include "RdrShaderSystem.h"
 #include "RdrInstancedObjectDataBuffer.h"
 #include "RdrFrameState.h"
+#include "Renderer.h"
 
 namespace
 {
@@ -72,7 +73,7 @@ void ModelInstance::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Matrix44& mtxW
 		memset(pConstants, 0, constantsSize);
 		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
 
-		m_hVsPerObjectConstantBuffer = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
+		m_hVsPerObjectConstantBuffer = g_pRenderer->GetActionCommandList()->CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
 	
 		if (CanInstance())
 		{
