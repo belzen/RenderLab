@@ -1,0 +1,1 @@
+xcopy %~dp0..\3rdparty\PhysX\PhysXSDK\Bin\vc14win64\*.dll %~dp0*.dll

@@ -53,7 +53,7 @@ namespace
 	class DebugInputContext : public IInputContext
 	{
 	public:
-		void Update(const InputManager& rInputManager, float dt)
+		void Update(const InputManager& rInputManager)
 		{
 
 		}
@@ -201,6 +201,16 @@ void DebugConsole::Init()
 	texcoords[3] = Vec2(1.f, 1.f);
 
 	s_debugConsole.bgSprite.Init(texcoords, "white");
+}
+
+void DebugConsole::RegisterCommand(const char* name, DebugCommandCallback func)
+{
+	DebugCommand cmd;
+	strcpy_s(cmd.name, name);
+	cmd.numArgs = 0;
+	cmd.func = func;
+
+	s_debugConsole.commands.insert(std::make_pair(std::string(cmd.name), cmd));
 }
 
 void DebugConsole::RegisterCommand(const char* name, DebugCommandCallback func, DebugCommandArgType arg)

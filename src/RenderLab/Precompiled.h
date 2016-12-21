@@ -32,3 +32,4 @@ using std::max;
 #include "GlobalState.h"
 #include "UserConfig.h"
 #include "Debug/DebugConsole.h"
+#include "Time.h"

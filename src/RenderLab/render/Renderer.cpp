@@ -2,7 +2,6 @@
 #include "Renderer.h"
 #include "Camera.h"
 #include "WorldObject.h"
-#include "ModelInstance.h"
 #include "Light.h"
 #include "Font.h"
 #include <DXGIFormat.h>
@@ -565,7 +564,7 @@ void Renderer::QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencilV
 	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(m_pCurrentAction->resourceCommands, rLight.position, 0.1f, rLight.radius * 2.f);
 }
 
-void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt)
+void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 {
 	assert(m_pCurrentAction == nullptr);
 
@@ -591,7 +590,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt
 	m_pCurrentAction->passes[(int)RdrPass::UI].bEnabled = true;
 
 	m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
-	rScene.GetPostProcEffects()->PrepareDraw(dt);
+	rScene.GetPostProcEffects()->PrepareDraw();
 
 	const AssetLib::VolumetricFogSettings& rVolFogSettings = rScene.GetSky().GetVolFogSettings();
 	m_pCurrentAction->lightParams.hVolumetricFogLut = rVolFogSettings.enabled ? m_volumetricFogData.hFinalLut : RdrResourceSystem::GetDefaultResourceHandle(RdrDefaultResource::kBlackTex3d);
@@ -636,7 +635,7 @@ void Renderer::BeginOffscreenAction(const wchar_t* actionName, const Camera& rCa
 	if (enablePostprocessing)
 	{
 		m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
-		rScene.GetPostProcEffects()->PrepareDraw(0.f);
+		rScene.GetPostProcEffects()->PrepareDraw();
 	}
 
 	const AssetLib::VolumetricFogSettings& rVolFogSettings = rScene.GetSky().GetVolFogSettings();

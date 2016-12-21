@@ -1,0 +1,133 @@
+#include "Precompiled.h"
+#include "Physics.h"
+#include "PhysX/PhysXSDK/Include/PxPhysics.h"
+#include "PhysX/PhysXSDK/Include/PxPhysicsAPI.h"
+
+using namespace physx;
+
+namespace
+{
+	const PxVec3 kGravity(0.f, -9.81f, 0.f);
+
+	struct
+	{
+		PxDefaultAllocator allocator;
+		PxDefaultErrorCallback errorCallback;
+		PxFoundation* pFoundation;
+		PxCpuDispatcher* pCpuDispatcher;
+
+		PxPhysics* pPhysics;
+		PxScene* pScene;
+		PxMaterial* pDefaultMaterial;
+
+		float accumTime;
+	} s_physics;
+
+	inline PxQuat toPxQuat(const Quaternion& q)
+	{
+		return PxQuat(q.x, q.y, q.z, q.w);
+	}
+
+	inline PhysicsActor* createPhysicsActor(float density, const PxGeometry& geo, const Vec3& geoOffset)
+	{
+		PxTransform xform(PxIdentity);
+		PxTransform geoXform(geoOffset.x, geoOffset.y, geoOffset.z);
+		if (density > 0.f)
+		{
+			PxRigidDynamic* pActor = PxCreateDynamic(*s_physics.pPhysics, xform, geo, *s_physics.pDefaultMaterial, density, geoXform);
+			pActor->setWakeCounter(500);
+			pActor->setSleepThreshold(0);
+			return pActor;
+		}
+		else
+		{
+			return PxCreateStatic(*s_physics.pPhysics, xform, geo, *s_physics.pDefaultMaterial, geoXform);
+		}
+	}
+
+	void cmdPvdConnect(DebugCommandArg* args, int numArgs)
+	{
+		PxVisualDebuggerConnectionManager* pDebugger = s_physics.pPhysics->getPvdConnectionManager();
+		PxVisualDebuggerExt::createConnection(pDebugger, "localhost", 5425, 5000,
+			PxVisualDebuggerConnectionFlag::eDEBUG | PxVisualDebuggerConnectionFlag::ePROFILE | PxVisualDebuggerConnectionFlag::eMEMORY);
+	}
+}
+
+void Physics::Init()
+{
+	// Debug commands
+	DebugConsole::RegisterCommand("pvdConnect", cmdPvdConnect);
+
+	// Setup physics
+	s_physics.pFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, s_physics.allocator, s_physics.errorCallback);
+
+	PxTolerancesScale tolerancesScale;
+	s_physics.pPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *s_physics.pFoundation, tolerancesScale);
+
+	PxSceneDesc sceneDesc(tolerancesScale);
+	sceneDesc.gravity = kGravity;
+	sceneDesc.cpuDispatcher = s_physics.pCpuDispatcher = PxDefaultCpuDispatcherCreate(2);
+	sceneDesc.filterShader = PxDefaultSimulationFilterShader;
+
+	s_physics.pScene = s_physics.pPhysics->createScene(sceneDesc);
+
+	s_physics.pDefaultMaterial = s_physics.pPhysics->createMaterial(0.5f, 0.5f, 0.1f);
+}
+
+void Physics::Update()
+{
+	const float kStepTime = 0.016666660f;
+	s_physics.accumTime += Time::FrameTime();
+
+	while (s_physics.accumTime >= kStepTime)
+	{
+		s_physics.pScene->simulate(kStepTime);
+		// Wait for simulation to complete
+		s_physics.pScene->fetchResults(true);
+
+		s_physics.accumTime -= kStepTime;
+	}
+}
+
+PhysicsActor* Physics::CreatePlane()
+{
+	PhysicsActor* pActor = createPhysicsActor(0.f, PxPlaneGeometry(), Vec3::kZero);
+	return pActor;
+}
+
+PhysicsActor* Physics::CreateBox(const Vec3& halfSize, float density, const Vec3& geoOffset)
+{
+	PhysicsActor* pActor = createPhysicsActor(density, PxBoxGeometry(halfSize.x, halfSize.y, halfSize.z), geoOffset);
+	return pActor;
+}
+
+PhysicsActor* Physics::CreateSphere(const float radius, float density, const Vec3& geoOffset)
+{
+	PhysicsActor* pActor = createPhysicsActor(density, PxSphereGeometry(radius), geoOffset);
+	return pActor;
+}
+
+void Physics::AddToScene(PhysicsActor* pActor, const Vec3& position, const Quaternion& orientation)
+{
+	PxTransform xform(position.x, position.y, position.z, toPxQuat(orientation));
+	pActor->setGlobalPose(xform);
+	s_physics.pScene->addActor(*pActor);
+}
+
+Vec3 Physics::GetActorPosition(PhysicsActor* pActor)
+{
+	const PxVec3& p = pActor->getGlobalPose().p;
+	return Vec3(p.x, p.y, p.z);
+}
+
+Quaternion Physics::GetActorOrientation(PhysicsActor* pActor)
+{
+	const PxQuat& q = pActor->getGlobalPose().q;
+	return Quaternion(q.x, q.y, q.z, q.w);
+}
+
+void Physics::DestroyActor(PhysicsActor* pActor)
+{
+	s_physics.pScene->removeActor(*pActor);
+	pActor->release();
+}

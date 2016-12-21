@@ -28,6 +28,7 @@ namespace DebugConsole
 {
 	void Init();
 
+	void RegisterCommand(const char* name, DebugCommandCallback func);
 	void RegisterCommand(const char* name, DebugCommandCallback func, DebugCommandArgType arg);
 	void RegisterCommand(const char* name, DebugCommandCallback func, DebugCommandArgType arg1, DebugCommandArgType arg2);
 	void RegisterCommand(const char* name, DebugCommandCallback func, DebugCommandArgType arg1, DebugCommandArgType arg2, DebugCommandArgType arg3);

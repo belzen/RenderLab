@@ -22,7 +22,7 @@ public:
 
 	void Load(const CachedString& skyName);
 
-	void Update(float dt);
+	void Update();
 
 	void QueueDraw(RdrDrawBuckets* pDrawBuckets, RdrResourceHandle hVolumetricFogLut);
 

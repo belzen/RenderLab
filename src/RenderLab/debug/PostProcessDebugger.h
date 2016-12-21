@@ -17,7 +17,7 @@ public:
 	void OnActivate();
 	void OnDeactivate();
 
-	void Update(float dt);
+	void Update();
 	void QueueDraw(Renderer& rRenderer);
 
 private:

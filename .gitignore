@@ -26,3 +26,6 @@ bin/TextSDF.exe
 bin/AssetImporter.exe
 user.config
 
+/bin/PhysX*
+/bin/nvToolsExt64_1.dll
+/bin/glut32.dll

@@ -45,7 +45,7 @@ public:
 
 	void ApplyDeviceChanges();
 
-	void BeginPrimaryAction(const Camera& rCamera, Scene& rScene, float dt);
+	void BeginPrimaryAction(const Camera& rCamera, Scene& rScene);
 	void BeginOffscreenAction(const wchar_t* actionName, const Camera& rCamera, Scene& rScene,
 		bool enablePostprocessing, const Rect& viewport, const RdrSurface& outputSurface);
 	void EndAction();

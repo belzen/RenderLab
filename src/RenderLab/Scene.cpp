@@ -3,7 +3,7 @@
 #include "render/Camera.h"
 #include "render/Renderer.h"
 #include "WorldObject.h"
-#include "render/ModelInstance.h"
+#include "components/ModelInstance.h"
 #include "render/Font.h"
 #include "AssetLib/SceneAsset.h"
 #include "AssetLib/AssetLibrary.h"
@@ -87,8 +87,22 @@ void Scene::Load(const char* sceneName)
 	// Objects
 	for (const AssetLib::Object& rObjectData : pSceneData->objects)
 	{
-		ModelInstance* pModel = ModelInstance::Create(rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps);
-		m_objects.push_back(WorldObject::Create(rObjectData.name, pModel, rObjectData.position, rObjectData.orientation, rObjectData.scale));
+		WorldObject* pObject = WorldObject::Create(rObjectData.name, rObjectData.position, rObjectData.orientation, rObjectData.scale);
+		pObject->SetModel(ModelInstance::Create(rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
+
+		RigidBody* pRigidBody = nullptr;
+		switch (rObjectData.physics.shape)
+		{
+		case AssetLib::ShapeType::Box:
+			pRigidBody = RigidBody::CreateBox(rObjectData.physics.halfSize, rObjectData.physics.density, rObjectData.physics.offset);
+			break;
+		case AssetLib::ShapeType::Sphere:
+			pRigidBody = RigidBody::CreateSphere(rObjectData.physics.halfSize.x, rObjectData.physics.density, rObjectData.physics.offset);
+			break;
+		}
+		pObject->SetRigidBody(pRigidBody);
+
+		m_objects.push_back(pObject);
 	}
 
 	if (pSceneData->terrain.enabled)
@@ -126,7 +140,7 @@ void Scene::Load(const char* sceneName)
 	// TODO: quad/oct tree for scene
 }
 
-void Scene::Update(float dt)
+void Scene::Update()
 {
 	if (m_reloadPending)
 	{
@@ -135,7 +149,12 @@ void Scene::Update(float dt)
 		m_reloadPending = false;
 	}
 
-	m_sky.Update(dt);
+	m_sky.Update();
+
+	for (WorldObject* pObj : m_objects)
+	{
+		pObj->Update();
+	}
 }
 
 void Scene::AddObject(WorldObject* pObject)

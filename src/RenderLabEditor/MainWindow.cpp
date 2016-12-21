@@ -1,7 +1,6 @@
 #include "Precompiled.h"
 #include "MainWindow.h"
 #include "UtilsLib/Timer.h"
-#include "FrameTimer.h"
 #include "Widgets/PropertyPanel.h"
 #include "Widgets/ListView.h"
 #include "AssetLib/AssetLibrary.h"
@@ -10,6 +9,8 @@
 #include "WorldObject.h"
 #include "RenderDoc\RenderDocUtil.h"
 #include "UserConfig.h"
+#include "Physics.h"
+#include "Time.h"
 
 MainWindow::MainWindow()
 	: m_pPropertyPanel(nullptr)
@@ -41,8 +42,8 @@ void MainWindow::Create(int width, int height, const char* title)
 	m_addMenu.Init();
 	m_addMenu.AddItem("Add Object", [](void* pUserData) {
 		MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
-		ModelInstance* pModel = ModelInstance::Create("box", nullptr, 0);
-		WorldObject* pObject = WorldObject::Create("New Object", pModel, Vec3::kZero, Quaternion::kIdentity, Vec3::kOne);
+		WorldObject* pObject = WorldObject::Create("New Object", Vec3::kZero, Quaternion::kIdentity, Vec3::kOne);
+		pObject->SetModel(ModelInstance::Create("box", nullptr, 0));
 		pWindow->m_sceneViewModel.AddObject(pObject);
 	}, this);
 
@@ -95,6 +96,7 @@ int MainWindow::Run()
 	m_renderWindow.Create(hWnd, GetWidth() - kDefaultPanelWidth, GetHeight(), m_renderer);
 
 	Debug::Init();
+	Physics::Init();
 
 	// Load in default scene
 	m_scene.Load(g_userConfig.defaultScene.c_str());
@@ -122,7 +124,6 @@ int MainWindow::Run()
 	}
 
 	Timer::Handle hTimer = Timer::Create();
-	FrameTimer frameTimer;
 
 	m_hFrameDoneEvent = ::CreateEvent(NULL, false, false, L"Frame Done");
 	m_hRenderFrameDoneEvent = ::CreateEvent(NULL, false, false, L"Render Frame Done");
@@ -144,13 +145,15 @@ int MainWindow::Run()
 			}
 		}
 
-		float dt = Timer::GetElapsedSecondsAndReset(hTimer);
-		m_renderWindow.Update(dt);
+		Time::Update(Timer::GetElapsedSecondsAndReset(hTimer));
 
-		m_scene.Update(dt);
-		Debug::Update(dt);
+		m_renderWindow.Update();
 
-		m_renderWindow.Draw(m_scene, frameTimer, dt);
+		m_scene.Update();
+		Physics::Update();
+		Debug::Update();
+
+		m_renderWindow.Draw(m_scene);
 
 		// Wait for render thread.
 		WaitForSingleObject(m_hRenderFrameDoneEvent, INFINITE);
@@ -160,8 +163,6 @@ int MainWindow::Run()
 
 		// Restart render thread
 		::SetEvent(m_hFrameDoneEvent);
-
-		frameTimer.Update(dt);
 	}
 
 	renderThread.join();

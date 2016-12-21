@@ -1,13 +1,13 @@
 #include "Precompiled.h"
 #include "ModelInstance.h"
-#include "ModelData.h"
-#include "RdrFrameMem.h"
-#include "RdrDrawOp.h"
-#include "RdrResourceSystem.h"
-#include "RdrShaderSystem.h"
-#include "RdrInstancedObjectDataBuffer.h"
-#include "RdrFrameState.h"
-#include "Renderer.h"
+#include "render/ModelData.h"
+#include "render/RdrFrameMem.h"
+#include "render/RdrDrawOp.h"
+#include "render/RdrResourceSystem.h"
+#include "render/RdrShaderSystem.h"
+#include "render/RdrInstancedObjectDataBuffer.h"
+#include "render/RdrFrameState.h"
+#include "render/Renderer.h"
 
 namespace
 {
@@ -73,7 +73,8 @@ void ModelInstance::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Matrix44& mtxW
 		memset(pConstants, 0, constantsSize);
 		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
 
-		m_hVsPerObjectConstantBuffer = g_pRenderer->GetActionCommandList()->CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
+		m_hVsPerObjectConstantBuffer = g_pRenderer->GetActionCommandList()->CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer, 
+			pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	
 		if (CanInstance())
 		{

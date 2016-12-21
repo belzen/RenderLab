@@ -156,7 +156,7 @@ void Sky::Load(const CachedString& skyName)
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 }
 
-void Sky::Update(float dt)
+void Sky::Update()
 {
 	if (m_reloadPending)
 	{

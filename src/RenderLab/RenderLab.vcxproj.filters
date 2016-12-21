@@ -117,7 +117,6 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FrameTimer.cpp" />
     <ClCompile Include="Precompiled.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="UI.cpp" />
@@ -150,9 +149,6 @@
       <Filter>render</Filter>
     </ClCompile>
     <ClCompile Include="render\ModelData.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
-    <ClCompile Include="render\ModelInstance.cpp">
       <Filter>render</Filter>
     </ClCompile>
     <ClCompile Include="render\RdrContextD3D11.cpp">
@@ -208,10 +204,17 @@
     <ClCompile Include="render\RdrOffscreenTasks.cpp">
       <Filter>render</Filter>
     </ClCompile>
+    <ClCompile Include="Physics.cpp" />
+    <ClCompile Include="components\RigidBody.cpp">
+      <Filter>components</Filter>
+    </ClCompile>
+    <ClCompile Include="components\ModelInstance.cpp">
+      <Filter>components</Filter>
+    </ClCompile>
+    <ClCompile Include="Time.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
-    <ClInclude Include="FrameTimer.h" />
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="IDSet.h" />
     <ClInclude Include="LinearAllocator.h" />
@@ -271,9 +274,6 @@
       <Filter>shaders</Filter>
     </ClInclude>
     <ClInclude Include="render\ModelData.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="render\ModelInstance.h">
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="render\RdrContext.h">
@@ -362,6 +362,15 @@
     <ClInclude Include="render\RdrOffscreenTasks.h">
       <Filter>render</Filter>
     </ClInclude>
+    <ClInclude Include="Physics.h" />
+    <ClInclude Include="components\RigidBody.h">
+      <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsTypes.h" />
+    <ClInclude Include="components\ModelInstance.h">
+      <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="Time.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\shaders\p_common.hlsli">
@@ -407,6 +416,9 @@
     </Filter>
     <Filter Include="shaders">
       <UniqueIdentifier>{e3abedcb-6f4c-4778-9874-41f91b907844}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="components">
+      <UniqueIdentifier>{9967d023-e44f-4841-83d1-c0b4f3961e1c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

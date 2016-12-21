@@ -37,7 +37,13 @@
 			"position" : [ 0.0, 0.0, 0.0 ],
 			"rotation" : [ 0.0, 0.0, 0.0 ],
 			"scale" : [ 150.0, 150.0, 150.0 ],
-			"model" : "plane"
+			"model" : "plane",
+			"physics" : {
+				"shape" : "box",
+				"halfSize" : [ 150.0, 1.0, 150.0 ],
+				"offset" : [0.0, -1.0, 0.0],
+				"density" : 0.0
+			}
 		},
 		{
 			"name" : "sphere1",
@@ -47,12 +53,22 @@
 			"model" : "sphere",
 			"materialSwaps" : {
 				"white" : "white_metal"
+			},
+			"physics" : {
+				"shape" : "sphere",
+				"radius" : 1.5,
+				"density" : 0.0
 			}
 		},
 		{
 			"name" : "box1",
 			"position" : [ 10.0, 1.5, -5.0 ],
-			"model" : "box"
+			"model" : "box",
+			"physics" : {
+				"shape" : "box",
+				"halfSize" : [ 1.0, 1.0, 1.0 ],
+				"density" : 0.0
+			}
 		}
 	]
 

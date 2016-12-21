@@ -9,6 +9,8 @@ namespace RdrOffscreenTasks
 {
 	void QueueSpecularProbeCapture(const Vec3& position, Scene* pScene, const Rect& viewport, 
 		RdrResourceHandle hCubemapTex, int cubemapArrayIndex, RdrDepthStencilViewHandle hDepthView);
+	void QueueDiffuseProbeCapture(const Vec3& position, Scene* pScene, const Rect& viewport,
+		RdrResourceHandle hCubemapTex, int cubemapArrayIndex, RdrDepthStencilViewHandle hDepthView);
 
 	void IssuePendingActions(Renderer& rRenderer);
 }

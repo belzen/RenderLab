@@ -56,12 +56,12 @@ void RenderWindow::EarlyUpdate()
 	m_inputManager.Reset();
 }
 
-void RenderWindow::Update(float dt)
+void RenderWindow::Update()
 {
-	m_inputManager.GetActiveContext()->Update(m_inputManager, dt);
+	m_inputManager.GetActiveContext()->Update(m_inputManager);
 }
 
-void RenderWindow::Draw(Scene& rScene, const FrameTimer& rFrameTimer, float dt)
+void RenderWindow::Draw(Scene& rScene)
 {
 	// Apply device changes (resizing, fullscreen, etc)
 	m_pRenderer->ApplyDeviceChanges();
@@ -69,9 +69,9 @@ void RenderWindow::Draw(Scene& rScene, const FrameTimer& rFrameTimer, float dt)
 	RdrOffscreenTasks::IssuePendingActions(*m_pRenderer);
 
 	// Primary render action
-	m_pRenderer->BeginPrimaryAction(m_mainCamera, rScene, dt);
+	m_pRenderer->BeginPrimaryAction(m_mainCamera, rScene);
 	{
-		Debug::QueueDraw(*m_pRenderer, m_mainCamera, rFrameTimer);
+		Debug::QueueDraw(*m_pRenderer, m_mainCamera);
 	}
 	m_pRenderer->EndAction();
 }

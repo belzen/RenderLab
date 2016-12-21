@@ -1,20 +1,20 @@
 #include "Precompiled.h"
 #include "WorldObject.h"
-#include "render/ModelInstance.h"
+#include "components/ModelInstance.h"
 #include "render/Renderer.h"
 #include "render/Camera.h"
+#include "Physics.h"
 
 namespace
 {
 	WorldObjectFreeList s_worldObjects;
 }
 
-WorldObject* WorldObject::Create(const char* name, ModelInstance* pModel, Vec3 pos, Quaternion orientation, Vec3 scale)
+WorldObject* WorldObject::Create(const char* name, Vec3 pos, Quaternion orientation, Vec3 scale)
 {
 	WorldObject* pObject = s_worldObjects.allocSafe();
 
 	strcpy_s(pObject->m_name, name);
-	pObject->m_pModel = pModel;
 	pObject->m_position = pos;
 	pObject->m_scale = scale;
 	pObject->m_orientation = orientation;
@@ -23,10 +23,30 @@ WorldObject* WorldObject::Create(const char* name, ModelInstance* pModel, Vec3 p
 	return pObject;
 }
 
+void WorldObject::SetRigidBody(RigidBody* pRigidBody)
+{
+	assert(!m_pRigidBody);
+	m_pRigidBody = pRigidBody;
+	if (m_pRigidBody)
+	{
+		m_pRigidBody->AddToScene(m_position, m_orientation);
+	}
+}
+
 void WorldObject::Release()
 {
 	m_pModel->Release();
 	s_worldObjects.releaseSafe(this);
+}
+
+void WorldObject::Update()
+{
+	if (m_pRigidBody)
+	{
+		m_position = m_pRigidBody->GetPosition();
+		m_orientation = m_pRigidBody->GetOrientation();
+		m_transformChanged = true; // Todo: This is only necessary if the object actually moved.
+	}
 }
 
 void WorldObject::QueueDraw(RdrDrawBuckets* pDrawBuckets)

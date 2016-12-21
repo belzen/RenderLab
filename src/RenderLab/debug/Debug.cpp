@@ -1,6 +1,5 @@
 #include "Precompiled.h"
 #include "Debug.h"
-#include "FrameTimer.h"
 #include "UI.h"
 #include "Scene.h"
 #include "render/Renderer.h"
@@ -72,22 +71,22 @@ void Debug::DeactivateDebugger(const char* name)
 	}
 }
 
-void Debug::Update(float dt)
+void Debug::Update()
 {
 	for (DebuggerList::iterator iter = s_activeDebuggers.begin(); iter != s_activeDebuggers.end(); ++iter)
 	{
-		(*iter)->Update(dt);
+		(*iter)->Update();
 	}
 }
 
-void Debug::QueueDraw(Renderer& rRenderer, const Camera& rCamera, const FrameTimer& rFrameTimer)
+void Debug::QueueDraw(Renderer& rRenderer, const Camera& rCamera)
 {
 	DebugConsole::QueueDraw(rRenderer);
 
 	// FPS and position display
 	{
 		char line[64];
-		sprintf_s(line, "%.2f (%.2f ms)", rFrameTimer.GetFps(), 1000.f / rFrameTimer.GetFps());
+		sprintf_s(line, "%.2f (%.2f ms)", Time::Fps(), 1000.f / Time::Fps());
 
 		UI::Position uiPos(UI::Coord(1.f, UI::Units::Percentage), 0.f, 0.f, UI::AlignmentFlags::Right);
 		Font::QueueDraw(rRenderer, uiPos, 20.f, line, Color::kWhite);

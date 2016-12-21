@@ -24,7 +24,7 @@ public:
 
 	void Load(const char* sceneName);
 
-	void Update(float dt);
+	void Update();
 
 	const Sky& GetSky() const;
 	Sky& GetSky();

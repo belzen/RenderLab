@@ -1,9 +1,9 @@
 #pragma once
 
 #include "AssetLib\AssetLibForwardDecl.h"
-#include "RdrResource.h"
-#include "RdrShaders.h"
-#include "ModelData.h"
+#include "render/RdrResource.h"
+#include "render/RdrShaders.h"
+#include "render/ModelData.h"
 
 class RdrDrawBuckets;
 

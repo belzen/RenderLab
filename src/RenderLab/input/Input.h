@@ -60,7 +60,7 @@ class InputManager;
 class IInputContext
 {
 public:
-	virtual void Update(const InputManager& rInputManager, float dt) = 0;
+	virtual void Update(const InputManager& rInputManager) = 0;
 
 	virtual void GainedFocus() = 0;
 	virtual void LostFocus() = 0;

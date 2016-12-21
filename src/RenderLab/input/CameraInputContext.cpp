@@ -6,13 +6,13 @@
 CameraInputContext::CameraInputContext()
 	: m_pCamera(nullptr)
 	, m_moveSpeed(0.0f)
-	, m_maxMoveSpeed(1.1f)
-	, m_accel(0.05f)
+	, m_maxMoveSpeed(30.f)
+	, m_accel(12.f)
 {
 
 }
 
-void CameraInputContext::Update(const InputManager& rInputManager, float dt)
+void CameraInputContext::Update(const InputManager& rInputManager)
 {
 	float right = 0.f;
 	float up = 0.f;
@@ -63,7 +63,7 @@ void CameraInputContext::Update(const InputManager& rInputManager, float dt)
 
 	if (fabs(right) + fabs(up) + fabs(forward) != 0.f)
 	{
-		m_moveSpeed += m_accel * dt;
+		m_moveSpeed += m_accel * Time::UnscaledFrameTime();
 		if (m_moveSpeed > m_maxMoveSpeed)
 			m_moveSpeed = m_maxMoveSpeed;
 	}
@@ -77,7 +77,9 @@ void CameraInputContext::Update(const InputManager& rInputManager, float dt)
 
 	Matrix44 rotationMatrix = Matrix44LookToLH(pos, dir, Vec3::kUnitY);
 	rotationMatrix = Matrix44Inverse(rotationMatrix);
-	Vec3 moveVec(right * m_moveSpeed, up * m_moveSpeed, forward * m_moveSpeed);
+
+	float speed = m_moveSpeed * Time::UnscaledFrameTime();
+	Vec3 moveVec(right * speed, up * speed, forward * speed);
 	moveVec = Vec3TransformNormal(moveVec, rotationMatrix);
 
 	m_pCamera->SetPosition(pos + moveVec);

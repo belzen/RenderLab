@@ -163,6 +163,30 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 					++rObj.numMaterialSwaps;
 				}
 			}
+			
+			Json::Value jPhysics = jObj.get("physics", Json::Value::null);
+			if (jPhysics.isObject())
+			{
+				Json::Value jShape = jPhysics.get("shape", Json::Value::null);
+				const char* shapeStr = jShape.asCString();
+				if (_stricmp(shapeStr, "box") == 0)
+				{
+					rObj.physics.shape = ShapeType::Box;
+					rObj.physics.halfSize = jsonReadVec3(jPhysics.get("halfSize", Json::Value::null));
+				}
+				else if (_stricmp(shapeStr, "sphere") == 0)
+				{
+					rObj.physics.shape = ShapeType::Sphere;
+					rObj.physics.halfSize.x = jPhysics.get("radius", 1.f).asFloat();
+				}
+				else
+				{
+					rObj.physics.shape = ShapeType::None;
+				}
+
+				rObj.physics.density = jPhysics.get("density", 0.f).asFloat();
+				rObj.physics.offset = jsonReadVec3(jPhysics.get("offset", Json::Value::null));
+			}
 		}
 	}
 

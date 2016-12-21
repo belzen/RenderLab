@@ -100,12 +100,13 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>../RenderLab/;./;../</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\3rdparty\PhysX\PhysXSDK\Lib\vc14win64;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;PhysX3DEBUG_x64.lib;PhysX3ExtensionsDEBUG.lib;PhysX3CommonDEBUG_x64.lib;PhysXVisualDebuggerSDKDEBUG.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -117,12 +118,13 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>../RenderLab/;./;../</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\3rdparty\PhysX\PhysXSDK\Lib\vc14win64;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;PhysX3DEBUG_x64.lib;PhysX3ExtensionsDEBUG.lib;PhysX3CommonDEBUG_x64.lib;PhysXVisualDebuggerSDKDEBUG.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -136,15 +138,20 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>../RenderLab/;./;../</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\3rdparty\PhysX\PhysXSDK\Lib\vc14win64;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;PhysX3_x64.lib;PhysX3Extensions.lib;PhysX3Common_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -157,15 +164,20 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>../RenderLab/;./;../</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\3rdparty\PhysX\PhysXSDK\Lib\vc14win64;..\..\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;comctl32.lib;winmm.lib;PhysX3_x64.lib;PhysX3Extensions.lib;PhysX3Common_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

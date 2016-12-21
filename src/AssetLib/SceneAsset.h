@@ -39,11 +39,27 @@ namespace AssetLib
 		CachedString to;
 	};
 
+	enum class ShapeType
+	{
+		None,
+		Box,
+		Sphere
+	};
+
+	struct ObjectPhysics
+	{
+		ShapeType shape;
+		float density;
+		Vec3 offset;
+		Vec3 halfSize;
+	};
+
 	struct Object
 	{
 		Vec3 position;
 		Quaternion orientation;
 		Vec3 scale;
+		ObjectPhysics physics;
 		MaterialSwap materialSwaps[4];
 		uint numMaterialSwaps;
 		CachedString modelName;

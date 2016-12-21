@@ -1,6 +1,7 @@
 #pragma once
 
-#include "render/ModelInstance.h"
+#include "components/ModelInstance.h"
+#include "components/RigidBody.h"
 
 class RdrDrawBuckets;
 class WorldObject;
@@ -9,7 +10,7 @@ typedef FreeList<WorldObject, 6 * 1024> WorldObjectFreeList;
 class WorldObject
 {
 public:
-	static WorldObject* Create(const char* name, ModelInstance* pModel, Vec3 pos, Quaternion orientation, Vec3 scale);
+	static WorldObject* Create(const char* name, Vec3 pos, Quaternion orientation, Vec3 scale);
 	void Release();
 
 	const char* GetName() const;
@@ -17,6 +18,9 @@ public:
 
 	void SetModel(ModelInstance* pModel);
 	const ModelInstance* GetModel() const;
+
+	void SetRigidBody(RigidBody* pRigidBody);
+	const RigidBody* GetRigidBody() const;
 
 	const Vec3& GetPosition() const;
 	void SetPosition(Vec3 pos);
@@ -30,6 +34,7 @@ public:
 
 	float GetRadius() const;
 
+	void Update();
 	void QueueDraw(RdrDrawBuckets* pDrawBuckets);
 
 private:
@@ -43,6 +48,7 @@ private:
 	bool m_transformChanged;
 
 	ModelInstance* m_pModel;
+	RigidBody* m_pRigidBody;
 };
 
 inline const Matrix44 WorldObject::GetTransform() const
@@ -52,6 +58,7 @@ inline const Matrix44 WorldObject::GetTransform() const
 
 inline void WorldObject::SetModel(ModelInstance* pModel)
 {
+	assert(!m_pModel);
 	m_pModel = pModel; 
 	// todo: destroy old model
 }
@@ -59,6 +66,11 @@ inline void WorldObject::SetModel(ModelInstance* pModel)
 inline const ModelInstance* WorldObject::GetModel() const
 { 
 	return m_pModel; 
+}
+
+inline const RigidBody* WorldObject::GetRigidBody() const
+{
+	return m_pRigidBody;
 }
 
 inline const Vec3& WorldObject::GetPosition() const

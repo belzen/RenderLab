@@ -28,7 +28,7 @@ void PostProcessDebugger::OnDeactivate()
 	m_bIsActive = false;
 }
 
-void PostProcessDebugger::Update(float dt)
+void PostProcessDebugger::Update()
 {
 
 }

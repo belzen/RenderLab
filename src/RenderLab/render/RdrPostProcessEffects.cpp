@@ -21,7 +21,7 @@ void RdrPostProcessEffects::Init(const AssetLib::PostProcessEffects* pEffects)
 	}
 }
 
-void RdrPostProcessEffects::PrepareDraw(float dt)
+void RdrPostProcessEffects::PrepareDraw()
 {
 	uint constantsSize = sizeof(ToneMapInputParams);
 	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
@@ -30,7 +30,7 @@ void RdrPostProcessEffects::PrepareDraw(float dt)
 	pTonemapSettings->minExposure = pow(2.f, m_pEffects->eyeAdaptation.minExposure);
 	pTonemapSettings->maxExposure = pow(2.f, m_pEffects->eyeAdaptation.maxExposure);
 	pTonemapSettings->bloomThreshold = m_pEffects->bloom.threshold;
-	pTonemapSettings->frameTime = dt;
+	pTonemapSettings->frameTime = Time::FrameTime();
 
 	m_hToneMapInputConstants = g_pRenderer->GetActionCommandList()->CreateUpdateConstantBuffer(m_hToneMapInputConstants,
 		pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
