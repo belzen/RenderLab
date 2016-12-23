@@ -10,20 +10,10 @@ NumericTextBox* NumericTextBox::Create(const Widget& rParent, int x, int y, int 
 
 NumericTextBox::NumericTextBox(const Widget& rParent, int x, int y, int width, int height,
 	ChangedFunc changedCallback, void* pUserData)
-	: m_changedCallback(changedCallback)
+	: Widget(x, y, width, height, &rParent, NumericTextBox::WndProc)
+	, m_changedCallback(changedCallback)
 	, m_pUserData(pUserData)
 {
-	// Create container window
-	static bool s_bRegisteredClass = false;
-	const char* kContainerClassName = "NumericTextBoxContainer";
-	if (!s_bRegisteredClass)
-	{
-		RegisterWindowClass(kContainerClassName, NumericTextBox::WndProc);
-		s_bRegisteredClass = true;
-	}
-
-	CreateRootWidgetWindow(rParent.GetWindowHandle(), kContainerClassName, x, y, width, height);
-
 	// Create child textbox control
 	m_hTextBox = CreateWidgetWindow(GetWindowHandle(), "Edit", 0, 0, width, height, 0, WS_EX_CLIENTEDGE);
 }
@@ -63,5 +53,5 @@ LRESULT CALLBACK NumericTextBox::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 		break;
 	}
 
-	return DefWindowProc(hWnd, msg, wParam, lParam);
+	return Widget::WndProc(hWnd, msg, wParam, lParam);
 }

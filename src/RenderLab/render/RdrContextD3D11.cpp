@@ -1586,7 +1586,10 @@ uint64 RdrContextD3D11::GetTimestampQueryData(RdrQuery& rQuery)
 {
 	uint64 timestamp;
 	HRESULT hr = m_pDevContext->GetData(rQuery.pQueryD3D11, &timestamp, sizeof(timestamp), 0);
-	assert(hr == S_OK);
+	if (hr != S_OK)
+	{
+		timestamp = -1;
+	}
 	return timestamp;
 }
 

@@ -46,20 +46,10 @@ AssetSelector* AssetSelector::Create(const Widget& rParent, int x, int y, int wi
 
 AssetSelector::AssetSelector(const Widget& rParent, int x, int y, int width, int height,
 	ChangedFunc changedCallback, void* pUserData)
-	: m_changedCallback(changedCallback)
+	: Widget(x, y, width, height, &rParent)
+	, m_changedCallback(changedCallback)
 	, m_pUserData(pUserData)
 {
-	// Create container window
-	static bool s_bRegisteredClass = false;
-	const char* kContainerClassName = "AssetSelectorContainer";
-	if (!s_bRegisteredClass)
-	{
-		RegisterWindowClass(kContainerClassName, DefWindowProc);
-		s_bRegisteredClass = true;
-	}
-
-	CreateRootWidgetWindow(rParent.GetWindowHandle(), kContainerClassName, x, y, width, height);
-
 	const uint kButtonSize = 20;
 	m_pLabel = Label::Create(*this, 0, 0, width - kButtonSize, height, "Test");
 	m_pButton = Button::Create(*this, width - kButtonSize, 0, kButtonSize, kButtonSize, "...", selectFile, this);

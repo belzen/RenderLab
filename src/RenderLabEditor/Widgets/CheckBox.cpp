@@ -10,20 +10,9 @@ CheckBox* CheckBox::Create(const Widget& rParent, int x, int y, int width, int h
 
 CheckBox::CheckBox(const Widget& rParent, int x, int y, int width, int height,
 	ToggledFunc toggledCallback, void* pUserData)
-	: m_pUserData(pUserData)
+	: Widget(x, y, width, height, &rParent, CheckBox::WndProc)
+	, m_pUserData(pUserData)
 {
-	HMODULE hInstance = ::GetModuleHandle(NULL);
-
-	// Create container
-	static bool s_bRegisteredClass = false;
-	const char* kContainerClassName = "CheckBoxContainer";
-	if (!s_bRegisteredClass)
-	{
-		RegisterWindowClass(kContainerClassName, CheckBox::WndProc);
-		s_bRegisteredClass = true;
-	}
-	CreateRootWidgetWindow(rParent.GetWindowHandle(), kContainerClassName, x, y, width, height);
-
 	// Create check box control
 	m_hCheckBox = CreateWidgetWindow(GetWindowHandle(), "Button", 0, 0, width, height, BS_CHECKBOX);
 	m_toggledCallback = toggledCallback;

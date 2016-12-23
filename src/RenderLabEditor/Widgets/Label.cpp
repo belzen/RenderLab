@@ -7,8 +7,8 @@ Label* Label::Create(const Widget& rParent, int x, int y, int width, int height,
 }
 
 Label::Label(const Widget& rParent, int x, int y, int width, int height, const char* text)
+	: Widget(x, y, width, height, &rParent, "Static")
 {
-	CreateRootWidgetWindow(rParent.GetWindowHandle(), "Static", x, y, width, height);
 	SetText(text);
 }
 

@@ -9,17 +9,8 @@ Button* Button::Create(const Widget& rParent, int x, int y, int width, int heigh
 
 Button::Button(const Widget& rParent, int x, int y, int width, int height, 
 	const char* text, ClickedFunc clickedCallback, void* pUserData)
+	: Widget(x, y, width, height, &rParent, Button::WndProc)
 {
-	// Create container
-	static bool s_bRegisteredClass = false;
-	const char* kContainerClassName = "ButtonContainer";
-	if (!s_bRegisteredClass)
-	{
-		RegisterWindowClass(kContainerClassName, Button::WndProc);
-		s_bRegisteredClass = true;
-	}
-	CreateRootWidgetWindow(rParent.GetWindowHandle(), kContainerClassName, x, y, width, height);
-
 	// Create check box control
 	m_hButton = CreateWidgetWindow(GetWindowHandle(), "Button", 0, 0, width, height);
 	::SetWindowTextA(m_hButton, text);

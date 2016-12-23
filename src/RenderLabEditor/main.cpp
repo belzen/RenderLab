@@ -28,8 +28,7 @@ int main(int argc, char** argv)
 	}
 	FileWatcher::Init(Paths::GetDataDir());
 
-	MainWindow* pMainWindow = new MainWindow();
-	pMainWindow->Create(kClientWidth, kClientHeight, "Render Lab");
+	MainWindow* pMainWindow = MainWindow::Create(kClientWidth, kClientHeight, "Render Lab");
 
 	return pMainWindow->Run();
 }

@@ -3,23 +3,32 @@
 #include "input/CameraInputContext.h"
 #include "render/Camera.h"
 #include "WindowBase.h"
+#include "render/Renderer.h"
 
-class Renderer;
 class Scene;
 class FrameTimer;
 
 class RenderWindow : public WindowBase
 {
 public:
-	void Create(HWND hParentWnd, int width, int height, Renderer& rRenderer);
+	static RenderWindow* Create(int x, int y, int width, int height, const Widget* pParent);
 
-	void EarlyUpdate();
-	void Update();
-	void Draw(Scene& rScene);
+	void Close();
 
 	void SetCameraPosition(const Vec3& position, const Vec3& pitchYawRoll);
 
+	// Main thread updating/commands
+	void EarlyUpdate();
+	void Update();
+	void QueueDraw(Scene& rScene);
+	void PostFrameSync();
+
+	// Render thread commands
+	void DrawFrame();
+
 private:
+	RenderWindow(int x, int y, int width, int height, const Widget* pParent);
+
 	bool HandleResize(int newWidth, int newHeight);
 	bool HandleKeyDown(int key);
 	bool HandleKeyUp(int key);
@@ -30,5 +39,5 @@ private:
 	InputManager m_inputManager;
 	CameraInputContext m_defaultInputContext;
 	Camera m_mainCamera;
-	Renderer* m_pRenderer;
+	Renderer m_renderer;
 };

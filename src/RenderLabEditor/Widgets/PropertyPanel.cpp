@@ -17,17 +17,9 @@ PropertyPanel* PropertyPanel::Create(const Widget& rParent, int x, int y, int wi
 }
 
 PropertyPanel::PropertyPanel(const Widget& rParent, int x, int y, int width, int height)
-	: m_pViewModel(nullptr)
+	: Widget(x, y, width, height, &rParent)
+	, m_pViewModel(nullptr)
 {
-	const char* kWndClassName = "PropertyPanel";
-	static bool s_bRegisteredClass = false;
-	if (!s_bRegisteredClass)
-	{
-		RegisterWindowClass(kWndClassName, DefWindowProc);
-		s_bRegisteredClass = true;
-	}
-
-	CreateRootWidgetWindow(rParent.GetWindowHandle(), kWndClassName, x, y, width, height);
 }
 
 PropertyPanel::~PropertyPanel()
@@ -74,7 +66,7 @@ void PropertyPanel::SetViewModel(IViewModel* pViewModel, bool freeOldViewModel)
 		m_childWidgets.push_back(pLabel);
 		x += kLabelWidth;
 
-		int controlWidth = m_width - kLabelWidth;
+		int controlWidth = GetWidth() - kLabelWidth;
 
 		if (typeId == BeginGroupPropertyDef::kTypeId)
 		{

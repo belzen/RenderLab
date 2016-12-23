@@ -4,20 +4,28 @@
 #include "RenderDoc/RenderDocUtil.h"
 #include "render\RdrOffscreenTasks.h"
 
-void RenderWindow::Create(HWND hParentWnd, int width, int height, Renderer& rRenderer)
+RenderWindow* RenderWindow::Create(int x, int y, int width, int height, const Widget* pParent)
 {
-	m_pRenderer = &rRenderer;
-	WindowBase::Create(hParentWnd, width, height, "RenderViewport");
+	return new RenderWindow(x, y, width, height, pParent);
+}
 
-	m_pRenderer->Init(GetWindowHandle(), width, height, &m_inputManager);
-
+RenderWindow::RenderWindow(int x, int y, int width, int height, const Widget* pParent)
+	: WindowBase(x, y, width, height, "Renderer", pParent)
+{
+	m_renderer.Init(GetWindowHandle(), width, height, &m_inputManager);
 	m_defaultInputContext.SetCamera(&m_mainCamera);
 	m_inputManager.PushContext(&m_defaultInputContext);
 }
 
+void RenderWindow::Close()
+{
+	m_renderer.Cleanup();
+	WindowBase::Close();
+}
+
 bool RenderWindow::HandleResize(int newWidth, int newHeight)
 {
-	m_pRenderer->Resize(newWidth, newHeight);
+	m_renderer.Resize(newWidth, newHeight);
 	return true;
 }
 
@@ -61,19 +69,29 @@ void RenderWindow::Update()
 	m_inputManager.GetActiveContext()->Update(m_inputManager);
 }
 
-void RenderWindow::Draw(Scene& rScene)
+void RenderWindow::QueueDraw(Scene& rScene)
 {
 	// Apply device changes (resizing, fullscreen, etc)
-	m_pRenderer->ApplyDeviceChanges();
+	m_renderer.ApplyDeviceChanges();
 
-	RdrOffscreenTasks::IssuePendingActions(*m_pRenderer);
+	RdrOffscreenTasks::IssuePendingActions(m_renderer);
 
 	// Primary render action
-	m_pRenderer->BeginPrimaryAction(m_mainCamera, rScene);
+	m_renderer.BeginPrimaryAction(m_mainCamera, rScene);
 	{
-		Debug::QueueDraw(*m_pRenderer, m_mainCamera);
+		Debug::QueueDraw(m_renderer, m_mainCamera);
 	}
-	m_pRenderer->EndAction();
+	m_renderer.EndAction();
+}
+
+void RenderWindow::DrawFrame()
+{
+	m_renderer.DrawFrame();
+}
+
+void RenderWindow::PostFrameSync()
+{
+	m_renderer.PostFrameSync();
 }
 
 void RenderWindow::SetCameraPosition(const Vec3& position, const Vec3& pitchYawRoll)

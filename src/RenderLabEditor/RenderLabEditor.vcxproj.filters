@@ -58,6 +58,12 @@
     <ClCompile Include="Widgets\AssetSelector.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\AssetBrowser.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Image.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainWindow.h" />
@@ -116,6 +122,12 @@
       <Filter>ViewModels</Filter>
     </ClInclude>
     <ClInclude Include="Widgets\AssetSelector.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\AssetBrowser.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Image.h">
       <Filter>Widgets</Filter>
     </ClInclude>
   </ItemGroup>

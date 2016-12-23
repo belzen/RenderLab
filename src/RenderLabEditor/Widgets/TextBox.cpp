@@ -10,20 +10,10 @@ TextBox* TextBox::Create(const Widget& rParent, int x, int y, int width, int hei
 
 TextBox::TextBox(const Widget& rParent, int x, int y, int width, int height,
 	ChangedFunc changedCallback, void* pUserData)
-	: m_changedCallback(changedCallback)
+	: Widget(x, y, width, height, &rParent, TextBox::WndProc)
+	, m_changedCallback(changedCallback)
 	, m_pUserData(pUserData)
 {
-	// Create container window
-	static bool s_bRegisteredClass = false;
-	const char* kContainerClassName = "TextBoxContainer";
-	if (!s_bRegisteredClass)
-	{
-		RegisterWindowClass(kContainerClassName, TextBox::WndProc);
-		s_bRegisteredClass = true;
-	}
-
-	CreateRootWidgetWindow(rParent.GetWindowHandle(), kContainerClassName, x, y, width, height);
-
 	// Create child textbox control
 	m_hTextBox = CreateWidgetWindow(GetWindowHandle(), "Edit", 0, 0, width, height, 0, WS_EX_CLIENTEDGE);
 }
@@ -59,5 +49,5 @@ LRESULT CALLBACK TextBox::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
 		break;
 	}
 
-	return DefWindowProc(hWnd, msg, wParam, lParam);
+	return Widget::WndProc(hWnd, msg, wParam, lParam);
 }

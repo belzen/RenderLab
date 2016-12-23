@@ -3,6 +3,7 @@
 #include "UtilsLib/Timer.h"
 #include "Widgets/PropertyPanel.h"
 #include "Widgets/ListView.h"
+#include "Widgets/AssetBrowser.h"
 #include "AssetLib/AssetLibrary.h"
 #include "ViewModels/IViewModel.h"
 #include "AssetLib/SkyAsset.h"
@@ -12,25 +13,24 @@
 #include "Physics.h"
 #include "Time.h"
 
-MainWindow::MainWindow()
-	: m_pPropertyPanel(nullptr)
+MainWindow* MainWindow::Create(int width, int height, const char* title)
+{
+	return new MainWindow(width, height, title);
+}
+
+MainWindow::MainWindow(int width, int height, const char* title)
+	: WindowBase(0, 0, width, height, title, nullptr)
+	, m_pPropertyPanel(nullptr)
 	, m_pSceneListView(nullptr)
 	, m_running(false)
 	, m_hFrameDoneEvent(0)
 	, m_hRenderFrameDoneEvent(0)
-{
-
-}
-
-void MainWindow::Create(int width, int height, const char* title)
 {
 	::InitCommonControls();
 
 	INITCOMMONCONTROLSEX icex;
 	icex.dwICC = ICC_LISTVIEW_CLASSES;
 	::InitCommonControlsEx(&icex);
-
-	WindowBase::Create(0, width, height, title);
 	
 	m_sceneViewModel.Init(&m_scene, SceneObjectAdded, this);
 
@@ -66,7 +66,10 @@ void MainWindow::Create(int width, int height, const char* title)
 bool MainWindow::HandleResize(int newWidth, int newHeight)
 {
 	int panelWidth = m_pPropertyPanel ? m_pPropertyPanel->GetWidth() : 0;
-	m_renderWindow.Resize(newWidth - panelWidth, newHeight);
+	if (m_pRenderWindow)
+	{
+		m_pRenderWindow->SetSize(newWidth - panelWidth, newHeight);
+	}
 	return true;
 }
 
@@ -92,19 +95,27 @@ int MainWindow::Run()
 
 	// Initialize renderer first.
 	HWND hWnd = GetWindowHandle();
+
 	const int kDefaultPanelWidth = 300;
-	m_renderWindow.Create(hWnd, GetWidth() - kDefaultPanelWidth, GetHeight(), m_renderer);
+	const int kDefaultBrowserHeight = 200;
+
+	int renderWindowWidth = GetWidth() - kDefaultPanelWidth;
+	int renderWindowHeight = GetHeight() - kDefaultBrowserHeight;
+	m_pRenderWindow = RenderWindow::Create(0, 0, renderWindowWidth, renderWindowHeight, this);
 
 	Debug::Init();
 	Physics::Init();
 
 	// Load in default scene
 	m_scene.Load(g_userConfig.defaultScene.c_str());
-	m_renderWindow.SetCameraPosition(m_scene.GetCameraSpawnPosition(), m_scene.GetCameraSpawnPitchYawRoll());
+	m_pRenderWindow->SetCameraPosition(m_scene.GetCameraSpawnPosition(), m_scene.GetCameraSpawnPitchYawRoll());
 
 	// Finish editor setup.
-	m_pPropertyPanel = PropertyPanel::Create(*this, GetWidth() - kDefaultPanelWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);
-	m_pSceneListView = ListView::Create(*this, GetWidth() - kDefaultPanelWidth, 0, kDefaultPanelWidth, GetHeight() / 2, SceneListViewSelectionChanged, m_pPropertyPanel);
+	m_pPropertyPanel = PropertyPanel::Create(*this, renderWindowWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);
+	m_pSceneListView = ListView::Create(*this, renderWindowWidth, 0, kDefaultPanelWidth, GetHeight() / 2, SceneListViewSelectionChanged, m_pPropertyPanel);
+	
+	m_pAssetBrowser = AssetBrowser::Create(*this, 0, renderWindowHeight, renderWindowWidth, kDefaultBrowserHeight);
+	m_pAssetBrowser->SetPath(Paths::GetDataDir());
 
 	// Fill out the scene list view
 	{
@@ -132,7 +143,7 @@ int MainWindow::Run()
 	MSG msg = { 0 };
 	while (m_running)
 	{
-		m_renderWindow.EarlyUpdate();
+		m_pRenderWindow->EarlyUpdate();
 
 		while (::PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE))
 		{
@@ -147,19 +158,19 @@ int MainWindow::Run()
 
 		Time::Update(Timer::GetElapsedSecondsAndReset(hTimer));
 
-		m_renderWindow.Update();
+		m_pRenderWindow->Update();
 
 		m_scene.Update();
 		Physics::Update();
 		Debug::Update();
 
-		m_renderWindow.Draw(m_scene);
+		m_pRenderWindow->QueueDraw(m_scene);
 
 		// Wait for render thread.
 		WaitForSingleObject(m_hRenderFrameDoneEvent, INFINITE);
 
 		// Sync threads.
-		m_renderer.PostFrameSync();
+		m_pRenderWindow->PostFrameSync();
 
 		// Restart render thread
 		::SetEvent(m_hFrameDoneEvent);
@@ -167,9 +178,8 @@ int MainWindow::Run()
 
 	renderThread.join();
 
-	m_renderWindow.Close();
+	m_pRenderWindow->Close();
 
-	m_renderer.Cleanup();
 	FileWatcher::Cleanup();
 
 	return (int)msg.wParam;
@@ -179,7 +189,7 @@ void MainWindow::RenderThreadMain(MainWindow* pWindow)
 {
 	while (pWindow->m_running)
 	{
-		pWindow->m_renderer.DrawFrame();
+		pWindow->m_pRenderWindow->DrawFrame();
 
 		::SetEvent(pWindow->m_hRenderFrameDoneEvent);
 		::WaitForSingleObject(pWindow->m_hFrameDoneEvent, INFINITE);

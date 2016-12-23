@@ -10,23 +10,13 @@ Slider* Slider::Create(const Widget& rParent, int x, int y, int width, int heigh
 
 Slider::Slider(const Widget& rParent, int x, int y, int width, int height,
 	float minVal, float maxVal, float step, ChangedFunc changedCallback, void* pUserData)
-	: m_changedCallback(changedCallback)
+	: Widget(x, y, width, height, &rParent, Slider::WndProc)
+	, m_changedCallback(changedCallback)
 	, m_pUserData(pUserData)
 	, m_minVal(minVal)
 	, m_maxVal(maxVal)
 	, m_step(step)
 {
-	// Create container window
-	static bool s_bRegisteredClass = false;
-	const char* kContainerClassName = "SliderContainer";
-	if (!s_bRegisteredClass)
-	{
-		RegisterWindowClass(kContainerClassName, Slider::WndProc);
-		s_bRegisteredClass = true;
-	}
-
-	CreateRootWidgetWindow(rParent.GetWindowHandle(), kContainerClassName, x, y, width, height);
-
 	// Create child slider control
 	const int kLabelWidth = 60;
 	const int kSpacing = 5;
@@ -92,5 +82,5 @@ LRESULT CALLBACK Slider::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 		break;
 	}
 
-	return DefWindowProc(hWnd, msg, wParam, lParam);
+	return Widget::WndProc(hWnd, msg, wParam, lParam);
 }

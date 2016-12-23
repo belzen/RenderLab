@@ -199,9 +199,11 @@
     <ClCompile Include="ViewModels\SkyViewModel.cpp" />
     <ClCompile Include="ViewModels\IViewModel.cpp" />
     <ClCompile Include="ViewModels\WorldObjectViewModel.cpp" />
+    <ClCompile Include="Widgets\AssetBrowser.cpp" />
     <ClCompile Include="Widgets\AssetSelector.cpp" />
     <ClCompile Include="Widgets\Button.cpp" />
     <ClCompile Include="Widgets\CheckBox.cpp" />
+    <ClCompile Include="Widgets\Image.cpp" />
     <ClCompile Include="Widgets\Label.cpp" />
     <ClCompile Include="Widgets\ListView.cpp" />
     <ClCompile Include="Widgets\Menu.cpp" />
@@ -224,9 +226,11 @@
     <ClInclude Include="ViewModels\SceneViewModel.h" />
     <ClInclude Include="ViewModels\SkyViewModel.h" />
     <ClInclude Include="ViewModels\WorldObjectViewModel.h" />
+    <ClInclude Include="Widgets\AssetBrowser.h" />
     <ClInclude Include="Widgets\AssetSelector.h" />
     <ClInclude Include="Widgets\Button.h" />
     <ClInclude Include="Widgets\CheckBox.h" />
+    <ClInclude Include="Widgets\Image.h" />
     <ClInclude Include="Widgets\Label.h" />
     <ClInclude Include="Widgets\ListView.h" />
     <ClInclude Include="Widgets\Menu.h" />

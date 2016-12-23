@@ -88,3 +88,29 @@ void Paths::GetFilenameNoExtension(const char* path, char* outFilename, int maxN
 
 	strncpy_s(outFilename, maxNameLen, path + startPos, (endPos - startPos));
 }
+
+void Paths::ForEachFile(const char* searchPattern, bool includeSubDirs, FileCallback callback, void* pUserData)
+{
+	WIN32_FIND_DATAA findData;
+
+	HANDLE hFind = FindFirstFileA(searchPattern, &findData);
+	if (hFind == INVALID_HANDLE_VALUE)
+		return;
+
+	do
+	{
+		if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			callback(findData.cFileName, true, pUserData);
+			if (includeSubDirs)
+				ForEachFile(findData.cFileName, true, callback, pUserData);
+		}
+		else
+		{
+			callback(findData.cFileName, false, pUserData);
+		}
+	} 
+	while (FindNextFileA(hFind, &findData) != 0);
+
+	FindClose(hFind);
+}

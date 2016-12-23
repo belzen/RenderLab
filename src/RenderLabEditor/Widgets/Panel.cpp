@@ -8,16 +8,8 @@ Panel* Panel::Create(const Widget& rParent, int x, int y, int width, int height)
 }
 
 Panel::Panel(const Widget& rParent, int x, int y, int width, int height)
+	: Widget(x, y, width, height, &rParent)
 {
-	const char* kWndClassName = "Panel";
-	static bool s_bRegisteredClass = false;
-	if (!s_bRegisteredClass)
-	{
-		RegisterWindowClass(kWndClassName, DefWindowProc);
-		s_bRegisteredClass = true;
-	}
-
-	CreateRootWidgetWindow(rParent.GetWindowHandle(), kWndClassName, x, y, width, height);
 }
 
 Panel::~Panel()

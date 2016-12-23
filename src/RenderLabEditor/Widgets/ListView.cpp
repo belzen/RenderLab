@@ -9,20 +9,11 @@ ListView* ListView::Create(const Widget& rParent, int x, int y, int width, int h
 
 ListView::ListView(const Widget& rParent, int x, int y, int width, int height,
 	SelectionChangedFunc selectionChangedCallback, void* pUserData)
-	: m_selectedItem(-1)
+	: Widget(x, y, width, height, &rParent, ListView::WndProc)
+	, m_selectedItem(-1)
 	, m_selectionChangedCallback(selectionChangedCallback)
 	, m_pUserData(pUserData)
 {
-	const char* kWndClassName = "ListViewContainer";
-	static bool s_bRegisteredClass = false;
-	if (!s_bRegisteredClass)
-	{
-		RegisterWindowClass(kWndClassName, ListView::WinProc);
-		s_bRegisteredClass = true;
-	}
-
-	CreateRootWidgetWindow(rParent.GetWindowHandle(), kWndClassName, x, y, width, height, 0, 0);
-
 	m_hListView = CreateWidgetWindow(GetWindowHandle(), WC_LISTVIEWA, 0, 0, width, height, 
 		LVS_NOCOLUMNHEADER | LVS_SHOWSELALWAYS | LVS_REPORT | LVS_EDITLABELS, 0);
 	
@@ -97,5 +88,5 @@ LRESULT CALLBACK ListView::WinProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lP
 		break;
 	}
 
-	return DefWindowProc(hWnd, msg, wParam, lParam);
+	return Widget::WndProc(hWnd, msg, wParam, lParam);
 }
