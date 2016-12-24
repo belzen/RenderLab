@@ -918,11 +918,11 @@ void Renderer::DrawFrame()
 
 	ProcessReadbackRequests();
 
+	m_profiler.BeginFrame();
+
 	// Draw the frame
 	if (!m_pContext->IsIdle()) // If the device is idle (probably minimized), don't bother rendering anything.
 	{
-		m_profiler.BeginFrame();
-
 		for (uint iAction = 0; iAction < rFrameState.numActions; ++iAction)
 		{
 			// Process resource system commands for this action
@@ -998,8 +998,6 @@ void Renderer::DrawFrame()
 
 			m_pContext->EndEvent();
 		}
-
-		m_profiler.EndFrame();
 	}
 	else
 	{
@@ -1011,6 +1009,7 @@ void Renderer::DrawFrame()
 	}
 
 	m_pContext->Present();
+	m_profiler.EndFrame();
 
 	// Process post-frame commands.
 	rFrameState.postFrameResourceCommands.ProcessCommands(m_pContext);

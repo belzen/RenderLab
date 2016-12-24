@@ -70,7 +70,9 @@ public:
 	float GetRenderThreadTime() const;
 
 private:
-	static const int kFrameDelay = 5;
+	// Intel HD 530 takes 6 frames for timestamp data to be ready...
+	// Seems pretty fishy, especially since the disjoint query does not suffer from the same issue.
+	static const int kFrameDelay = 6;
 
 	struct TimestampQueries
 	{
