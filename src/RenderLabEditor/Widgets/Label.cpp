@@ -19,5 +19,11 @@ Label::~Label()
 
 void Label::SetText(const char* text)
 {
+	m_text = text ? text : "";
 	SetWindowTextA(GetWindowHandle(), text);
+}
+
+const std::string& Label::GetText() const
+{
+	return m_text;
 }

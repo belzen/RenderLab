@@ -9,7 +9,7 @@ namespace
 
 Menu::~Menu()
 {
-	DestroyMenu(m_hMenu);
+	::DestroyMenu(m_hMenu);
 }
 
 void Menu::Init()

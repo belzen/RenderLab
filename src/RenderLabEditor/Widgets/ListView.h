@@ -23,7 +23,7 @@ public:
 	void SelectItem(uint index);
 	const ListViewItem* GetItem(uint index) const;
 
-private:
+public:
 	ListView(const Widget& rParent, int x, int y, int width, int height,
 		SelectionChangedFunc selectionChangedCallback, void* pUserData);
 	ListView(const ListView&);
@@ -33,7 +33,7 @@ private:
 	void AddItemInternal(const char* name, uint64 typeId, void* pItemData);
 	void HandleSelectionChanged();
 
-	static LRESULT CALLBACK WinProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam);
+	static LRESULT CALLBACK WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam);
 
 private:
 

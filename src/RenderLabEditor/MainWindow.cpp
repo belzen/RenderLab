@@ -115,7 +115,6 @@ int MainWindow::Run()
 	m_pSceneListView = ListView::Create(*this, renderWindowWidth, 0, kDefaultPanelWidth, GetHeight() / 2, SceneListViewSelectionChanged, m_pPropertyPanel);
 	
 	m_pAssetBrowser = AssetBrowser::Create(*this, 0, renderWindowHeight, renderWindowWidth, kDefaultBrowserHeight);
-	m_pAssetBrowser->SetPath(Paths::GetDataDir());
 
 	// Fill out the scene list view
 	{

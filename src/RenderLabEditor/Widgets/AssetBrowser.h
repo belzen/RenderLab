@@ -12,7 +12,7 @@ public:
 	static AssetBrowser* Create(const Widget& rParent, int x, int y, int width, int height);
 
 public:
-	void SetPath(const std::string& path);
+	void SetDataFolder(const std::string& folderPath);
 
 private:
 	AssetBrowser(const Widget& rParent, int x, int y, int width, int height);
@@ -23,10 +23,9 @@ private:
 	void ClearWidgets();
 	void RepositionButtons();
 
-	static void SelectAsset(void* pUserData);
-	static void SelectPath(void* pUserData);
+	static void OnPathItemDoubleClicked(Widget* pWidget, int button, void* pUserData);
 
 private:
 	std::vector<Widget*> m_widgets;
-	std::string m_path;
+	std::string m_dataFolder;
 };

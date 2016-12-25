@@ -23,3 +23,8 @@ void Image::SetText(const char* text)
 	m_pLabel->SetText(text);
 }
 
+const std::string& Image::GetText() const
+{
+	return m_pLabel->GetText();
+}
+

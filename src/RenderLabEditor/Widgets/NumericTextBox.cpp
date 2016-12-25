@@ -20,7 +20,7 @@ NumericTextBox::NumericTextBox(const Widget& rParent, int x, int y, int width, i
 
 NumericTextBox::~NumericTextBox()
 {
-	DestroyWindow(m_hTextBox);
+	::DestroyWindow(m_hTextBox);
 }
 
 void NumericTextBox::SetValue(float val, bool triggerCallback)

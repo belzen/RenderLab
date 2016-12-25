@@ -10,6 +10,7 @@ public:
 	static Image* Create(const Widget& rParent, int x, int y, int width, int height, const char* text);
 
 	void SetText(const char* text);
+	const std::string& GetText() const;
 
 private:
 	Image(const Widget& rParent, int x, int y, int width, int height, const char* text);

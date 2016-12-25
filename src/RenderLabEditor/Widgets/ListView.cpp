@@ -25,7 +25,7 @@ ListView::ListView(const Widget& rParent, int x, int y, int width, int height,
 
 ListView::~ListView()
 {
-
+	::DestroyWindow(m_hListView);
 }
 
 void ListView::RemoveItem(uint index)
@@ -75,7 +75,7 @@ void ListView::HandleSelectionChanged()
 	}
 }
 
-LRESULT CALLBACK ListView::WinProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK ListView::WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
