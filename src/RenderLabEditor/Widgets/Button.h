@@ -20,6 +20,7 @@ private:
 
 private:
 	HWND m_hButton;
+
 	ClickedFunc m_clickedCallback;
 	void* m_pUserData;
 };

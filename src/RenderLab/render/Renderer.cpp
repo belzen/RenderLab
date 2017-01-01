@@ -564,7 +564,7 @@ void Renderer::QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencilV
 	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(m_pCurrentAction->resourceCommands, rLight.position, 0.1f, rLight.radius * 2.f);
 }
 
-void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
+void Renderer::BeginPrimaryAction(Camera& rCamera, Scene& rScene)
 {
 	assert(m_pCurrentAction == nullptr);
 
@@ -578,9 +578,9 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 
 	m_pCurrentAction->pScene = &rScene;
 
+	rCamera.SetAspectRatio(m_viewWidth / (float)m_viewHeight);
+	rCamera.UpdateFrustum();
 	m_pCurrentAction->camera = rCamera;
-	m_pCurrentAction->camera.SetAspectRatio(m_viewWidth / (float)m_viewHeight);
-	m_pCurrentAction->camera.UpdateFrustum();
 
 	m_pCurrentAction->passes[(int)RdrPass::ZPrepass].bEnabled = true;
 	m_pCurrentAction->passes[(int)RdrPass::LightCulling].bEnabled = true;
@@ -613,7 +613,7 @@ void Renderer::BeginPrimaryAction(const Camera& rCamera, Scene& rScene)
 	QueueVolumetricFog(rVolFogSettings);
 }
 
-void Renderer::BeginOffscreenAction(const wchar_t* actionName, const Camera& rCamera, Scene& rScene, 
+void Renderer::BeginOffscreenAction(const wchar_t* actionName, Camera& rCamera, Scene& rScene, 
 	bool enablePostprocessing, const Rect& viewport, const RdrSurface& outputSurface)
 {
 	assert(m_pCurrentAction == nullptr);
@@ -622,9 +622,9 @@ void Renderer::BeginOffscreenAction(const wchar_t* actionName, const Camera& rCa
 
 	m_pCurrentAction->pScene = &rScene;
 
+	rCamera.SetAspectRatio(viewport.width / viewport.height);
+	rCamera.UpdateFrustum();
 	m_pCurrentAction->camera = rCamera;
-	m_pCurrentAction->camera.SetAspectRatio(viewport.width / viewport.height);
-	m_pCurrentAction->camera.UpdateFrustum();
 
 	m_pCurrentAction->passes[(int)RdrPass::ZPrepass].bEnabled = true;
 	m_pCurrentAction->passes[(int)RdrPass::LightCulling].bEnabled = true;

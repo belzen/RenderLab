@@ -20,4 +20,6 @@ private:
 
 private:
 	Label* m_pLabel;
+	HANDLE m_hBitmap;
+	HWND m_hImageControl;
 };

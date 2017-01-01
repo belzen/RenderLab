@@ -162,6 +162,15 @@ void Scene::AddObject(WorldObject* pObject)
 	m_objects.push_back(pObject);
 }
 
+void Scene::RemoveObject(WorldObject* pObject)
+{
+	auto iter = std::find(m_objects.begin(), m_objects.end(), pObject);
+	if (iter != m_objects.end())
+	{
+		m_objects.erase(iter);
+	}
+}
+
 const char* Scene::GetName() const
 {
 	return m_sceneName.getString();

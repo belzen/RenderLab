@@ -65,13 +65,10 @@ public:
 	virtual void GainedFocus() = 0;
 	virtual void LostFocus() = 0;
 
+	virtual void HandleChar(char c) = 0;
 	virtual void HandleKeyDown(int key, bool down) = 0;
 	virtual void HandleMouseDown(int button, bool down, int x, int y) = 0;
 	virtual void HandleMouseMove(int x, int y, int dx, int dy) = 0;
-
-	// Whether to send key down repeat events to this context.
-	// Mainly used by text input contexts.
-	virtual bool WantsKeyDownRepeat() = 0;
 };
 
 class InputManager
@@ -88,6 +85,7 @@ public:
 
 	bool IsKeyDown(int key) const;
 	void SetKeyDown(int key, bool down);
+	void HandleChar(char c);
 
 	bool IsMouseDown(int button) const;
 	void SetMouseDown(int button, bool down, int x, int y);

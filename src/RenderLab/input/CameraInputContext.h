@@ -14,11 +14,10 @@ public:
 	void GainedFocus();
 	void LostFocus();
 
+	void HandleChar(char c);
 	void HandleKeyDown(int key, bool down);
 	void HandleMouseDown(int button, bool down, int x, int y);
 	void HandleMouseMove(int x, int y, int dx, int dy);
-
-	bool WantsKeyDownRepeat();
 
 	void SetCamera(Camera* pCamera);
 private:
@@ -27,11 +26,6 @@ private:
 	float m_maxMoveSpeed;
 	float m_accel;
 };
-
-inline bool CameraInputContext::WantsKeyDownRepeat()
-{ 
-	return false; 
-}
 
 inline void CameraInputContext::SetCamera(Camera* pCamera)
 {

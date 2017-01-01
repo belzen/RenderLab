@@ -13,6 +13,19 @@
 #include "Physics.h"
 #include "Time.h"
 
+namespace
+{
+	void sceneListViewSelectionChanged(const ListView* pList, uint selectedIndex, void* pUserData)
+	{
+		const ListViewItem* pItem = pList->GetItem(selectedIndex);
+		if (!pItem)
+			return;
+
+		PropertyPanel* pPropertyPanel = static_cast<PropertyPanel*>(pUserData);
+		pPropertyPanel->SetViewModel(IViewModel::Create(pItem->typeId, pItem->pData), true);
+	}
+}
+
 MainWindow* MainWindow::Create(int width, int height, const char* title)
 {
 	return new MainWindow(width, height, title);
@@ -63,7 +76,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	SetMenuBar(&m_mainMenu);
 }
 
-bool MainWindow::HandleResize(int newWidth, int newHeight)
+bool MainWindow::OnResize(int newWidth, int newHeight)
 {
 	int panelWidth = m_pPropertyPanel ? m_pPropertyPanel->GetWidth() : 0;
 	if (m_pRenderWindow)
@@ -73,20 +86,10 @@ bool MainWindow::HandleResize(int newWidth, int newHeight)
 	return true;
 }
 
-bool MainWindow::HandleClose()
+bool MainWindow::OnClose()
 {
 	::PostQuitMessage(0);
 	return true;
-}
-
-void SceneListViewSelectionChanged(const ListView* pList, uint selectedIndex, void* pUserData)
-{
-	const ListViewItem* pItem = pList->GetItem(selectedIndex);
-	if (!pItem)
-		return;
-
-	PropertyPanel* pPropertyPanel = static_cast<PropertyPanel*>(pUserData);
-	pPropertyPanel->SetViewModel(IViewModel::Create(pItem->typeId, pItem->pData), true);
 }
 
 int MainWindow::Run()
@@ -101,7 +104,7 @@ int MainWindow::Run()
 
 	int renderWindowWidth = GetWidth() - kDefaultPanelWidth;
 	int renderWindowHeight = GetHeight() - kDefaultBrowserHeight;
-	m_pRenderWindow = RenderWindow::Create(0, 0, renderWindowWidth, renderWindowHeight, this);
+	m_pRenderWindow = RenderWindow::Create(0, 0, renderWindowWidth, renderWindowHeight, &m_scene, this);
 
 	Debug::Init();
 	Physics::Init();
@@ -112,7 +115,7 @@ int MainWindow::Run()
 
 	// Finish editor setup.
 	m_pPropertyPanel = PropertyPanel::Create(*this, renderWindowWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);
-	m_pSceneListView = ListView::Create(*this, renderWindowWidth, 0, kDefaultPanelWidth, GetHeight() / 2, SceneListViewSelectionChanged, m_pPropertyPanel);
+	m_pSceneListView = ListView::Create(*this, renderWindowWidth, 0, kDefaultPanelWidth, GetHeight() / 2, sceneListViewSelectionChanged, m_pPropertyPanel);
 	
 	m_pAssetBrowser = AssetBrowser::Create(*this, 0, renderWindowHeight, renderWindowWidth, kDefaultBrowserHeight);
 
@@ -163,7 +166,7 @@ int MainWindow::Run()
 		Physics::Update();
 		Debug::Update();
 
-		m_pRenderWindow->QueueDraw(m_scene);
+		m_pRenderWindow->QueueDraw();
 
 		// Wait for render thread.
 		WaitForSingleObject(m_hRenderFrameDoneEvent, INFINITE);

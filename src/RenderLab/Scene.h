@@ -36,6 +36,7 @@ public:
 	WorldObjectList& GetWorldObjects();
 
 	void AddObject(WorldObject* pObject);
+	void RemoveObject(WorldObject* pObject);
 
 	LightList& GetLightList();
 

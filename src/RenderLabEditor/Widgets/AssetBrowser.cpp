@@ -1,11 +1,13 @@
 #include "Precompiled.h"
 #include "AssetBrowser.h"
 #include "UtilsLib/Util.h"
+#include "AssetLib/ModelAsset.h"
 #include "Label.h"
 #include "Button.h"
 #include "Image.h"
 #include <shobjidl.h>
 #include "UtilsLib\Paths.h"
+#include "UtilsLib\StringCache.h"
 
 AssetBrowser* AssetBrowser::Create(const Widget& rParent, int x, int y, int width, int height)
 {
@@ -57,6 +59,7 @@ void AssetBrowser::OnPathItemDoubleClicked(Widget* pWidget, int button, void* pU
 	if (button != 0)
 		return;
 
+	// Update asset browser path to the selected folder.
 	AssetBrowser* pBrowser = static_cast<AssetBrowser*>(pUserData);
 	Image* pImage = static_cast<Image*>(pWidget);
 
@@ -109,6 +112,14 @@ void AssetBrowser::SetDataFolder(const std::string& dataFolder)
 			else
 			{
 				Image* pImage = Image::Create(*pBrowser, 0, 0, kButtonSize, kButtonSize, filename);
+				const char* ext = Paths::GetExtension(filename);
+				if (_stricmp(ext, AssetLib::Model::GetAssetDef().GetExt()) == 0)
+				{
+					std::string assetPath = pBrowser->m_dataFolder + filename;
+					char assetName[AssetLib::AssetDef::kMaxNameLen];
+					AssetLib::Model::GetAssetDef().ExtractAssetName(assetPath.c_str(), assetName, ARRAY_SIZE(assetName));
+					pImage->SetDragData(WidgetDragDataType::kModelAsset, (void*)CachedString(assetName).getString());
+				}
 				pBrowser->m_widgets.push_back(pImage);
 			}
 		}, 

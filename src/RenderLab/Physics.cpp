@@ -23,6 +23,16 @@ namespace
 		float accumTime;
 	} s_physics;
 
+	inline PxVec3 toPxVec3(const Vec3& v)
+	{
+		return PxVec3(v.x, v.y, v.z);
+	}
+
+	inline Vec3 fromPxVec3(const PxVec3& v)
+	{
+		return Vec3(v.x, v.y, v.z);
+	}
+
 	inline PxQuat toPxQuat(const Quaternion& q)
 	{
 		return PxQuat(q.x, q.y, q.z, q.w);
@@ -130,4 +140,22 @@ void Physics::DestroyActor(PhysicsActor* pActor)
 {
 	s_physics.pScene->removeActor(*pActor);
 	pActor->release();
+}
+
+bool Physics::Raycast(const Vec3& position, const Vec3& direction, const float distance, RaycastResult* pResult)
+{
+	Physics::RaycastResult results;
+	const PxHitFlags hitFlags = PxHitFlag::ePOSITION | PxHitFlag::eNORMAL | PxHitFlag::eDISTANCE;
+	PxRaycastBuffer hitBuffer;
+
+	bool hit = s_physics.pScene->raycast(toPxVec3(position), toPxVec3(direction), distance, hitBuffer, hitFlags);
+	if (hit && pResult)
+	{
+		pResult->pActor = hitBuffer.block.actor;
+		pResult->position = fromPxVec3(hitBuffer.block.position);
+		pResult->normal = fromPxVec3(hitBuffer.block.normal);
+		pResult->distance = distance;
+	}
+
+	return hit;
 }

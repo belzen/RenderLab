@@ -221,6 +221,7 @@
     <ClInclude Include="PropertyTables.h" />
     <ClInclude Include="RenderWindow.h" />
     <ClInclude Include="SceneTree.h" />
+    <ClInclude Include="WidgetDragData.h" />
     <ClInclude Include="ViewModels\IViewModel.h" />
     <ClInclude Include="ViewModels\PostProcessEffectsViewModel.h" />
     <ClInclude Include="ViewModels\SceneViewModel.h" />
@@ -240,6 +241,7 @@
     <ClInclude Include="Widgets\Slider.h" />
     <ClInclude Include="Widgets\TextBox.h" />
     <ClInclude Include="Widgets\Widget.h" />
+    <ClInclude Include="Widgets\WidgetDragData.h" />
     <ClInclude Include="WindowBase.h" />
     <ClInclude Include="WindowLayout.h" />
   </ItemGroup>

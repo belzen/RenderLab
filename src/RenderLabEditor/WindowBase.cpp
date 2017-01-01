@@ -31,9 +31,6 @@ LRESULT CALLBACK WindowBase::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 				bHandled = pWindow->m_pMenu->HandleMenuCommand((int)wParam);
 			}
 			break;
-		case WM_CLOSE:
-			bHandled = pWindow->HandleClose();
-			break;
 		}
 
 		if (bHandled)

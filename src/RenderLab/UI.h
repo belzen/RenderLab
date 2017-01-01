@@ -1,6 +1,9 @@
 #pragma once
 
 #include "MathLib/Vec3.h"
+#include "UtilsLib/Util.h"
+
+class Widget;
 
 namespace UI
 {
@@ -16,7 +19,7 @@ namespace UI
 
 		Default = Top | Left
 	};
-	ENUM_FLAGS(AlignmentFlags)
+	ENUM_FLAGS(AlignmentFlags);
 
 	enum class Units
 	{
@@ -45,4 +48,7 @@ namespace UI
 	};
 
 	Vec3 PosToScreenSpace(const UI::Position& uiPos, const Vec2& elemSize, const Vec2& viewportSize);
+
+	void SetDraggedWidget(Widget* pTarget);
+	Widget* GetDraggedWidget();
 }

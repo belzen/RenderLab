@@ -52,10 +52,16 @@ void InputManager::SetKeyDown(int key, bool down)
 		// ~ reserved for debug console.
 		DebugConsole::ToggleActive(*this);
 	}
-	else if ( changed || (down && pContext->WantsKeyDownRepeat()) )
+	else if (changed)
 	{
 		pContext->HandleKeyDown(key, down);
 	}
+}
+
+void InputManager::HandleChar(char c)
+{
+	IInputContext* pContext = m_inputFocusStack.top();
+	pContext->HandleChar(c);
 }
 
 bool InputManager::IsMouseDown(int button) const

@@ -68,25 +68,38 @@ namespace
 
 		}
 
+		void HandleChar(char c)
+		{
+			const char kAsciiFirstReadableChar = 0x20; // Space
+			const char kAsciiLastReadableChar = 0x7d; // Excluding tilde (0x7e)
+			const char kAsciiBackspace = 0x08;
+			const char kAsciiApostrophe = 0x60;
+
+			if (c == kAsciiBackspace)
+			{
+				// Remove characters from the command.
+				if (s_debugConsole.currentCommandLen > 0)
+				{
+					s_debugConsole.currentCommand[s_debugConsole.currentCommandLen - 1] = 0;
+					s_debugConsole.currentCommandLen--;
+				}
+			}
+			else if (c >= kAsciiFirstReadableChar && c < kAsciiLastReadableChar 
+				&& c != kAsciiApostrophe)
+			{
+				// Add characters to the command.
+				s_debugConsole.currentCommand[s_debugConsole.currentCommandLen] = c;
+				s_debugConsole.currentCommandLen++;
+				s_debugConsole.currentCommand[s_debugConsole.currentCommandLen] = 0;
+			}
+		}
+
 		void HandleKeyDown(int key, bool down)
 		{
 			if (!down)
 				return;
 			
-			if ((key >= KEY_A && key <= KEY_Z) ||
-				(key >= KEY_0 && key <= KEY_9) ||
-				key == KEY_SPACE)
-			{
-				s_debugConsole.currentCommand[s_debugConsole.currentCommandLen] = (char)key;
-				s_debugConsole.currentCommandLen++;
-				s_debugConsole.currentCommand[s_debugConsole.currentCommandLen] = 0;
-			}
-			else if (key == KEY_BACKSPACE && s_debugConsole.currentCommandLen > 0)
-			{
-				s_debugConsole.currentCommand[s_debugConsole.currentCommandLen - 1] = 0;
-				s_debugConsole.currentCommandLen--;
-			}
-			else if (key == KEY_UP)
+			if (key == KEY_UP)
 			{
 				if (s_debugConsole.historyIndex + 1 < (int)s_debugConsole.commandHistory.size())
 				{
@@ -183,8 +196,6 @@ namespace
 		void HandleMouseDown(int button, bool down, int x, int y) { }
 
 		void HandleMouseMove(int x, int y, int dx, int dy) { }
-
-		bool WantsKeyDownRepeat() { return true; }
 	};
 
 	DebugInputContext s_debugInputContext;

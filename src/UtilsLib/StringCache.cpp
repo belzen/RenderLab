@@ -5,6 +5,8 @@
 
 namespace
 {
+	// TODO: Use large chunks of memory to store strings contiguously instead
+	//		of separate allocations for each string.
 	typedef std::map<uint, const char*> StringMap;
 	StringMap s_stringCache;
 }

@@ -20,8 +20,9 @@ public:
 private:
 	MainWindow(int width, int height, const char* title);
 
-	bool HandleResize(int newWidth, int newHeight);
-	bool HandleClose();
+	// Input event handlers
+	bool OnResize(int newWidth, int newHeight);
+	bool OnClose();
 
 private:
 	static void RenderThreadMain(MainWindow* pWindow);

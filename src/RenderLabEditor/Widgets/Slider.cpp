@@ -22,7 +22,7 @@ Slider::Slider(const Widget& rParent, int x, int y, int width, int height,
 	const int kSpacing = 5;
 	int numSteps = (int)((m_maxVal - m_minVal) / m_step);
 
-	m_hSlider = CreateWidgetWindow(GetWindowHandle(), TRACKBAR_CLASSA, 0, 0, width - kLabelWidth - kSpacing, height, TBS_NOTICKS | TBS_HORZ);
+	m_hSlider = CreateChildWindow(GetWindowHandle(), TRACKBAR_CLASSA, 0, 0, width - kLabelWidth - kSpacing, height, TBS_NOTICKS | TBS_HORZ);
 	::SendMessage(m_hSlider, TBM_SETPAGESIZE, false, numSteps / 10);
 	::SendMessage(m_hSlider, TBM_SETRANGE, true, MAKELONG(0, numSteps));
 

@@ -51,6 +51,9 @@ public:
 
 	bool CanSee(const Vec3& pos, float radius) const;
 
+	// Calculate direction of ray from a point on the near plane.
+	Vec3 CalcRayDirection(float x, float y) const;
+
 private:
 	struct Frustum
 	{

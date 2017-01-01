@@ -1,5 +1,6 @@
 #include "Precompiled.h"
 #include "Widget.h"
+#include "UI.h"
 
 namespace
 {
@@ -47,8 +48,15 @@ Widget::Widget(int x, int y, int width, int height, const Widget* pParent, const
 void Widget::InitCommon(const Widget* pParent, const char* windowClassName)
 {
 	HWND hParentWnd = pParent ? pParent->GetWindowHandle() : 0;
-	m_hWidget = CreateWidgetWindow(hParentWnd, windowClassName, m_x, m_y, m_width, m_height, 0, 0);
-	::SetWindowLongPtr(m_hWidget, GWLP_USERDATA, (LONG_PTR)this);
+	m_hWidget = CreateChildWindow(hParentWnd, windowClassName, m_x, m_y, m_width, m_height, 0, 0);
+
+	// Setup default drag data.
+	m_dragData.type = WidgetDragDataType::kNone;
+	m_dragData.pWidget = this;
+	m_dragData.data.pTypeless = nullptr;
+
+	m_mouseCaptureCount = 0;
+	m_bTrackingMouse = false;
 }
 
 Widget::~Widget()
@@ -59,6 +67,17 @@ Widget::~Widget()
 void Widget::Release()
 {
 	delete this;
+}
+
+const WidgetDragData& Widget::GetDragData() const
+{
+	return m_dragData;
+}
+
+void Widget::SetDragData(WidgetDragDataType dataType, void* pData)
+{
+	m_dragData.type = dataType;
+	m_dragData.data.pTypeless = pData;
 }
 
 void Widget::SetKeyDownCallback(KeyDownFunc callback, void* pUserData)
@@ -97,25 +116,25 @@ void Widget::SetMouseUpCallback(MouseUpFunc callback, void* pUserData)
 	m_pMouseUpUserData = pUserData;
 }
 
-void Widget::SetMouseOverCallback(MouseOverFunc callback, void* pUserData)
+void Widget::SetMouseEnterCallback(MouseEnterFunc callback, void* pUserData)
 {
-	m_mouseOverCallback = callback;
-	m_pMouseOverUserData = pUserData;
+	m_mouseEnterCallback = callback;
+	m_pMouseEnterUserData = pUserData;
 }
 
-void Widget::SetMouseOutCallback(MouseOutFunc callback, void* pUserData)
+void Widget::SetMouseLeaveCallback(MouseLeaveFunc callback, void* pUserData)
 {
-	m_mouseOutCallback = callback;
-	m_pMouseOutUserData = pUserData;
+	m_mouseLeaveCallback = callback;
+	m_pMouseLeaveUserData = pUserData;
 }
 
-HWND Widget::CreateWidgetWindow(const HWND hParentWnd, const char* className, int x, int y, int width, int height, DWORD style, DWORD styleEx)
+HWND Widget::CreateChildWindow(const HWND hParentWnd, const char* className, int x, int y, int width, int height, DWORD style, DWORD styleEx)
 {
 	DWORD windowType = hParentWnd ? WS_CHILD : WS_OVERLAPPEDWINDOW;
 	RECT wr = { 0, 0, width, height };
 	::AdjustWindowRect(&wr, windowType, false);
 
-	return ::CreateWindowExA(
+	HWND hWnd = ::CreateWindowExA(
 		styleEx,
 		className,
 		0,
@@ -125,6 +144,9 @@ HWND Widget::CreateWidgetWindow(const HWND hParentWnd, const char* className, in
 		NULL,
 		::GetModuleHandle(NULL),
 		NULL);
+
+	::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)this);
+	return hWnd;
 }
 
 void Widget::SetPosition(int x, int y)
@@ -143,7 +165,7 @@ void Widget::SetSize(int w, int h)
 
 bool Widget::HandleResize(int newWidth, int newHeight)
 { 
-	return false; 
+	return OnResize(newWidth, newHeight); 
 }
 
 bool Widget::HandleKeyDown(int key)
@@ -152,7 +174,8 @@ bool Widget::HandleKeyDown(int key)
 	{
 		m_keyDownCallback(this, key, m_pKeyDownUserData);
 	}
-	return false; 
+
+	return OnKeyDown(key);
 }
 
 bool Widget::HandleKeyUp(int key)
@@ -162,39 +185,99 @@ bool Widget::HandleKeyUp(int key)
 		m_keyUpCallback(this, key, m_pKeyUpUserData);
 	}
 
-	return false;
+	return OnKeyUp(key);
+}
+
+bool Widget::HandleChar(char c)
+{
+	return OnChar(c);
 }
 
 bool Widget::HandleMouseDown(int button, int mx, int my)
 {
+	::SetFocus(m_hWidget);
+
+	if (ShouldCaptureMouse())
+	{
+		CaptureMouse();
+	}
+
+	if (button == 0 && m_dragData.type != WidgetDragDataType::kNone)
+	{
+		UI::SetDraggedWidget(this);
+	}
+
 	if (m_mouseDownCallback)
 	{
 		m_mouseDownCallback(this, 0, m_pMouseDownUserData);
 	}
 
-	return false;
+	return OnMouseDown(button, mx, my);
 }
 
 bool Widget::HandleMouseUp(int button, int mx, int my)
 {
+	if (ShouldCaptureMouse())
+	{
+		ReleaseMouse();
+	}
+
+	if (button == 0 && UI::GetDraggedWidget())
+	{
+		POINT pt;
+		GetCursorPos(&pt);
+
+		HWND hTargetWnd = WindowFromPoint(pt);
+		Widget* pTargetWidget = (Widget*)GetWindowLongPtr(hTargetWnd, GWLP_USERDATA);
+		if (pTargetWidget)
+		{
+			pTargetWidget->HandleDragEnd(UI::GetDraggedWidget());
+		}
+
+		UI::SetDraggedWidget(nullptr);
+	}
+
 	bool bHandled = false;
+	if (m_mouseCaptureCount > 0)
+	{
+		bHandled = HandleMouseClick(button);
+	}
 
 	if (m_mouseUpCallback)
 	{
 		m_mouseUpCallback(this, 0, m_pMouseUpUserData);
 	}
 
-	if (m_mouseCaptureCount > 0)
-	{
-		bHandled = HandleMouseClick(button);
-	}
-
-	return bHandled;
+	return OnMouseUp(button, mx, my);
 }
 
 bool Widget::HandleMouseMove(int mx, int my)
 {
-	return false;
+	if (!m_bTrackingMouse)
+	{
+		TRACKMOUSEEVENT track;
+		track.cbSize = sizeof(TRACKMOUSEEVENT);
+		track.hwndTrack = m_hWidget;
+		track.dwFlags = TME_LEAVE;
+		TrackMouseEvent(&track);
+	
+		m_bTrackingMouse = true;
+
+		HandleMouseEnter(mx, my);
+	}
+
+	return OnMouseMove(mx, my);
+}
+
+bool Widget::HandleMouseEnter(int mx, int my)
+{
+	return OnMouseEnter(mx, my);
+}
+
+bool Widget::HandleMouseLeave()
+{
+	m_bTrackingMouse = false;
+	return OnMouseLeave();
 }
 
 bool Widget::HandleMouseClick(int button)
@@ -204,28 +287,35 @@ bool Widget::HandleMouseClick(int button)
 		m_mouseClickedCallback(this, button, m_pMouseClickedUserData);
 	}
 
-	return false;
+	return OnMouseClick(button);
 }
 
 bool Widget::HandleMouseDoubleClick(int button)
 {
+	bool bHandled = OnMouseDoubleClick(button);
+
 	if (m_mouseDoubleClickedCallback)
 	{
 		m_mouseDoubleClickedCallback(this, button, m_pMouseDoubleClickedUserData);
 	}
 
-	return false;
+	return bHandled;
+}
+
+void Widget::HandleDragEnd(Widget* pDraggedWidget)
+{
+	OnDragEnd(pDraggedWidget);
 }
 
 bool Widget::HandleClose() 
 { 
-	return false; 
+	return OnClose();
 }
 
-void Widget::CaptureMouse(HWND hWnd)
+void Widget::CaptureMouse()
 {
 	if (m_mouseCaptureCount == 0)
-		::SetCapture(hWnd);
+		::SetCapture(m_hWidget);
 
 	++m_mouseCaptureCount;
 }
@@ -249,12 +339,13 @@ LRESULT CALLBACK Widget::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 		case WM_MOUSEMOVE:
 			bHandled = pWidget->HandleMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 			break;
+		case WM_MOUSELEAVE:
+			bHandled = pWidget->HandleMouseLeave();
+			break;
 		case WM_LBUTTONDOWN:
 		case WM_RBUTTONDOWN:
 			{
 				int button = (msg == WM_LBUTTONDOWN) ? 0 : 1;
-				pWidget->CaptureMouse(hWnd);
-				::SetFocus(hWnd);
 				bHandled = pWidget->HandleMouseDown(button, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 			}
 			break;
@@ -263,7 +354,6 @@ LRESULT CALLBACK Widget::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 			{
 				int button = (msg == WM_LBUTTONUP) ? 0 : 1;
 				bHandled = pWidget->HandleMouseUp(button, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-				pWidget->ReleaseMouse();
 			}
 			break;
 		case WM_LBUTTONDBLCLK:
@@ -273,6 +363,9 @@ LRESULT CALLBACK Widget::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 				bHandled = pWidget->HandleMouseDoubleClick(button);
 			}
 			break;
+		case WM_CHAR:
+			bHandled = pWidget->HandleChar((char)wParam);
+			break;
 		case WM_KEYDOWN:
 			bHandled = pWidget->HandleKeyDown((int)wParam);
 			break;
@@ -281,8 +374,20 @@ LRESULT CALLBACK Widget::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 			break;
 		case WM_SIZE:
 			pWidget->m_width = LOWORD(lParam);
-			pWidget->m_height = HIWORD(lParam);;
+			pWidget->m_height = HIWORD(lParam);
 			bHandled = pWidget->HandleResize(pWidget->GetWidth(), pWidget->GetHeight());
+			break;
+		case WM_CLOSE:
+			bHandled = pWidget->HandleClose();
+			break;
+		case WM_CANCELMODE:
+			// Cancel modal state including dragging and mouse capture
+			UI::SetDraggedWidget(nullptr);
+			pWidget->ReleaseMouse();
+			break;
+		case WM_CAPTURECHANGED:
+			// Mouse capture has been canceled or changed externally.
+			UI::SetDraggedWidget(nullptr);
 			break;
 		}
 

@@ -10,4 +10,5 @@ namespace AssetLib
 	struct Material;
 	struct PostProcessEffects;
 	struct MaterialSwap;
+	struct Object;
 }

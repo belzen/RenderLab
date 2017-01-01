@@ -130,6 +130,10 @@
     <ClInclude Include="Widgets\Image.h">
       <Filter>Widgets</Filter>
     </ClInclude>
+    <ClInclude Include="WidgetDragData.h" />
+    <ClInclude Include="Widgets\WidgetDragData.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="ViewModels">

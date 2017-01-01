@@ -14,7 +14,7 @@ CheckBox::CheckBox(const Widget& rParent, int x, int y, int width, int height,
 	, m_pUserData(pUserData)
 {
 	// Create check box control
-	m_hCheckBox = CreateWidgetWindow(GetWindowHandle(), "Button", 0, 0, width, height, BS_CHECKBOX);
+	m_hCheckBox = CreateChildWindow(GetWindowHandle(), "Button", 0, 0, width, height, BS_CHECKBOX);
 	m_toggledCallback = toggledCallback;
 }
 

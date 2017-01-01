@@ -14,7 +14,7 @@ ListView::ListView(const Widget& rParent, int x, int y, int width, int height,
 	, m_selectionChangedCallback(selectionChangedCallback)
 	, m_pUserData(pUserData)
 {
-	m_hListView = CreateWidgetWindow(GetWindowHandle(), WC_LISTVIEWA, 0, 0, width, height, 
+	m_hListView = CreateChildWindow(GetWindowHandle(), WC_LISTVIEWA, 0, 0, width, height,
 		LVS_NOCOLUMNHEADER | LVS_SHOWSELALWAYS | LVS_REPORT | LVS_EDITLABELS, 0);
 	
 	LV_COLUMNA column = { 0 };

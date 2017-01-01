@@ -138,7 +138,7 @@ Quad Camera::GetFrustumQuad(float depth) const
 	}
 	else
 	{
-		float heightOverDist = tanf(m_fovY);
+		float heightOverDist = tanf(m_fovY * 0.5f);
 		height = heightOverDist * depth;
 	}
 
@@ -177,4 +177,21 @@ bool Camera::CanSee(const Vec3& pos, float radius) const
 	}
 
 	return true;
+}
+
+Vec3 Camera::CalcRayDirection(float x, float y) const
+{
+	float ndcX = 2.f * x - 1.f;
+	float ndcY = 1.f - 2.f * y;
+
+	// Convert from NDC [-1, 1] space to view space.
+	Vec3 ray = Vec3::kZero;
+	ray.x = ndcX * m_nearDist / m_projMatrix._11;
+	ray.y = ndcY * m_nearDist / m_projMatrix._22;
+	ray.z = m_nearDist;
+
+	// Transform ray into world space
+	Matrix44 mtxView;
+	GetViewMatrix(mtxView);
+	return Vec3Normalize(Vec3TransformNormal(Vec3Normalize(ray), Matrix44Inverse(mtxView)));
 }

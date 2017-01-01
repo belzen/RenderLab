@@ -1,5 +1,6 @@
 #pragma once
 
+#include "WidgetDragData.h"
 #include <windows.h>
 
 enum class Units
@@ -37,6 +38,9 @@ public:
 
 	HWND GetWindowHandle() const;
 
+	void SetDragData(WidgetDragDataType dataType, void* pData);
+	const WidgetDragData& GetDragData() const;
+
 	//////////////////////////////////////////////////////////////////////////
 	// Input callbacks
 	typedef void(*KeyDownFunc)(Widget* pWidget, int key, void* pUserData);
@@ -57,35 +61,62 @@ public:
 	typedef void(*MouseUpFunc)(Widget* pWidget, int button, void* pUserData);
 	void SetMouseUpCallback(MouseUpFunc callback, void* pUserData);
 
-	typedef void(*MouseOverFunc)(Widget* pWidget, void* pUserData);
-	void SetMouseOverCallback(MouseOverFunc callback, void* pUserData);
+	typedef void(*MouseEnterFunc)(Widget* pWidget, void* pUserData);
+	void SetMouseEnterCallback(MouseEnterFunc callback, void* pUserData);
 
-	typedef void(*MouseOutFunc)(Widget* pWidget, void* pUserData);
-	void SetMouseOutCallback(MouseOutFunc callback, void* pUserData);
+	typedef void(*MouseLeaveFunc)(Widget* pWidget, void* pUserData);
+	void SetMouseLeaveCallback(MouseLeaveFunc callback, void* pUserData);
 
 protected:
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-	static HWND CreateWidgetWindow(HWND hParentWnd, const char* className, int x, int y, int width, int height, DWORD style = 0, DWORD styleEx = 0);
 
 	Widget(int x, int y, int width, int height, const Widget* pParent, WNDPROC pWndProc = Widget::WndProc);
 	Widget(int x, int y, int width, int height, const Widget* pParent, const char* windowClassName);
 	virtual ~Widget();
 
-	virtual bool HandleResize(int newWidth, int newHeight);
-	virtual bool HandleKeyDown(int key);
-	virtual bool HandleKeyUp(int key);
-	virtual bool HandleMouseDown(int button, int mx, int my);
-	virtual bool HandleMouseUp(int button, int mx, int my);
-	virtual bool HandleMouseMove(int mx, int my);
-	virtual bool HandleMouseClick(int button);
-	virtual bool HandleMouseDoubleClick(int button);
-	virtual bool HandleClose();
+	HWND CreateChildWindow(HWND hParentWnd, const char* className, int x, int y, int width, int height, DWORD style = 0, DWORD styleEx = 0);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Input event handling interface
+	virtual bool ShouldCaptureMouse() const					{ return false; }
+	virtual bool OnResize(int newWidth, int newHeight)		{ return false; }
+	virtual bool OnKeyDown(int key)							{ return false; }
+	virtual bool OnKeyUp(int key)							{ return false; }
+	virtual bool OnChar(char c)								{ return false; }
+	virtual bool OnMouseDown(int button, int mx, int my)	{ return false; }
+	virtual bool OnMouseUp(int button, int mx, int my)		{ return false; }
+	virtual bool OnMouseMove(int mx, int my)				{ return false; }
+	virtual bool OnMouseEnter(int mx, int my)				{ return false; }
+	virtual bool OnMouseLeave()								{ return false; }
+	virtual bool OnMouseClick(int button)					{ return false; }
+	virtual bool OnMouseDoubleClick(int button)				{ return false; }
+	virtual void OnDragEnd(Widget* pDraggedWidget)			{}
+	virtual bool OnClose()									{ return false; }
 
 private:
 	void InitCommon(const Widget* pParent, const char* windowClassName);
-	void CaptureMouse(HWND hWnd);
+	void CaptureMouse();
 	void ReleaseMouse();
 
+	//////////////////////////////////////////////////////////////////////////
+	// Internal handling of input events.
+	// Passes through to the On* version of these events as appropriate.
+	bool HandleResize(int newWidth, int newHeight);
+	bool HandleKeyDown(int key);
+	bool HandleKeyUp(int key);
+	bool HandleChar(char c);
+	bool HandleMouseDown(int button, int mx, int my);
+	bool HandleMouseUp(int button, int mx, int my);
+	bool HandleMouseMove(int mx, int my);
+	bool HandleMouseEnter(int mx, int my);
+	bool HandleMouseLeave();
+	bool HandleMouseClick(int button);
+	bool HandleMouseDoubleClick(int button);
+	void HandleDragEnd(Widget* pDraggedWidget);
+	bool HandleClose();
+
+private:
+	WidgetDragData m_dragData;
 	HWND m_hWidget;
 
 	int m_x;
@@ -99,6 +130,7 @@ private:
 	VAlign m_verticalAlign;
 
 	int m_mouseCaptureCount;
+	bool m_bTrackingMouse;
 
 	KeyDownFunc m_keyDownCallback;
 	void* m_pKeyDownUserData;
@@ -112,10 +144,10 @@ private:
 	void* m_pMouseDownUserData;
 	MouseUpFunc m_mouseUpCallback;
 	void* m_pMouseUpUserData;
-	MouseOverFunc m_mouseOverCallback;
-	void* m_pMouseOverUserData;
-	MouseOutFunc m_mouseOutCallback;
-	void* m_pMouseOutUserData;
+	MouseEnterFunc m_mouseEnterCallback;
+	void* m_pMouseEnterUserData;
+	MouseLeaveFunc m_mouseLeaveCallback;
+	void* m_pMouseLeaveUserData;
 };
 
 inline int Widget::GetX() const

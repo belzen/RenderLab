@@ -11,7 +11,7 @@ class FrameTimer;
 class RenderWindow : public WindowBase
 {
 public:
-	static RenderWindow* Create(int x, int y, int width, int height, const Widget* pParent);
+	static RenderWindow* Create(int x, int y, int width, int height, Scene* pScene, const Widget* pParent);
 
 	void Close();
 
@@ -20,24 +20,35 @@ public:
 	// Main thread updating/commands
 	void EarlyUpdate();
 	void Update();
-	void QueueDraw(Scene& rScene);
+	void QueueDraw();
 	void PostFrameSync();
 
 	// Render thread commands
 	void DrawFrame();
 
 private:
-	RenderWindow(int x, int y, int width, int height, const Widget* pParent);
+	RenderWindow(int x, int y, int width, int height, Scene* pScene, const Widget* pParent);
 
-	bool HandleResize(int newWidth, int newHeight);
-	bool HandleKeyDown(int key);
-	bool HandleKeyUp(int key);
-	bool HandleMouseDown(int button, int mx, int my);
-	bool HandleMouseUp(int button, int mx, int my);
-	bool HandleMouseMove(int mx, int my);
+	//////////////////////////////////////////////////////////////////////////
+	// Input event handling
+	bool OnResize(int newWidth, int newHeight);
+	bool OnKeyDown(int key);
+	bool OnKeyUp(int key);
+	bool OnChar(char c);
+	bool OnMouseDown(int button, int mx, int my);
+	bool OnMouseUp(int button, int mx, int my);
+	bool OnMouseMove(int mx, int my);
+	bool OnMouseEnter(int mx, int my);
+	bool OnMouseLeave();
+	void OnDragEnd(Widget* pDraggedWidget);
+	bool ShouldCaptureMouse() const;
 
+private:
 	InputManager m_inputManager;
 	CameraInputContext m_defaultInputContext;
 	Camera m_mainCamera;
 	Renderer m_renderer;
+	Scene* m_pScene;
+
+	WorldObject* m_pPlacingObject;
 };

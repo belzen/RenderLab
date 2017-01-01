@@ -95,6 +95,11 @@ void CameraInputContext::LostFocus()
 
 }
 
+void CameraInputContext::HandleChar(char c)
+{
+
+}
+
 void CameraInputContext::HandleKeyDown(int key, bool down)
 {
 

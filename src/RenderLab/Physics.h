@@ -26,4 +26,13 @@ namespace Physics
 	Quaternion GetActorOrientation(PhysicsActor* pActor);
 
 	void DestroyActor(PhysicsActor* pActor);
+
+	struct RaycastResult
+	{
+		PhysicsActor* pActor;
+		Vec3 position;
+		Vec3 normal;
+		float distance;
+	};
+	bool Raycast(const Vec3& position, const Vec3& direction, const float distance, RaycastResult* pResult);
 }
