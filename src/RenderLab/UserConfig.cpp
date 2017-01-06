@@ -15,6 +15,7 @@ void UserConfig::Load()
 	g_userConfig.debugDevice = false;
 	g_userConfig.debugShaders = false;
 	g_userConfig.attachRenderDoc = false;
+	g_userConfig.vsync = 0;
 
 	// Override settings if the User.config file exists.
 	Json::Value jRoot;
@@ -26,5 +27,7 @@ void UserConfig::Load()
 		g_userConfig.attachRenderDoc = jRoot.get("attachRenderDoc", g_userConfig.attachRenderDoc).asBool();
 		g_userConfig.debugDevice = jRoot.get("debugDevice", g_userConfig.debugDevice).asBool();
 		g_userConfig.debugShaders = jRoot.get("debugShaders", g_userConfig.debugShaders).asBool();
+
+		g_userConfig.vsync = jRoot.get("vsync", g_userConfig.vsync).asInt();
 	}
 }

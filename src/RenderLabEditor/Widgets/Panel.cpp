@@ -8,7 +8,7 @@ Panel* Panel::Create(const Widget& rParent, int x, int y, int width, int height)
 }
 
 Panel::Panel(const Widget& rParent, int x, int y, int width, int height)
-	: Widget(x, y, width, height, &rParent)
+	: Widget(x, y, width, height, &rParent, 0)
 {
 }
 

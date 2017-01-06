@@ -9,6 +9,7 @@ struct UserConfig
 	bool debugShaders;
 	bool debugDevice;
 	bool attachRenderDoc;
+	int vsync;
 
 	static void Load();
 };

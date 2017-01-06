@@ -33,6 +33,16 @@ void WorldObject::SetRigidBody(RigidBody* pRigidBody)
 	}
 }
 
+void WorldObject::SetModel(ModelInstance* pModel)
+{
+	if (m_pModel)
+	{
+		m_pModel->Release();
+	}
+
+	m_pModel = pModel;
+}
+
 void WorldObject::Release()
 {
 	m_pModel->Release();

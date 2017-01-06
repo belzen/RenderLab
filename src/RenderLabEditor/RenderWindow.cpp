@@ -5,17 +5,17 @@
 #include "render\RdrOffscreenTasks.h"
 #include "Physics.h"
 #include "WorldObject.h"
-#include "Scene.h"
+#include "ViewModels/SceneViewModel.h"
 #include "UI.h"
 
-RenderWindow* RenderWindow::Create(int x, int y, int width, int height, Scene* pScene, const Widget* pParent)
+RenderWindow* RenderWindow::Create(int x, int y, int width, int height, SceneViewModel* pSceneViewModel, const Widget* pParent)
 {
-	return new RenderWindow(x, y, width, height, pScene, pParent);
+	return new RenderWindow(x, y, width, height, pSceneViewModel, pParent);
 }
 
-RenderWindow::RenderWindow(int x, int y, int width, int height, Scene* pScene, const Widget* pParent)
+RenderWindow::RenderWindow(int x, int y, int width, int height, SceneViewModel* pSceneViewModel, const Widget* pParent)
 	: WindowBase(x, y, width, height, "Renderer", pParent)
-	, m_pScene(pScene)
+	, m_pSceneViewModel(pSceneViewModel)
 	, m_pPlacingObject(nullptr)
 {
 	m_renderer.Init(GetWindowHandle(), width, height, &m_inputManager);
@@ -96,7 +96,7 @@ bool RenderWindow::OnMouseEnter(int mx, int my)
 		{
 			m_pPlacingObject = WorldObject::Create("New Object", Vec3::kOrigin, Quaternion::kIdentity, Vec3::kOne);
 			m_pPlacingObject->SetModel(ModelInstance::Create(rDragData.data.assetName, nullptr, 0));
-			m_pScene->AddObject(m_pPlacingObject);
+			m_pSceneViewModel->AddObject(m_pPlacingObject);
 		}
 		else if (rDragData.type == WidgetDragDataType::kObjectAsset)
 		{
@@ -111,7 +111,7 @@ bool RenderWindow::OnMouseLeave()
 {
 	if (m_pPlacingObject)
 	{
-		m_pScene->RemoveObject(m_pPlacingObject);
+		m_pSceneViewModel->RemoveObject(m_pPlacingObject);
 		m_pPlacingObject->Release();
 		m_pPlacingObject = nullptr;
 	}
@@ -147,7 +147,7 @@ void RenderWindow::QueueDraw()
 	RdrOffscreenTasks::IssuePendingActions(m_renderer);
 
 	// Primary render action
-	m_renderer.BeginPrimaryAction(m_mainCamera, *m_pScene);
+	m_renderer.BeginPrimaryAction(m_mainCamera, *m_pSceneViewModel->GetScene());
 	{
 		Debug::QueueDraw(m_renderer, m_mainCamera);
 	}

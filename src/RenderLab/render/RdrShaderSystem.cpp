@@ -326,7 +326,7 @@ namespace
 			pRdrContext->ReleaseShader(pShader);
 		}
 
-		ID3D10Blob* pBlob = preprocessShader(pShader->filename, nullptr, 0); // todo2: Shader defines are missing
+		ID3D10Blob* pBlob = preprocessShader(pShader->filename, nullptr, 0); // todo: Shader defines are missing
 		if (pBlob)
 		{
 			uint textLen = (uint)pBlob->GetBufferSize();

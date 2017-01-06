@@ -9,7 +9,7 @@ ListView* ListView::Create(const Widget& rParent, int x, int y, int width, int h
 
 ListView::ListView(const Widget& rParent, int x, int y, int width, int height,
 	SelectionChangedFunc selectionChangedCallback, void* pUserData)
-	: Widget(x, y, width, height, &rParent, ListView::WndProc)
+	: Widget(x, y, width, height, &rParent, WS_BORDER, ListView::WndProc)
 	, m_selectedItem(-1)
 	, m_selectionChangedCallback(selectionChangedCallback)
 	, m_pUserData(pUserData)
@@ -34,7 +34,27 @@ void ListView::RemoveItem(uint index)
 		return;
 
 	m_items.erase(m_items.begin() + index);
-	//todo
+	ListView_DeleteItem(m_hListView, index);
+}
+
+void ListView::RemoveItem(void* pItemData)
+{
+	int i = 0;
+	for (auto iter = m_items.begin(); iter != m_items.end(); ++iter, ++i)
+	{
+		if (iter->pData == pItemData)
+		{
+			ListView_DeleteItem(m_hListView, i);
+			m_items.erase(iter);
+			break;
+		}
+	}
+}
+
+void ListView::ClearList()
+{
+	ListView_DeleteAllItems(m_hListView);
+	m_items.clear();
 }
 
 void ListView::SelectItem(uint index)

@@ -5,13 +5,13 @@
 #include "WindowBase.h"
 #include "render/Renderer.h"
 
-class Scene;
+class SceneViewModel;
 class FrameTimer;
 
 class RenderWindow : public WindowBase
 {
 public:
-	static RenderWindow* Create(int x, int y, int width, int height, Scene* pScene, const Widget* pParent);
+	static RenderWindow* Create(int x, int y, int width, int height, SceneViewModel* pSceneViewModel, const Widget* pParent);
 
 	void Close();
 
@@ -27,7 +27,7 @@ public:
 	void DrawFrame();
 
 private:
-	RenderWindow(int x, int y, int width, int height, Scene* pScene, const Widget* pParent);
+	RenderWindow(int x, int y, int width, int height, SceneViewModel* pSceneViewModel, const Widget* pParent);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Input event handling
@@ -48,7 +48,7 @@ private:
 	CameraInputContext m_defaultInputContext;
 	Camera m_mainCamera;
 	Renderer m_renderer;
-	Scene* m_pScene;
+	SceneViewModel* m_pSceneViewModel;
 
 	WorldObject* m_pPlacingObject;
 };

@@ -17,7 +17,7 @@ PropertyPanel* PropertyPanel::Create(const Widget& rParent, int x, int y, int wi
 }
 
 PropertyPanel::PropertyPanel(const Widget& rParent, int x, int y, int width, int height)
-	: Widget(x, y, width, height, &rParent)
+	: Widget(x, y, width, height, &rParent, WS_BORDER)
 	, m_pViewModel(nullptr)
 {
 }
@@ -42,7 +42,7 @@ void PropertyPanel::SetViewModel(IViewModel* pViewModel, bool freeOldViewModel)
 	const int kIndent = 10;
 	const int kRowHeight = 30;
 	const int kLabelWidth = 100;
-	int x = 0;
+	int x = 3;
 	int y = 0;
 	int i = 0;
 
@@ -66,7 +66,7 @@ void PropertyPanel::SetViewModel(IViewModel* pViewModel, bool freeOldViewModel)
 		m_childWidgets.push_back(pLabel);
 		x += kLabelWidth;
 
-		int controlWidth = GetWidth() - kLabelWidth;
+		int controlWidth = GetWidth() - x - kPadding;
 
 		if (typeId == BeginGroupPropertyDef::kTypeId)
 		{
@@ -147,7 +147,7 @@ void PropertyPanel::SetViewModel(IViewModel* pViewModel, bool freeOldViewModel)
 			const ModelPropertyDef* pModelDef = (const ModelPropertyDef*)pDef;
 			std::string str = pModelDef->GetValue(pViewModel);
 
-			AssetSelector* pSelector = AssetSelector::Create(*this, x, y, controlWidth, kRowHeight, pModelDef->GetChangedCallback(), pViewModel);
+			AssetSelector* pSelector = AssetSelector::Create(*this, x, y, controlWidth, kRowHeight, WidgetDragDataType::kModelAsset, pModelDef->GetChangedCallback(), pViewModel);
 			pSelector->SetValue(str, false);
 
 			m_childWidgets.push_back(pSelector);

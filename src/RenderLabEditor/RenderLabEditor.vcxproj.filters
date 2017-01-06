@@ -64,6 +64,7 @@
     <ClCompile Include="Widgets\Image.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
+    <ClCompile Include="IconLibrary.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainWindow.h" />
@@ -134,6 +135,7 @@
     <ClInclude Include="Widgets\WidgetDragData.h">
       <Filter>Widgets</Filter>
     </ClInclude>
+    <ClInclude Include="IconLibrary.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="ViewModels">

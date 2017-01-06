@@ -9,7 +9,7 @@ Button* Button::Create(const Widget& rParent, int x, int y, int width, int heigh
 
 Button::Button(const Widget& rParent, int x, int y, int width, int height, 
 	const char* text, ClickedFunc clickedCallback, void* pUserData)
-	: Widget(x, y, width, height, &rParent, Button::WndProc)
+	: Widget(x, y, width, height, &rParent, 0, Button::WndProc)
 {
 	// Create check box control
 	m_hButton = CreateChildWindow(GetWindowHandle(), "Button", 0, 0, width, height);

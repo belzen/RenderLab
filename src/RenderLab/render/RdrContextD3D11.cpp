@@ -1113,7 +1113,7 @@ void RdrContextD3D11::EndEvent()
 
 void RdrContextD3D11::Present()
 {
-	HRESULT hr = m_pSwapChain->Present(0, m_presentFlags);
+	HRESULT hr = m_pSwapChain->Present(g_userConfig.vsync, m_presentFlags);
 	if (hr == DXGI_STATUS_OCCLUDED)
 	{
 		// Window is no longer visible, most likely minimized.  

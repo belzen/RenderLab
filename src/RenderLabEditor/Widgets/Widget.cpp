@@ -19,7 +19,7 @@ namespace
 	}
 }
 
-Widget::Widget(int x, int y, int width, int height, const Widget* pParent, WNDPROC pWndProc)
+Widget::Widget(int x, int y, int width, int height, const Widget* pParent, DWORD style, WNDPROC pWndProc)
 	: m_x(x), m_y(y), m_width(width), m_height(height)
 {
 	static const char* kDefaultWidgetClassName = "WidgetContainer";
@@ -30,7 +30,7 @@ Widget::Widget(int x, int y, int width, int height, const Widget* pParent, WNDPR
 		bRegisteredClass = true;
 	}
 
-	InitCommon(pParent, kDefaultWidgetClassName);
+	InitCommon(pParent, kDefaultWidgetClassName, style);
 
 	HWND hParentWnd = pParent ? pParent->GetWindowHandle() : 0;
 	if (pWndProc)
@@ -39,22 +39,24 @@ Widget::Widget(int x, int y, int width, int height, const Widget* pParent, WNDPR
 	}
 }
 
-Widget::Widget(int x, int y, int width, int height, const Widget* pParent, const char* windowClassName)
+Widget::Widget(int x, int y, int width, int height, const Widget* pParent, DWORD style, const char* windowClassName)
 	: m_x(x), m_y(y), m_width(width), m_height(height)
 {
-	InitCommon(pParent, windowClassName);
+	InitCommon(pParent, windowClassName, style);
 }
 
-void Widget::InitCommon(const Widget* pParent, const char* windowClassName)
+void Widget::InitCommon(const Widget* pParent, const char* windowClassName, DWORD style)
 {
 	HWND hParentWnd = pParent ? pParent->GetWindowHandle() : 0;
-	m_hWidget = CreateChildWindow(hParentWnd, windowClassName, m_x, m_y, m_width, m_height, 0, 0);
+	m_hWidget = CreateChildWindow(hParentWnd, windowClassName, m_x, m_y, m_width, m_height, style, 0);
 
 	// Setup default drag data.
 	m_dragData.type = WidgetDragDataType::kNone;
 	m_dragData.pWidget = this;
 	m_dragData.data.pTypeless = nullptr;
 
+	m_borderSize = (style & WS_BORDER) ? 1 : 0;
+	m_scrollRate = 1;
 	m_mouseCaptureCount = 0;
 	m_bTrackingMouse = false;
 }
@@ -78,6 +80,65 @@ void Widget::SetDragData(WidgetDragDataType dataType, void* pData)
 {
 	m_dragData.type = dataType;
 	m_dragData.data.pTypeless = pData;
+}
+
+void Widget::SetStyle(DWORD style)
+{
+	m_windowStyle = style;
+	::SetWindowLongPtr(m_hWidget, GWL_STYLE, m_windowStyle);
+	::SetWindowPos(m_hWidget, 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+}
+
+void Widget::SetVisible(bool visible)
+{
+	if (visible)
+	{
+		SetStyle(m_windowStyle | WS_VISIBLE);
+	}
+	else
+	{
+		SetStyle(m_windowStyle & ~WS_VISIBLE);
+	}
+}
+
+void Widget::SetInputEnabled(bool enabled)
+{
+	if (enabled)
+	{
+		SetStyle(m_windowStyle & ~WS_DISABLED);
+	}
+	else
+	{
+		SetStyle(m_windowStyle | WS_DISABLED);
+	}
+}
+
+void Widget::SetBorder(bool enabled)
+{
+	if (enabled)
+	{
+		SetStyle(m_windowStyle | WS_BORDER);
+		m_borderSize = 1;
+	}
+	else
+	{
+		SetStyle(m_windowStyle & ~WS_BORDER);
+		m_borderSize = 0;
+	}
+}
+
+void Widget::SetScroll(int rangeMax, int scrollRate)
+{
+	m_scrollRate = scrollRate;
+
+	SCROLLINFO scrollInfo;
+	scrollInfo.cbSize = sizeof(scrollInfo);
+	scrollInfo.fMask = SIF_RANGE | SIF_PAGE;
+	scrollInfo.nMin = 0;
+	scrollInfo.nMax = rangeMax;
+	scrollInfo.nPage = 1;
+
+	::SetScrollInfo(m_hWidget, SB_VERT, &scrollInfo, true);
 }
 
 void Widget::SetKeyDownCallback(KeyDownFunc callback, void* pUserData)
@@ -134,11 +195,13 @@ HWND Widget::CreateChildWindow(const HWND hParentWnd, const char* className, int
 	RECT wr = { 0, 0, width, height };
 	::AdjustWindowRect(&wr, windowType, false);
 
+	m_windowStyle = windowType | style | WS_VISIBLE;
+
 	HWND hWnd = ::CreateWindowExA(
 		styleEx,
 		className,
 		0,
-		windowType | style | WS_VISIBLE,
+		m_windowStyle,
 		x, y, (wr.right - wr.left), (wr.bottom - wr.top),
 		hParentWnd,
 		NULL,
@@ -191,6 +254,18 @@ bool Widget::HandleKeyUp(int key)
 bool Widget::HandleChar(char c)
 {
 	return OnChar(c);
+}
+
+bool Widget::HandleMouseWheel(int delta)
+{
+	bool bHandled = false;
+	if (m_windowStyle & WS_VSCROLL)
+	{
+		::SendMessage(m_hWidget, WM_VSCROLL, ((delta < 0) ? SB_PAGEDOWN : SB_PAGEUP), NULL);
+		bHandled = true;
+	}
+
+	return OnMouseWheel(delta) || bHandled;
 }
 
 bool Widget::HandleMouseDown(int button, int mx, int my)
@@ -322,9 +397,12 @@ void Widget::CaptureMouse()
 
 void Widget::ReleaseMouse()
 {
-	--m_mouseCaptureCount;
-	if (m_mouseCaptureCount == 0)
-		::ReleaseCapture();
+	if (m_mouseCaptureCount > 0)
+	{
+		--m_mouseCaptureCount;
+		if (m_mouseCaptureCount == 0)
+			::ReleaseCapture();
+	}
 }
 
 LRESULT CALLBACK Widget::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -363,6 +441,9 @@ LRESULT CALLBACK Widget::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 				bHandled = pWidget->HandleMouseDoubleClick(button);
 			}
 			break;
+		case WM_MOUSEWHEEL:
+			bHandled = pWidget->HandleMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+			break;
 		case WM_CHAR:
 			bHandled = pWidget->HandleChar((char)wParam);
 			break;
@@ -373,8 +454,8 @@ LRESULT CALLBACK Widget::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 			bHandled = pWidget->HandleKeyUp((int)wParam);
 			break;
 		case WM_SIZE:
-			pWidget->m_width = LOWORD(lParam);
-			pWidget->m_height = HIWORD(lParam);
+			pWidget->m_width = LOWORD(lParam) + (pWidget->m_borderSize * 2);
+			pWidget->m_height = HIWORD(lParam) + (pWidget->m_borderSize * 2);
 			bHandled = pWidget->HandleResize(pWidget->GetWidth(), pWidget->GetHeight());
 			break;
 		case WM_CLOSE:
@@ -388,6 +469,56 @@ LRESULT CALLBACK Widget::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 		case WM_CAPTURECHANGED:
 			// Mouse capture has been canceled or changed externally.
 			UI::SetDraggedWidget(nullptr);
+			break;
+
+		case WM_VSCROLL:
+			{
+				SCROLLINFO scrollInfo;
+				scrollInfo.cbSize = sizeof(scrollInfo);
+				scrollInfo.fMask = SIF_ALL;
+				::GetScrollInfo(hWnd, SB_VERT, &scrollInfo);
+
+				int prevScrollPos = scrollInfo.nPos;
+				switch (LOWORD(wParam))
+				{
+				case SB_TOP:
+					scrollInfo.nPos = scrollInfo.nMin;
+					break;
+				case SB_BOTTOM:
+					scrollInfo.nPos = scrollInfo.nMax;
+					break;
+				case SB_LINEUP:
+					scrollInfo.nPos -= 1;
+					break;
+				case SB_LINEDOWN:
+					scrollInfo.nPos += 1;
+					break;
+				case SB_PAGEUP:
+					scrollInfo.nPos -= scrollInfo.nPage;
+					break;
+				case SB_PAGEDOWN:
+					scrollInfo.nPos += scrollInfo.nPage;
+					break;
+				case SB_THUMBTRACK:
+					scrollInfo.nPos = scrollInfo.nTrackPos;
+					break;
+				}
+
+				// Set and immediately get scroll position.
+				// Supposedly, Windows may alter the values (perhaps clamping the value to min/max?)
+				scrollInfo.fMask = SIF_POS;
+				::SetScrollInfo(hWnd, SB_VERT, &scrollInfo, true);
+				::GetScrollInfo(hWnd, SB_VERT, &scrollInfo);
+
+				// Scroll to the new position
+				if (scrollInfo.nPos != prevScrollPos)
+				{
+					::ScrollWindow(hWnd, 0, pWidget->m_scrollRate * (prevScrollPos - scrollInfo.nPos), NULL, NULL);
+					::UpdateWindow(hWnd);
+				}
+
+				bHandled = true;
+			}
 			break;
 		}
 

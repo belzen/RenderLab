@@ -94,7 +94,7 @@ void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 				}
 				else if (rTask.state == 6)
 				{
-					// todo2: pre-filter
+					// todo: pre-filter
 					++rTask.state;
 				}
 				else if (rTask.state == 7)
@@ -125,7 +125,7 @@ void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 				}
 				else if (rTask.state == 6)
 				{
-					// todo2: spherical harmonics
+					// todo: spherical harmonics
 					rTask.state++;
 				}
 				else if (rTask.state == 7)

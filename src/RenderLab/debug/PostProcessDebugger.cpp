@@ -43,7 +43,7 @@ void PostProcessDebugger::QueueDraw(Renderer& rRenderer)
 	Font::QueueDraw(rRenderer, uiPos, 20.f, str, Color::kWhite);
 
 	uiPos.y.val += 20.f;
-	sprintf_s(str, "Exposure: %f", log2f(dbgData.linearExposure));
+	sprintf_s(str, "Exposure: %f (%.4f EV)", dbgData.linearExposure, log2f(dbgData.linearExposure));
 	Font::QueueDraw(rRenderer, uiPos, 20.f, str, Color::kWhite);
 
 	uiPos.y.val += 20.f;

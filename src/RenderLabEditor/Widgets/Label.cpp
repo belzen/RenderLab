@@ -1,13 +1,13 @@
 #include "Precompiled.h"
 #include "Label.h"
 
-Label* Label::Create(const Widget& rParent, int x, int y, int width, int height, const char* text)
+Label* Label::Create(const Widget& rParent, int x, int y, int width, int height, const char* text, TextAlignment alignment)
 {
-	return new Label(rParent, x, y, width, height, text);
+	return new Label(rParent, x, y, width, height, text, alignment);
 }
 
-Label::Label(const Widget& rParent, int x, int y, int width, int height, const char* text)
-	: Widget(x, y, width, height, &rParent, "Static")
+Label::Label(const Widget& rParent, int x, int y, int width, int height, const char* text, TextAlignment alignment)
+	: Widget(x, y, width, height, &rParent, (DWORD)alignment, "Static")
 {
 	SetText(text);
 }

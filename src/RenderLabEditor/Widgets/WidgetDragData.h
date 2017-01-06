@@ -8,6 +8,10 @@ enum class WidgetDragDataType
 	kNone,
 	kModelAsset,
 	kObjectAsset,
+	kTextureAsset,
+	kMaterialAsset,
+	kPostProcessEffectsAsset,
+	kSkyAsset,
 };
 
 struct WidgetDragData

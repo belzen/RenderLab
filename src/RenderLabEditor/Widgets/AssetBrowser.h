@@ -1,8 +1,19 @@
 #pragma once
 #include "Widget.h"
+#include "IconLibrary.h"
 #include <vector>
 
-class Button;
+class Image;
+class Label;
+class Panel;
+
+struct AssetBrowserItem
+{
+	Panel* pPanel;
+	Image* pImage;
+	Label* pLabel;
+	bool isFolder;
+};
 
 class AssetBrowser : public Widget
 {
@@ -20,12 +31,13 @@ private:
 
 	virtual ~AssetBrowser();
 
-	void ClearWidgets();
-	void RepositionButtons();
+	void Clear();
+	void RepositionItems();
+	AssetBrowserItem* AddItem(const char* label, Icon icon);
 
 	static void OnPathItemDoubleClicked(Widget* pWidget, int button, void* pUserData);
 
 private:
-	std::vector<Widget*> m_widgets;
+	std::vector<AssetBrowserItem> m_items;
 	std::string m_dataFolder;
 };

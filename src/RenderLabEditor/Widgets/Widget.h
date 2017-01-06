@@ -41,6 +41,17 @@ public:
 	void SetDragData(WidgetDragDataType dataType, void* pData);
 	const WidgetDragData& GetDragData() const;
 
+	// Show/hide the widget.
+	void SetVisible(bool visible);
+
+	// Show/hide border
+	void SetBorder(bool enabled);
+
+	// Enable/disable user input on the widget.
+	void SetInputEnabled(bool enabled);
+
+	void SetScroll(int rangeMax, int scrollRate);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Input callbacks
 	typedef void(*KeyDownFunc)(Widget* pWidget, int key, void* pUserData);
@@ -70,11 +81,12 @@ public:
 protected:
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-	Widget(int x, int y, int width, int height, const Widget* pParent, WNDPROC pWndProc = Widget::WndProc);
-	Widget(int x, int y, int width, int height, const Widget* pParent, const char* windowClassName);
+	Widget(int x, int y, int width, int height, const Widget* pParent, DWORD style, WNDPROC pWndProc = Widget::WndProc);
+	Widget(int x, int y, int width, int height, const Widget* pParent, DWORD style, const char* windowClassName);
 	virtual ~Widget();
 
 	HWND CreateChildWindow(HWND hParentWnd, const char* className, int x, int y, int width, int height, DWORD style = 0, DWORD styleEx = 0);
+	void SetStyle(DWORD style);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Input event handling interface
@@ -83,6 +95,7 @@ protected:
 	virtual bool OnKeyDown(int key)							{ return false; }
 	virtual bool OnKeyUp(int key)							{ return false; }
 	virtual bool OnChar(char c)								{ return false; }
+	virtual bool OnMouseWheel(int delta)					{ return false; }
 	virtual bool OnMouseDown(int button, int mx, int my)	{ return false; }
 	virtual bool OnMouseUp(int button, int mx, int my)		{ return false; }
 	virtual bool OnMouseMove(int mx, int my)				{ return false; }
@@ -94,7 +107,7 @@ protected:
 	virtual bool OnClose()									{ return false; }
 
 private:
-	void InitCommon(const Widget* pParent, const char* windowClassName);
+	void InitCommon(const Widget* pParent, const char* windowClassName, DWORD style);
 	void CaptureMouse();
 	void ReleaseMouse();
 
@@ -105,6 +118,7 @@ private:
 	bool HandleKeyDown(int key);
 	bool HandleKeyUp(int key);
 	bool HandleChar(char c);
+	bool HandleMouseWheel(int delta);
 	bool HandleMouseDown(int button, int mx, int my);
 	bool HandleMouseUp(int button, int mx, int my);
 	bool HandleMouseMove(int mx, int my);
@@ -118,16 +132,20 @@ private:
 private:
 	WidgetDragData m_dragData;
 	HWND m_hWidget;
+	DWORD m_windowStyle;
 
 	int m_x;
 	int m_y;
 	int m_width;
 	int m_height;
+	int m_borderSize;
 
 	Units m_posUnits;
 	Units m_sizeUnits;
 	HAlign m_horizontalAlign;
 	VAlign m_verticalAlign;
+
+	int m_scrollRate;
 
 	int m_mouseCaptureCount;
 	bool m_bTrackingMouse;

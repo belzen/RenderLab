@@ -2,6 +2,8 @@
 
 #include "Widget.h"
 
+class ListView;
+
 struct ListViewItem
 {
 	uint64 typeId;
@@ -19,10 +21,12 @@ public:
 	template<typename ItemT>
 	void AddItem(const char* name, ItemT* pData);
 	void RemoveItem(uint index);
+	void RemoveItem(void* pItemData);
 
 	void SelectItem(uint index);
 	const ListViewItem* GetItem(uint index) const;
 
+	void ClearList();
 public:
 	ListView(const Widget& rParent, int x, int y, int width, int height,
 		SelectionChangedFunc selectionChangedCallback, void* pUserData);
@@ -36,10 +40,11 @@ public:
 	static LRESULT CALLBACK WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam);
 
 private:
-
 	std::vector<ListViewItem> m_items;
+
 	HWND m_hListView;
 	uint m_selectedItem;
+
 	SelectionChangedFunc m_selectionChangedCallback;
 	void* m_pUserData;
 };

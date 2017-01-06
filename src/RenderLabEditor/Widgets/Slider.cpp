@@ -10,7 +10,7 @@ Slider* Slider::Create(const Widget& rParent, int x, int y, int width, int heigh
 
 Slider::Slider(const Widget& rParent, int x, int y, int width, int height,
 	float minVal, float maxVal, float step, ChangedFunc changedCallback, void* pUserData)
-	: Widget(x, y, width, height, &rParent, Slider::WndProc)
+	: Widget(x, y, width, height, &rParent, 0, Slider::WndProc)
 	, m_changedCallback(changedCallback)
 	, m_pUserData(pUserData)
 	, m_minVal(minVal)

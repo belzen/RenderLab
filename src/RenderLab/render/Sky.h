@@ -36,6 +36,8 @@ public:
 	RdrConstantBufferHandle GetAtmosphereConstantBuffer() const;
 	RdrResourceHandle GetTransmittanceLut() const;
 
+	const AssetLib::Sky* GetSourceAsset() const;
+
 private:
 	void OnAssetReloaded(const AssetLib::Sky* pSkyAsset);
 

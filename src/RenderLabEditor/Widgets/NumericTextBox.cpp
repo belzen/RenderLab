@@ -10,7 +10,7 @@ NumericTextBox* NumericTextBox::Create(const Widget& rParent, int x, int y, int 
 
 NumericTextBox::NumericTextBox(const Widget& rParent, int x, int y, int width, int height,
 	ChangedFunc changedCallback, void* pUserData)
-	: Widget(x, y, width, height, &rParent, NumericTextBox::WndProc)
+	: Widget(x, y, width, height, &rParent, 0, NumericTextBox::WndProc)
 	, m_changedCallback(changedCallback)
 	, m_pUserData(pUserData)
 {

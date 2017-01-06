@@ -28,7 +28,7 @@ namespace
 		g_pRenderer->SetLightingMethod((RdrLightingMethod)args[0].val.inum);
 	}
 
-	// todo2 - move these to start at slot 0
+	// todo - move these to start at slot 0
 	enum class RdrPsResourceSlots
 	{
 		EnvironmentMaps = 11,

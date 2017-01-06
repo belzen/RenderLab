@@ -10,7 +10,7 @@ TextBox* TextBox::Create(const Widget& rParent, int x, int y, int width, int hei
 
 TextBox::TextBox(const Widget& rParent, int x, int y, int width, int height,
 	ChangedFunc changedCallback, void* pUserData)
-	: Widget(x, y, width, height, &rParent, TextBox::WndProc)
+	: Widget(x, y, width, height, &rParent, 0, TextBox::WndProc)
 	, m_changedCallback(changedCallback)
 	, m_pUserData(pUserData)
 {

@@ -1,25 +1,19 @@
 #pragma once
 
 #include "Widget.h"
-
-class Label;
+#include "IconLibrary.h"
 
 class Image : public Widget
 {
 public:
-	static Image* Create(const Widget& rParent, int x, int y, int width, int height, const char* text);
-
-	void SetText(const char* text);
-	const std::string& GetText() const;
+	static Image* Create(const Widget& rParent, int x, int y, int width, int height, Icon icon);
 
 private:
-	Image(const Widget& rParent, int x, int y, int width, int height, const char* text);
+	Image(const Widget& rParent, int x, int y, int width, int height, Icon icon);
 	Image(const Image&);
 
 	virtual ~Image();
 
 private:
-	Label* m_pLabel;
-	HANDLE m_hBitmap;
-	HWND m_hImageControl;
+	HBITMAP m_hBitmap;
 };

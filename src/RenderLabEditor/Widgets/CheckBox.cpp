@@ -10,7 +10,7 @@ CheckBox* CheckBox::Create(const Widget& rParent, int x, int y, int width, int h
 
 CheckBox::CheckBox(const Widget& rParent, int x, int y, int width, int height,
 	ToggledFunc toggledCallback, void* pUserData)
-	: Widget(x, y, width, height, &rParent, CheckBox::WndProc)
+	: Widget(x, y, width, height, &rParent, 0, CheckBox::WndProc)
 	, m_pUserData(pUserData)
 {
 	// Create check box control

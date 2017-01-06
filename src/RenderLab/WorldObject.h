@@ -56,13 +56,6 @@ inline const Matrix44 WorldObject::GetTransform() const
 	return Matrix44Transformation(Vec3::kOrigin, Quaternion::kIdentity, m_scale, Vec3::kOrigin, m_orientation, m_position);
 }
 
-inline void WorldObject::SetModel(ModelInstance* pModel)
-{
-	assert(!m_pModel);
-	m_pModel = pModel; 
-	// todo: destroy old model
-}
-
 inline const ModelInstance* WorldObject::GetModel() const
 { 
 	return m_pModel; 

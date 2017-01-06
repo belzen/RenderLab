@@ -24,6 +24,18 @@ namespace
 		PropertyPanel* pPropertyPanel = static_cast<PropertyPanel*>(pUserData);
 		pPropertyPanel->SetViewModel(IViewModel::Create(pItem->typeId, pItem->pData), true);
 	}
+
+	void sceneObjectAdded(WorldObject* pObject, void* pUserData)
+	{
+		ListView* pListView = static_cast<ListView*>(pUserData);
+		pListView->AddItem(pObject->GetName(), pObject);
+	}
+
+	void sceneObjectRemoved(WorldObject* pObject, void* pUserData)
+	{
+		ListView* pListView = static_cast<ListView*>(pUserData);
+		pListView->RemoveItem(pObject);
+	}
 }
 
 MainWindow* MainWindow::Create(int width, int height, const char* title)
@@ -45,7 +57,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	icex.dwICC = ICC_LISTVIEW_CLASSES;
 	::InitCommonControlsEx(&icex);
 	
-	m_sceneViewModel.Init(&m_scene, SceneObjectAdded, this);
+	m_sceneViewModel.Init(&m_scene);
 
 	m_fileMenu.Init();
 	m_fileMenu.AddItem("Exit", [](void* pUserData) {
@@ -104,7 +116,7 @@ int MainWindow::Run()
 
 	int renderWindowWidth = GetWidth() - kDefaultPanelWidth;
 	int renderWindowHeight = GetHeight() - kDefaultBrowserHeight;
-	m_pRenderWindow = RenderWindow::Create(0, 0, renderWindowWidth, renderWindowHeight, &m_scene, this);
+	m_pRenderWindow = RenderWindow::Create(0, 0, renderWindowWidth, renderWindowHeight, &m_sceneViewModel, this);
 
 	Debug::Init();
 	Physics::Init();
@@ -115,26 +127,12 @@ int MainWindow::Run()
 
 	// Finish editor setup.
 	m_pPropertyPanel = PropertyPanel::Create(*this, renderWindowWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);
-	m_pSceneListView = ListView::Create(*this, renderWindowWidth, 0, kDefaultPanelWidth, GetHeight() / 2, sceneListViewSelectionChanged, m_pPropertyPanel);
-	
 	m_pAssetBrowser = AssetBrowser::Create(*this, 0, renderWindowHeight, renderWindowWidth, kDefaultBrowserHeight);
 
-	// Fill out the scene list view
-	{
-		AssetLib::Sky* pSky = AssetLibrary<AssetLib::Sky>::LoadAsset("cloudy");
-		m_pSceneListView->AddItem("Sky", pSky);
-
-		AssetLib::PostProcessEffects* pEffects = AssetLibrary<AssetLib::PostProcessEffects>::LoadAsset(m_scene.GetPostProcEffects()->GetEffectsAsset()->assetName);
-		m_pSceneListView->AddItem("Post-Processing Effects", pEffects);
-
-		WorldObjectList& sceneObjects = m_scene.GetWorldObjects();
-		for (WorldObject* pObject : sceneObjects)
-		{
-			m_pSceneListView->AddItem(pObject->GetName(), pObject);
-		}
-
-		m_pSceneListView->SelectItem(0);
-	}
+	m_pSceneListView = ListView::Create(*this, renderWindowWidth, 0, kDefaultPanelWidth, GetHeight() / 2, sceneListViewSelectionChanged, m_pPropertyPanel);
+	m_sceneViewModel.PopulateListView(m_pSceneListView);
+	m_sceneViewModel.SetObjectAddedCallback(sceneObjectAdded, m_pSceneListView);
+	m_sceneViewModel.SetObjectRemovedCallback(sceneObjectRemoved, m_pSceneListView);
 
 	Timer::Handle hTimer = Timer::Create();
 
@@ -196,10 +194,4 @@ void MainWindow::RenderThreadMain(MainWindow* pWindow)
 		::SetEvent(pWindow->m_hRenderFrameDoneEvent);
 		::WaitForSingleObject(pWindow->m_hFrameDoneEvent, INFINITE);
 	}
-}
-
-void MainWindow::SceneObjectAdded(WorldObject* pObject, void* pUserData)
-{
-	MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
-	pWindow->m_pSceneListView->AddItem(pObject->GetName(), pObject);
 }

@@ -4,7 +4,7 @@
 
 
 WindowBase::WindowBase(int x, int y, int width, int height, const char* title, const Widget* pParent)
-	: Widget(x, y, width, height, pParent, WindowBase::WndProc)
+	: Widget(x, y, width, height, pParent, 0, WindowBase::WndProc)
 {
 	::SetWindowTextA(GetWindowHandle(), title);
 	::ShowWindow(GetWindowHandle(), 1);

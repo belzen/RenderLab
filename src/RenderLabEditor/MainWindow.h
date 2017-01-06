@@ -26,7 +26,6 @@ private:
 
 private:
 	static void RenderThreadMain(MainWindow* pWindow);
-	static void SceneObjectAdded(WorldObject* pObject, void* pUserData);
 
 private:
 	Scene m_scene;

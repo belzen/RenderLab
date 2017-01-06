@@ -414,3 +414,8 @@ const AssetLib::VolumetricFogSettings& Sky::GetVolFogSettings() const
 {
 	return m_pSrcAsset->volumetricFog;
 }
+
+const AssetLib::Sky* Sky::GetSourceAsset() const
+{
+	return m_pSrcAsset;
+}

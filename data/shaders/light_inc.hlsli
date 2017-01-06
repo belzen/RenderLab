@@ -83,7 +83,7 @@ uint getClusterId(in float2 screenPos, in float depth)
 	uint clusterZ = 0;
 	float maxDepth = CLUSTEREDLIGHTING_SPECIAL_NEAR_DEPTH;
 
-	// TODO2: This is terrible.  Clustered depth slice needs to be resolvable without a loop.
+	// TODO: This is terrible.  Clustered depth slice needs to be resolvable without a loop.
 	[unroll]
 	while (clusterZ < CLUSTEREDLIGHTING_DEPTH_SLICES && depth > maxDepth)
 	{

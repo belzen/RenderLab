@@ -2,9 +2,14 @@
 #include "AssetBrowser.h"
 #include "UtilsLib/Util.h"
 #include "AssetLib/ModelAsset.h"
+#include "AssetLib/TextureAsset.h"
+#include "AssetLib/MaterialAsset.h"
+#include "AssetLib/PostProcessEffectsAsset.h"
+#include "AssetLib/SkyAsset.h"
 #include "Label.h"
 #include "Button.h"
 #include "Image.h"
+#include "Panel.h"
 #include <shobjidl.h>
 #include "UtilsLib\Paths.h"
 #include "UtilsLib\StringCache.h"
@@ -15,42 +20,55 @@ AssetBrowser* AssetBrowser::Create(const Widget& rParent, int x, int y, int widt
 }
 
 AssetBrowser::AssetBrowser(const Widget& rParent, int x, int y, int width, int height)
-	:Widget(x, y, width, height, &rParent)
+	: Widget(x, y, width, height, &rParent, WS_BORDER | WS_VSCROLL)
 {
 	SetDataFolder("");
 }
 
 AssetBrowser::~AssetBrowser()
 {
-	ClearWidgets();
+	Clear();
 }
 
-void AssetBrowser::ClearWidgets()
+void AssetBrowser::Clear()
 {
-	for (Widget* pWidget : m_widgets)
+	for (AssetBrowserItem& rItem : m_items)
 	{
-		pWidget->Release();
+		rItem.pLabel->Release();
+		rItem.pImage->Release();
+		rItem.pPanel->Release();
 	}
-	m_widgets.clear();
+	m_items.clear();
 }
 
-void AssetBrowser::RepositionButtons()
+void AssetBrowser::RepositionItems()
 {
 	const int kPadding = 5;
 	int x = kPadding;
 	int y = kPadding;
 	int w = GetWidth();
-	for (Widget* pWidget : m_widgets)
+	int numRows = 0;
+	for (AssetBrowserItem& rItem : m_items)
 	{
-		int bw = pWidget->GetWidth();
+		int bw = rItem.pPanel->GetWidth();
 		if (x + bw > w - kPadding)
 		{
 			x = kPadding;
-			y += pWidget->GetHeight();
+			y += kPadding + rItem.pPanel->GetHeight();
+			++numRows;
 		}
 
-		pWidget->SetPosition(x, y);
-		x += pWidget->GetWidth() + kPadding;
+		rItem.pPanel->SetPosition(x, y);
+		x += rItem.pPanel->GetWidth() + kPadding;
+	}
+
+	if (m_items.empty())
+	{
+		SetScroll(0, 0);
+	}
+	else
+	{
+		SetScroll(numRows, m_items.front().pPanel->GetHeight() + kPadding);
 	}
 }
 
@@ -61,9 +79,18 @@ void AssetBrowser::OnPathItemDoubleClicked(Widget* pWidget, int button, void* pU
 
 	// Update asset browser path to the selected folder.
 	AssetBrowser* pBrowser = static_cast<AssetBrowser*>(pUserData);
-	Image* pImage = static_cast<Image*>(pWidget);
+	AssetBrowserItem* pItem = nullptr;
 
-	const std::string& subFolder = pImage->GetText();
+	for (AssetBrowserItem& rItem : pBrowser->m_items)
+	{
+		if (rItem.pPanel == pWidget)
+		{
+			pItem = &rItem;
+			break;
+		}
+	}
+
+	const std::string& subFolder = pItem->pLabel->GetText();
 	std::string newFolder = pBrowser->m_dataFolder;
 
 	if (_stricmp(subFolder.c_str(), "..") == 0)
@@ -79,9 +106,41 @@ void AssetBrowser::OnPathItemDoubleClicked(Widget* pWidget, int button, void* pU
 	pBrowser->SetDataFolder(newFolder);
 }
 
+AssetBrowserItem* AssetBrowser::AddItem(const char* label, Icon icon)
+{
+	const uint kImageWidth = 100;
+	const uint kImageHeight = 80;
+
+	AssetBrowserItem item = { 0 };
+	item.pPanel = Panel::Create(*this, 0, 0, kImageWidth, kImageHeight + 20);
+	item.pPanel->SetBorder(true);
+	item.pImage = Image::Create(*item.pPanel, 0, 0, kImageWidth, kImageHeight, icon);
+	item.pImage->SetInputEnabled(false);
+	item.pLabel = Label::Create(*item.pPanel, 0, kImageHeight, kImageWidth, 20, label, TextAlignment::kCenter);
+
+	if (icon == Icon::kFolder)
+	{
+		item.isFolder = true;
+
+		// Insert item at the end of the folder list.
+		auto iter = m_items.begin();
+		while (iter != m_items.end() && iter->isFolder)
+		{
+			++iter;
+		}
+		iter = m_items.insert(iter, item);
+		return &(*iter);
+	}
+	else
+	{
+		m_items.push_back(item);
+		return &m_items.back();
+	}
+}
+
 void AssetBrowser::SetDataFolder(const std::string& dataFolder)
 {
-	ClearWidgets();
+	Clear();
 
 	m_dataFolder = dataFolder;
 	if (!m_dataFolder.empty() && m_dataFolder.back() != '\\')
@@ -94,36 +153,72 @@ void AssetBrowser::SetDataFolder(const std::string& dataFolder)
 		[](const char* filename, bool isDirectory, void* pUserData)
 		{
 			AssetBrowser* pBrowser = static_cast<AssetBrowser*>(pUserData);
-			const uint kButtonSize = 75;
 			if (isDirectory)
 			{
 				if (_stricmp(filename, ".") == 0 ||
 					(_stricmp(filename, "..") == 0 && pBrowser->m_dataFolder.empty()))
 				{
 					// Ignore directory '.' which is the current directory.
-					// Ignore "up one directory" entry if this is the root data directory.
+					// Ignore "up one directory" (..) entry if this is the root data directory.
 					return;
 				}
 
-				Image* pImage = Image::Create(*pBrowser, 0, 0, kButtonSize, kButtonSize, filename);
-				pImage->SetMouseDoubleClickedCallback(AssetBrowser::OnPathItemDoubleClicked, pBrowser);
-				pBrowser->m_widgets.push_back(pImage);
+				AssetBrowserItem* pItem = pBrowser->AddItem(filename, Icon::kFolder);
+				pItem->pPanel->SetMouseDoubleClickedCallback(AssetBrowser::OnPathItemDoubleClicked, pBrowser);
 			}
 			else
 			{
-				Image* pImage = Image::Create(*pBrowser, 0, 0, kButtonSize, kButtonSize, filename);
 				const char* ext = Paths::GetExtension(filename);
+				Icon icon;
+				WidgetDragDataType dragType;
+				AssetLib::AssetDef* pAssetDef = nullptr;
+
+				// TODO: Generate thumbnails for assets instead of common icon
 				if (_stricmp(ext, AssetLib::Model::GetAssetDef().GetExt()) == 0)
 				{
+					pAssetDef = &AssetLib::Model::GetAssetDef();
+					icon = Icon::kModel;
+					dragType = WidgetDragDataType::kModelAsset;
+				}
+				else if (_stricmp(ext, AssetLib::Texture::GetAssetDef().GetExt()) == 0)
+				{
+					pAssetDef = &AssetLib::Texture::GetAssetDef();
+					icon = Icon::kTexture;
+					dragType = WidgetDragDataType::kTextureAsset;
+				}
+				else if (_stricmp(ext, AssetLib::Material::GetAssetDef().GetExt()) == 0)
+				{
+					pAssetDef = &AssetLib::Material::GetAssetDef();
+					icon = Icon::kMaterial;
+					dragType = WidgetDragDataType::kMaterialAsset;
+				}
+				else if (_stricmp(ext, AssetLib::PostProcessEffects::GetAssetDef().GetExt()) == 0)
+				{
+					pAssetDef = &AssetLib::PostProcessEffects::GetAssetDef();
+					icon = Icon::kPostProcessEffects;
+					dragType = WidgetDragDataType::kPostProcessEffectsAsset;
+				}
+				else if (_stricmp(ext, AssetLib::Sky::GetAssetDef().GetExt()) == 0)
+				{
+					pAssetDef = &AssetLib::Sky::GetAssetDef();
+					icon = Icon::kSky;
+					dragType = WidgetDragDataType::kSkyAsset;
+				}
+
+				if (pAssetDef)
+				{
+					char filenameNoExt[MAX_PATH];
+					Paths::GetFilenameNoExtension(filename, filenameNoExt, ARRAY_SIZE(filenameNoExt));
+					AssetBrowserItem* pItem = pBrowser->AddItem(filenameNoExt, icon);
+
 					std::string assetPath = pBrowser->m_dataFolder + filename;
 					char assetName[AssetLib::AssetDef::kMaxNameLen];
-					AssetLib::Model::GetAssetDef().ExtractAssetName(assetPath.c_str(), assetName, ARRAY_SIZE(assetName));
-					pImage->SetDragData(WidgetDragDataType::kModelAsset, (void*)CachedString(assetName).getString());
+					pAssetDef->ExtractAssetName(assetPath.c_str(), assetName, ARRAY_SIZE(assetName));
+					pItem->pPanel->SetDragData(dragType, (void*)CachedString(assetName).getString());
 				}
-				pBrowser->m_widgets.push_back(pImage);
 			}
 		}, 
 		this);
 
-	RepositionButtons();
+	RepositionItems();
 }
