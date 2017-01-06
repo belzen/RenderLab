@@ -97,6 +97,7 @@ struct RdrConstantBuffer
 {
 	RdrUnorderedAccessView uav;
 	RdrConstantBufferDeviceObj bufferObj;
+	RdrCpuAccessFlags cpuAccessFlags;
 	uint size;
 };
 

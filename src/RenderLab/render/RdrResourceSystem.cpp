@@ -541,8 +541,12 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 			CmdReleaseConstantBuffer& cmd = m_constantBufferReleases[i];
 			RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
 
+			// Return the buffer to a pool if there is room and the buffer is CPU writable.
+			// If it can't be written to from the CPU, then we can't ever update it.
 			uint poolIndex = pBuffer->size / sizeof(Vec4);
-			if (poolIndex < kNumConstantBufferPools && s_resourceSystem.constantBufferPools[poolIndex].bufferCount < kMaxConstantBuffersPerPool)
+			if (poolIndex < kNumConstantBufferPools 
+				&& s_resourceSystem.constantBufferPools[poolIndex].bufferCount < kMaxConstantBuffersPerPool
+				&& (int)(pBuffer->cpuAccessFlags & RdrCpuAccessFlags::Write) != 0)
 			{
 				ConstantBufferPool& rPool = s_resourceSystem.constantBufferPools[poolIndex];
 				rPool.aBuffers[rPool.bufferCount] = *pBuffer;
@@ -682,8 +686,12 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 		CmdCreateConstantBuffer& cmd = m_constantBufferCreates[i];
 		RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
 
+		// Use a pooled constant buffer if there are some available and this buffer needs CPU write access
+		// Only CPU writable buffers are pooled because immutable/GPU buffers are rare and can benefit from not using the dynamic flags.
 		uint poolIndex = cmd.size / sizeof(Vec4);
-		if (poolIndex < kNumConstantBufferPools && s_resourceSystem.constantBufferPools[poolIndex].bufferCount > 0)
+		if (poolIndex < kNumConstantBufferPools 
+			&& s_resourceSystem.constantBufferPools[poolIndex].bufferCount > 0
+			&& ((int)(cmd.cpuAccessFlags & RdrCpuAccessFlags::Write) != 0))
 		{
 			ConstantBufferPool& rPool = s_resourceSystem.constantBufferPools[poolIndex];
 			*pBuffer = rPool.aBuffers[--rPool.bufferCount];
@@ -693,6 +701,7 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 		{
 			pBuffer->bufferObj = pRdrContext->CreateConstantBuffer(cmd.pData, cmd.size, cmd.cpuAccessFlags, cmd.eUsage);
 			pBuffer->size = cmd.size;
+			pBuffer->cpuAccessFlags = cmd.cpuAccessFlags;
 		}
 	}
 
