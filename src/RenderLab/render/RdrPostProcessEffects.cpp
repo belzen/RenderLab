@@ -14,11 +14,6 @@ RdrPostProcessEffects::RdrPostProcessEffects()
 void RdrPostProcessEffects::Init(const AssetLib::PostProcessEffects* pEffects)
 {
 	m_pEffects = pEffects;
-	if (m_hToneMapInputConstants)
-	{
-		g_pRenderer->GetPreFrameCommandList().ReleaseConstantBuffer(m_hToneMapInputConstants);
-		m_hToneMapInputConstants = 0;
-	}
 }
 
 void RdrPostProcessEffects::PrepareDraw()

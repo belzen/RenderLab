@@ -144,8 +144,9 @@ void Scene::Update()
 {
 	if (m_reloadPending)
 	{
+		CachedString sceneName = m_sceneName;
 		Cleanup();
-		Load(m_sceneName.getString());
+		Load(sceneName.getString());
 		m_reloadPending = false;
 	}
 

@@ -18,7 +18,6 @@ public:
 private:
 	RdrConstantBufferHandle m_hToneMapInputConstants;
 	const AssetLib::PostProcessEffects* m_pEffects;
-	uint m_updateTime;
 };
 
 inline RdrConstantBufferHandle RdrPostProcessEffects::GetToneMapInputConstants() const

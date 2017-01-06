@@ -72,8 +72,10 @@ void SHA1::Calculate(char* pData, uint dataSize, SHA1& rOutHash)
 StringHash Hashing::HashString(const char* str)
 {
 	uint hash = 0;
-	uint c;
+	if (!str)
+		return hash;
 
+	uint c;
 	while (c = *str++)
 		hash = c + (hash << 6) + (hash << 16) - hash;
 

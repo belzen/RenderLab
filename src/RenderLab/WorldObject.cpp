@@ -45,7 +45,18 @@ void WorldObject::SetModel(ModelInstance* pModel)
 
 void WorldObject::Release()
 {
-	m_pModel->Release();
+	if (m_pRigidBody)
+	{
+		m_pRigidBody->Release();
+		m_pRigidBody = nullptr;
+	}
+
+	if (m_pModel)
+	{
+		m_pModel->Release();
+		m_pModel = nullptr;
+	}
+
 	s_worldObjects.releaseSafe(this);
 }
 
