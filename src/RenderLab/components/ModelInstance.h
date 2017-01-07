@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ObjectComponent.h"
 #include "AssetLib\AssetLibForwardDecl.h"
 #include "render/RdrResource.h"
 #include "render/RdrShaders.h"
@@ -10,12 +11,15 @@ class RdrDrawBuckets;
 class ModelInstance;
 typedef FreeList<ModelInstance, 6 * 1024> ModelInstanceFreeList;
 
-class ModelInstance
+class ModelInstance : public ObjectComponent
 {
 public:
 	static ModelInstance* Create(const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps);
 
 	void Release();
+
+	void OnAttached(WorldObject* pObject);
+	void OnDetached(WorldObject* pObject);
 
 	void QueueDraw(RdrDrawBuckets* pDrawBuckets, const Matrix44& mtxWorld, bool transformChanged);
 

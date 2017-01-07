@@ -8,6 +8,11 @@
 class SceneViewModel;
 class FrameTimer;
 
+namespace Physics
+{
+	struct RaycastResult;
+}
+
 class RenderWindow : public WindowBase
 {
 public:
@@ -26,6 +31,10 @@ public:
 	// Render thread commands
 	void DrawFrame();
 
+	// 
+	typedef void (*ObjectSelectedFunc)(WorldObject* pObject, void* pUserData);
+	void SetObjectSelectedCallback(ObjectSelectedFunc selectedCallback, void* pUserData);
+
 private:
 	RenderWindow(int x, int y, int width, int height, SceneViewModel* pSceneViewModel, const Widget* pParent);
 
@@ -43,6 +52,8 @@ private:
 	void OnDragEnd(Widget* pDraggedWidget);
 	bool ShouldCaptureMouse() const;
 
+	bool RaycastAtCursor(int mx, int my, Physics::RaycastResult* pResult);
+
 private:
 	InputManager m_inputManager;
 	CameraInputContext m_defaultInputContext;
@@ -51,4 +62,7 @@ private:
 	SceneViewModel* m_pSceneViewModel;
 
 	WorldObject* m_pPlacingObject;
+
+	ObjectSelectedFunc m_objectSelectedCallback;
+	void* m_pObjectSelectedUserData;
 };

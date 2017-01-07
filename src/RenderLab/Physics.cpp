@@ -124,6 +124,16 @@ void Physics::AddToScene(PhysicsActor* pActor, const Vec3& position, const Quate
 	s_physics.pScene->addActor(*pActor);
 }
 
+void Physics::SetActorUserData(PhysicsActor* pActor, void* pUserData)
+{
+	pActor->userData = pUserData;
+}
+
+void* Physics::GetActorUserData(PhysicsActor* pActor)
+{
+	return pActor->userData;
+}
+
 Vec3 Physics::GetActorPosition(PhysicsActor* pActor)
 {
 	const PxVec3& p = pActor->getGlobalPose().p;

@@ -1,6 +1,7 @@
 #include "Precompiled.h"
 #include "RigidBody.h"
 #include "Physics.h"
+#include "WorldObject.h"
 
 namespace
 {
@@ -28,9 +29,15 @@ RigidBody* RigidBody::CreateSphere(const float radius, const float density, cons
 	return pRigidBody;
 }
 
-void RigidBody::AddToScene(const Vec3& position, const Quaternion& orientation)
+void RigidBody::OnAttached(WorldObject* pObject)
 {
-	Physics::AddToScene(m_pActor, position, orientation);
+	Physics::SetActorUserData(m_pActor, pObject);
+	Physics::AddToScene(m_pActor, pObject->GetPosition(), pObject->GetOrientation());
+}
+
+void RigidBody::OnDetached(WorldObject* pObject)
+{
+	Physics::SetActorUserData(m_pActor, nullptr);
 }
 
 void RigidBody::Release()

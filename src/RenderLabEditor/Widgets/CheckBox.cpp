@@ -20,12 +20,12 @@ CheckBox::CheckBox(const Widget& rParent, int x, int y, int width, int height,
 
 CheckBox::~CheckBox()
 {
-	DestroyWindow(m_hCheckBox);
+	::DestroyWindow(m_hCheckBox);
 }
 
 void CheckBox::SetValue(const bool val, bool triggerCallback)
 {
-	CheckDlgButton(GetWindowHandle(), 0, val ? BST_CHECKED : BST_UNCHECKED);
+	::CheckDlgButton(GetWindowHandle(), 0, val ? BST_CHECKED : BST_UNCHECKED);
 
 	if (triggerCallback && m_toggledCallback)
 	{
@@ -39,10 +39,10 @@ LRESULT CALLBACK CheckBox::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 	{
 	case WM_COMMAND:
 		CheckBox* pCheckBox = (CheckBox*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
-		uint checkedState = IsDlgButtonChecked(pCheckBox->GetWindowHandle(), 0);
+		uint checkedState = ::IsDlgButtonChecked(pCheckBox->GetWindowHandle(), 0);
 		pCheckBox->SetValue(checkedState != BST_CHECKED, true);
 		break;
 	}
 
-	return DefWindowProc(hWnd, msg, wParam, lParam);
+	return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }

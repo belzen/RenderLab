@@ -23,24 +23,28 @@ WorldObject* WorldObject::Create(const char* name, Vec3 pos, Quaternion orientat
 	return pObject;
 }
 
-void WorldObject::SetRigidBody(RigidBody* pRigidBody)
+void WorldObject::AttachRigidBody(RigidBody* pRigidBody)
 {
-	assert(!m_pRigidBody);
-	m_pRigidBody = pRigidBody;
 	if (m_pRigidBody)
 	{
-		m_pRigidBody->AddToScene(m_position, m_orientation);
+		m_pRigidBody->OnDetached(this);
+		m_pRigidBody->Release();
 	}
+
+	m_pRigidBody = pRigidBody;
+	m_pRigidBody->OnAttached(this);
 }
 
-void WorldObject::SetModel(ModelInstance* pModel)
+void WorldObject::AttachModel(ModelInstance* pModel)
 {
 	if (m_pModel)
 	{
+		m_pModel->OnDetached(this);
 		m_pModel->Release();
 	}
 
 	m_pModel = pModel;
+	m_pModel->OnAttached(this);
 }
 
 void WorldObject::Release()

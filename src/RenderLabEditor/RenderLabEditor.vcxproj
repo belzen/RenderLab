@@ -213,6 +213,7 @@
     <ClCompile Include="Widgets\PropertyPanel.cpp" />
     <ClCompile Include="Widgets\Slider.cpp" />
     <ClCompile Include="Widgets\TextBox.cpp" />
+    <ClCompile Include="Widgets\TreeView.cpp" />
     <ClCompile Include="Widgets\Widget.cpp" />
     <ClCompile Include="WindowBase.cpp" />
   </ItemGroup>
@@ -242,6 +243,7 @@
     <ClInclude Include="Widgets\PropertyPanel.h" />
     <ClInclude Include="Widgets\Slider.h" />
     <ClInclude Include="Widgets\TextBox.h" />
+    <ClInclude Include="Widgets\TreeView.h" />
     <ClInclude Include="Widgets\Widget.h" />
     <ClInclude Include="Widgets\WidgetDragData.h" />
     <ClInclude Include="WindowBase.h" />

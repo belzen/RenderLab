@@ -23,6 +23,12 @@ RenderWindow::RenderWindow(int x, int y, int width, int height, SceneViewModel* 
 	m_inputManager.PushContext(&m_defaultInputContext);
 }
 
+void RenderWindow::SetObjectSelectedCallback(ObjectSelectedFunc selectedCallback, void* pUserData)
+{
+	m_objectSelectedCallback = selectedCallback;
+	m_pObjectSelectedUserData = pUserData;
+}
+
 void RenderWindow::Close()
 {
 	m_renderer.Cleanup();
@@ -56,6 +62,14 @@ bool RenderWindow::OnChar(char c)
 bool RenderWindow::OnMouseDown(int button, int mx, int my)
 {
 	m_inputManager.SetMouseDown(button, true, mx, my);
+
+	Physics::RaycastResult res;
+	if (m_objectSelectedCallback && RaycastAtCursor(mx, my, &res) && res.pActor)
+	{
+		WorldObject* pObject = static_cast<WorldObject*>(Physics::GetActorUserData(res.pActor));
+		m_objectSelectedCallback(pObject, m_pObjectSelectedUserData);
+	}
+
 	return true;
 }
 
@@ -70,9 +84,8 @@ bool RenderWindow::OnMouseMove(int mx, int my)
 	if (m_pPlacingObject)
 	{
 		// Update placing object's position.
-		Vec3 rayDir = m_mainCamera.CalcRayDirection(mx / (float)GetWidth(), my / (float)GetHeight());
 		Physics::RaycastResult res;
-		if (Physics::Raycast(m_mainCamera.GetPosition(), rayDir, 50000.f, &res))
+		if (RaycastAtCursor(mx, my, &res))
 		{
 			m_pPlacingObject->SetPosition(res.position);
 		}
@@ -95,7 +108,7 @@ bool RenderWindow::OnMouseEnter(int mx, int my)
 		if (rDragData.type == WidgetDragDataType::kModelAsset)
 		{
 			m_pPlacingObject = WorldObject::Create("New Object", Vec3::kOrigin, Quaternion::kIdentity, Vec3::kOne);
-			m_pPlacingObject->SetModel(ModelInstance::Create(rDragData.data.assetName, nullptr, 0));
+			m_pPlacingObject->AttachModel(ModelInstance::Create(rDragData.data.assetName, nullptr, 0));
 			m_pSceneViewModel->AddObject(m_pPlacingObject);
 		}
 		else if (rDragData.type == WidgetDragDataType::kObjectAsset)
@@ -127,6 +140,12 @@ void RenderWindow::OnDragEnd(Widget* pDraggedWidget)
 bool RenderWindow::ShouldCaptureMouse() const
 {
 	return true;
+}
+
+bool RenderWindow::RaycastAtCursor(int mx, int my, Physics::RaycastResult* pResult)
+{
+	Vec3 rayDir = m_mainCamera.CalcRayDirection(mx / (float)GetWidth(), my / (float)GetHeight());
+	return Physics::Raycast(m_mainCamera.GetPosition(), rayDir, 50000.f, pResult);
 }
 
 void RenderWindow::EarlyUpdate()

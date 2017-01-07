@@ -58,6 +58,14 @@ void ModelInstance::Release()
 	//s_models.release(this);
 }
 
+void ModelInstance::OnAttached(WorldObject* pObject)
+{
+}
+
+void ModelInstance::OnDetached(WorldObject* pObject)
+{
+}
+
 bool ModelInstance::CanInstance() const
 {
 	// TODO: Heuristic based on tri count.  Instancing seems to perform best on low-mid triangle counts.

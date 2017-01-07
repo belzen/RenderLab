@@ -65,6 +65,9 @@
       <Filter>Widgets</Filter>
     </ClCompile>
     <ClCompile Include="IconLibrary.cpp" />
+    <ClCompile Include="Widgets\TreeView.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainWindow.h" />
@@ -136,6 +139,9 @@
       <Filter>Widgets</Filter>
     </ClInclude>
     <ClInclude Include="IconLibrary.h" />
+    <ClInclude Include="Widgets\TreeView.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="ViewModels">

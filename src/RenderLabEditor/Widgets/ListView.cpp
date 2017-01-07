@@ -37,7 +37,7 @@ void ListView::RemoveItem(uint index)
 	ListView_DeleteItem(m_hListView, index);
 }
 
-void ListView::RemoveItem(void* pItemData)
+void ListView::RemoveItemByData(void* pItemData)
 {
 	int i = 0;
 	for (auto iter = m_items.begin(); iter != m_items.end(); ++iter, ++i)
@@ -51,7 +51,7 @@ void ListView::RemoveItem(void* pItemData)
 	}
 }
 
-void ListView::ClearList()
+void ListView::Clear()
 {
 	ListView_DeleteAllItems(m_hListView);
 	m_items.clear();
@@ -62,8 +62,22 @@ void ListView::SelectItem(uint index)
 	if (m_selectedItem == index)
 		return;
 
+	ListView_SetItemState(m_hListView, m_selectedItem, 0, 0xf);
 	ListView_SetItemState(m_hListView, index, LVIS_FOCUSED | LVIS_SELECTED, 0xf);
 	HandleSelectionChanged();
+}
+
+void ListView::SelectItemByData(void* pItemData)
+{
+	int i = 0;
+	for (auto iter = m_items.begin(); iter != m_items.end(); ++iter, ++i)
+	{
+		if (iter->pData == pItemData)
+		{
+			SelectItem(i);
+			break;
+		}
+	}
 }
 
 const ListViewItem* ListView::GetItem(uint index) const

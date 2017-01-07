@@ -7,7 +7,7 @@
 #include "Widgets/Menu.h"
 
 class PropertyPanel;
-class ListView;
+class TreeView;
 class AssetBrowser;
 
 class MainWindow : public WindowBase
@@ -26,6 +26,7 @@ private:
 
 private:
 	static void RenderThreadMain(MainWindow* pWindow);
+	static void OnRenderWindowSelectedObject(WorldObject* pObject, void* pUserData);
 
 private:
 	Scene m_scene;
@@ -33,7 +34,7 @@ private:
 
 	RenderWindow* m_pRenderWindow;
 	PropertyPanel* m_pPropertyPanel;
-	ListView* m_pSceneListView;
+	TreeView* m_pSceneTreeView;
 	AssetBrowser* m_pAssetBrowser;
 	bool m_running;
 

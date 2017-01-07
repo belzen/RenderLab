@@ -21,7 +21,7 @@ Button::Button(const Widget& rParent, int x, int y, int width, int height,
 
 Button::~Button()
 {
-	DestroyWindow(m_hButton);
+	::DestroyWindow(m_hButton);
 }
 
 LRESULT CALLBACK Button::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -39,5 +39,5 @@ LRESULT CALLBACK Button::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 		break;
 	}
 
-	return DefWindowProc(hWnd, msg, wParam, lParam);
+	return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }

@@ -43,7 +43,7 @@ bool WorldObjectViewModel::SetModel(const std::string& modelName, void* pSource)
 {
 	WorldObjectViewModel* pViewModel = (WorldObjectViewModel*)pSource;
 	ModelInstance* pModel = ModelInstance::Create(modelName.c_str(), nullptr, 0);
-	pViewModel->m_pObject->SetModel(pModel);
+	pViewModel->m_pObject->AttachModel(pModel);
 	return true;
 }
 

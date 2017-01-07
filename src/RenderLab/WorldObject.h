@@ -16,10 +16,10 @@ public:
 	const char* GetName() const;
 	void SetName(const char* name);
 
-	void SetModel(ModelInstance* pModel);
+	void AttachModel(ModelInstance* pModel);
 	const ModelInstance* GetModel() const;
 
-	void SetRigidBody(RigidBody* pRigidBody);
+	void AttachRigidBody(RigidBody* pRigidBody);
 	const RigidBody* GetRigidBody() const;
 
 	const Vec3& GetPosition() const;

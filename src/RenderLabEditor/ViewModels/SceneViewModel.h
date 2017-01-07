@@ -1,10 +1,10 @@
 #pragma once
 
 #include "IViewModel.h"
-#include "widgets/ListView.h"
 
 class Scene;
 class WorldObject;
+class TreeView;
 
 class SceneViewModel : public IViewModel
 {
@@ -18,7 +18,7 @@ public:
 	void AddObject(WorldObject* pObject);
 	void RemoveObject(WorldObject* pObject);
 
-	void PopulateListView(ListView* pListView);
+	void PopulateTreeView(TreeView* pTreeView);
 	
 	// Event handlers
 	typedef void (*ObjectAddedFunc)(WorldObject* pObject, void* pUserData);

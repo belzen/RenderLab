@@ -2,7 +2,7 @@
 #include "MainWindow.h"
 #include "UtilsLib/Timer.h"
 #include "Widgets/PropertyPanel.h"
-#include "Widgets/ListView.h"
+#include "Widgets/TreeView.h"
 #include "Widgets/AssetBrowser.h"
 #include "AssetLib/AssetLibrary.h"
 #include "ViewModels/IViewModel.h"
@@ -15,9 +15,9 @@
 
 namespace
 {
-	void sceneListViewSelectionChanged(const ListView* pList, uint selectedIndex, void* pUserData)
+	void sceneTreeViewSelectionChanged(const TreeView* pList, TreeViewItemHandle hSelectedItem, void* pUserData)
 	{
-		const ListViewItem* pItem = pList->GetItem(selectedIndex);
+		const TreeViewItem* pItem = pList->GetItem(hSelectedItem);
 		if (!pItem)
 			return;
 
@@ -27,14 +27,14 @@ namespace
 
 	void sceneObjectAdded(WorldObject* pObject, void* pUserData)
 	{
-		ListView* pListView = static_cast<ListView*>(pUserData);
-		pListView->AddItem(pObject->GetName(), pObject);
+		TreeView* pTreeView = static_cast<TreeView*>(pUserData);
+		pTreeView->AddItem(pObject->GetName(), pObject);
 	}
 
 	void sceneObjectRemoved(WorldObject* pObject, void* pUserData)
 	{
-		ListView* pListView = static_cast<ListView*>(pUserData);
-		pListView->RemoveItem(pObject);
+		TreeView* pTreeView = static_cast<TreeView*>(pUserData);
+		pTreeView->RemoveItem(pObject);
 	}
 }
 
@@ -46,7 +46,7 @@ MainWindow* MainWindow::Create(int width, int height, const char* title)
 MainWindow::MainWindow(int width, int height, const char* title)
 	: WindowBase(0, 0, width, height, title, nullptr)
 	, m_pPropertyPanel(nullptr)
-	, m_pSceneListView(nullptr)
+	, m_pSceneTreeView(nullptr)
 	, m_running(false)
 	, m_hFrameDoneEvent(0)
 	, m_hRenderFrameDoneEvent(0)
@@ -54,7 +54,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	::InitCommonControls();
 
 	INITCOMMONCONTROLSEX icex;
-	icex.dwICC = ICC_LISTVIEW_CLASSES;
+	icex.dwICC = ICC_LISTVIEW_CLASSES | ICC_TREEVIEW_CLASSES;
 	::InitCommonControlsEx(&icex);
 	
 	m_sceneViewModel.Init(&m_scene);
@@ -68,7 +68,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	m_addMenu.AddItem("Add Object", [](void* pUserData) {
 		MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
 		WorldObject* pObject = WorldObject::Create("New Object", Vec3::kZero, Quaternion::kIdentity, Vec3::kOne);
-		pObject->SetModel(ModelInstance::Create("box", nullptr, 0));
+		pObject->AttachModel(ModelInstance::Create("box", nullptr, 0));
 		pWindow->m_sceneViewModel.AddObject(pObject);
 	}, this);
 
@@ -124,15 +124,16 @@ int MainWindow::Run()
 	// Load in default scene
 	m_scene.Load(g_userConfig.defaultScene.c_str());
 	m_pRenderWindow->SetCameraPosition(m_scene.GetCameraSpawnPosition(), m_scene.GetCameraSpawnPitchYawRoll());
+	m_pRenderWindow->SetObjectSelectedCallback(OnRenderWindowSelectedObject, this);
 
 	// Finish editor setup.
 	m_pPropertyPanel = PropertyPanel::Create(*this, renderWindowWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);
 	m_pAssetBrowser = AssetBrowser::Create(*this, 0, renderWindowHeight, renderWindowWidth, kDefaultBrowserHeight);
 
-	m_pSceneListView = ListView::Create(*this, renderWindowWidth, 0, kDefaultPanelWidth, GetHeight() / 2, sceneListViewSelectionChanged, m_pPropertyPanel);
-	m_sceneViewModel.PopulateListView(m_pSceneListView);
-	m_sceneViewModel.SetObjectAddedCallback(sceneObjectAdded, m_pSceneListView);
-	m_sceneViewModel.SetObjectRemovedCallback(sceneObjectRemoved, m_pSceneListView);
+	m_pSceneTreeView = TreeView::Create(*this, renderWindowWidth, 0, kDefaultPanelWidth, GetHeight() / 2, sceneTreeViewSelectionChanged, m_pPropertyPanel);
+	m_sceneViewModel.PopulateTreeView(m_pSceneTreeView);
+	m_sceneViewModel.SetObjectAddedCallback(sceneObjectAdded, m_pSceneTreeView);
+	m_sceneViewModel.SetObjectRemovedCallback(sceneObjectRemoved, m_pSceneTreeView);
 
 	Timer::Handle hTimer = Timer::Create();
 
@@ -183,6 +184,12 @@ int MainWindow::Run()
 	FileWatcher::Cleanup();
 
 	return (int)msg.wParam;
+}
+
+void MainWindow::OnRenderWindowSelectedObject(WorldObject* pObject, void* pUserData)
+{
+	MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
+	pWindow->m_pSceneTreeView->SelectItem(pObject);
 }
 
 void MainWindow::RenderThreadMain(MainWindow* pWindow)

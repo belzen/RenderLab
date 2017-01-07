@@ -88,7 +88,7 @@ void Scene::Load(const char* sceneName)
 	for (const AssetLib::Object& rObjectData : pSceneData->objects)
 	{
 		WorldObject* pObject = WorldObject::Create(rObjectData.name, rObjectData.position, rObjectData.orientation, rObjectData.scale);
-		pObject->SetModel(ModelInstance::Create(rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
+		pObject->AttachModel(ModelInstance::Create(rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
 
 		RigidBody* pRigidBody = nullptr;
 		switch (rObjectData.physics.shape)
@@ -100,7 +100,7 @@ void Scene::Load(const char* sceneName)
 			pRigidBody = RigidBody::CreateSphere(rObjectData.physics.halfSize.x, rObjectData.physics.density, rObjectData.physics.offset);
 			break;
 		}
-		pObject->SetRigidBody(pRigidBody);
+		pObject->AttachRigidBody(pRigidBody);
 
 		m_objects.push_back(pObject);
 	}

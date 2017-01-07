@@ -22,6 +22,9 @@ namespace Physics
 
 	void AddToScene(PhysicsActor* pActor, const Vec3& position, const Quaternion& orientation);
 
+	void SetActorUserData(PhysicsActor* pActor, void* pUserData);
+	void* GetActorUserData(PhysicsActor* pActor);
+
 	Vec3 GetActorPosition(PhysicsActor* pActor);
 	Quaternion GetActorOrientation(PhysicsActor* pActor);
 

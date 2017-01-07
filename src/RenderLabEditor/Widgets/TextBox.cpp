@@ -20,12 +20,12 @@ TextBox::TextBox(const Widget& rParent, int x, int y, int width, int height,
 
 TextBox::~TextBox()
 {
-	DestroyWindow(m_hTextBox);
+	::DestroyWindow(m_hTextBox);
 }
 
 void TextBox::SetValue(const std::string& val, bool triggerCallback)
 {
-	SetWindowTextA(m_hTextBox, val.c_str());
+	::SetWindowTextA(m_hTextBox, val.c_str());
 
 	if (triggerCallback && m_changedCallback)
 	{
@@ -43,7 +43,7 @@ LRESULT CALLBACK TextBox::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
 		{
 			char str[256];
 			TextBox* pTextBox = (TextBox*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
-			GetWindowTextA(pTextBox->m_hTextBox, str, ARRAY_SIZE(str));
+			::GetWindowTextA(pTextBox->m_hTextBox, str, ARRAY_SIZE(str));
 			pTextBox->SetValue(str, true);
 		}
 		break;

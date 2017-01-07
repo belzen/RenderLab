@@ -371,6 +371,9 @@
       <Filter>components</Filter>
     </ClInclude>
     <ClInclude Include="Time.h" />
+    <ClInclude Include="components\ObjectComponent.h">
+      <Filter>components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\shaders\p_common.hlsli">

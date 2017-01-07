@@ -4,6 +4,7 @@
 #include "WorldObject.h"
 #include "PropertyTables.h"
 #include "AssetLib/SkyAsset.h"
+#include "Widgets/TreeView.h"
 
 void SceneViewModel::Init(Scene* pScene)
 {
@@ -50,21 +51,19 @@ void SceneViewModel::RemoveObject(WorldObject* pObject)
 	}
 }
 
-void SceneViewModel::PopulateListView(ListView* pListView)
+void SceneViewModel::PopulateTreeView(TreeView* pTreeView)
 {
-	pListView->ClearList();
+	pTreeView->Clear();
 
 	AssetLib::Sky* pSky = AssetLibrary<AssetLib::Sky>::LoadAsset(m_pScene->GetSky().GetSourceAsset()->assetName);
-	pListView->AddItem("Sky", pSky);
+	pTreeView->AddItem("Sky", pSky);
 
 	AssetLib::PostProcessEffects* pEffects = AssetLibrary<AssetLib::PostProcessEffects>::LoadAsset(m_pScene->GetPostProcEffects()->GetEffectsAsset()->assetName);
-	pListView->AddItem("Post-Processing Effects", pEffects);
+	pTreeView->AddItem("Post-Processing Effects", pEffects);
 
 	WorldObjectList& sceneObjects = m_pScene->GetWorldObjects();
 	for (WorldObject* pObject : sceneObjects)
 	{
-		pListView->AddItem(pObject->GetName(), pObject);
+		pTreeView->AddItem(pObject->GetName(), pObject);
 	}
-
-	pListView->SelectItem(0);
 }

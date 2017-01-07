@@ -27,7 +27,7 @@ void NumericTextBox::SetValue(float val, bool triggerCallback)
 {
 	char text[64];
 	sprintf_s(text, "%.4f", val);
-	SetWindowTextA(m_hTextBox, text);
+	::SetWindowTextA(m_hTextBox, text);
 
 	if (triggerCallback && m_changedCallback)
 	{
@@ -45,7 +45,7 @@ LRESULT CALLBACK NumericTextBox::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 		{
 			char str[256];
 			NumericTextBox* pTextBox = (NumericTextBox*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
-			GetWindowTextA(pTextBox->m_hTextBox, str, ARRAY_SIZE(str));
+			::GetWindowTextA(pTextBox->m_hTextBox, str, ARRAY_SIZE(str));
 			
 			float val = (float)atof(str);
 			pTextBox->SetValue(val, true);

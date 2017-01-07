@@ -20,13 +20,16 @@ public:
 
 	template<typename ItemT>
 	void AddItem(const char* name, ItemT* pData);
+
 	void RemoveItem(uint index);
-	void RemoveItem(void* pItemData);
+	void RemoveItemByData(void* pItemData);
 
 	void SelectItem(uint index);
+	void SelectItemByData(void* pItemData);
+
 	const ListViewItem* GetItem(uint index) const;
 
-	void ClearList();
+	void Clear();
 public:
 	ListView(const Widget& rParent, int x, int y, int width, int height,
 		SelectionChangedFunc selectionChangedCallback, void* pUserData);

@@ -33,7 +33,7 @@ Slider::Slider(const Widget& rParent, int x, int y, int width, int height,
 Slider::~Slider()
 {
 	m_pLabel->Release();
-	DestroyWindow(m_hSlider);
+	::DestroyWindow(m_hSlider);
 }
 
 void Slider::SetValue(float val, bool triggerCallback)
