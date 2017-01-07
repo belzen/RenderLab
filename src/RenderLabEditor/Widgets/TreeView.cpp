@@ -49,9 +49,7 @@ void TreeView::SelectItem(void* pItemData)
 	{
 		if (iter->second.pData == pItemData)
 		{
-			TreeView_SetItemState(m_hTreeView, m_hSelectedItem, 0, 0xf);
-			TreeView_SetItemState(m_hTreeView, iter->second.hItem, TVIS_SELECTED, 0xf);
-			HandleSelectionChanged();
+			TreeView_SelectItem(m_hTreeView, iter->second.hItem);
 			break;
 		}
 	}
