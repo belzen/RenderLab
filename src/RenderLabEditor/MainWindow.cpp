@@ -15,14 +15,20 @@
 
 namespace
 {
-	void sceneTreeViewSelectionChanged(const TreeView* pList, TreeViewItemHandle hSelectedItem, void* pUserData)
+	void sceneTreeViewSelectionChanged(const TreeView* pTree, TreeViewItemHandle hSelectedItem, void* pUserData)
 	{
-		const TreeViewItem* pItem = pList->GetItem(hSelectedItem);
+		const TreeViewItem* pItem = pTree->GetItem(hSelectedItem);
 		if (!pItem)
 			return;
 
-		PropertyPanel* pPropertyPanel = static_cast<PropertyPanel*>(pUserData);
-		pPropertyPanel->SetViewModel(IViewModel::Create(pItem->typeId, pItem->pData), true);
+		SceneViewModel* pSceneViewModel = static_cast<SceneViewModel*>(pUserData);
+		pSceneViewModel->SetSelected(static_cast<WorldObject*>(pItem->pData));
+	}
+
+	void sceneTreeViewItemDeleted(const TreeView* pTree, TreeViewItem* pDeletedItem, void* pUserData)
+	{
+		SceneViewModel* pSceneViewModel = static_cast<SceneViewModel*>(pUserData);
+		pSceneViewModel->RemoveObject(static_cast<WorldObject*>(pDeletedItem->pData));
 	}
 
 	void sceneObjectAdded(WorldObject* pObject, void* pUserData)
@@ -34,7 +40,13 @@ namespace
 	void sceneObjectRemoved(WorldObject* pObject, void* pUserData)
 	{
 		TreeView* pTreeView = static_cast<TreeView*>(pUserData);
-		pTreeView->RemoveItem(pObject);
+		pTreeView->RemoveItemByData(pObject);
+	}
+
+	void sceneObjectSelected(WorldObject* pObject, void* pUserData)
+	{
+		PropertyPanel* pPropertyPanel = static_cast<PropertyPanel*>(pUserData);
+		pPropertyPanel->SetViewModel(IViewModel::Create(pObject), true);
 	}
 }
 
@@ -130,10 +142,14 @@ int MainWindow::Run()
 	m_pPropertyPanel = PropertyPanel::Create(*this, renderWindowWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);
 	m_pAssetBrowser = AssetBrowser::Create(*this, 0, renderWindowHeight, renderWindowWidth, kDefaultBrowserHeight);
 
-	m_pSceneTreeView = TreeView::Create(*this, renderWindowWidth, 0, kDefaultPanelWidth, GetHeight() / 2, sceneTreeViewSelectionChanged, m_pPropertyPanel);
+	m_pSceneTreeView = TreeView::Create(*this, renderWindowWidth, 0, kDefaultPanelWidth, GetHeight() / 2);
+	m_pSceneTreeView->SetSelectionChangedCallback(sceneTreeViewSelectionChanged, &m_sceneViewModel);
+	m_pSceneTreeView->SetItemDeletedCallback(sceneTreeViewItemDeleted, &m_sceneViewModel);
+
 	m_sceneViewModel.PopulateTreeView(m_pSceneTreeView);
 	m_sceneViewModel.SetObjectAddedCallback(sceneObjectAdded, m_pSceneTreeView);
 	m_sceneViewModel.SetObjectRemovedCallback(sceneObjectRemoved, m_pSceneTreeView);
+	m_sceneViewModel.SetSelectionChangedCallback(sceneObjectSelected, m_pPropertyPanel);
 
 	Timer::Handle hTimer = Timer::Create();
 

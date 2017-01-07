@@ -54,6 +54,9 @@ private:
 
 	bool RaycastAtCursor(int mx, int my, Physics::RaycastResult* pResult);
 
+	//////////////////////////////////////////////////////////////////////////
+	void CancelObjectPlacement();
+
 private:
 	InputManager m_inputManager;
 	CameraInputContext m_defaultInputContext;

@@ -33,6 +33,12 @@ void SceneViewModel::SetObjectRemovedCallback(ObjectRemovedFunc objectRemovedCal
 	m_pObjectRemovedUserData = pUserData;
 }
 
+void SceneViewModel::SetSelectionChangedCallback(SelectionChangedFunc callback, void* pUserData)
+{
+	m_selectionChangedCallback = callback;
+	m_pSelectionChangedUserData = pUserData;
+}
+
 void SceneViewModel::AddObject(WorldObject* pObject)
 {
 	m_pScene->AddObject(pObject);
@@ -44,11 +50,28 @@ void SceneViewModel::AddObject(WorldObject* pObject)
 
 void SceneViewModel::RemoveObject(WorldObject* pObject)
 {
+	if (!pObject)
+		return;
+
 	m_pScene->RemoveObject(pObject);
 	if (m_objectRemovedCallback)
 	{
 		m_objectRemovedCallback(pObject, m_pObjectRemovedUserData);
 	}
+}
+
+void SceneViewModel::SetSelected(WorldObject* pObject)
+{
+	m_pSelectedObject = pObject;
+	if (m_selectionChangedCallback)
+	{
+		m_selectionChangedCallback(pObject, m_pSelectionChangedUserData);
+	}
+}
+
+WorldObject* SceneViewModel::GetSelected()
+{
+	return m_pSelectedObject;
 }
 
 void SceneViewModel::PopulateTreeView(TreeView* pTreeView)

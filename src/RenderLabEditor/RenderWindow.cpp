@@ -44,6 +44,12 @@ bool RenderWindow::OnResize(int newWidth, int newHeight)
 bool RenderWindow::OnKeyDown(int key)
 {
 	m_inputManager.SetKeyDown(key, true);
+
+	if (key == KEY_DELETE)
+	{
+		m_pSceneViewModel->RemoveObject(m_pSceneViewModel->GetSelected());
+	}
+
 	return true;
 }
 
@@ -122,13 +128,7 @@ bool RenderWindow::OnMouseEnter(int mx, int my)
 
 bool RenderWindow::OnMouseLeave()
 {
-	if (m_pPlacingObject)
-	{
-		m_pSceneViewModel->RemoveObject(m_pPlacingObject);
-		m_pPlacingObject->Release();
-		m_pPlacingObject = nullptr;
-	}
-
+	CancelObjectPlacement();
 	return false;
 }
 
@@ -146,6 +146,16 @@ bool RenderWindow::RaycastAtCursor(int mx, int my, Physics::RaycastResult* pResu
 {
 	Vec3 rayDir = m_mainCamera.CalcRayDirection(mx / (float)GetWidth(), my / (float)GetHeight());
 	return Physics::Raycast(m_mainCamera.GetPosition(), rayDir, 50000.f, pResult);
+}
+
+void RenderWindow::CancelObjectPlacement()
+{
+	if (m_pPlacingObject)
+	{
+		m_pSceneViewModel->RemoveObject(m_pPlacingObject);
+		m_pPlacingObject->Release();
+		m_pPlacingObject = nullptr;
+	}
 }
 
 void RenderWindow::EarlyUpdate()

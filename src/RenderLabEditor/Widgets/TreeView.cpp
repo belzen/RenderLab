@@ -1,21 +1,18 @@
 #include "Precompiled.h"
 #include "TreeView.h"
+#include "input/Input.h"
 
-TreeView* TreeView::Create(const Widget& rParent, int x, int y, int width, int height,
-	SelectionChangedFunc selectionChangedCallback, void* pUserData)
+TreeView* TreeView::Create(const Widget& rParent, int x, int y, int width, int height)
 {
-	return new TreeView(rParent, x, y, width, height, selectionChangedCallback, pUserData);
+	return new TreeView(rParent, x, y, width, height);
 }
 
-TreeView::TreeView(const Widget& rParent, int x, int y, int width, int height,
-	SelectionChangedFunc selectionChangedCallback, void* pUserData)
+TreeView::TreeView(const Widget& rParent, int x, int y, int width, int height)
 	: Widget(x, y, width, height, &rParent, WS_BORDER, TreeView::WndProc)
 	, m_hSelectedItem(TVI_ROOT)
-	, m_selectionChangedCallback(selectionChangedCallback)
-	, m_pSelectionChangedUserData(pUserData)
 {
 	m_hTreeView = CreateChildWindow(GetWindowHandle(), WC_TREEVIEWA, 0, 0, width, height,
-		TVS_SHOWSELALWAYS | TVS_HASLINES | TVS_HASBUTTONS | TVS_EDITLABELS, 0);
+		TVS_FULLROWSELECT | TVS_SHOWSELALWAYS | TVS_HASBUTTONS | TVS_EDITLABELS, 0);
 }
 
 TreeView::~TreeView()
@@ -23,14 +20,43 @@ TreeView::~TreeView()
 	::DestroyWindow(m_hTreeView);
 }
 
-void TreeView::RemoveItem(void* pItemData)
+void TreeView::SetSelectionChangedCallback(SelectionChangedFunc callback, void* pUserData)
+{
+	m_selectionChangedCallback = callback;
+	m_pSelectionChangedUserData = pUserData;
+}
+
+void TreeView::SetItemDeletedCallback(ItemDeletedFunc callback, void* pUserData)
+{
+	m_itemDeletedCallback = callback;
+	m_pItemDeletedUserData = pUserData;
+}
+
+void TreeView::RemoveItem(TreeViewItemHandle hItem)
+{
+	auto iter = m_items.find(hItem);
+	if (iter == m_items.end())
+		return;
+
+	// Copy item before removing it to use in the callback.
+	TreeViewItem item = iter->second;
+	TreeView_DeleteItem(m_hTreeView, hItem);
+	m_items.erase(iter);
+
+	// Issue callback after deleting the item.
+	if (m_itemDeletedCallback)
+	{
+		m_itemDeletedCallback(this, &item, m_pItemDeletedUserData);
+	}
+}
+
+void TreeView::RemoveItemByData(void* pItemData)
 {
 	for (auto iter = m_items.begin(); iter != m_items.end(); ++iter)
 	{
 		if (iter->second.pData == pItemData)
 		{
-			TreeView_DeleteItem(m_hTreeView, iter->second.hItem);
-			m_items.erase(iter);
+			RemoveItem(iter->second.hItem);
 			break;
 		}
 	}
@@ -94,10 +120,20 @@ LRESULT CALLBACK TreeView::WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lP
 	{
 	case WM_NOTIFY:
 		TreeView* pTreeView = (TreeView*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
-		if (((LPNMHDR)lParam)->code == TVN_SELCHANGEDA)
+		int notifyCode = ((LPNMHDR)lParam)->code;
+		if (notifyCode == TVN_SELCHANGEDA)
 		{
 			pTreeView->HandleSelectionChanged();
 		}
+		else if (notifyCode == TVN_KEYDOWN)
+		{
+			LPNMTVKEYDOWN pEvent = (LPNMTVKEYDOWN)lParam;
+			if (pEvent->wVKey == KEY_DELETE)
+			{
+				pTreeView->RemoveItem(pTreeView->m_hSelectedItem);
+			}
+		}
+
 		break;
 	}
 

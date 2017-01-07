@@ -52,7 +52,6 @@ private:
 	void* m_pUserData;
 };
 
-
 template<typename ItemT>
 void ListView::AddItem(const char* name, ItemT* pItemData)
 {

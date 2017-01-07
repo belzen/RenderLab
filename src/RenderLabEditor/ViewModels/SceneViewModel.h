@@ -18,6 +18,9 @@ public:
 	void AddObject(WorldObject* pObject);
 	void RemoveObject(WorldObject* pObject);
 
+	void SetSelected(WorldObject* pObject);
+	WorldObject* GetSelected();
+
 	void PopulateTreeView(TreeView* pTreeView);
 	
 	// Event handlers
@@ -26,13 +29,18 @@ public:
 
 	typedef void (*ObjectRemovedFunc)(WorldObject* pObject, void* pUserData);
 	void SetObjectRemovedCallback(ObjectRemovedFunc objectRemovedCallback, void* pUserData);
+
+	typedef void (*SelectionChangedFunc)(WorldObject* pObject, void* pUserData);
+	void SetSelectionChangedCallback(SelectionChangedFunc callback, void* pUserData);
+
 private:
 	Scene* m_pScene;
-
-	int m_stateId;
+	WorldObject* m_pSelectedObject;
 
 	ObjectAddedFunc m_objectAddedCallback;
 	void* m_pObjectAddedUserData;
 	ObjectRemovedFunc m_objectRemovedCallback;
 	void* m_pObjectRemovedUserData;
+	SelectionChangedFunc m_selectionChangedCallback;
+	void* m_pSelectionChangedUserData;
 };
