@@ -23,12 +23,6 @@ RenderWindow::RenderWindow(int x, int y, int width, int height, SceneViewModel* 
 	m_inputManager.PushContext(&m_defaultInputContext);
 }
 
-void RenderWindow::SetObjectSelectedCallback(ObjectSelectedFunc selectedCallback, void* pUserData)
-{
-	m_objectSelectedCallback = selectedCallback;
-	m_pObjectSelectedUserData = pUserData;
-}
-
 void RenderWindow::Close()
 {
 	m_renderer.Cleanup();
@@ -70,10 +64,10 @@ bool RenderWindow::OnMouseDown(int button, int mx, int my)
 	m_inputManager.SetMouseDown(button, true, mx, my);
 
 	Physics::RaycastResult res;
-	if (m_objectSelectedCallback && RaycastAtCursor(mx, my, &res) && res.pActor)
+	if (RaycastAtCursor(mx, my, &res) && res.pActor)
 	{
 		WorldObject* pObject = static_cast<WorldObject*>(Physics::GetActorUserData(res.pActor));
-		m_objectSelectedCallback(pObject, m_pObjectSelectedUserData);
+		m_pSceneViewModel->SetSelected(pObject);
 	}
 
 	return true;
@@ -134,7 +128,11 @@ bool RenderWindow::OnMouseLeave()
 
 void RenderWindow::OnDragEnd(Widget* pDraggedWidget)
 {
-	m_pPlacingObject = nullptr;
+	if (m_pPlacingObject)
+	{
+		m_pSceneViewModel->SetSelected(m_pPlacingObject);
+		m_pPlacingObject = nullptr;
+	}
 }
 
 bool RenderWindow::ShouldCaptureMouse() const

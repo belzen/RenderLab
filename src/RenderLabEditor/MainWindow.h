@@ -10,7 +10,9 @@ class PropertyPanel;
 class TreeView;
 class AssetBrowser;
 
-class MainWindow : public WindowBase
+class MainWindow 
+	: public WindowBase
+	, public ISceneListener
 {
 public:
 	static MainWindow* Create(int width, int height, const char* title);
@@ -26,7 +28,11 @@ private:
 
 private:
 	static void RenderThreadMain(MainWindow* pWindow);
-	static void OnRenderWindowSelectedObject(WorldObject* pObject, void* pUserData);
+
+	// ISceneListener
+	void OnSceneObjectAdded(WorldObject* pObject);
+	void OnSceneObjectRemoved(WorldObject* pObject);
+	void OnSceneSelectionChanged(WorldObject* pObject);
 
 private:
 	Scene m_scene;

@@ -31,10 +31,6 @@ public:
 	// Render thread commands
 	void DrawFrame();
 
-	// 
-	typedef void (*ObjectSelectedFunc)(WorldObject* pObject, void* pUserData);
-	void SetObjectSelectedCallback(ObjectSelectedFunc selectedCallback, void* pUserData);
-
 private:
 	RenderWindow(int x, int y, int width, int height, SceneViewModel* pSceneViewModel, const Widget* pParent);
 
@@ -65,7 +61,4 @@ private:
 	SceneViewModel* m_pSceneViewModel;
 
 	WorldObject* m_pPlacingObject;
-
-	ObjectSelectedFunc m_objectSelectedCallback;
-	void* m_pObjectSelectedUserData;
 };

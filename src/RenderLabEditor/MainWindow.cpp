@@ -30,24 +30,6 @@ namespace
 		SceneViewModel* pSceneViewModel = static_cast<SceneViewModel*>(pUserData);
 		pSceneViewModel->RemoveObject(static_cast<WorldObject*>(pDeletedItem->pData));
 	}
-
-	void sceneObjectAdded(WorldObject* pObject, void* pUserData)
-	{
-		TreeView* pTreeView = static_cast<TreeView*>(pUserData);
-		pTreeView->AddItem(pObject->GetName(), pObject);
-	}
-
-	void sceneObjectRemoved(WorldObject* pObject, void* pUserData)
-	{
-		TreeView* pTreeView = static_cast<TreeView*>(pUserData);
-		pTreeView->RemoveItemByData(pObject);
-	}
-
-	void sceneObjectSelected(WorldObject* pObject, void* pUserData)
-	{
-		PropertyPanel* pPropertyPanel = static_cast<PropertyPanel*>(pUserData);
-		pPropertyPanel->SetViewModel(IViewModel::Create(pObject), true);
-	}
 }
 
 MainWindow* MainWindow::Create(int width, int height, const char* title)
@@ -116,6 +98,22 @@ bool MainWindow::OnClose()
 	return true;
 }
 
+void MainWindow::OnSceneObjectAdded(WorldObject* pObject)
+{
+	m_pSceneTreeView->AddItem(pObject->GetName(), pObject);
+}
+
+void MainWindow::OnSceneObjectRemoved(WorldObject* pObject)
+{
+	m_pSceneTreeView->RemoveItemByData(pObject);
+}
+
+void MainWindow::OnSceneSelectionChanged(WorldObject* pObject)
+{
+	m_pPropertyPanel->SetViewModel(IViewModel::Create(pObject), true);
+	m_pSceneTreeView->SelectItem(pObject);
+}
+
 int MainWindow::Run()
 {
 	m_running = true;
@@ -136,7 +134,6 @@ int MainWindow::Run()
 	// Load in default scene
 	m_scene.Load(g_userConfig.defaultScene.c_str());
 	m_pRenderWindow->SetCameraPosition(m_scene.GetCameraSpawnPosition(), m_scene.GetCameraSpawnPitchYawRoll());
-	m_pRenderWindow->SetObjectSelectedCallback(OnRenderWindowSelectedObject, this);
 
 	// Finish editor setup.
 	m_pPropertyPanel = PropertyPanel::Create(*this, renderWindowWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);
@@ -147,9 +144,7 @@ int MainWindow::Run()
 	m_pSceneTreeView->SetItemDeletedCallback(sceneTreeViewItemDeleted, &m_sceneViewModel);
 
 	m_sceneViewModel.PopulateTreeView(m_pSceneTreeView);
-	m_sceneViewModel.SetObjectAddedCallback(sceneObjectAdded, m_pSceneTreeView);
-	m_sceneViewModel.SetObjectRemovedCallback(sceneObjectRemoved, m_pSceneTreeView);
-	m_sceneViewModel.SetSelectionChangedCallback(sceneObjectSelected, m_pPropertyPanel);
+	m_sceneViewModel.SetListener(this);
 
 	Timer::Handle hTimer = Timer::Create();
 
@@ -200,12 +195,6 @@ int MainWindow::Run()
 	FileWatcher::Cleanup();
 
 	return (int)msg.wParam;
-}
-
-void MainWindow::OnRenderWindowSelectedObject(WorldObject* pObject, void* pUserData)
-{
-	MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
-	pWindow->m_pSceneTreeView->SelectItem(pObject);
 }
 
 void MainWindow::RenderThreadMain(MainWindow* pWindow)

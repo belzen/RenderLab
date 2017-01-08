@@ -21,30 +21,17 @@ Scene* SceneViewModel::GetScene() const
 	return m_pScene;
 }
 
-void SceneViewModel::SetObjectAddedCallback(ObjectAddedFunc objectAddedCallback, void* pUserData)
+void SceneViewModel::SetListener(ISceneListener* pListener)
 {
-	m_objectAddedCallback = objectAddedCallback;
-	m_pObjectAddedUserData = pUserData;
-}
-
-void SceneViewModel::SetObjectRemovedCallback(ObjectRemovedFunc objectRemovedCallback, void* pUserData)
-{
-	m_objectRemovedCallback = objectRemovedCallback;
-	m_pObjectRemovedUserData = pUserData;
-}
-
-void SceneViewModel::SetSelectionChangedCallback(SelectionChangedFunc callback, void* pUserData)
-{
-	m_selectionChangedCallback = callback;
-	m_pSelectionChangedUserData = pUserData;
+	m_pListener = pListener;
 }
 
 void SceneViewModel::AddObject(WorldObject* pObject)
 {
 	m_pScene->AddObject(pObject);
-	if (m_objectAddedCallback)
+	if (m_pListener)
 	{
-		m_objectAddedCallback(pObject, m_pObjectAddedUserData);
+		m_pListener->OnSceneObjectAdded(pObject);
 	}
 }
 
@@ -54,18 +41,18 @@ void SceneViewModel::RemoveObject(WorldObject* pObject)
 		return;
 
 	m_pScene->RemoveObject(pObject);
-	if (m_objectRemovedCallback)
+	if (m_pListener)
 	{
-		m_objectRemovedCallback(pObject, m_pObjectRemovedUserData);
+		m_pListener->OnSceneObjectRemoved(pObject);
 	}
 }
 
 void SceneViewModel::SetSelected(WorldObject* pObject)
 {
 	m_pSelectedObject = pObject;
-	if (m_selectionChangedCallback)
+	if (m_pListener)
 	{
-		m_selectionChangedCallback(pObject, m_pSelectionChangedUserData);
+		m_pListener->OnSceneSelectionChanged(pObject);
 	}
 }
 
