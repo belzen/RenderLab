@@ -6,32 +6,40 @@
 
 	"sky" : "cloudy",
 	"postProcessingEffects" : "default",
-	"globalEnvironmentLight" :
-		{
-			"position" : [ -3.0, 1.5, 0.0 ]
-		},
-	"lights" : [
-		{
-			"type" : "spot",
-			"position" : [ 0.0, 5.0, -3.0 ],
-			"direction" : [ 1.0, -1.0, 0.0 ],
-			"color" : [1.0, 0.0, 0.0],
-			"intensity" : 175.0,
-			"radius" : 20.0,
-			"innerConeAngle" : 30.0,
-			"outerConeAngle" : 45.0,
-			"castsShadows" : true
-		},
-		{
-			"type" : "point",
-			"position" : [ -5.0, 5.0, -3.0 ],
-			"color" : [0.0, 0.0, 1.0],
-			"intensity" : 175.0,
-			"radius" : 20.0,
-			"castsShadows" : true
-		}
-	],
 	"objects" : [
+		{
+			"name" : "GlobalSpecProbe",
+			"position" : [ -3.0, 1.5, 0.0 ],
+			"light" : {
+				"type" : "environment",
+				"isGlobalEnvironmentLight" : true
+			}
+		},
+		{
+			"name" : "SpotLight",
+			"position" : [ 0.0, 5.0, -3.0 ],
+			"light" : {
+				"type" : "spot",
+				"direction" : [ 1.0, -1.0, 0.0 ],
+				"color" : [1.0, 0.0, 0.0],
+				"intensity" : 575.0,
+				"radius" : 20.0,
+				"innerConeAngle" : 30.0,
+				"outerConeAngle" : 45.0,
+				"castsShadows" : true
+			}
+		},
+		{
+			"name" : "PointLight",
+			"position" : [ -5.0, 5.0, -3.0 ],
+			"light" : {
+				"type" : "point",
+				"color" : [0.0, 0.0, 1.0],
+				"intensity" : 575.0,
+				"radius" : 20.0,
+				"castsShadows" : true
+			}
+		},
 		{
 			"name" : "plane1",
 			"position" : [ 0.0, 0.0, 0.0 ],

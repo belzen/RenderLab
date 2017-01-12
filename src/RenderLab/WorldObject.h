@@ -1,9 +1,11 @@
 #pragma once
 
 #include "components/ModelInstance.h"
-#include "components/RigidBody.h"
 
 class RdrDrawBuckets;
+class ModelInstance;
+class RigidBody;
+class Light;
 class WorldObject;
 typedef FreeList<WorldObject, 6 * 1024> WorldObjectFreeList;
 
@@ -21,6 +23,9 @@ public:
 
 	void AttachRigidBody(RigidBody* pRigidBody);
 	const RigidBody* GetRigidBody() const;
+
+	void AttachLight(Light* pLight);
+	const Light* GetLight() const;
 
 	const Vec3& GetPosition() const;
 	void SetPosition(Vec3 pos);
@@ -49,7 +54,10 @@ private:
 
 	ModelInstance* m_pModel;
 	RigidBody* m_pRigidBody;
+	Light* m_pLight;
 };
+
+//////////////////////////////////////////////////////////////////////////
 
 inline const Matrix44 WorldObject::GetTransform() const
 {
@@ -64,6 +72,11 @@ inline const ModelInstance* WorldObject::GetModel() const
 inline const RigidBody* WorldObject::GetRigidBody() const
 {
 	return m_pRigidBody;
+}
+
+inline const Light* WorldObject::GetLight() const
+{
+	return m_pLight;
 }
 
 inline const Vec3& WorldObject::GetPosition() const
@@ -95,7 +108,15 @@ inline void WorldObject::SetScale(Vec3 scale)
 
 inline float WorldObject::GetRadius() const
 {
-	return m_pModel->GetRadius() * Vec3MaxComponent(m_scale);
+	if (m_pModel)
+	{
+		return m_pModel->GetRadius() * Vec3MaxComponent(m_scale);
+	}
+	else
+	{
+		// Some non-zero value.
+		return 0.00001f;
+	}
 }
 
 inline const char* WorldObject::GetName() const

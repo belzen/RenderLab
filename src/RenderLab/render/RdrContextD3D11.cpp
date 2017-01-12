@@ -2,7 +2,6 @@
 #include "RdrContextD3D11.h"
 #include "RdrDrawOp.h"
 #include "RdrDrawState.h"
-#include "Light.h"
 #include "RdrProfiler.h"
 
 #include <d3d11.h>

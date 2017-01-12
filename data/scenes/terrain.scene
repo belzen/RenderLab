@@ -12,8 +12,6 @@
 		"heightmap" : "terrain_h",
 		"heightScale" : 500.0
 	},
-	"lights" : [
-	],
 	"objects" : [
 	]
 

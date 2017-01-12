@@ -395,14 +395,9 @@ Vec3 Sky::GetSunDirection() const
 	return -Vec3(cosf(xAxis), sinf(xAxis), 0.f);
 }
 
-DirectionalLight Sky::GetSunLight() const
+Vec3 Sky::GetSunColor() const
 {
-	DirectionalLight light;
-	light.color = m_pSrcAsset->sun.color * m_pSrcAsset->sun.intensity;
-	light.direction = GetSunDirection();
-	light.shadowMapIndex = -1;
-
-	return light;
+	return m_pSrcAsset->sun.color * m_pSrcAsset->sun.intensity;
 }
 
 float Sky::GetPssmLambda() const

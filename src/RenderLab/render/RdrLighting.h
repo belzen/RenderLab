@@ -14,6 +14,7 @@ class Renderer;
 class Camera;
 class Scene;
 class Sky;
+class Light;
 
 #define MAX_SHADOW_MAPS_PER_FRAME 10
 #define USE_SINGLEPASS_SHADOW_CUBEMAP 1
@@ -59,47 +60,40 @@ struct RdrLightResources
 	RdrResourceHandle hShadowCubeMapTexArray;
 };
 
-class LightList
+struct RdrLightList
 {
-public:
-	LightList();
+	void AddLight(const Light* pLight);
+	void Clear();
 
-	void Init(Scene* pScene);
-	void Cleanup();
-
-	void AddDirectionalLight(const Vec3& direction, const Vec3& color);
-	void AddSpotLight(const Vec3& position, const Vec3& direction, const Vec3& color, float radius, float innerConeAngle, float outerConeAngle);
-	void AddPointLight(const Vec3& position, const Vec3& color, float radius);
-	void AddEnvironmentLight(const Vec3& position);
-	void SetGlobalEnvironmentLight(const Vec3& position);
-
-	void InvalidateEnvironmentLights();
-
-	void QueueDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
-		RdrLightingMethod lightingMethod, RdrLightResources* pOutResources);
-
-private:
-	void QueueClusteredLightCulling(Renderer& rRenderer, const Camera& rCamera);
-	void QueueTiledLightCulling(Renderer& rRenderer, const Camera& rCamera);
-
-private:
-	// Light lists
 	FixedVector<DirectionalLight, 4> m_directionalLights;
 	FixedVector<PointLight, 256> m_pointLights;
 	FixedVector<SpotLight, 256> m_spotLights;
 	FixedVector<EnvironmentLight, 64> m_environmentLights;
 	EnvironmentLight m_globalEnvironmentLight;
+};
 
+class RdrLighting
+{
+public:
+	RdrLighting();
+
+	void Init();
+	void Cleanup();
+
+	void QueueDraw(RdrLightList* pLights, Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
+		RdrLightingMethod lightingMethod, RdrLightResources* pOutResources);
+
+private:
+	void QueueClusteredLightCulling(Renderer& rRenderer, const Camera& rCamera, int numSpotLights, int numPointLights);
+	void QueueTiledLightCulling(Renderer& rRenderer, const Camera& rCamera, int numSpotLights, int numPointLights);
+
+private:
 	// Render resources
 	RdrConstantBufferHandle m_hGlobalLightsCb;
 	RdrResourceHandle m_hSpotLightListRes;
 	RdrResourceHandle m_hPointLightListRes;
 	RdrResourceHandle m_hEnvironmentLightListRes;
 	RdrResourceHandle m_hLightIndicesRes;
-
-	RdrResourceHandle m_hEnvironmentMapTexArray;
-	RdrResourceHandle m_hEnvironmentMapDepthBuffer;
-	RdrDepthStencilViewHandle m_hEnvironmentMapDepthView;
 
 	RdrResourceHandle m_hShadowMapTexArray;
 	RdrResourceHandle m_hShadowCubeMapTexArray;
@@ -113,7 +107,5 @@ private:
 	// Lighting mode data.
 	RdrTiledLightingData m_tiledLightData;
 	RdrClusteredLightingData m_clusteredLightData;
-
-	Scene* m_pScene; // Scene the lights belong to.  Used for environment light captures.
 };
 

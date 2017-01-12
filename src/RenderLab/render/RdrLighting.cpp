@@ -1,15 +1,16 @@
 #include "Precompiled.h"
-#include "Light.h"
+#include "RdrLighting.h"
 #include "RdrFrameMem.h"
 #include "Renderer.h"
 #include "Scene.h"
 #include "Sky.h"
 #include "RdrComputeOp.h"
 #include "RdrOffscreenTasks.h"
+#include "components/Light.h"
+#include "WorldObject.h"
 
 namespace
 {
-	static uint s_environmentMapSize = 128;
 	static uint s_shadowMapSize = 2048;
 	static uint s_shadowCubeMapSize = 512;
 
@@ -44,21 +45,84 @@ namespace
 	}
 }
 
-LightList::LightList()
-	: m_pScene(nullptr)
+
+void RdrLightList::AddLight(const Light* pLight)
+{
+	switch (pLight->GetType())
+	{
+	case LightType::Directional:
+		{
+			DirectionalLight light;
+			light.direction = pLight->GetDirection();
+			light.color = pLight->GetColor();
+			light.shadowMapIndex = -1;
+			m_directionalLights.push(light);
+		}
+		break;
+	case LightType::Point:
+		{
+			PointLight light;
+			light.position = pLight->GetParent()->GetPosition();
+			light.color = pLight->GetColor();
+			light.radius = pLight->GetRadius();
+			light.shadowMapIndex = -1;
+			m_pointLights.push(light);
+		}
+		break;
+	case LightType::Spot:
+		{
+			SpotLight light;
+			light.position = pLight->GetParent()->GetPosition();
+			light.direction = pLight->GetDirection();
+			light.color = pLight->GetColor();
+			light.radius = pLight->GetRadius();
+			light.innerConeAngleCos = pLight->GetInnerConeAngleCos();
+			light.outerConeAngle = pLight->GetOuterConeAngle();
+			light.outerConeAngleCos = pLight->GetOuterConeAngleCos();
+			light.shadowMapIndex = -1;
+			m_spotLights.push(light);
+		}
+		break;
+	case LightType::Environment:
+		{
+			EnvironmentLight light;
+			light.position = pLight->GetParent()->GetPosition();
+			light.environmentMapIndex = pLight->GetEnvironmentTextureIndex();
+
+			if (pLight->IsGlobalEnvironmentLight())
+			{
+				m_globalEnvironmentLight = light;
+			}
+			else
+			{
+				m_environmentLights.push(light);
+			}
+		}
+	break;
+	}
+}
+
+void RdrLightList::Clear()
+{
+	m_directionalLights.clear();
+	m_pointLights.clear();
+	m_spotLights.clear();
+	m_environmentLights.clear();
+	m_globalEnvironmentLight.environmentMapIndex = -1;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// RdrLighting
+
+RdrLighting::RdrLighting()
 {
 
 }
 
-void LightList::Init(Scene* pScene)
+void RdrLighting::Init()
 {
-	m_pScene = pScene;
-
 	RdrResourceCommandList& rResCommands = g_pRenderer->GetPreFrameCommandList();
-	m_hEnvironmentMapTexArray = rResCommands.CreateTextureCubeArray(s_environmentMapSize, s_environmentMapSize, MAX_ENVIRONMENT_MAPS, RdrResourceFormat::R16G16B16A16_FLOAT);
-	m_hEnvironmentMapDepthBuffer = rResCommands.CreateTexture2D(s_environmentMapSize, s_environmentMapSize, RdrResourceFormat::D24_UNORM_S8_UINT, RdrResourceUsage::Default, nullptr);
-	m_hEnvironmentMapDepthView = rResCommands.CreateDepthStencilView(m_hEnvironmentMapDepthBuffer);
-	
+
 	m_hShadowMapTexArray = rResCommands.CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, RdrResourceFormat::D24_UNORM_S8_UINT);
 	for (int i = 0; i < MAX_SHADOW_MAPS; ++i)
 	{
@@ -80,14 +144,9 @@ void LightList::Init(Scene* pScene)
 #endif
 }
 
-void LightList::Cleanup()
+void RdrLighting::Cleanup()
 {
 	RdrResourceCommandList& rResCommands = g_pRenderer->GetPreFrameCommandList();
-	if (m_hEnvironmentMapTexArray)
-	{
-		rResCommands.ReleaseResource(m_hEnvironmentMapTexArray);
-		m_hEnvironmentMapTexArray = 0;
-	}
 
 	for (uint i = 0; i < MAX_SHADOW_MAPS; ++i)
 	{
@@ -123,82 +182,9 @@ void LightList::Cleanup()
 		rResCommands.ReleaseResource(m_hShadowCubeMapTexArray);
 		m_hShadowCubeMapTexArray = 0;
 	}
-
-	m_directionalLights.clear();
-	m_environmentLights.clear();
-	m_spotLights.clear();
-	m_pointLights.clear();
 }
 
-void LightList::AddDirectionalLight(const Vec3& direction, const Vec3& color)
-{
-	DirectionalLight light;
-	light.direction = direction;
-	light.color = color;
-	light.shadowMapIndex = -1;
-	m_directionalLights.push(light);
-}
-
-void LightList::AddSpotLight(const Vec3& position, const Vec3& direction, const Vec3& color, float radius, float innerConeAngle, float outerConeAngle)
-{
-	SpotLight light;
-	light.position = position;
-	light.direction = direction;
-	light.color = color;
-	light.radius = radius;
-	light.innerConeAngleCos = cosf(innerConeAngle);
-	light.outerConeAngle = outerConeAngle;
-	light.outerConeAngleCos = cosf(outerConeAngle);
-	light.shadowMapIndex = -1;
-	m_spotLights.push(light);
-}
-
-void LightList::AddPointLight(const Vec3& position, const Vec3& color, float radius)
-{
-	PointLight light;
-	light.position = position;
-	light.color = color;
-	light.radius = radius;
-	light.shadowMapIndex = -1;
-	m_pointLights.push(light);
-}
-
-void LightList::AddEnvironmentLight(const Vec3& position)
-{
-	EnvironmentLight light;
-	light.position = position;
-	light.environmentMapIndex = m_environmentLights.size() + 1;
-	m_environmentLights.push(light);
-
-	Rect viewport(0.f, 0.f, (float)s_environmentMapSize, (float)s_environmentMapSize);
-	RdrOffscreenTasks::QueueSpecularProbeCapture(position, m_pScene, viewport, m_hEnvironmentMapTexArray, light.environmentMapIndex, m_hEnvironmentMapDepthView);
-}
-
-void LightList::SetGlobalEnvironmentLight(const Vec3& position)
-{
-	m_globalEnvironmentLight.position = position;
-	m_globalEnvironmentLight.environmentMapIndex = 0;
-
-	Rect viewport(0.f, 0.f, (float)s_environmentMapSize, (float)s_environmentMapSize);
-	RdrOffscreenTasks::QueueSpecularProbeCapture(position, m_pScene, viewport, m_hEnvironmentMapTexArray, m_globalEnvironmentLight.environmentMapIndex, m_hEnvironmentMapDepthView);
-}
-
-void LightList::InvalidateEnvironmentLights()
-{
-	Rect viewport(0.f, 0.f, (float)s_environmentMapSize, (float)s_environmentMapSize);
-
-	// Global
-	RdrOffscreenTasks::QueueSpecularProbeCapture(m_globalEnvironmentLight.position, m_pScene, viewport, m_hEnvironmentMapTexArray, m_globalEnvironmentLight.environmentMapIndex, m_hEnvironmentMapDepthView);
-
-	// Local
-	for (uint i = 0, count = m_environmentLights.size(); i < count; ++i)
-	{
-		RdrOffscreenTasks::QueueSpecularProbeCapture(m_environmentLights[i].position, m_pScene, viewport, 
-			m_hEnvironmentMapTexArray, (m_environmentLights.size() - 1), m_hEnvironmentMapDepthView);
-	}
-}
-
-void LightList::QueueDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
+void RdrLighting::QueueDraw(RdrLightList* pLights, Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
 	RdrLightingMethod lightingMethod, RdrLightResources* pOutResources)
 {
 	Camera lightCamera;
@@ -210,12 +196,8 @@ void LightList::QueueDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rC
 	// todo: Choose shadow lights based on location and dynamic object movement
 	GlobalLightData* pGlobalLights = (GlobalLightData*)RdrFrameMem::AllocAligned(sizeof(GlobalLightData), 16);
 
-	// Temporarily add sky light to the light list.
-	m_directionalLights.push(rSky.GetSunLight());
-
-	for (uint i = 0, count = m_directionalLights.size(); i < count; ++i)
+	for (DirectionalLight& rDirLight : pLights->m_directionalLights)
 	{
-		DirectionalLight& rDirLight = m_directionalLights[i];
 		int remainingShadowMaps = MAX_SHADOW_MAPS - curShadowMapIndex - 1;
 		const int kNumCascades = 4;
 		if (remainingShadowMaps >= kNumCascades)
@@ -275,9 +257,8 @@ void LightList::QueueDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rC
 		}
 	}
 
-	for (uint i = 0, count = m_spotLights.size(); i < count; ++i)
+	for (SpotLight& rSpotLight : pLights->m_spotLights)
 	{
-		SpotLight& rSpotLight = m_spotLights[i];
 		int remainingShadowMaps = MAX_SHADOW_MAPS - curShadowMapIndex - 1;
 		if (remainingShadowMaps)
 		{
@@ -304,9 +285,8 @@ void LightList::QueueDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rC
 		}
 	}
 
-	for (uint i = 0, count = m_pointLights.size(); i < count; ++i)
+	for (PointLight& rPointLight : pLights->m_pointLights)
 	{
-		PointLight& rPointLight = m_pointLights[i];
 		int remainingShadowCubeMaps = MAX_SHADOW_CUBEMAPS - curShadowCubeMapIndex - 1;
 		if (remainingShadowCubeMaps)
 		{
@@ -336,50 +316,46 @@ void LightList::QueueDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rC
 	RdrResourceCommandList* pResCommandList = rRenderer.GetActionCommandList();
 
 	// Update spot lights
-	SpotLight* pSpotLights = (SpotLight*)RdrFrameMem::Alloc(sizeof(SpotLight) * m_spotLights.size());
-	memcpy(pSpotLights, m_spotLights.getData(), sizeof(SpotLight) * m_spotLights.size());
+	SpotLight* pSpotLights = (SpotLight*)RdrFrameMem::Alloc(sizeof(SpotLight) * pLights->m_spotLights.size());
+	memcpy(pSpotLights, pLights->m_spotLights.getData(), sizeof(SpotLight) * pLights->m_spotLights.size());
 	if (!m_hSpotLightListRes)
-		m_hSpotLightListRes = pResCommandList->CreateStructuredBuffer(pSpotLights, m_spotLights.capacity(), sizeof(SpotLight), RdrResourceUsage::Dynamic);
+		m_hSpotLightListRes = pResCommandList->CreateStructuredBuffer(pSpotLights, pLights->m_spotLights.capacity(), sizeof(SpotLight), RdrResourceUsage::Dynamic);
 	else
-		pResCommandList->UpdateBuffer(m_hSpotLightListRes, pSpotLights, sizeof(SpotLight) * m_spotLights.size());
+		pResCommandList->UpdateBuffer(m_hSpotLightListRes, pSpotLights, sizeof(SpotLight) * pLights->m_spotLights.size());
 
 	// Update point lights
-	PointLight* pPointLights = (PointLight*)RdrFrameMem::Alloc(sizeof(PointLight) * m_pointLights.size());
-	memcpy(pPointLights, m_pointLights.getData(), sizeof(PointLight) * m_pointLights.size());
+	PointLight* pPointLights = (PointLight*)RdrFrameMem::Alloc(sizeof(PointLight) * pLights->m_pointLights.size());
+	memcpy(pPointLights, pLights->m_pointLights.getData(), sizeof(PointLight) * pLights->m_pointLights.size());
 	if (!m_hPointLightListRes)
-		m_hPointLightListRes = pResCommandList->CreateStructuredBuffer(pPointLights, m_pointLights.capacity(), sizeof(PointLight), RdrResourceUsage::Dynamic);
+		m_hPointLightListRes = pResCommandList->CreateStructuredBuffer(pPointLights, pLights->m_pointLights.capacity(), sizeof(PointLight), RdrResourceUsage::Dynamic);
 	else
-		pResCommandList->UpdateBuffer(m_hPointLightListRes, pPointLights, sizeof(PointLight) * m_pointLights.size());
+		pResCommandList->UpdateBuffer(m_hPointLightListRes, pPointLights, sizeof(PointLight) * pLights->m_pointLights.size());
 
 	// Update environment lights
-	EnvironmentLight* pEnvironmentLights = (EnvironmentLight*)RdrFrameMem::Alloc(sizeof(EnvironmentLight) * m_environmentLights.size());
-	memcpy(pEnvironmentLights, m_environmentLights.getData(), sizeof(EnvironmentLight) * m_environmentLights.size());
+	EnvironmentLight* pEnvironmentLights = (EnvironmentLight*)RdrFrameMem::Alloc(sizeof(EnvironmentLight) * pLights->m_environmentLights.size());
+	memcpy(pEnvironmentLights, pLights->m_environmentLights.getData(), sizeof(EnvironmentLight) * pLights->m_environmentLights.size());
 	if (!m_hEnvironmentLightListRes)
-		m_hEnvironmentLightListRes = pResCommandList->CreateStructuredBuffer(pEnvironmentLights, m_environmentLights.capacity(), sizeof(EnvironmentLight), RdrResourceUsage::Dynamic);
+		m_hEnvironmentLightListRes = pResCommandList->CreateStructuredBuffer(pEnvironmentLights, pLights->m_environmentLights.capacity(), sizeof(EnvironmentLight), RdrResourceUsage::Dynamic);
 	else
-		pResCommandList->UpdateBuffer(m_hEnvironmentLightListRes, pEnvironmentLights, sizeof(EnvironmentLight) * m_environmentLights.size());
+		pResCommandList->UpdateBuffer(m_hEnvironmentLightListRes, pEnvironmentLights, sizeof(EnvironmentLight) * pLights->m_environmentLights.size());
 
 	// Light culling
 	if (lightingMethod == RdrLightingMethod::Clustered)
 	{
-		QueueClusteredLightCulling(rRenderer, rCamera);
+		QueueClusteredLightCulling(rRenderer, rCamera, pLights->m_spotLights.size(), pLights->m_pointLights.size());
 	}
 	else
 	{
-		QueueTiledLightCulling(rRenderer, rCamera);
+		QueueTiledLightCulling(rRenderer, rCamera, pLights->m_spotLights.size(), pLights->m_pointLights.size());
 	}
 
 	// Update global lights constant buffer last so the light culling data is up to date.
-	pGlobalLights->numDirectionalLights = m_directionalLights.size();
-	pGlobalLights->globalEnvironmentLight = m_globalEnvironmentLight;
+	pGlobalLights->numDirectionalLights = pLights->m_directionalLights.size();
+	pGlobalLights->globalEnvironmentLight = pLights->m_globalEnvironmentLight;
 	pGlobalLights->clusterTileSize = m_clusteredLightData.clusterTileSize;
-	memcpy(pGlobalLights->directionalLights, m_directionalLights.getData(), sizeof(DirectionalLight) * pGlobalLights->numDirectionalLights);
+	memcpy(pGlobalLights->directionalLights, pLights->m_directionalLights.getData(), sizeof(DirectionalLight) * pGlobalLights->numDirectionalLights);
 	m_hGlobalLightsCb = pResCommandList->CreateUpdateConstantBuffer(m_hGlobalLightsCb,
 		pGlobalLights, sizeof(GlobalLightData), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
-
-	// Remove sky light.
-	m_directionalLights.pop();
-
 
 	// Fill out resource params
 	pOutResources->hGlobalLightsCb = m_hGlobalLightsCb;
@@ -388,12 +364,11 @@ void LightList::QueueDraw(Renderer& rRenderer, const Sky& rSky, const Camera& rC
 	pOutResources->hEnvironmentLightListRes = m_hEnvironmentLightListRes;
 	pOutResources->hShadowCubeMapTexArray = m_hShadowCubeMapTexArray;
 	pOutResources->hShadowMapTexArray = m_hShadowMapTexArray;
-	pOutResources->hEnvironmentMapTexArray = m_hEnvironmentMapTexArray;
 	pOutResources->hLightIndicesRes = (lightingMethod == RdrLightingMethod::Clustered) ? 
 		m_clusteredLightData.hLightIndices : m_tiledLightData.hLightIndices;
 }
 
-void LightList::QueueClusteredLightCulling(Renderer& rRenderer, const Camera& rCamera)
+void RdrLighting::QueueClusteredLightCulling(Renderer& rRenderer, const Camera& rCamera, int numSpotLights, int numPointLights)
 {
 	RdrResourceCommandList* pResCommandList = rRenderer.GetActionCommandList();
 	Vec2 viewportSize = rRenderer.GetViewportSize();
@@ -444,8 +419,8 @@ void LightList::QueueClusteredLightCulling(Renderer& rRenderer, const Camera& rC
 	pParams->clusterCountY = clusterCountY;
 	pParams->clusterCountZ = CLUSTEREDLIGHTING_DEPTH_SLICES;
 	pParams->clusterTileSize = m_clusteredLightData.clusterTileSize;
-	pParams->spotLightCount = m_spotLights.size();
-	pParams->pointLightCount = m_pointLights.size();
+	pParams->spotLightCount = numSpotLights;
+	pParams->pointLightCount = numPointLights;
 
 	m_clusteredLightData.hCullConstants = pResCommandList->CreateUpdateConstantBuffer(m_clusteredLightData.hCullConstants,
 		pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
@@ -454,7 +429,7 @@ void LightList::QueueClusteredLightCulling(Renderer& rRenderer, const Camera& rC
 	rRenderer.AddComputeOpToPass(pCullOp, RdrPass::LightCulling);
 }
 
-void LightList::QueueTiledLightCulling(Renderer& rRenderer, const Camera& rCamera)
+void RdrLighting::QueueTiledLightCulling(Renderer& rRenderer, const Camera& rCamera, int numSpotLights, int numPointLights)
 {
 	RdrResourceCommandList* pResCommandList = rRenderer.GetActionCommandList();
 	Vec2 viewportSize = rRenderer.GetViewportSize();
@@ -535,8 +510,8 @@ void LightList::QueueTiledLightCulling(Renderer& rRenderer, const Camera& rCamer
 	pParams->screenSize = viewportSize;
 	pParams->fovY = rCamera.GetFieldOfViewY();
 	pParams->aspectRatio = rCamera.GetAspectRatio();
-	pParams->spotLightCount = m_spotLights.size();
-	pParams->pointLightCount = m_pointLights.size();
+	pParams->spotLightCount = numSpotLights;
+	pParams->pointLightCount = numPointLights;
 	pParams->tileCountX = tileCountX;
 	pParams->tileCountY = tileCountY;
 

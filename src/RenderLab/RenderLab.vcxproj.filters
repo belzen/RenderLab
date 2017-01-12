@@ -145,9 +145,6 @@
     <ClCompile Include="render\Font.cpp">
       <Filter>render</Filter>
     </ClCompile>
-    <ClCompile Include="render\Light.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
     <ClCompile Include="render\ModelData.cpp">
       <Filter>render</Filter>
     </ClCompile>
@@ -212,6 +209,12 @@
       <Filter>components</Filter>
     </ClCompile>
     <ClCompile Include="Time.cpp" />
+    <ClCompile Include="components\Light.cpp">
+      <Filter>components</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrLighting.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -265,9 +268,6 @@
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="render\Font.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="render\Light.h">
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="..\..\data\shaders\light_types.h">
@@ -373,6 +373,12 @@
     <ClInclude Include="Time.h" />
     <ClInclude Include="components\ObjectComponent.h">
       <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="components\Light.h">
+      <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrLighting.h">
+      <Filter>render</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

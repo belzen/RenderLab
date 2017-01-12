@@ -175,6 +175,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="components\Light.cpp" />
     <ClCompile Include="components\ModelInstance.cpp" />
     <ClCompile Include="components\RigidBody.cpp" />
     <ClCompile Include="debug\Debug.cpp" />
@@ -196,7 +197,7 @@
     <ClCompile Include="render\Camera.cpp" />
     <ClCompile Include="render\Font.cpp" />
     <ClCompile Include="render\RdrDeviceTypes.cpp" />
-    <ClCompile Include="render\Light.cpp" />
+    <ClCompile Include="render\RdrLighting.cpp" />
     <ClCompile Include="render\ModelData.cpp" />
     <ClCompile Include="render\RdrFrameState.cpp" />
     <ClCompile Include="render\RdrContextD3D11.cpp" />
@@ -226,6 +227,7 @@
     <ClInclude Include="..\..\data\shaders\light_types.h" />
     <ClInclude Include="..\..\data\shaders\p_constants.h" />
     <ClInclude Include="..\Types.h" />
+    <ClInclude Include="components\Light.h" />
     <ClInclude Include="components\ObjectComponent.h" />
     <ClInclude Include="components\ModelInstance.h" />
     <ClInclude Include="components\RigidBody.h" />
@@ -246,7 +248,7 @@
     <ClInclude Include="RenderDoc\renderdoc_app.h" />
     <ClInclude Include="render\Camera.h" />
     <ClInclude Include="render\Font.h" />
-    <ClInclude Include="render\Light.h" />
+    <ClInclude Include="render\RdrLighting.h" />
     <ClInclude Include="render\ModelData.h" />
     <ClInclude Include="render\RdrComputeOp.h" />
     <ClInclude Include="render\RdrContext.h" />

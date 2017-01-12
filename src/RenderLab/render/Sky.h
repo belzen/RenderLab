@@ -6,7 +6,6 @@
 #include "RdrMaterial.h"
 #include "ModelData.h"
 #include "UtilsLib\FileWatcher.h"
-#include "Light.h"
 
 struct RdrDrawOp;
 struct RdrComputeOp;
@@ -26,8 +25,8 @@ public:
 
 	void QueueDraw(RdrDrawBuckets* pDrawBuckets, RdrResourceHandle hVolumetricFogLut);
 
-	DirectionalLight GetSunLight() const;
 	Vec3 GetSunDirection() const;
+	Vec3 GetSunColor() const;
 
 	float GetPssmLambda() const;
 

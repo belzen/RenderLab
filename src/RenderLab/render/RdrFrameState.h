@@ -7,7 +7,7 @@
 #include "RdrGeometry.h"
 #include "RdrDrawOp.h"
 #include "Camera.h"
-#include "Light.h"
+#include "RdrLighting.h"
 #include "shapes\Rect.h"
 
 struct RdrDrawOp;
@@ -121,6 +121,7 @@ struct RdrAction
 	const RdrPostProcessEffects* pPostProcEffects;
 
 	RdrLightResources lightParams;
+	RdrLightList lights;
 
 	RdrGlobalConstants constants;
 	RdrGlobalConstants uiConstants;

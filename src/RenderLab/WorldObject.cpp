@@ -1,6 +1,8 @@
 #include "Precompiled.h"
 #include "WorldObject.h"
 #include "components/ModelInstance.h"
+#include "components/RigidBody.h"
+#include "components/Light.h"
 #include "render/Renderer.h"
 #include "render/Camera.h"
 #include "Physics.h"
@@ -32,7 +34,11 @@ void WorldObject::AttachRigidBody(RigidBody* pRigidBody)
 	}
 
 	m_pRigidBody = pRigidBody;
-	m_pRigidBody->OnAttached(this);
+
+	if (m_pRigidBody)
+	{
+		m_pRigidBody->OnAttached(this);
+	}
 }
 
 void WorldObject::AttachModel(ModelInstance* pModel)
@@ -44,7 +50,27 @@ void WorldObject::AttachModel(ModelInstance* pModel)
 	}
 
 	m_pModel = pModel;
-	m_pModel->OnAttached(this);
+
+	if (m_pModel)
+	{
+		m_pModel->OnAttached(this);
+	}
+}
+
+void WorldObject::AttachLight(Light* pLight)
+{
+	if (m_pLight)
+	{
+		m_pLight->OnDetached(this);
+		m_pLight->Release();
+	}
+
+	m_pLight = pLight;
+
+	if (pLight)
+	{
+		m_pLight->OnAttached(this);
+	}
 }
 
 void WorldObject::Release()
@@ -59,6 +85,12 @@ void WorldObject::Release()
 	{
 		m_pModel->Release();
 		m_pModel = nullptr;
+	}
+
+	if (m_pLight)
+	{
+		m_pLight->Release();
+		m_pLight = nullptr;
 	}
 
 	s_worldObjects.releaseSafe(this);

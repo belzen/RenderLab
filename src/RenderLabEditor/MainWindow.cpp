@@ -12,6 +12,7 @@
 #include "UserConfig.h"
 #include "Physics.h"
 #include "Time.h"
+#include "components/Light.h"
 
 namespace
 {
@@ -71,7 +72,8 @@ MainWindow::MainWindow(int width, int height, const char* title)
 		RenderDoc::Capture();
 	}, this);
 	m_debugMenu.AddItem("Invalidate Spec Probes", [](void* pUserData) {
-		static_cast<MainWindow*>(pUserData)->m_scene.GetLightList().InvalidateEnvironmentLights();
+		MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
+		pWindow->m_scene.InvalidateEnvironmentLights();
 	}, this);
 
 	m_mainMenu.Init();

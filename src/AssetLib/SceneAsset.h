@@ -9,6 +9,7 @@
 
 enum class LightType : int
 {
+	None,
 	Directional,
 	Point,
 	Spot,
@@ -21,7 +22,6 @@ namespace AssetLib
 	{
 		LightType type;
 
-		Vec3 position;
 		Vec3 direction;
 		Vec3 color;
 		float radius;
@@ -31,6 +31,7 @@ namespace AssetLib
 		float outerConeAngle; // No more light
 
 		bool bCastsShadows;
+		bool bIsGlobalEnvironmentLight;
 	};
 
 	struct MaterialSwap
@@ -60,6 +61,7 @@ namespace AssetLib
 		Quaternion orientation;
 		Vec3 scale;
 		ObjectPhysics physics;
+		Light light;
 		MaterialSwap materialSwaps[4];
 		uint numMaterialSwaps;
 		CachedString modelName;
@@ -86,7 +88,6 @@ namespace AssetLib
 		Vec3 camPosition;
 		Vec3 camPitchYawRoll;
 
-		std::vector<Light> lights;
 		std::vector<Object> objects;
 		Terrain terrain;
 		Vec3 globalEnvironmentLightPosition;

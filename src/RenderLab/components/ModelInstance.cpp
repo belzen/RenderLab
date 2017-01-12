@@ -60,10 +60,12 @@ void ModelInstance::Release()
 
 void ModelInstance::OnAttached(WorldObject* pObject)
 {
+	m_pParentObject = pObject;
 }
 
 void ModelInstance::OnDetached(WorldObject* pObject)
 {
+	m_pParentObject = nullptr;
 }
 
 bool ModelInstance::CanInstance() const

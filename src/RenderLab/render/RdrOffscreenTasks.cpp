@@ -67,11 +67,9 @@ void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 	RdrResourceCommandList& rCleanupCommandList = rRenderer.GetPostFrameCommandList();
 
 	const int kMaxOffscreenActionsPerFrame = 2;
-	int i = 0;
-
-	while (i < kMaxOffscreenActionsPerFrame && !s_offscreenTasks.empty())
+	for (int numCompletedActions = 0; numCompletedActions < kMaxOffscreenActionsPerFrame && !s_offscreenTasks.empty(); ++numCompletedActions)
 	{
-		RdrOffscreenTask& rTask = s_offscreenTasks[i];
+		RdrOffscreenTask& rTask = s_offscreenTasks[0];
 		switch (rTask.type)
 		{
 		case RdrOffscreenTaskType::kSpecularProbe:
@@ -99,8 +97,7 @@ void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 				}
 				else if (rTask.state == 7)
 				{
-					s_offscreenTasks.erase(s_offscreenTasks.begin() + i);
-					--i;
+					s_offscreenTasks.erase(s_offscreenTasks.begin());
 				}
 			}
 			break;
@@ -130,8 +127,7 @@ void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 				}
 				else if (rTask.state == 7)
 				{
-					s_offscreenTasks.erase(s_offscreenTasks.begin() + i);
-					--i;
+					s_offscreenTasks.erase(s_offscreenTasks.begin());
 				}
 			}
 			break;

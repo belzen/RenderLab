@@ -2,29 +2,18 @@
 #include "Scene.h"
 #include "render/Camera.h"
 #include "render/Renderer.h"
+#include "render/Font.h"
+#include "render/RdrOffscreenTasks.h"
 #include "WorldObject.h"
 #include "components/ModelInstance.h"
-#include "render/Font.h"
+#include "components/Light.h"
+#include "components/RigidBody.h"
 #include "AssetLib/SceneAsset.h"
 #include "AssetLib/AssetLibrary.h"
 
-namespace
-{
-	uint s_stressTestLights = 0;
-	void spawnLightStressTest(LightList& rLightList)
-	{
-		for (float x = -150.f; x < 150.f; x += 8.f)
-		{
-			for (float y = -150.f; y < 150.f; y += 8.f)
-			{
-				rLightList.AddPointLight(Vec3(x, 5.f, y), Vec3(800.f, 0.f, 0.f), 16.f);
-			}
-		}
-	}
-}
-
 Scene::Scene()
-	: m_reloadPending(false)
+	: m_environmentMapSize(128)
+	, m_reloadPending(false)
 {
 }
 
@@ -39,7 +28,6 @@ void Scene::Cleanup()
 	}
 	m_objects.clear();
 
-	m_lights.Cleanup();
 	m_sky.Cleanup();
 	m_sceneName = nullptr;
 }
@@ -50,6 +38,45 @@ void Scene::OnAssetReloaded(const AssetLib::Scene* pSceneAsset)
 	{
 		m_reloadPending = true;
 	}
+}
+
+void Scene::InvalidateEnvironmentLights()
+{
+	for (int i = 0; i < ARRAY_SIZE(m_apActiveEnvironmentLights); ++i)
+	{
+		if (m_apActiveEnvironmentLights[i])
+		{
+			CaptureEnvironmentLight(m_apActiveEnvironmentLights[i]);
+		}
+	}
+}
+
+void Scene::CaptureEnvironmentLight(Light* pLight)
+{
+	int index = pLight->GetEnvironmentTextureIndex();
+	if (index < 0)
+	{
+		// Find an empty environment light slot
+		for (int i = 0; i < ARRAY_SIZE(m_apActiveEnvironmentLights); ++i)
+		{
+			if (!m_apActiveEnvironmentLights[i])
+			{
+				m_apActiveEnvironmentLights[i] = pLight;
+				pLight->SetEnvironmentTextureIndex(i);
+				index = i;
+				break;
+			}
+		}
+
+		// Bail if there were no open slots.
+		if (index < 0)
+			return;
+	}
+
+	assert(m_apActiveEnvironmentLights[index] == pLight);
+	Rect viewport(0.f, 0.f, (float)m_environmentMapSize, (float)m_environmentMapSize);
+	RdrOffscreenTasks::QueueSpecularProbeCapture(pLight->GetParent()->GetPosition(), this, viewport,
+		m_hEnvironmentMapTexArray, index, m_hEnvironmentMapDepthView);
 }
 
 void Scene::Load(const char* sceneName)
@@ -63,6 +90,15 @@ void Scene::Load(const char* sceneName)
 	{
 		assert(false);
 		return;
+	}
+
+	memset(m_apActiveEnvironmentLights, 0, sizeof(m_apActiveEnvironmentLights));
+	if (!m_hEnvironmentMapTexArray)
+	{
+		RdrResourceCommandList& rResCommands = g_pRenderer->GetPreFrameCommandList();
+		m_hEnvironmentMapTexArray = rResCommands.CreateTextureCubeArray(m_environmentMapSize, m_environmentMapSize, MAX_ENVIRONMENT_MAPS, RdrResourceFormat::R16G16B16A16_FLOAT);
+		m_hEnvironmentMapDepthBuffer = rResCommands.CreateTexture2D(m_environmentMapSize, m_environmentMapSize, RdrResourceFormat::D24_UNORM_S8_UINT, RdrResourceUsage::Default, nullptr);
+		m_hEnvironmentMapDepthView = rResCommands.CreateDepthStencilView(m_hEnvironmentMapDepthBuffer);
 	}
 
 	// Camera
@@ -88,8 +124,14 @@ void Scene::Load(const char* sceneName)
 	for (const AssetLib::Object& rObjectData : pSceneData->objects)
 	{
 		WorldObject* pObject = WorldObject::Create(rObjectData.name, rObjectData.position, rObjectData.orientation, rObjectData.scale);
-		pObject->AttachModel(ModelInstance::Create(rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
 
+		// Model
+		if (rObjectData.modelName)
+		{
+			pObject->AttachModel(ModelInstance::Create(rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
+		}
+
+		// Physics
 		RigidBody* pRigidBody = nullptr;
 		switch (rObjectData.physics.shape)
 		{
@@ -102,39 +144,33 @@ void Scene::Load(const char* sceneName)
 		}
 		pObject->AttachRigidBody(pRigidBody);
 
+		// Lighting
+		switch (rObjectData.light.type)
+		{
+		case LightType::Directional:
+			pObject->AttachLight(Light::CreateDirectional(rObjectData.light.color, rObjectData.light.direction));
+			break;
+		case LightType::Point:
+			pObject->AttachLight(Light::CreatePoint(rObjectData.light.color, rObjectData.light.radius));
+			break;
+		case LightType::Spot:
+			pObject->AttachLight(Light::CreateSpot(rObjectData.light.color, rObjectData.light.direction, rObjectData.light.radius, rObjectData.light.innerConeAngle, rObjectData.light.outerConeAngle));
+			break;
+		case LightType::Environment:
+			{
+				Light* pLight = Light::CreateEnvironment(rObjectData.light.bIsGlobalEnvironmentLight);
+				pObject->AttachLight(pLight);
+				CaptureEnvironmentLight(pLight);
+			}
+			break;
+		}
+
 		m_objects.push_back(pObject);
 	}
 
 	if (pSceneData->terrain.enabled)
 	{
 		m_terrain.Init(pSceneData->terrain);
-	}
-
-	// Lights
-	m_lights.Init(this);
-	m_lights.SetGlobalEnvironmentLight(pSceneData->globalEnvironmentLightPosition);
-	for (const AssetLib::Light& rLightData : pSceneData->lights)
-	{
-		switch (rLightData.type)
-		{
-		case LightType::Directional:
-			m_lights.AddDirectionalLight(rLightData.direction, rLightData.color);
-			break;
-		case LightType::Point:
-			m_lights.AddPointLight(rLightData.position, rLightData.color, rLightData.radius);
-			break;
-		case LightType::Spot:
-			m_lights.AddSpotLight(rLightData.position, rLightData.direction, rLightData.color, rLightData.radius, rLightData.innerConeAngle, rLightData.outerConeAngle);
-			break;
-		case LightType::Environment:
-			m_lights.AddEnvironmentLight(rLightData.position);
-			break;
-		}
-	}
-
-	if (s_stressTestLights)
-	{
-		spawnLightStressTest(m_lights);
 	}
 
 	// TODO: quad/oct tree for scene

@@ -86,6 +86,18 @@ public:
 		return T_kCapacity;
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Range iterator
+	T_object* begin()
+	{
+		return &m_objects[0];
+	}
+
+	T_object* end()
+	{
+		return &m_objects[m_size];
+	}
+
 private:
 	T_object m_objects[T_kCapacity];
 	uint m_size;

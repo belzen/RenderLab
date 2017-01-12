@@ -2,9 +2,9 @@
 
 #include "render/RdrPostProcessEffects.h"
 #include "render/RdrContext.h"
-#include "render/Light.h"
 #include "render/Sky.h"
 #include "render/Terrain.h"
+#include "render/RdrLighting.h"
 #include <vector>
 #include "AssetLib/SceneAsset.h"
 #include "AssetLib/AssetLibrary.h"
@@ -38,10 +38,11 @@ public:
 	void AddObject(WorldObject* pObject);
 	void RemoveObject(WorldObject* pObject);
 
-	LightList& GetLightList();
-
 	const RdrPostProcessEffects* GetPostProcEffects() const;
 	RdrPostProcessEffects* GetPostProcEffects();
+
+	RdrResourceHandle GetEnvironmentMapTexArray() const;
+	void InvalidateEnvironmentLights();
 
 	const char* GetName() const;
 
@@ -50,12 +51,12 @@ public:
 
 private:
 	void OnAssetReloaded(const AssetLib::Scene* pSceneAsset);
+	void CaptureEnvironmentLight(Light* pLight);
 
 	void Cleanup();
 
 private:
 	WorldObjectList m_objects;
-	LightList m_lights;
 	Sky m_sky;
 	Terrain m_terrain;
 	RdrPostProcessEffects m_postProcEffects;
@@ -63,9 +64,17 @@ private:
 	Vec3 m_cameraSpawnPosition;
 	Vec3 m_cameraSpawnPitchYawRoll;
 
+	Light* m_apActiveEnvironmentLights[MAX_ENVIRONMENT_MAPS];
+	RdrResourceHandle m_hEnvironmentMapTexArray;
+	RdrResourceHandle m_hEnvironmentMapDepthBuffer;
+	RdrDepthStencilViewHandle m_hEnvironmentMapDepthView;
+	uint m_environmentMapSize;
+
 	CachedString m_sceneName;
 	bool m_reloadPending;
 };
+
+//////////////////////////////////////////////////////////////////////////
 
 inline const Sky& Scene::GetSky() const
 {
@@ -97,11 +106,6 @@ inline WorldObjectList& Scene::GetWorldObjects()
 	return m_objects;
 }
 
-inline LightList& Scene::GetLightList()
-{ 
-	return m_lights; 
-}
-
 inline const RdrPostProcessEffects* Scene::GetPostProcEffects() const
 {
 	return &m_postProcEffects;
@@ -110,4 +114,9 @@ inline const RdrPostProcessEffects* Scene::GetPostProcEffects() const
 inline RdrPostProcessEffects* Scene::GetPostProcEffects()
 {
 	return &m_postProcEffects;
+}
+
+inline RdrResourceHandle Scene::GetEnvironmentMapTexArray() const
+{
+	return m_hEnvironmentMapTexArray;
 }

@@ -31,12 +31,14 @@ RigidBody* RigidBody::CreateSphere(const float radius, const float density, cons
 
 void RigidBody::OnAttached(WorldObject* pObject)
 {
+	m_pParentObject = pObject;
 	Physics::SetActorUserData(m_pActor, pObject);
 	Physics::AddToScene(m_pActor, pObject->GetPosition(), pObject->GetOrientation());
 }
 
 void RigidBody::OnDetached(WorldObject* pObject)
 {
+	m_pParentObject = nullptr;
 	Physics::SetActorUserData(m_pActor, nullptr);
 }
 

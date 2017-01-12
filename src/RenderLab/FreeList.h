@@ -100,6 +100,48 @@ public:
 		m_mutex.Unlock();
 	}
 
+public:
+	//////////////////////////////////////////////////////////////////////////
+	// Iterator
+	class Iterator 
+	{
+	public:
+		Iterator(Handle index, FreeList<T_object, T_nMaxEntries>* pList) 
+			: m_index(index), m_pList(pList)
+		{
+		}
+
+		T_object& operator*() 
+		{ 
+			return m_pList->m_objects[m_index];
+		}
+
+		Iterator& operator++() 
+		{ 
+			while (!m_pList->m_inUse[++m_index] && m_index < m_pList->m_nextId);
+			return *this; 
+		}
+
+		bool operator!=(const Iterator& iter) const 
+		{ 
+			return m_index != iter.m_index;
+		}
+
+	private:
+		Handle m_index;
+		FreeList<T_object, T_nMaxEntries>* m_pList;
+	};
+
+	Iterator begin()
+	{ 
+		return Iterator(0, this); 
+	}
+
+	Iterator end()
+	{ 
+		return Iterator(m_nextId, this); 
+	}
+
 private:
 	T_object m_objects[T_nMaxEntries];
 	Handle m_freeIdStack[T_nMaxEntries];

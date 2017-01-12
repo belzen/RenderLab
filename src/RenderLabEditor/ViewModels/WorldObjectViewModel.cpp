@@ -36,7 +36,8 @@ bool WorldObjectViewModel::SetName(const std::string& name, void* pSource)
 std::string WorldObjectViewModel::GetModel(void* pSource)
 {
 	WorldObjectViewModel* pViewModel = (WorldObjectViewModel*)pSource;
-	return pViewModel->m_pObject->GetModel()->GetModelData()->GetName();
+	const ModelInstance* pModel = pViewModel->m_pObject->GetModel();
+	return pModel ? pModel->GetModelData()->GetName() : "";
 }
 
 bool WorldObjectViewModel::SetModel(const std::string& modelName, void* pSource)

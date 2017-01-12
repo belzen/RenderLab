@@ -9,12 +9,11 @@
 #include "RdrPostProcess.h"
 #include "RdrRequests.h"
 #include "RdrProfiler.h"
+#include "RdrLighting.h"
 
 class Camera;
 class WorldObject;
 struct RdrDrawOp;
-struct Light;
-class LightList;
 class RdrPostProcessEffects;
 class Renderer;
 
@@ -97,6 +96,8 @@ private:
 
 	void ProcessReadbackRequests();
 
+	void CullSceneToCamera(float* pOutDepthMin, float* pOutDepthMax);
+
 private:
 	///
 	RdrContext* m_pContext;
@@ -112,6 +113,7 @@ private:
 	RdrRenderTargetViewHandle m_hColorBufferRenderTarget;
 
 	RdrDrawState m_drawState;
+	RdrLighting m_lighting;
 
 	RdrFrameState m_frameStates[2];
 	uint          m_queueState; // Index of the state being queued to by the main thread. (The other state is the active frame state).

@@ -57,6 +57,7 @@ void RdrDrawBuckets::Clear()
 void RdrAction::Reset()
 {
 	opBuckets.Clear();
+	lights.Clear();
 
 	memset(&lightParams, 0, sizeof(lightParams));
 

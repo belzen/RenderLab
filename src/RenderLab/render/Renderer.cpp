@@ -2,7 +2,6 @@
 #include "Renderer.h"
 #include "Camera.h"
 #include "WorldObject.h"
-#include "Light.h"
 #include "Font.h"
 #include <DXGIFormat.h>
 #include "debug\DebugConsole.h"
@@ -14,7 +13,7 @@
 #include "RdrComputeOp.h"
 #include "RdrInstancedObjectDataBuffer.h"
 #include "Scene.h"
-#include "../../data/shaders/light_types.h"
+#include "components/Light.h"
 #include "AssetLib/SkyAsset.h"
 
 Renderer* g_pRenderer = nullptr;
@@ -97,45 +96,6 @@ namespace
 			// todo: Flag to ignore non-opaque objects
 			pObj->QueueDraw(pBuckets);
 		}
-	}
-
-	void cullSceneToCamera(const Camera& rCamera, Scene* pScene, 
-		RdrDrawBuckets* pDrawBuckets, RdrResourceHandle hVolumetricFogLut,
-		float* pOutDepthMin, float* pOutDepthMax)
-	{
-		Vec3 camDir = rCamera.GetDirection();
-		Vec3 camPos = rCamera.GetPosition();
-		float depthMin = FLT_MAX;
-		float depthMax = 0.f;
-
-		// World Objects
-		WorldObjectList& objects = pScene->GetWorldObjects();
-		for (int i = (int)objects.size() - 1; i >= 0; --i)
-		{
-			WorldObject* pObj = objects[i];
-			if (!rCamera.CanSee(pObj->GetPosition(), pObj->GetRadius()))
-				continue;
-			
-			pObj->QueueDraw(pDrawBuckets);
-
-			Vec3 diff = pObj->GetPosition() - camPos;
-			float distSqr = Vec3Dot(camDir, diff);
-			float dist = sqrtf(max(0.f, distSqr));
-			float radius = pObj->GetRadius();
-
-			if (dist - radius < depthMin)
-				depthMin = dist - radius;
-
-			if (dist + radius > depthMax)
-				depthMax = dist + radius;
-		}
-
-		// Terrain & Sky
-		pScene->GetTerrain().QueueDraw(pDrawBuckets, rCamera);
-		pScene->GetSky().QueueDraw(pDrawBuckets, hVolumetricFogLut);
-
-		*pOutDepthMin = max(rCamera.GetNearDist(), depthMin);
-		*pOutDepthMax = min(rCamera.GetFarDist(), depthMax);
 	}
 
 	void createPerActionConstants(RdrResourceCommandList& rResCommandList, const Camera& rCamera, const Rect& rViewport, const Sky& rSky, RdrGlobalConstants& rConstants)
@@ -243,6 +203,7 @@ bool Renderer::Init(HWND hWnd, int width, int height, InputManager* pInputManage
 	SetLightingMethod(m_eLightingMethod);
 
 	RdrShaderSystem::Init(m_pContext);
+	m_lighting.Init();
 
 	Resize(width, height);
 	ApplyDeviceChanges();
@@ -499,6 +460,62 @@ void Renderer::QueueVolumetricFog(const AssetLib::VolumetricFogSettings& rFogSet
 	AddComputeOpToPass(pAccumOp, RdrPass::VolumetricFog);
 }
 
+void Renderer::CullSceneToCamera(float* pOutDepthMin, float* pOutDepthMax)
+{
+	const Camera& rCamera = m_pCurrentAction->camera;
+	Scene* pScene = m_pCurrentAction->pScene;
+	RdrLightList* pLightList = &m_pCurrentAction->lights;
+	RdrDrawBuckets* pDrawBuckets = &m_pCurrentAction->opBuckets;
+
+	Vec3 camDir = rCamera.GetDirection();
+	Vec3 camPos = rCamera.GetPosition();
+	float depthMin = FLT_MAX;
+	float depthMax = 0.f;
+
+	// World Objects
+	WorldObjectList& objects = pScene->GetWorldObjects();
+	for (int i = (int)objects.size() - 1; i >= 0; --i)
+	{
+		WorldObject* pObj = objects[i];
+		const Light* pLight = pObj->GetLight();
+		if (pLight)
+		{
+			pLightList->AddLight(pLight);
+		}
+
+		if (!rCamera.CanSee(pObj->GetPosition(), pObj->GetRadius()))
+			continue;
+
+		pObj->QueueDraw(pDrawBuckets);
+
+		Vec3 diff = pObj->GetPosition() - camPos;
+		float distSqr = Vec3Dot(camDir, diff);
+		float dist = sqrtf(max(0.f, distSqr));
+		float radius = pObj->GetRadius();
+
+		if (dist - radius < depthMin)
+			depthMin = dist - radius;
+
+		if (dist + radius > depthMax)
+			depthMax = dist + radius;
+	}
+
+	// Terrain & Sky
+	pScene->GetTerrain().QueueDraw(pDrawBuckets, rCamera);
+	pScene->GetSky().QueueDraw(pDrawBuckets, m_pCurrentAction->lightParams.hVolumetricFogLut);
+
+	// Add sky light to the list
+	DirectionalLight sunLight;
+	sunLight.direction = pScene->GetSky().GetSunDirection();
+	sunLight.color = pScene->GetSky().GetSunColor();
+	sunLight.shadowMapIndex = -1;
+	pLightList->m_directionalLights.push(sunLight);
+
+	// Return depth min/max.
+	*pOutDepthMin = max(rCamera.GetNearDist(), depthMin);
+	*pOutDepthMax = min(rCamera.GetFarDist(), depthMax);
+}
+
 void Renderer::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
 {
 	assert(m_pCurrentAction);
@@ -592,22 +609,22 @@ void Renderer::BeginPrimaryAction(Camera& rCamera, Scene& rScene)
 	m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
 	rScene.GetPostProcEffects()->PrepareDraw();
 
-	const AssetLib::VolumetricFogSettings& rVolFogSettings = rScene.GetSky().GetVolFogSettings();
+	const Sky& rSky = rScene.GetSky();
+	const AssetLib::VolumetricFogSettings& rVolFogSettings = rSky.GetVolFogSettings();
 	m_pCurrentAction->lightParams.hVolumetricFogLut = rVolFogSettings.enabled ? m_volumetricFogData.hFinalLut : RdrResourceSystem::GetDefaultResourceHandle(RdrDefaultResource::kBlackTex3d);
-	m_pCurrentAction->lightParams.hSkyTransmittanceLut = rScene.GetSky().GetTransmittanceLut();
+	m_pCurrentAction->lightParams.hSkyTransmittanceLut = rSky.GetTransmittanceLut();
+	m_pCurrentAction->lightParams.hEnvironmentMapTexArray = rScene.GetEnvironmentMapTexArray();
 
 	float sceneDepthMin, sceneDepthMax;
-	cullSceneToCamera(m_pCurrentAction->camera, m_pCurrentAction->pScene,
-		&m_pCurrentAction->opBuckets, m_pCurrentAction->lightParams.hVolumetricFogLut,
-		&sceneDepthMin, &sceneDepthMax);
+	CullSceneToCamera(&sceneDepthMin, &sceneDepthMax);
 
-	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, rScene.GetSky(), m_pCurrentAction->constants);
-	m_pCurrentAction->constants.hPsAtmosphere = rScene.GetSky().GetAtmosphereConstantBuffer();
+	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, rSky, m_pCurrentAction->constants);
+	m_pCurrentAction->constants.hPsAtmosphere = rSky.GetAtmosphereConstantBuffer();
 
 	createUiConstants(m_pCurrentAction->resourceCommands, viewport, m_pCurrentAction->uiConstants);
 
 	// Lighting
-	rScene.GetLightList().QueueDraw(*this, rScene.GetSky(), m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax,
+	m_lighting.QueueDraw(&m_pCurrentAction->lights, *this, rSky, m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax,
 		m_eLightingMethod, &m_pCurrentAction->lightParams);
 
 	QueueVolumetricFog(rVolFogSettings);
@@ -638,20 +655,20 @@ void Renderer::BeginOffscreenAction(const wchar_t* actionName, Camera& rCamera, 
 		rScene.GetPostProcEffects()->PrepareDraw();
 	}
 
-	const AssetLib::VolumetricFogSettings& rVolFogSettings = rScene.GetSky().GetVolFogSettings();
+	const Sky& rSky = rScene.GetSky();
+	const AssetLib::VolumetricFogSettings& rVolFogSettings = rSky.GetVolFogSettings();
 	m_pCurrentAction->lightParams.hVolumetricFogLut = rVolFogSettings.enabled ? m_volumetricFogData.hFinalLut : RdrResourceSystem::GetDefaultResourceHandle(RdrDefaultResource::kBlackTex3d);
-	m_pCurrentAction->lightParams.hSkyTransmittanceLut = rScene.GetSky().GetTransmittanceLut();
+	m_pCurrentAction->lightParams.hSkyTransmittanceLut = rSky.GetTransmittanceLut();
+	m_pCurrentAction->lightParams.hEnvironmentMapTexArray = rScene.GetEnvironmentMapTexArray();
 
 	float sceneDepthMin, sceneDepthMax;
-	cullSceneToCamera(m_pCurrentAction->camera, m_pCurrentAction->pScene,
-		&m_pCurrentAction->opBuckets, m_pCurrentAction->lightParams.hVolumetricFogLut,
-		&sceneDepthMin, &sceneDepthMax);
+	CullSceneToCamera(&sceneDepthMin, &sceneDepthMax);
 
-	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, rScene.GetSky(), m_pCurrentAction->constants);
-	m_pCurrentAction->constants.hPsAtmosphere = rScene.GetSky().GetAtmosphereConstantBuffer();
+	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, rSky, m_pCurrentAction->constants);
+	m_pCurrentAction->constants.hPsAtmosphere = rSky.GetAtmosphereConstantBuffer();
 
 	// Lighting
-	rScene.GetLightList().QueueDraw(*this, rScene.GetSky(), m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax,
+	m_lighting.QueueDraw(&m_pCurrentAction->lights, *this, rSky, m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax,
 		m_eLightingMethod, &m_pCurrentAction->lightParams);
 
 	QueueVolumetricFog(rVolFogSettings);

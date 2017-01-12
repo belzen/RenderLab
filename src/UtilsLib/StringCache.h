@@ -12,6 +12,7 @@ public:
 	CachedString(const char* str);
 
 	bool operator==(const CachedString& rOther) const;
+	explicit operator bool() const;
 
 	uint getHash() const;
 	const char* getString() const;
@@ -25,6 +26,11 @@ private:
 inline bool CachedString::operator==(const CachedString& rOther) const
 {
 	return m_str == rOther.m_str;
+}
+
+inline CachedString::operator bool() const
+{
+	return !!m_str;
 }
 
 inline uint CachedString::getHash() const

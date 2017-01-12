@@ -6,8 +6,6 @@
 	},
 	"sky" : "cloudy",
 	"postProcessingEffects" : "sponza",
-	"lights" : [
-	],
 	"objects" : 
 	[
 		{

@@ -64,7 +64,7 @@ bool RenderWindow::OnMouseDown(int button, int mx, int my)
 	m_inputManager.SetMouseDown(button, true, mx, my);
 
 	Physics::RaycastResult res;
-	if (RaycastAtCursor(mx, my, &res) && res.pActor)
+	if (button == 0 && RaycastAtCursor(mx, my, &res) && res.pActor)
 	{
 		WorldObject* pObject = static_cast<WorldObject*>(Physics::GetActorUserData(res.pActor));
 		m_pSceneViewModel->SetSelected(pObject);

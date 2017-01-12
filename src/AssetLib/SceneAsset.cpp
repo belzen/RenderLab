@@ -60,79 +60,6 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 		}
 	}
 
-	// Lights
-	{
-		Json::Value jLights = jRoot.get("lights", Json::Value::null);
-
-		uint numLights = jLights.size();
-		pScene->lights.resize(jLights.size());
-
-		for (uint i = 0; i < numLights; ++i)
-		{
-			Json::Value jLight = jLights.get(i, Json::Value::null);
-			AssetLib::Light& rLight = pScene->lights[i];
-
-			Json::Value jType = jLight.get("type", Json::Value::null);
-			const char* typeStr = jType.asCString();
-			if (_stricmp(typeStr, "directional") == 0)
-			{
-				rLight.type = LightType::Directional;
-
-				rLight.direction = jsonReadVec3(jLight.get("direction", Json::Value::null));
-				rLight.direction = Vec3Normalize(rLight.direction);
-			}
-			else if (_stricmp(typeStr, "spot") == 0)
-			{
-				rLight.type = LightType::Spot;
-
-				rLight.direction = jsonReadVec3(jLight.get("direction", Json::Value::null));
-				rLight.direction = Vec3Normalize(rLight.direction);
-
-				float innerConeAngle = jLight.get("innerConeAngle", 0.f).asFloat();
-				rLight.innerConeAngle = Maths::DegToRad(innerConeAngle);
-
-				float outerConeAngle = jLight.get("outerConeAngle", 0.f).asFloat();
-				rLight.outerConeAngle = Maths::DegToRad(outerConeAngle);
-			}
-			else if (_stricmp(typeStr, "point") == 0)
-			{
-				rLight.type = LightType::Point;
-			}
-			else if (_stricmp(typeStr, "environment") == 0)
-			{
-				rLight.type = LightType::Environment;
-			}
-			else
-			{
-				assert(false);
-				delete pScene;
-				return nullptr;
-			}
-
-			rLight.position = jsonReadVec3(jLight.get("position", Json::Value::null));
-
-			rLight.color = jsonReadVec3(jLight.get("color", Json::Value::null));
-			float intensity = jLight.get("intensity", 1.f).asFloat();
-			rLight.color.x *= intensity;
-			rLight.color.y *= intensity;
-			rLight.color.z *= intensity;
-
-			rLight.radius = jLight.get("radius", 0.f).asFloat();
-			if (rLight.type == LightType::Directional)
-			{
-				rLight.radius = FLT_MAX;
-			}
-
-			rLight.bCastsShadows = jLight.get("castsShadows", false).asBool();
-		}
-	}
-
-	// Global environment light
-	{
-		Json::Value jGlobalEnvLight = jRoot.get("globalEnvironmentLight", Json::Value::null);
-		pScene->globalEnvironmentLightPosition = jsonReadVec3(jGlobalEnvLight.get("position", Json::Value::null));
-	}
-
 	// Objects
 	{
 		Json::Value jObjects = jRoot.get("objects", Json::Value::null);
@@ -163,7 +90,9 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 					++rObj.numMaterialSwaps;
 				}
 			}
-			
+
+			//////////////////////////////////////////////////////////////////////////
+			// Physics component
 			Json::Value jPhysics = jObj.get("physics", Json::Value::null);
 			if (jPhysics.isObject())
 			{
@@ -186,6 +115,57 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 
 				rObj.physics.density = jPhysics.get("density", 0.f).asFloat();
 				rObj.physics.offset = jsonReadVec3(jPhysics.get("offset", Json::Value::null));
+			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// Light component
+			Json::Value jLight = jObj.get("light", Json::Value::null);
+			if (jLight.isObject())
+			{
+				AssetLib::Light& rLight = rObj.light;
+
+				Json::Value jType = jLight.get("type", Json::Value::null);
+				const char* typeStr = jType.asCString();
+				if (_stricmp(typeStr, "directional") == 0)
+				{
+					rLight.type = LightType::Directional;
+
+					rLight.direction = jsonReadVec3(jLight.get("direction", Json::Value::null));
+					rLight.direction = Vec3Normalize(rLight.direction);
+					rLight.radius = FLT_MAX;
+				}
+				else if (_stricmp(typeStr, "spot") == 0)
+				{
+					rLight.type = LightType::Spot;
+					rLight.radius = jLight.get("radius", 0.f).asFloat();
+
+					rLight.direction = jsonReadVec3(jLight.get("direction", Json::Value::null));
+					rLight.direction = Vec3Normalize(rLight.direction);
+
+					float innerConeAngle = jLight.get("innerConeAngle", 0.f).asFloat();
+					rLight.innerConeAngle = Maths::DegToRad(innerConeAngle);
+
+					float outerConeAngle = jLight.get("outerConeAngle", 0.f).asFloat();
+					rLight.outerConeAngle = Maths::DegToRad(outerConeAngle);
+				}
+				else if (_stricmp(typeStr, "point") == 0)
+				{
+					rLight.type = LightType::Point;
+					rLight.radius = jLight.get("radius", 0.f).asFloat();
+				}
+				else if (_stricmp(typeStr, "environment") == 0)
+				{
+					rLight.type = LightType::Environment;
+					rLight.bIsGlobalEnvironmentLight = jLight.get("isGlobalEnvironmentLight", false).asBool();
+				}
+				else
+				{
+					assert(false);
+				}
+
+				float intensity = jLight.get("intensity", 1.f).asFloat();
+				rLight.color = intensity * jsonReadVec3(jLight.get("color", Json::Value::null));
+				rLight.bCastsShadows = jLight.get("castsShadows", false).asBool();
 			}
 		}
 	}
