@@ -6,13 +6,15 @@
 #include "Widgets/AssetBrowser.h"
 #include "AssetLib/AssetLibrary.h"
 #include "ViewModels/IViewModel.h"
-#include "AssetLib/SkyAsset.h"
-#include "WorldObject.h"
+#include "Entity.h"
 #include "RenderDoc\RenderDocUtil.h"
 #include "UserConfig.h"
 #include "Physics.h"
 #include "Time.h"
 #include "components/Light.h"
+#include "components/Renderable.h"
+#include "components/VolumeComponent.h"
+#include "components/ModelInstance.h"
 
 namespace
 {
@@ -23,13 +25,13 @@ namespace
 			return;
 
 		SceneViewModel* pSceneViewModel = static_cast<SceneViewModel*>(pUserData);
-		pSceneViewModel->SetSelected(static_cast<WorldObject*>(pItem->pData));
+		pSceneViewModel->SetSelected(static_cast<Entity*>(pItem->pData));
 	}
 
 	void sceneTreeViewItemDeleted(const TreeView* pTree, TreeViewItem* pDeletedItem, void* pUserData)
 	{
 		SceneViewModel* pSceneViewModel = static_cast<SceneViewModel*>(pUserData);
-		pSceneViewModel->RemoveObject(static_cast<WorldObject*>(pDeletedItem->pData));
+		pSceneViewModel->RemoveObject(static_cast<Entity*>(pDeletedItem->pData));
 	}
 }
 
@@ -49,9 +51,12 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	::InitCommonControls();
 
 	INITCOMMONCONTROLSEX icex;
-	icex.dwICC = ICC_LISTVIEW_CLASSES | ICC_TREEVIEW_CLASSES;
+	icex.dwICC = ICC_LISTVIEW_CLASSES | ICC_TREEVIEW_CLASSES | ICC_STANDARD_CLASSES;
 	::InitCommonControlsEx(&icex);
 	
+	HFONT hDefaultFont = CreateFontA(14, 0, 0, 0, FW_DONTCARE, false, false, false, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Arial");
+	Widget::SetDefaultFont(hDefaultFont);
+
 	m_sceneViewModel.Init(&m_scene);
 
 	m_fileMenu.Init();
@@ -62,9 +67,9 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	m_addMenu.Init();
 	m_addMenu.AddItem("Add Object", [](void* pUserData) {
 		MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
-		WorldObject* pObject = WorldObject::Create("New Object", Vec3::kZero, Quaternion::kIdentity, Vec3::kOne);
-		pObject->AttachModel(ModelInstance::Create("box", nullptr, 0));
-		pWindow->m_sceneViewModel.AddObject(pObject);
+		Entity* pEntity = Entity::Create("New Object", Vec3::kZero, Quaternion::kIdentity, Vec3::kOne);
+		pEntity->AttachRenderable(ModelInstance::Create("box", nullptr, 0));
+		pWindow->m_sceneViewModel.AddEntity(pEntity);
 	}, this);
 
 	m_debugMenu.Init();
@@ -100,20 +105,32 @@ bool MainWindow::OnClose()
 	return true;
 }
 
-void MainWindow::OnSceneObjectAdded(WorldObject* pObject)
+void MainWindow::OnEntityAddedToScene(Entity* pEntity)
 {
-	m_pSceneTreeView->AddItem(pObject->GetName(), pObject);
+	m_pSceneTreeView->AddItem(pEntity->GetName(), pEntity);
 }
 
-void MainWindow::OnSceneObjectRemoved(WorldObject* pObject)
+void MainWindow::OnEntityRemovedFromScene(Entity* pEntity)
 {
-	m_pSceneTreeView->RemoveItemByData(pObject);
+	m_pSceneTreeView->RemoveItemByData(pEntity);
 }
 
-void MainWindow::OnSceneSelectionChanged(WorldObject* pObject)
+void MainWindow::OnSceneSelectionChanged(Entity* pEntity)
 {
-	m_pPropertyPanel->SetViewModel(IViewModel::Create(pObject), true);
-	m_pSceneTreeView->SelectItem(pObject);
+	m_pPropertyPanel->SetViewModel(IViewModel::Create(pEntity), true);
+	if (pEntity->GetRenderable())
+	{
+		m_pPropertyPanel->AddViewModel(IViewModel::Create(pEntity->GetRenderable()));
+	}
+	if (pEntity->GetLight())
+	{
+		m_pPropertyPanel->AddViewModel(IViewModel::Create(pEntity->GetLight()));
+	}
+	if (pEntity->GetVolume())
+	{
+		m_pPropertyPanel->AddViewModel(IViewModel::Create(pEntity->GetVolume()));
+	}
+	m_pSceneTreeView->SelectItem(pEntity);
 }
 
 int MainWindow::Run()
@@ -159,7 +176,7 @@ int MainWindow::Run()
 	{
 		m_pRenderWindow->EarlyUpdate();
 
-		while (::PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE))
+		while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			::TranslateMessage(&msg);
 			::DispatchMessage(&msg);

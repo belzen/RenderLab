@@ -7,6 +7,7 @@
 
 class SceneViewModel;
 class FrameTimer;
+class Entity;
 
 namespace Physics
 {
@@ -60,5 +61,5 @@ private:
 	Renderer m_renderer;
 	SceneViewModel* m_pSceneViewModel;
 
-	WorldObject* m_pPlacingObject;
+	Entity* m_pPlacingObject;
 };

@@ -16,8 +16,6 @@ namespace
 		{ "icons/model.bmp", 0 },	   // kModel
 		{ "icons/texture.bmp", 0 },	   // kTexture
 		{ "icons/material.bmp", 0 },   // kMaterial
-		{ "icons/postprocfx.bmp", 0 }, // kPostProcessEffects
-		{ "icons/sky.bmp", 0 },	       // kSky
 	};
 }
 

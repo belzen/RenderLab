@@ -133,8 +133,9 @@ public:
 	};
 
 	Iterator begin()
-	{ 
-		return Iterator(0, this); 
+	{
+		// First item starts at 1.  0 is an invalid ID.
+		return Iterator(1, this); 
 	}
 
 	Iterator end()

@@ -30,9 +30,9 @@ private:
 	static void RenderThreadMain(MainWindow* pWindow);
 
 	// ISceneListener
-	void OnSceneObjectAdded(WorldObject* pObject);
-	void OnSceneObjectRemoved(WorldObject* pObject);
-	void OnSceneSelectionChanged(WorldObject* pObject);
+	void OnEntityAddedToScene(Entity* pEntity);
+	void OnEntityRemovedFromScene(Entity* pEntity);
+	void OnSceneSelectionChanged(Entity* pEntity);
 
 private:
 	Scene m_scene;

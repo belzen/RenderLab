@@ -9,12 +9,12 @@
 #include "Camera.h"
 #include "RdrLighting.h"
 #include "shapes\Rect.h"
+#include "AssetLib\SceneAsset.h"
 
 struct RdrDrawOp;
 struct RdrComputeOp;
 class Scene;
 class LightList;
-class RdrPostProcessEffects;
 class InputManager;
 
 struct RdrDrawBucketEntry
@@ -115,10 +115,10 @@ struct RdrAction
 
 	Scene* pScene;
 	Camera camera;
+	AssetLib::SkySettings sky;
+	AssetLib::PostProcessEffects postProcessEffects;
 
 	Rect primaryViewport;
-
-	const RdrPostProcessEffects* pPostProcEffects;
 
 	RdrLightResources lightParams;
 	RdrLightList lights;

@@ -15,7 +15,7 @@ TextBox::TextBox(const Widget& rParent, int x, int y, int width, int height,
 	, m_pUserData(pUserData)
 {
 	// Create child textbox control
-	m_hTextBox = CreateChildWindow(GetWindowHandle(), "Edit", 0, 0, width, height, 0, WS_EX_CLIENTEDGE);
+	m_hTextBox = CreateChildWindow(GetWindowHandle(), WC_EDITA, 0, 0, width, height, ES_AUTOHSCROLL, WS_EX_CLIENTEDGE);
 }
 
 TextBox::~TextBox()

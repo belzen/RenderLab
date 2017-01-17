@@ -23,9 +23,17 @@ enum class VAlign
 	kBottom
 };
 
+struct NameValuePair
+{
+	const wchar_t* name;
+	int value;
+};
+
 class Widget
 {
 public:
+	static void SetDefaultFont(HFONT hFont);
+
 	void Release();
 
 	int GetX() const;
@@ -50,7 +58,7 @@ public:
 	// Enable/disable user input on the widget.
 	void SetInputEnabled(bool enabled);
 
-	void SetScroll(int rangeMax, int scrollRate);
+	void SetScroll(int rangeMax, int scrollRate, int pageSize);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Input callbacks
@@ -175,7 +183,7 @@ inline int Widget::GetX() const
 
 inline int Widget::GetY() const
 {
-	return m_x;
+	return m_y;
 }
 
 inline int Widget::GetWidth() const

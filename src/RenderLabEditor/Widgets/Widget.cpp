@@ -4,6 +4,8 @@
 
 namespace
 {
+	HFONT s_hDefaultFont = NULL;
+
 	void registerWindowClass(const char* className, WNDPROC wndProc)
 	{
 		WNDCLASSEXA wc = { 0 };
@@ -17,6 +19,11 @@ namespace
 
 		::RegisterClassExA(&wc);
 	}
+}
+
+void Widget::SetDefaultFont(HFONT hFont)
+{
+	s_hDefaultFont = hFont;
 }
 
 Widget::Widget(int x, int y, int width, int height, const Widget* pParent, DWORD style, WNDPROC pWndProc)
@@ -127,16 +134,16 @@ void Widget::SetBorder(bool enabled)
 	}
 }
 
-void Widget::SetScroll(int rangeMax, int scrollRate)
+void Widget::SetScroll(int rangeMax, int scrollRate, int pageSize)
 {
 	m_scrollRate = scrollRate;
 
 	SCROLLINFO scrollInfo;
 	scrollInfo.cbSize = sizeof(scrollInfo);
-	scrollInfo.fMask = SIF_RANGE | SIF_PAGE;
+	scrollInfo.fMask = SIF_RANGE | SIF_PAGE | SIF_DISABLENOSCROLL;
 	scrollInfo.nMin = 0;
 	scrollInfo.nMax = rangeMax;
-	scrollInfo.nPage = 1;
+	scrollInfo.nPage = pageSize;
 
 	::SetScrollInfo(m_hWidget, SB_VERT, &scrollInfo, true);
 }
@@ -209,6 +216,11 @@ HWND Widget::CreateChildWindow(const HWND hParentWnd, const char* className, int
 		NULL);
 
 	::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)this);
+
+	if (s_hDefaultFont)
+	{
+		::SendMessageA(hWnd, WM_SETFONT, (WPARAM)s_hDefaultFont, true);
+	}
 	return hWnd;
 }
 
@@ -526,5 +538,5 @@ LRESULT CALLBACK Widget::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 			return 0;
 	}
 
-	return DefWindowProc(hWnd, msg, wParam, lParam);
+	return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }

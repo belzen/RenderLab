@@ -25,6 +25,11 @@ namespace Maths
 		return deg * kPi / 180.f;
 	}
 
+	inline float RadToDeg(float rad)
+	{
+		return rad * 180.f / kPi;
+	}
+
 	// Input data MUST be 16 byte aligned.
 	inline Vec4 convertHalfToSinglePrecision4(float16* pHalf)
 	{

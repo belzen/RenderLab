@@ -12,7 +12,7 @@ Button::Button(const Widget& rParent, int x, int y, int width, int height,
 	: Widget(x, y, width, height, &rParent, 0, Button::WndProc)
 {
 	// Create check box control
-	m_hButton = CreateChildWindow(GetWindowHandle(), "Button", 0, 0, width, height);
+	m_hButton = CreateChildWindow(GetWindowHandle(), WC_BUTTONA, 0, 0, width, height);
 	::SetWindowTextA(m_hButton, text);
 
 	m_clickedCallback = clickedCallback;
@@ -39,5 +39,5 @@ LRESULT CALLBACK Button::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 		break;
 	}
 
-	return ::DefWindowProc(hWnd, msg, wParam, lParam);
+	return Widget::WndProc(hWnd, msg, wParam, lParam);
 }

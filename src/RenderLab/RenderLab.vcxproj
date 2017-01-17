@@ -177,10 +177,13 @@
   <ItemGroup>
     <ClCompile Include="components\Light.cpp" />
     <ClCompile Include="components\ModelInstance.cpp" />
+    <ClCompile Include="components\PostProcessVolume.cpp" />
     <ClCompile Include="components\RigidBody.cpp" />
+    <ClCompile Include="components\SkyVolume.cpp" />
     <ClCompile Include="debug\Debug.cpp" />
     <ClCompile Include="debug\DebugConsole.cpp" />
     <ClCompile Include="debug\PostProcessDebugger.cpp" />
+    <ClCompile Include="render\RdrSky.cpp" />
     <ClCompile Include="Time.cpp" />
     <ClCompile Include="GlobalState.cpp" />
     <ClCompile Include="input\CameraInputContext.cpp" />
@@ -205,20 +208,18 @@
     <ClCompile Include="render\RdrMaterial.cpp" />
     <ClCompile Include="render\RdrInstancedObjectDataBuffer.cpp" />
     <ClCompile Include="render\RdrOffscreenTasks.cpp" />
-    <ClCompile Include="render\RdrPostProcessEffects.cpp" />
     <ClCompile Include="render\RdrProfiler.cpp" />
     <ClCompile Include="render\RdrFrameMem.cpp" />
     <ClCompile Include="render\Renderer.cpp" />
     <ClCompile Include="render\RdrShaderSystem.cpp" />
     <ClCompile Include="render\RdrPostProcess.cpp" />
-    <ClCompile Include="render\Sky.cpp" />
     <ClCompile Include="render\Sprite.cpp" />
     <ClCompile Include="render\RdrResourceSystem.cpp" />
     <ClCompile Include="render\Terrain.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="UserConfig.cpp" />
-    <ClCompile Include="WorldObject.cpp" />
+    <ClCompile Include="Entity.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\data\shaders\c_constants.h" />
@@ -228,12 +229,17 @@
     <ClInclude Include="..\..\data\shaders\p_constants.h" />
     <ClInclude Include="..\Types.h" />
     <ClInclude Include="components\Light.h" />
-    <ClInclude Include="components\ObjectComponent.h" />
+    <ClInclude Include="components\EntityComponent.h" />
     <ClInclude Include="components\ModelInstance.h" />
+    <ClInclude Include="components\PostProcessVolume.h" />
+    <ClInclude Include="components\Renderable.h" />
     <ClInclude Include="components\RigidBody.h" />
+    <ClInclude Include="components\SkyVolume.h" />
+    <ClInclude Include="components\VolumeComponent.h" />
     <ClInclude Include="debug\Debug.h" />
     <ClInclude Include="debug\DebugConsole.h" />
     <ClInclude Include="debug\PostProcessDebugger.h" />
+    <ClInclude Include="render\RdrSky.h" />
     <ClInclude Include="Time.h" />
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="GlobalState.h" />
@@ -262,7 +268,6 @@
     <ClInclude Include="render\RdrInstancedObjectDataBuffer.h" />
     <ClInclude Include="render\RdrOffscreenTasks.h" />
     <ClInclude Include="render\RdrPostProcess.h" />
-    <ClInclude Include="render\RdrPostProcessEffects.h" />
     <ClInclude Include="render\RdrProfiler.h" />
     <ClInclude Include="render\RdrRequests.h" />
     <ClInclude Include="render\RdrResource.h" />
@@ -274,7 +279,6 @@
     <ClInclude Include="render\RdrTessellationMaterial.h" />
     <ClInclude Include="render\Renderer.h" />
     <ClInclude Include="render\RdrShaders.h" />
-    <ClInclude Include="render\Sky.h" />
     <ClInclude Include="render\Sprite.h" />
     <ClInclude Include="render\Terrain.h" />
     <ClInclude Include="Scene.h" />
@@ -283,7 +287,7 @@
     <ClInclude Include="shapes\Rect.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="UserConfig.h" />
-    <ClInclude Include="WorldObject.h" />
+    <ClInclude Include="Entity.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\..\data\shaders\c_add_2d.hlsl">

@@ -1,6 +1,5 @@
 #include "Precompiled.h"
 #include "RdrPostProcess.h"
-#include "RdrPostProcessEffects.h"
 #include "RdrContext.h"
 #include "RdrDrawState.h"
 #include "RdrFrameMem.h"
@@ -191,11 +190,25 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 	}
 }
 
-void RdrPostProcess::DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrPostProcessEffects& rEffects)
+void RdrPostProcess::QueueDraw(const AssetLib::PostProcessEffects& rEffects)
 {
-	const AssetLib::PostProcessEffects* pEffectsDef = rEffects.GetEffectsAsset();
-	RdrConstantBufferHandle hToneMapInputConstants = rEffects.GetToneMapInputConstants();
+	// For now, just queue the tone map constants for the current action.
+	// TODO: Move all post-processing to queueable ops?
+	uint constantsSize = sizeof(ToneMapInputParams);
+	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
+	pTonemapSettings->white = rEffects.eyeAdaptation.white;
+	pTonemapSettings->middleGrey = rEffects.eyeAdaptation.middleGrey;
+	pTonemapSettings->minExposure = pow(2.f, rEffects.eyeAdaptation.minExposure);
+	pTonemapSettings->maxExposure = pow(2.f, rEffects.eyeAdaptation.maxExposure);
+	pTonemapSettings->bloomThreshold = rEffects.bloom.threshold;
+	pTonemapSettings->frameTime = Time::FrameTime();
 
+	m_hToneMapInputConstants = g_pRenderer->GetActionCommandList()->CreateUpdateConstantBuffer(m_hToneMapInputConstants,
+		pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+}
+
+void RdrPostProcess::DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const AssetLib::PostProcessEffects& rEffects)
+{
 	pRdrContext->BeginEvent(L"Post-Process");
 
 	pRdrContext->SetBlendState(false);
@@ -214,13 +227,13 @@ void RdrPostProcess::DoPostProcessing(const InputManager& rInputManager, RdrCont
 	}
 	else
 	{
-		DoLuminanceMeasurement(pRdrContext, rDrawState, pColorBuffer, hToneMapInputConstants);
+		DoLuminanceMeasurement(pRdrContext, rDrawState, pColorBuffer, m_hToneMapInputConstants);
 	}
 
 	const RdrResource* pBloomBuffer = nullptr;
-	if (pEffectsDef->bloom.enabled)
+	if (rEffects.bloom.enabled)
 	{
-		DoBloom(pRdrContext, rDrawState, pColorBuffer, hToneMapInputConstants);
+		DoBloom(pRdrContext, rDrawState, pColorBuffer, m_hToneMapInputConstants);
 		pBloomBuffer = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[1]);
 	}
 	else
@@ -427,7 +440,7 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrResource* pBloomBuffer)
 {
 	pRdrContext->BeginEvent(L"Tonemap");
-	
+
 	RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(RdrResourceSystem::kPrimaryRenderTargetHandle);
 	RdrDepthStencilView depthView = { 0 };
 	pRdrContext->SetRenderTargets(1, &renderTarget, depthView);

@@ -3,11 +3,11 @@
 #include "RdrFrameMem.h"
 #include "Renderer.h"
 #include "Scene.h"
-#include "Sky.h"
 #include "RdrComputeOp.h"
 #include "RdrOffscreenTasks.h"
 #include "components/Light.h"
-#include "WorldObject.h"
+#include "components/SkyVolume.h"
+#include "Entity.h"
 
 namespace
 {
@@ -55,6 +55,7 @@ void RdrLightList::AddLight(const Light* pLight)
 			DirectionalLight light;
 			light.direction = pLight->GetDirection();
 			light.color = pLight->GetColor();
+			light.pssmLambda = pLight->GetPssmLambda();
 			light.shadowMapIndex = -1;
 			m_directionalLights.push(light);
 		}
@@ -62,7 +63,7 @@ void RdrLightList::AddLight(const Light* pLight)
 	case LightType::Point:
 		{
 			PointLight light;
-			light.position = pLight->GetParent()->GetPosition();
+			light.position = pLight->GetEntity()->GetPosition();
 			light.color = pLight->GetColor();
 			light.radius = pLight->GetRadius();
 			light.shadowMapIndex = -1;
@@ -72,7 +73,7 @@ void RdrLightList::AddLight(const Light* pLight)
 	case LightType::Spot:
 		{
 			SpotLight light;
-			light.position = pLight->GetParent()->GetPosition();
+			light.position = pLight->GetEntity()->GetPosition();
 			light.direction = pLight->GetDirection();
 			light.color = pLight->GetColor();
 			light.radius = pLight->GetRadius();
@@ -86,7 +87,7 @@ void RdrLightList::AddLight(const Light* pLight)
 	case LightType::Environment:
 		{
 			EnvironmentLight light;
-			light.position = pLight->GetParent()->GetPosition();
+			light.position = pLight->GetEntity()->GetPosition();
 			light.environmentMapIndex = pLight->GetEnvironmentTextureIndex();
 
 			if (pLight->IsGlobalEnvironmentLight())
@@ -184,7 +185,7 @@ void RdrLighting::Cleanup()
 	}
 }
 
-void RdrLighting::QueueDraw(RdrLightList* pLights, Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
+void RdrLighting::QueueDraw(RdrLightList* pLights, Renderer& rRenderer, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
 	RdrLightingMethod lightingMethod, RdrLightResources* pOutResources)
 {
 	Camera lightCamera;
@@ -211,7 +212,7 @@ void RdrLighting::QueueDraw(RdrLightList* pLights, Renderer& rRenderer, const Sk
 			float zDiff = (zMax - zMin);
 
 			float nearDepth = zMin;
-			float lamda = rSky.GetPssmLambda();
+			float lamda = rDirLight.pssmLambda;
 
 			for (int iPartition = 0; iPartition < kNumCascades; ++iPartition)
 			{

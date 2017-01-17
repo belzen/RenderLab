@@ -1,14 +1,18 @@
 #include "Precompiled.h"
 #include "SceneViewModel.h"
 #include "Scene.h"
-#include "WorldObject.h"
+#include "Entity.h"
 #include "PropertyTables.h"
-#include "AssetLib/SkyAsset.h"
 #include "Widgets/TreeView.h"
 
 void SceneViewModel::Init(Scene* pScene)
 {
 	m_pScene = pScene;
+}
+
+const char* SceneViewModel::GetTypeName()
+{
+	return "Scene";
 }
 
 const PropertyDef** SceneViewModel::GetProperties()
@@ -26,54 +30,48 @@ void SceneViewModel::SetListener(ISceneListener* pListener)
 	m_pListener = pListener;
 }
 
-void SceneViewModel::AddObject(WorldObject* pObject)
+void SceneViewModel::AddEntity(Entity* pEntity)
 {
-	m_pScene->AddObject(pObject);
+	m_pScene->AddEntity(pEntity);
 	if (m_pListener)
 	{
-		m_pListener->OnSceneObjectAdded(pObject);
+		m_pListener->OnEntityAddedToScene(pEntity);
 	}
 }
 
-void SceneViewModel::RemoveObject(WorldObject* pObject)
+void SceneViewModel::RemoveObject(Entity* pEntity)
 {
-	if (!pObject)
+	if (!pEntity)
 		return;
 
-	m_pScene->RemoveObject(pObject);
+	m_pScene->RemoveEntity(pEntity);
 	if (m_pListener)
 	{
-		m_pListener->OnSceneObjectRemoved(pObject);
+		m_pListener->OnEntityRemovedFromScene(pEntity);
 	}
 }
 
-void SceneViewModel::SetSelected(WorldObject* pObject)
+void SceneViewModel::SetSelected(Entity* pEntity)
 {
-	m_pSelectedObject = pObject;
+	m_pSelectedEntity = pEntity;
 	if (m_pListener)
 	{
-		m_pListener->OnSceneSelectionChanged(pObject);
+		m_pListener->OnSceneSelectionChanged(pEntity);
 	}
 }
 
-WorldObject* SceneViewModel::GetSelected()
+Entity* SceneViewModel::GetSelected()
 {
-	return m_pSelectedObject;
+	return m_pSelectedEntity;
 }
 
 void SceneViewModel::PopulateTreeView(TreeView* pTreeView)
 {
 	pTreeView->Clear();
 
-	AssetLib::Sky* pSky = AssetLibrary<AssetLib::Sky>::LoadAsset(m_pScene->GetSky().GetSourceAsset()->assetName);
-	pTreeView->AddItem("Sky", pSky);
-
-	AssetLib::PostProcessEffects* pEffects = AssetLibrary<AssetLib::PostProcessEffects>::LoadAsset(m_pScene->GetPostProcEffects()->GetEffectsAsset()->assetName);
-	pTreeView->AddItem("Post-Processing Effects", pEffects);
-
-	WorldObjectList& sceneObjects = m_pScene->GetWorldObjects();
-	for (WorldObject* pObject : sceneObjects)
+	EntityList& rEntities = m_pScene->GetEntities();
+	for (Entity* pEntity : rEntities)
 	{
-		pTreeView->AddItem(pObject->GetName(), pObject);
+		pTreeView->AddItem(pEntity->GetName(), pEntity);
 	}
 }

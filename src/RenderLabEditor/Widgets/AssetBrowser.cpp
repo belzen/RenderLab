@@ -4,8 +4,6 @@
 #include "AssetLib/ModelAsset.h"
 #include "AssetLib/TextureAsset.h"
 #include "AssetLib/MaterialAsset.h"
-#include "AssetLib/PostProcessEffectsAsset.h"
-#include "AssetLib/SkyAsset.h"
 #include "Label.h"
 #include "Button.h"
 #include "Image.h"
@@ -64,11 +62,11 @@ void AssetBrowser::RepositionItems()
 
 	if (m_items.empty())
 	{
-		SetScroll(0, 0);
+		SetScroll(0, 0, 1);
 	}
 	else
 	{
-		SetScroll(numRows, m_items.front().pPanel->GetHeight() + kPadding);
+		SetScroll(numRows, m_items.front().pPanel->GetHeight() + kPadding, 1);
 	}
 }
 
@@ -191,18 +189,6 @@ void AssetBrowser::SetDataFolder(const std::string& dataFolder)
 					pAssetDef = &AssetLib::Material::GetAssetDef();
 					icon = Icon::kMaterial;
 					dragType = WidgetDragDataType::kMaterialAsset;
-				}
-				else if (_stricmp(ext, AssetLib::PostProcessEffects::GetAssetDef().GetExt()) == 0)
-				{
-					pAssetDef = &AssetLib::PostProcessEffects::GetAssetDef();
-					icon = Icon::kPostProcessEffects;
-					dragType = WidgetDragDataType::kPostProcessEffectsAsset;
-				}
-				else if (_stricmp(ext, AssetLib::Sky::GetAssetDef().GetExt()) == 0)
-				{
-					pAssetDef = &AssetLib::Sky::GetAssetDef();
-					icon = Icon::kSky;
-					dragType = WidgetDragDataType::kSkyAsset;
 				}
 
 				if (pAssetDef)

@@ -10,7 +10,8 @@ class PropertyPanel : public Widget
 public:
 	static PropertyPanel* Create(const Widget& rParent, int x, int y, int width, int height);
 
-	void SetViewModel(IViewModel* pViewModel, bool freeOldViewModel);
+	void SetViewModel(IViewModel* pViewModel, bool freeOldViewModels);
+	void AddViewModel(IViewModel* pViewModel);
 
 private:
 	PropertyPanel(const Widget& rParent, int x, int y, int width, int height);
@@ -22,6 +23,5 @@ private:
 
 private:
 	std::vector<Widget*> m_childWidgets;
-	IViewModel* m_pViewModel;
-	
+	std::vector<IViewModel*> m_viewModels;
 };

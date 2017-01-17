@@ -10,20 +10,10 @@
 #include "RdrRequests.h"
 #include "RdrProfiler.h"
 #include "RdrLighting.h"
+#include "RdrSky.h"
 
 class Camera;
-class WorldObject;
-struct RdrDrawOp;
-class RdrPostProcessEffects;
 class Renderer;
-
-struct RdrVolumetricFogData
-{
-	RdrConstantBufferHandle hFogConstants;
-	RdrResourceHandle hDensityLightLut;
-	RdrResourceHandle hFinalLut;
-	UVec3 lutSize;
-};
 
 struct RdrSurface
 {
@@ -82,7 +72,6 @@ public:
 private:
 	void DrawPass(const RdrAction& rAction, RdrPass ePass);
 	void DrawShadowPass(const RdrShadowPass& rPass);
-	void QueueVolumetricFog(const AssetLib::VolumetricFogSettings& rFogSettings);
 
 	RdrFrameState& GetQueueState();
 	RdrFrameState& GetActiveState();
@@ -96,7 +85,7 @@ private:
 
 	void ProcessReadbackRequests();
 
-	void CullSceneToCamera(float* pOutDepthMin, float* pOutDepthMax);
+	void QueueScene(const Scene& rScene);
 
 private:
 	///
@@ -127,8 +116,8 @@ private:
 
 	RdrLightingMethod m_ePendingLightingMethod;
 	RdrLightingMethod m_eLightingMethod;
-	RdrVolumetricFogData m_volumetricFogData;
 
+	RdrSky m_sky;
 	RdrPostProcess m_postProcess;
 
 	RdrResourceReadbackRequestList m_readbackRequests; // Average out to a max of 32 requests per frame

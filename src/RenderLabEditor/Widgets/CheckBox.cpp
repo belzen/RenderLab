@@ -1,6 +1,5 @@
 #include "Precompiled.h"
 #include "CheckBox.h"
-#include "Types.h"
 
 CheckBox* CheckBox::Create(const Widget& rParent, int x, int y, int width, int height,
 	ToggledFunc toggledCallback, void* pUserData)
@@ -14,7 +13,7 @@ CheckBox::CheckBox(const Widget& rParent, int x, int y, int width, int height,
 	, m_pUserData(pUserData)
 {
 	// Create check box control
-	m_hCheckBox = CreateChildWindow(GetWindowHandle(), "Button", 0, 0, width, height, BS_CHECKBOX);
+	m_hCheckBox = CreateChildWindow(GetWindowHandle(), WC_BUTTONA, 0, 0, width, height, BS_CHECKBOX);
 	m_toggledCallback = toggledCallback;
 }
 
@@ -44,5 +43,5 @@ LRESULT CALLBACK CheckBox::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 		break;
 	}
 
-	return ::DefWindowProc(hWnd, msg, wParam, lParam);
+	return Widget::WndProc(hWnd, msg, wParam, lParam);
 }

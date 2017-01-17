@@ -3,15 +3,15 @@
 #include "IViewModel.h"
 
 class Scene;
-class WorldObject;
+class Entity;
 class TreeView;
 
 class ISceneListener
 {
 public:
-	virtual void OnSceneObjectAdded(WorldObject* pObject) = 0;
-	virtual void OnSceneObjectRemoved(WorldObject* pObject) = 0;
-	virtual void OnSceneSelectionChanged(WorldObject* pObject) = 0;
+	virtual void OnEntityAddedToScene(Entity* pObject) = 0;
+	virtual void OnEntityRemovedFromScene(Entity* pObject) = 0;
+	virtual void OnSceneSelectionChanged(Entity* pObject) = 0;
 };
 
 class SceneViewModel : public IViewModel
@@ -19,15 +19,16 @@ class SceneViewModel : public IViewModel
 public:
 	void Init(Scene* pScene);
 
+	const char* GetTypeName();
 	const PropertyDef** GetProperties();
 
 	Scene* GetScene() const;
 
-	void AddObject(WorldObject* pObject);
-	void RemoveObject(WorldObject* pObject);
+	void AddEntity(Entity* pObject);
+	void RemoveObject(Entity* pObject);
 
-	void SetSelected(WorldObject* pObject);
-	WorldObject* GetSelected();
+	void SetSelected(Entity* pObject);
+	Entity* GetSelected();
 
 	void PopulateTreeView(TreeView* pTreeView);
 	
@@ -36,5 +37,5 @@ public:
 private:
 	Scene* m_pScene;
 	ISceneListener* m_pListener;
-	WorldObject* m_pSelectedObject;
+	Entity* m_pSelectedEntity;
 };

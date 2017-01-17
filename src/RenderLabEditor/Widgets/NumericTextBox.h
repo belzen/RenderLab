@@ -5,7 +5,7 @@
 class NumericTextBox : public Widget
 {
 public:
-	typedef bool(*ChangedFunc)(float newValue, void* pUserData);
+	typedef bool (*ChangedFunc)(float newValue, void* pUserData);
 
 	static NumericTextBox* Create(const Widget& rParent, int x, int y, int width, int height, 
 		ChangedFunc changedCallback, void* pUserData);

@@ -1,5 +1,6 @@
 #include "Precompiled.h"
 #include "ModelInstance.h"
+#include "AssetLib/SceneAsset.h"
 #include "render/ModelData.h"
 #include "render/RdrFrameMem.h"
 #include "render/RdrDrawOp.h"
@@ -23,31 +24,19 @@ namespace
 		{ RdrShaderSemantic::Binormal, 0, RdrVertexInputFormat::RGB_F32, 0, 60, RdrVertexInputClass::PerVertex, 0 }
 	};
 
-	ModelInstanceFreeList s_modelInstances;
+	ModelInstanceFreeList s_modelInstanceFreeList;
+}
+
+ModelInstanceFreeList& ModelInstance::GetFreeList()
+{
+	return s_modelInstanceFreeList;
 }
 
 ModelInstance* ModelInstance::Create(const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps)
 {
-	ModelInstance* pModel = s_modelInstances.allocSafe();
-	pModel->m_pModelData = ModelData::LoadFromFile(modelAssetName);
+	ModelInstance* pModel = s_modelInstanceFreeList.allocSafe();
 	pModel->m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAY_SIZE(s_modelVertexDesc));
-
-	// Apply material swaps.
-	uint numSubObjects = pModel->m_pModelData->GetNumSubObjects();
-	for (uint i = 0; i < numSubObjects; ++i)
-	{
-		const ModelData::SubObject& rSubObject = pModel->m_pModelData->GetSubObject(i);
-		pModel->m_pMaterials[i] = rSubObject.pMaterial;
-
-		for (uint n = 0; n < numMaterialSwaps; ++n)
-		{
-			if (pModel->m_pMaterials[i]->name == aMaterialSwaps[n].from)
-			{
-				pModel->m_pMaterials[i] = RdrMaterial::LoadFromFile(aMaterialSwaps[n].to);
-			}
-		}
-	}
-
+	pModel->SetModelData(modelAssetName, aMaterialSwaps, numMaterialSwaps);
 	return pModel;
 }
 
@@ -55,17 +44,17 @@ void ModelInstance::Release()
 {
 	// todo: refcount and free as necessary
 	//memset(m_subObjects, 0, sizeof(m_subObjects));
-	//s_models.release(this);
+	s_modelInstanceFreeList.release(this);
 }
 
-void ModelInstance::OnAttached(WorldObject* pObject)
+void ModelInstance::OnAttached(Entity* pEntity)
 {
-	m_pParentObject = pObject;
+	m_pEntity = pEntity;
 }
 
-void ModelInstance::OnDetached(WorldObject* pObject)
+void ModelInstance::OnDetached(Entity* pEntity)
 {
-	m_pParentObject = nullptr;
+	m_pEntity = nullptr;
 }
 
 bool ModelInstance::CanInstance() const
@@ -74,10 +63,33 @@ bool ModelInstance::CanInstance() const
 	return true;
 }
 
-void ModelInstance::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Matrix44& mtxWorld, bool transformChanged)
+void ModelInstance::SetModelData(const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps)
 {
-	if (transformChanged || !m_hVsPerObjectConstantBuffer)
+	m_pModelData = ModelData::LoadFromFile(modelAssetName);
+
+	// Apply material swaps.
+	uint numSubObjects = m_pModelData->GetNumSubObjects();
+	for (uint i = 0; i < numSubObjects; ++i)
 	{
+		const ModelData::SubObject& rSubObject = m_pModelData->GetSubObject(i);
+		m_pMaterials[i] = rSubObject.pMaterial;
+
+		for (uint n = 0; n < numMaterialSwaps; ++n)
+		{
+			if (m_pMaterials[i]->name == aMaterialSwaps[n].from)
+			{
+				m_pMaterials[i] = RdrMaterial::LoadFromFile(aMaterialSwaps[n].to);
+			}
+		}
+	}
+}
+
+void ModelInstance::QueueDraw(RdrDrawBuckets* pDrawBuckets)
+{
+	if (!m_hVsPerObjectConstantBuffer || m_lastTransformId != m_pEntity->GetTransformId())
+	{
+		Matrix44 mtxWorld = m_pEntity->GetTransform();
+
 		uint constantsSize = sizeof(VsPerObject);
 		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		memset(pConstants, 0, constantsSize);

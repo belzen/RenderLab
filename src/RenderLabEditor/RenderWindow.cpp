@@ -1,10 +1,11 @@
 #include "Precompiled.h"
 #include "RenderWindow.h"
 #include "render\Renderer.h"
-#include "RenderDoc/RenderDocUtil.h"
 #include "render\RdrOffscreenTasks.h"
+#include "RenderDoc/RenderDocUtil.h"
+#include "components/ModelInstance.h"
 #include "Physics.h"
-#include "WorldObject.h"
+#include "Entity.h"
 #include "ViewModels/SceneViewModel.h"
 #include "UI.h"
 
@@ -66,8 +67,8 @@ bool RenderWindow::OnMouseDown(int button, int mx, int my)
 	Physics::RaycastResult res;
 	if (button == 0 && RaycastAtCursor(mx, my, &res) && res.pActor)
 	{
-		WorldObject* pObject = static_cast<WorldObject*>(Physics::GetActorUserData(res.pActor));
-		m_pSceneViewModel->SetSelected(pObject);
+		Entity* pEntity = static_cast<Entity*>(Physics::GetActorUserData(res.pActor));
+		m_pSceneViewModel->SetSelected(pEntity);
 	}
 
 	return true;
@@ -107,9 +108,9 @@ bool RenderWindow::OnMouseEnter(int mx, int my)
 		const WidgetDragData& rDragData = pDragWidget->GetDragData();
 		if (rDragData.type == WidgetDragDataType::kModelAsset)
 		{
-			m_pPlacingObject = WorldObject::Create("New Object", Vec3::kOrigin, Quaternion::kIdentity, Vec3::kOne);
-			m_pPlacingObject->AttachModel(ModelInstance::Create(rDragData.data.assetName, nullptr, 0));
-			m_pSceneViewModel->AddObject(m_pPlacingObject);
+			m_pPlacingObject = Entity::Create("New Object", Vec3::kOrigin, Quaternion::kIdentity, Vec3::kOne);
+			m_pPlacingObject->AttachRenderable(ModelInstance::Create(rDragData.data.assetName, nullptr, 0));
+			m_pSceneViewModel->AddEntity(m_pPlacingObject);
 		}
 		else if (rDragData.type == WidgetDragDataType::kObjectAsset)
 		{

@@ -2,21 +2,19 @@
 
 #include "IViewModel.h"
 
-class WorldObject;
+class Entity;
 
-class WorldObjectViewModel : public IViewModel
+class EntityViewModel : public IViewModel
 {
 public:
-	void SetTarget(WorldObject* pObject);
+	void SetTarget(Entity* pObject);
 
+	const char* GetTypeName();
 	const PropertyDef** GetProperties();
 
 private:
 	static std::string GetName(void* pSource);
 	static bool SetName(const std::string& name, void* pSource);
-
-	static std::string GetModel(void* pSource);
-	static bool SetModel(const std::string& modelName, void* pSource);
 
 	static Vec3 GetPosition(void* pSource);
 	static bool SetPosition(const Vec3& position, void* pSource);
@@ -31,5 +29,5 @@ private:
 	static bool SetScaleZ(const float newValue, void* pSource);
 
 private:
-	WorldObject* m_pObject;
+	Entity* m_pEntity;
 };

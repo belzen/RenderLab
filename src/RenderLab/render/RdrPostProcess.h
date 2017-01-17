@@ -1,12 +1,12 @@
 #pragma once
 
+#include "AssetLib/AssetLibForwardDecl.h"
 #include "RdrGeometry.h"
 #include "RdrShaders.h"
 #include "debug/PostProcessDebugger.h"
 
 class RdrContext;
 class RdrDrawState;
-class RdrPostProcessEffects;
 struct RdrResource;
 class InputManager;
 
@@ -23,8 +23,10 @@ class RdrPostProcess
 public:
 	void Init();
 
+	void QueueDraw(const AssetLib::PostProcessEffects& rEffects);
+
 	void HandleResize(uint width, uint height);
-	void DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrPostProcessEffects& rEffects);
+	void DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const AssetLib::PostProcessEffects& rEffects);
 
 	const RdrPostProcessDbgData& GetDebugData() const;
 
@@ -33,6 +35,8 @@ private:
 	void DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
 	void DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrConstantBufferHandle hToneMapInputConstants);
 	void DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrResource* pBloomBuffer);
+
+	RdrConstantBufferHandle m_hToneMapInputConstants;
 
 	RdrShaderHandle m_hToneMapPs;
 	RdrResourceHandle m_hToneMapOutputConstants;

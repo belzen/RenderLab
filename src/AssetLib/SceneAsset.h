@@ -18,13 +18,64 @@ enum class LightType : int
 
 namespace AssetLib
 {
+	struct VolumetricFogSettings
+	{
+		Vec3 scatteringCoeff;
+		Vec3 absorptionCoeff;
+		float phaseG;
+		float farDepth;
+		bool enabled;
+	};
+
+	struct SkySettings
+	{
+		VolumetricFogSettings volumetricFog;
+	};
+
+	struct PostProcessEffects
+	{
+		struct
+		{
+			float white;
+			float middleGrey;
+			float minExposure;
+			float maxExposure;
+		} eyeAdaptation;
+
+		struct
+		{
+			float threshold;
+			bool enabled;
+		} bloom;
+	};
+
+	enum class VolumeType
+	{
+		kNone,
+		kSky,
+		kPostProcess
+	};
+
+	struct Volume
+	{
+		VolumeType volumeType;
+
+		PostProcessEffects postProcessEffects;
+		SkySettings skySettings;
+		// TODO: Volume size;
+	};
+
 	struct Light
 	{
 		LightType type;
 
 		Vec3 direction;
 		Vec3 color;
+		float intensity;
 		float radius;
+
+		// Directional light only
+		float pssmLambda;
 
 		// Spot light only
 		float innerConeAngle; // Angle where light begins to fall off
@@ -65,6 +116,7 @@ namespace AssetLib
 		MaterialSwap materialSwaps[4];
 		uint numMaterialSwaps;
 		CachedString modelName;
+		Volume volume;
 		char name[64];
 	};
 
@@ -81,9 +133,6 @@ namespace AssetLib
 	{
 		static AssetDef& GetAssetDef();
 		static Scene* Load(const CachedString& assetName, Scene* pScene);
-
-		CachedString postProcessingEffectsName;
-		CachedString skyName;
 
 		Vec3 camPosition;
 		Vec3 camPitchYawRoll;

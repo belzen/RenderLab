@@ -36,10 +36,6 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 	Json::Value jRot = jCamera.get("rotation", Json::Value::null);
 	pScene->camPitchYawRoll = jsonReadPitchYawRoll(jRot);
 
-	// Sky & Post-processing effects
-	jsonReadCachedString(jRoot.get("sky", Json::Value::null), &pScene->skyName);
-	jsonReadCachedString(jRoot.get("postProcessingEffects", Json::Value::null), &pScene->postProcessingEffectsName);
-
 	// Terrain
 	{
 		Json::Value jTerrain = jRoot.get("terrain", Json::Value::null);
@@ -129,10 +125,12 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 				if (_stricmp(typeStr, "directional") == 0)
 				{
 					rLight.type = LightType::Directional;
+					rLight.radius = FLT_MAX;
 
 					rLight.direction = jsonReadVec3(jLight.get("direction", Json::Value::null));
 					rLight.direction = Vec3Normalize(rLight.direction);
-					rLight.radius = FLT_MAX;
+
+					rLight.pssmLambda = jLight.get("pssmLambda", 0.6f).asFloat();
 				}
 				else if (_stricmp(typeStr, "spot") == 0)
 				{
@@ -163,9 +161,49 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 					assert(false);
 				}
 
-				float intensity = jLight.get("intensity", 1.f).asFloat();
-				rLight.color = intensity * jsonReadVec3(jLight.get("color", Json::Value::null));
+				rLight.color = jsonReadVec3(jLight.get("color", Json::Value::null));
+				rLight.intensity = jLight.get("intensity", 1.f).asFloat();
 				rLight.bCastsShadows = jLight.get("castsShadows", false).asBool();
+			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// Volume component
+			Json::Value jVolume = jObj.get("volume", Json::Value::null);
+			if (jVolume.isObject())
+			{
+				Json::Value jVolumeType = jVolume.get("type", Json::Value::null);
+				const char* strVolumeType = jVolumeType.asCString();
+
+				if (_stricmp(strVolumeType, "sky") == 0)
+				{
+					rObj.volume.volumeType = VolumeType::kSky;
+					SkySettings& rSky = rObj.volume.skySettings;
+
+					// Volumetric fog
+					Json::Value jFog = jVolume.get("volumetricFog", Json::Value::null);
+					rSky.volumetricFog.enabled = jFog.get("enabled", true).asBool();
+					rSky.volumetricFog.scatteringCoeff = jsonReadVec3(jFog.get("scatteringCoeff", Json::Value::null));
+					rSky.volumetricFog.absorptionCoeff = jsonReadVec3(jFog.get("absorptionCoeff", Json::Value::null));
+					rSky.volumetricFog.phaseG = jFog.get("phaseG", 0.f).asFloat();
+					rSky.volumetricFog.farDepth = jFog.get("farDepth", 0.f).asFloat();
+				}
+				else if (_stricmp(strVolumeType, "postProcess") == 0)
+				{
+					rObj.volume.volumeType = VolumeType::kPostProcess;
+					PostProcessEffects& rEffects = rObj.volume.postProcessEffects;
+
+					// Bloom
+					Json::Value jBloom = jVolume.get("bloom", Json::Value::null);
+					rEffects.bloom.enabled = jBloom.get("enabled", true).asBool();
+					rEffects.bloom.threshold = jBloom.get("threshold", 1.f).asFloat();
+
+					// Eye adaptation
+					Json::Value jEyeAdaptation = jVolume.get("eyeAdaptation", Json::Value::null);
+					rEffects.eyeAdaptation.white = jEyeAdaptation.get("white", 12.5f).asFloat();
+					rEffects.eyeAdaptation.middleGrey = jEyeAdaptation.get("middleGrey", 0.5f).asFloat();
+					rEffects.eyeAdaptation.minExposure = jEyeAdaptation.get("minExposure", -16.f).asFloat();
+					rEffects.eyeAdaptation.maxExposure = jEyeAdaptation.get("maxExposure", 16.f).asFloat();
+				}
 			}
 		}
 	}

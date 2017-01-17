@@ -33,20 +33,11 @@
     <ClCompile Include="Widgets\TextBox.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
-    <ClCompile Include="ViewModels\PostProcessEffectsViewModel.cpp">
-      <Filter>ViewModels</Filter>
-    </ClCompile>
     <ClCompile Include="Widgets\Widget.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
     <ClCompile Include="Precompiled.cpp" />
-    <ClCompile Include="ViewModels\SkyViewModel.cpp">
-      <Filter>ViewModels</Filter>
-    </ClCompile>
     <ClCompile Include="ViewModels\IViewModel.cpp">
-      <Filter>ViewModels</Filter>
-    </ClCompile>
-    <ClCompile Include="ViewModels\WorldObjectViewModel.cpp">
       <Filter>ViewModels</Filter>
     </ClCompile>
     <ClCompile Include="Widgets\NumericTextBox.cpp">
@@ -68,17 +59,34 @@
     <ClCompile Include="Widgets\TreeView.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
+    <ClCompile Include="ViewModels\EntityViewModel.cpp">
+      <Filter>ViewModels</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewModels\PostProcessVolumeViewModel.cpp">
+      <Filter>ViewModels</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewModels\SkyVolumeViewModel.cpp">
+      <Filter>ViewModels</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewModels\LightViewModel.cpp">
+      <Filter>ViewModels</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewModels\ModelInstanceViewModel.cpp">
+      <Filter>ViewModels</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\ComboBox.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Separator.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="RenderWindow.h" />
     <ClInclude Include="WindowBase.h" />
     <ClInclude Include="WindowLayout.h" />
-    <ClInclude Include="SceneTree.h" />
     <ClInclude Include="PropertyTables.h" />
-    <ClInclude Include="ViewModels\PostProcessEffectsViewModel.h">
-      <Filter>ViewModels</Filter>
-    </ClInclude>
     <ClInclude Include="Widgets\Button.h">
       <Filter>Widgets</Filter>
     </ClInclude>
@@ -110,13 +118,7 @@
       <Filter>Widgets</Filter>
     </ClInclude>
     <ClInclude Include="Precompiled.h" />
-    <ClInclude Include="ViewModels\SkyViewModel.h">
-      <Filter>ViewModels</Filter>
-    </ClInclude>
     <ClInclude Include="ViewModels\IViewModel.h">
-      <Filter>ViewModels</Filter>
-    </ClInclude>
-    <ClInclude Include="ViewModels\WorldObjectViewModel.h">
       <Filter>ViewModels</Filter>
     </ClInclude>
     <ClInclude Include="Widgets\NumericTextBox.h">
@@ -140,6 +142,27 @@
     </ClInclude>
     <ClInclude Include="IconLibrary.h" />
     <ClInclude Include="Widgets\TreeView.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewModels\EntityViewModel.h">
+      <Filter>ViewModels</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewModels\PostProcessVolumeViewModel.h">
+      <Filter>ViewModels</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewModels\SkyVolumeViewModel.h">
+      <Filter>ViewModels</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewModels\LightViewModel.h">
+      <Filter>ViewModels</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewModels\ModelInstanceViewModel.h">
+      <Filter>ViewModels</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\ComboBox.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Separator.h">
       <Filter>Widgets</Filter>
     </ClInclude>
   </ItemGroup>

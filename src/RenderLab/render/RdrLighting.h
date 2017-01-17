@@ -1,19 +1,14 @@
 #pragma once
 
+#include "AssetLib/AssetLibForwardDecl.h"
 #include "Math.h"
-#include "RdrContext.h"
-#include "AssetLib/SceneAsset.h"
 #include "RdrShaderTypes.h"
+#include "RdrResource.h"
 #include "UtilsLib/FixedVector.h"
 #include "../../data/shaders/light_types.h"
 
-struct ID3D11Buffer;
-struct ID3D11UnorderedAccessView;
-class RdrContext;
 class Renderer;
 class Camera;
-class Scene;
-class Sky;
 class Light;
 
 #define MAX_SHADOW_MAPS_PER_FRAME 10
@@ -80,7 +75,7 @@ public:
 	void Init();
 	void Cleanup();
 
-	void QueueDraw(RdrLightList* pLights, Renderer& rRenderer, const Sky& rSky, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
+	void QueueDraw(RdrLightList* pLights, Renderer& rRenderer, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
 		RdrLightingMethod lightingMethod, RdrLightResources* pOutResources);
 
 private:
@@ -93,7 +88,6 @@ private:
 	RdrResourceHandle m_hSpotLightListRes;
 	RdrResourceHandle m_hPointLightListRes;
 	RdrResourceHandle m_hEnvironmentLightListRes;
-	RdrResourceHandle m_hLightIndicesRes;
 
 	RdrResourceHandle m_hShadowMapTexArray;
 	RdrResourceHandle m_hShadowCubeMapTexArray;

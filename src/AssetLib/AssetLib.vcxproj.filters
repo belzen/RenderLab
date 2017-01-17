@@ -5,9 +5,7 @@
     <ClCompile Include="MaterialAsset.cpp" />
     <ClCompile Include="ModelAsset.cpp" />
     <ClCompile Include="SceneAsset.cpp" />
-    <ClCompile Include="SkyAsset.cpp" />
     <ClCompile Include="TextureAsset.cpp" />
-    <ClCompile Include="PostProcessEffectsAsset.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetDef.h" />
@@ -15,9 +13,7 @@
     <ClInclude Include="MaterialAsset.h" />
     <ClInclude Include="ModelAsset.h" />
     <ClInclude Include="SceneAsset.h" />
-    <ClInclude Include="SkyAsset.h" />
     <ClInclude Include="TextureAsset.h" />
-    <ClInclude Include="PostProcessEffectsAsset.h" />
     <ClInclude Include="AssetLibrary.h" />
     <ClInclude Include="AssetLibForwardDecl.h" />
   </ItemGroup>

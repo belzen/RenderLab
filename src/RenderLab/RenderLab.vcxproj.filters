@@ -120,7 +120,6 @@
     <ClCompile Include="Precompiled.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="UI.cpp" />
-    <ClCompile Include="WorldObject.cpp" />
     <ClCompile Include="RenderDoc\RenderDoc.cpp">
       <Filter>RenderDoc</Filter>
     </ClCompile>
@@ -166,9 +165,6 @@
     <ClCompile Include="render\RdrPostProcess.cpp">
       <Filter>render</Filter>
     </ClCompile>
-    <ClCompile Include="render\RdrPostProcessEffects.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
     <ClCompile Include="render\RdrProfiler.cpp">
       <Filter>render</Filter>
     </ClCompile>
@@ -179,9 +175,6 @@
       <Filter>render</Filter>
     </ClCompile>
     <ClCompile Include="render\Renderer.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
-    <ClCompile Include="render\Sky.cpp">
       <Filter>render</Filter>
     </ClCompile>
     <ClCompile Include="render\Sprite.cpp">
@@ -215,6 +208,16 @@
     <ClCompile Include="render\RdrLighting.cpp">
       <Filter>render</Filter>
     </ClCompile>
+    <ClCompile Include="Entity.cpp" />
+    <ClCompile Include="render\RdrSky.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="components\SkyVolume.cpp">
+      <Filter>components</Filter>
+    </ClCompile>
+    <ClCompile Include="components\PostProcessVolume.cpp">
+      <Filter>components</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -224,7 +227,6 @@
     <ClInclude Include="Precompiled.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="UI.h" />
-    <ClInclude Include="WorldObject.h" />
     <ClInclude Include="RenderDoc\renderdoc_app.h">
       <Filter>RenderDoc</Filter>
     </ClInclude>
@@ -303,9 +305,6 @@
     <ClInclude Include="render\RdrPostProcess.h">
       <Filter>render</Filter>
     </ClInclude>
-    <ClInclude Include="render\RdrPostProcessEffects.h">
-      <Filter>render</Filter>
-    </ClInclude>
     <ClInclude Include="render\RdrProfiler.h">
       <Filter>render</Filter>
     </ClInclude>
@@ -331,9 +330,6 @@
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="render\Renderer.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="render\Sky.h">
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="render\Sprite.h">
@@ -371,14 +367,30 @@
       <Filter>components</Filter>
     </ClInclude>
     <ClInclude Include="Time.h" />
-    <ClInclude Include="components\ObjectComponent.h">
-      <Filter>components</Filter>
-    </ClInclude>
     <ClInclude Include="components\Light.h">
       <Filter>components</Filter>
     </ClInclude>
     <ClInclude Include="render\RdrLighting.h">
       <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="components\EntityComponent.h">
+      <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity.h" />
+    <ClInclude Include="components\Renderable.h">
+      <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="components\VolumeComponent.h">
+      <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrSky.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="components\SkyVolume.h">
+      <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="components\PostProcessVolume.h">
+      <Filter>components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

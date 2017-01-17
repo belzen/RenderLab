@@ -1,13 +1,14 @@
 #pragma once
 
 #include "IViewModel.h"
-#include "AssetLib/PostProcessEffectsAsset.h"
+#include "components/PostProcessVolume.h"
 
-class PostProcessEffectsViewModel : public IViewModel
+class PostProcessVolumeViewModel : public IViewModel
 {
 public:
-	void SetTarget(AssetLib::PostProcessEffects* pEffects);
+	void SetTarget(PostProcessVolume* pVolume);
 
+	const char* GetTypeName();
 	const PropertyDef** GetProperties();
 
 private:
@@ -31,5 +32,5 @@ private:
 	static bool SetBloomEnabled(const bool enabled, void* pSource);
 
 private:
-	AssetLib::PostProcessEffects* m_pTarget;
+	PostProcessVolume* m_pTarget;
 };

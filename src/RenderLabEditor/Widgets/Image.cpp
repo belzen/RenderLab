@@ -9,7 +9,7 @@ Image* Image::Create(const Widget& rParent, int x, int y, int width, int height,
 }
 
 Image::Image(const Widget& rParent, int x, int y, int width, int height, Icon icon)
-	: Widget(x, y, width, height, &rParent, SS_BITMAP | SS_CENTERIMAGE, "Static")
+	: Widget(x, y, width, height, &rParent, SS_BITMAP | SS_CENTERIMAGE, WC_STATICA)
 {
 	m_hBitmap = IconLibrary::GetIconImage(icon);
 	::SendMessage(GetWindowHandle(), STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)m_hBitmap);

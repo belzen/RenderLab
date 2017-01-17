@@ -6,8 +6,6 @@ enum class Icon
 	kModel,
 	kTexture,
 	kMaterial,
-	kPostProcessEffects,
-	kSky,
 
 	kNumIcons
 };

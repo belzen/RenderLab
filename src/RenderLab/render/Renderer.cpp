@@ -1,20 +1,23 @@
 #include "Precompiled.h"
 #include "Renderer.h"
 #include "Camera.h"
-#include "WorldObject.h"
+#include "Entity.h"
 #include "Font.h"
 #include <DXGIFormat.h>
 #include "debug\DebugConsole.h"
 #include "RdrContextD3D11.h"
-#include "RdrPostProcessEffects.h"
 #include "RdrShaderConstants.h"
 #include "RdrFrameMem.h"
 #include "RdrDrawOp.h"
 #include "RdrComputeOp.h"
 #include "RdrInstancedObjectDataBuffer.h"
 #include "Scene.h"
+#include "components/Renderable.h"
 #include "components/Light.h"
-#include "AssetLib/SkyAsset.h"
+#include "components/SkyVolume.h"
+#include "components/PostProcessVolume.h"
+#include "components/ModelInstance.h"
+#include "AssetLib/SceneAsset.h"
 
 Renderer* g_pRenderer = nullptr;
 
@@ -84,21 +87,36 @@ namespace
 	};
 	static_assert(sizeof(s_passProfileSections) / sizeof(s_passProfileSections[0]) == (int)RdrPass::Count, "Missing RdrPass profile sections!");
 
-	void cullSceneToCameraForShadows(const Camera& rCamera, Scene* pScene, RdrDrawBuckets* pBuckets)
+	void cullSceneToCameraForShadows(const Camera& rCamera, RdrDrawBuckets* pBuckets)
 	{
-		WorldObjectList& objects = pScene->GetWorldObjects();
-		for (int i = (int)objects.size() - 1; i >= 0; --i)
+		for (ModelInstance& rModel : ModelInstance::GetFreeList())
 		{
-			WorldObject* pObj = objects[i];
-			if (!rCamera.CanSee(pObj->GetPosition(), pObj->GetRadius()))
-				continue;
-
-			// todo: Flag to ignore non-opaque objects
-			pObj->QueueDraw(pBuckets);
+			Entity* pEntity = rModel.GetEntity();
+			if (rCamera.CanSee(pEntity->GetPosition(), rModel.GetRadius()))
+			{
+				// todo: Flag to ignore non-opaque objects
+				rModel.QueueDraw(pBuckets);
+			}
 		}
 	}
 
-	void createPerActionConstants(RdrResourceCommandList& rResCommandList, const Camera& rCamera, const Rect& rViewport, const Sky& rSky, RdrGlobalConstants& rConstants)
+	AssetLib::SkySettings blendSkyForCamera(const Camera& rCamera)
+	{
+		AssetLib::SkySettings sky;
+		for (SkyVolume& rSkyVolume : SkyVolume::GetFreeList())
+		{
+			sky = rSkyVolume.GetSkySettings();
+			// For now, only support one sky object.
+			// TODO: Support blending of skies via volume changes and such.
+			//		Will probably need to trim the SkyComponent down to mostly data and
+			//		create a function/class that blends them together and maintains the render resources.	
+			break;
+		}
+
+		return sky;
+	}
+
+	void createPerActionConstants(RdrResourceCommandList& rResCommandList, const Camera& rCamera, const Rect& rViewport, const AssetLib::VolumetricFogSettings& rFog, RdrGlobalConstants& rConstants)
 	{
 		Matrix44 mtxView;
 		Matrix44 mtxProj;
@@ -128,7 +146,7 @@ namespace
 		pPsPerAction->cameraFarDist = rCamera.GetFarDist();
 		pPsPerAction->cameraFovY = rCamera.GetFieldOfViewY();
 		pPsPerAction->aspectRatio = rCamera.GetAspectRatio();
-		pPsPerAction->volumetricFogFarDepth = rSky.GetVolFogSettings().farDepth;
+		pPsPerAction->volumetricFogFarDepth = rFog.farDepth;
 
 		rConstants.hPsPerAction = rResCommandList.CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
@@ -204,6 +222,7 @@ bool Renderer::Init(HWND hWnd, int width, int height, InputManager* pInputManage
 
 	RdrShaderSystem::Init(m_pContext);
 	m_lighting.Init();
+	m_sky.Init();
 
 	Resize(width, height);
 	ApplyDeviceChanges();
@@ -266,10 +285,6 @@ void Renderer::ApplyDeviceChanges()
 			rResCommandList.ReleaseResource(m_hColorBufferMultisampled);
 		if (m_hColorBufferRenderTarget)
 			rResCommandList.ReleaseRenderTargetView(m_hColorBufferRenderTarget);
-		if (m_volumetricFogData.hDensityLightLut)
-			rResCommandList.ReleaseResource(m_volumetricFogData.hDensityLightLut);
-		if (m_volumetricFogData.hFinalLut)
-			rResCommandList.ReleaseResource(m_volumetricFogData.hFinalLut);
 
 		// FP16 color
 		m_hColorBuffer = rResCommandList.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
@@ -292,14 +307,6 @@ void Renderer::ApplyDeviceChanges()
 		m_viewHeight = m_pendingViewHeight;
 
 		m_postProcess.HandleResize(m_viewWidth, m_viewHeight);
-
-		// Volumetric fog LUTs
-		UVec3 lutSize(m_viewWidth / 8, m_viewHeight / 8, 64);
-		m_volumetricFogData.lutSize = lutSize;
-		m_volumetricFogData.hDensityLightLut = rResCommandList.CreateTexture3D(
-			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
-		m_volumetricFogData.hFinalLut = rResCommandList.CreateTexture3D(
-			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
 	}
 }
 
@@ -401,66 +408,7 @@ void Renderer::SetLightingMethod(RdrLightingMethod eLightingMethod)
 	RdrShaderSystem::SetGlobalShaderDefine("CLUSTERED_LIGHTING", (eLightingMethod == RdrLightingMethod::Clustered));
 }
 
-void Renderer::QueueVolumetricFog(const AssetLib::VolumetricFogSettings& rFogSettings)
-{
-	m_pCurrentAction->passes[(int)RdrPass::VolumetricFog].bEnabled = true;
-
-	RdrLightResources& rLightParams = m_pCurrentAction->lightParams;
-
-	// Update constants
-	VolumetricFogParams* pFogParams = (VolumetricFogParams*)RdrFrameMem::AllocAligned(sizeof(VolumetricFogParams), 16);
-	pFogParams->lutSize = m_volumetricFogData.lutSize;
-	pFogParams->farDepth = rFogSettings.farDepth;
-	pFogParams->phaseG = rFogSettings.phaseG;
-	pFogParams->absorptionCoeff = rFogSettings.absorptionCoeff;
-	pFogParams->scatteringCoeff = rFogSettings.scatteringCoeff;
-
-	m_volumetricFogData.hFogConstants = GetActionCommandList()->CreateUpdateConstantBuffer(m_volumetricFogData.hFogConstants, 
-		pFogParams, sizeof(VolumetricFogParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
-
-	//////////////////////////////////////////////////////////////////////////
-	// Participating media density and per-froxel lighting.
-	RdrComputeOp* pLightOp = RdrFrameMem::AllocComputeOp();
-	pLightOp->shader = RdrComputeShader::VolumetricFog_Light;
-
-	pLightOp->ahWritableResources.assign(0, m_volumetricFogData.hDensityLightLut);
-
-	pLightOp->ahConstantBuffers.assign(0, m_pCurrentAction->constants.hPsPerAction);
-	pLightOp->ahConstantBuffers.assign(1, m_pCurrentAction->lightParams.hGlobalLightsCb);
-	pLightOp->ahConstantBuffers.assign(2, m_pCurrentAction->constants.hPsAtmosphere);
-	pLightOp->ahConstantBuffers.assign(3, m_volumetricFogData.hFogConstants);
-
-	pLightOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
-	pLightOp->aSamplers.assign(1, RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false));
-
-	pLightOp->ahResources.assign(0, rLightParams.hSkyTransmittanceLut);
-	pLightOp->ahResources.assign(1, rLightParams.hShadowMapTexArray);
-	pLightOp->ahResources.assign(2, rLightParams.hShadowCubeMapTexArray);
-	pLightOp->ahResources.assign(3, rLightParams.hSpotLightListRes);
-	pLightOp->ahResources.assign(4, rLightParams.hPointLightListRes);
-	pLightOp->ahResources.assign(5, rLightParams.hLightIndicesRes);
-
-	pLightOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_volumetricFogData.lutSize.x, VOLFOG_LUT_THREADS_X);
-	pLightOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_volumetricFogData.lutSize.y, VOLFOG_LUT_THREADS_Y);
-	pLightOp->threads[2] = m_volumetricFogData.lutSize.z;
-	AddComputeOpToPass(pLightOp, RdrPass::VolumetricFog);
-
-	//////////////////////////////////////////////////////////////////////////
-	// Scattering accumulation
-	RdrComputeOp* pAccumOp = RdrFrameMem::AllocComputeOp();
-	pAccumOp->shader = RdrComputeShader::VolumetricFog_Accum;
-	pAccumOp->ahConstantBuffers.assign(0, m_pCurrentAction->constants.hPsPerAction);
-	pAccumOp->ahConstantBuffers.assign(1, m_volumetricFogData.hFogConstants);
-	pAccumOp->ahResources.assign(0, m_volumetricFogData.hDensityLightLut);
-	pAccumOp->ahWritableResources.assign(0, m_volumetricFogData.hFinalLut);
-
-	pAccumOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_volumetricFogData.lutSize.x, VOLFOG_LUT_THREADS_X);
-	pAccumOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_volumetricFogData.lutSize.y, VOLFOG_LUT_THREADS_Y);
-	pAccumOp->threads[2] = 1;
-	AddComputeOpToPass(pAccumOp, RdrPass::VolumetricFog);
-}
-
-void Renderer::CullSceneToCamera(float* pOutDepthMin, float* pOutDepthMax)
+void Renderer::QueueScene(const Scene& rScene)
 {
 	const Camera& rCamera = m_pCurrentAction->camera;
 	Scene* pScene = m_pCurrentAction->pScene;
@@ -472,26 +420,22 @@ void Renderer::CullSceneToCamera(float* pOutDepthMin, float* pOutDepthMax)
 	float depthMin = FLT_MAX;
 	float depthMax = 0.f;
 
-	// World Objects
-	WorldObjectList& objects = pScene->GetWorldObjects();
-	for (int i = (int)objects.size() - 1; i >= 0; --i)
+	// Models
+	for (ModelInstance& rModel : ModelInstance::GetFreeList())
 	{
-		WorldObject* pObj = objects[i];
-		const Light* pLight = pObj->GetLight();
-		if (pLight)
+		Entity* pEntity = rModel.GetEntity();
+		float radius = rModel.GetRadius();
+		if (!rCamera.CanSee(pEntity->GetPosition(), radius))
 		{
-			pLightList->AddLight(pLight);
+			// Can't see the model.
+			continue;
 		}
 
-		if (!rCamera.CanSee(pObj->GetPosition(), pObj->GetRadius()))
-			continue;
+		rModel.QueueDraw(pDrawBuckets);
 
-		pObj->QueueDraw(pDrawBuckets);
-
-		Vec3 diff = pObj->GetPosition() - camPos;
+		Vec3 diff = pEntity->GetPosition() - camPos;
 		float distSqr = Vec3Dot(camDir, diff);
 		float dist = sqrtf(max(0.f, distSqr));
-		float radius = pObj->GetRadius();
 
 		if (dist - radius < depthMin)
 			depthMin = dist - radius;
@@ -500,20 +444,38 @@ void Renderer::CullSceneToCamera(float* pOutDepthMin, float* pOutDepthMax)
 			depthMax = dist + radius;
 	}
 
-	// Terrain & Sky
+	// Terrain
 	pScene->GetTerrain().QueueDraw(pDrawBuckets, rCamera);
-	pScene->GetSky().QueueDraw(pDrawBuckets, m_pCurrentAction->lightParams.hVolumetricFogLut);
 
-	// Add sky light to the list
-	DirectionalLight sunLight;
-	sunLight.direction = pScene->GetSky().GetSunDirection();
-	sunLight.color = pScene->GetSky().GetSunColor();
-	sunLight.shadowMapIndex = -1;
-	pLightList->m_directionalLights.push(sunLight);
+	// Depth min/max.
+	depthMin = max(rCamera.GetNearDist(), depthMin);
+	depthMax = min(rCamera.GetFarDist(), depthMax);
 
-	// Return depth min/max.
-	*pOutDepthMin = max(rCamera.GetNearDist(), depthMin);
-	*pOutDepthMax = min(rCamera.GetFarDist(), depthMax);
+	// Lighting
+	for (Light& rLight : Light::GetFreeList())
+	{
+		pLightList->AddLight(&rLight);
+	}
+
+	m_pCurrentAction->lightParams.hEnvironmentMapTexArray = rScene.GetEnvironmentMapTexArray();
+	m_lighting.QueueDraw(&m_pCurrentAction->lights, *this, m_pCurrentAction->camera, depthMin, depthMax,
+		m_eLightingMethod, &m_pCurrentAction->lightParams);
+
+	m_sky.QueueDraw(m_pCurrentAction, m_pCurrentAction->sky, pLightList);
+	m_pCurrentAction->constants.hPsAtmosphere = m_sky.GetAtmosphereConstantBuffer();
+
+	// Post-processing
+	if (m_pCurrentAction->bEnablePostProcessing)
+	{
+		for (PostProcessVolume& rPostProcess : PostProcessVolume::GetFreeList())
+		{
+			m_pCurrentAction->postProcessEffects = rPostProcess.GetEffects();
+			// TODO: Add post-process effects blending.
+			break;
+		}
+
+		m_postProcess.QueueDraw(m_pCurrentAction->postProcessEffects);
+	}
 }
 
 void Renderer::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
@@ -540,10 +502,10 @@ void Renderer::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHand
 		rPassData.shaderMode = RdrShaderMode::DepthOnly;
 	}
 
-	cullSceneToCameraForShadows(rCamera, m_pCurrentAction->pScene, &rShadowPass.buckets);
+	cullSceneToCameraForShadows(rCamera, &rShadowPass.buckets);
 	rShadowPass.buckets.SortDrawOps(RdrBucketType::Opaque);
 
-	createPerActionConstants(m_pCurrentAction->resourceCommands, rCamera, viewport, m_pCurrentAction->pScene->GetSky(), rShadowPass.constants);
+	createPerActionConstants(m_pCurrentAction->resourceCommands, rCamera, viewport, m_pCurrentAction->sky.volumetricFog, rShadowPass.constants);
 	rShadowPass.constants.hPsAtmosphere = 0;
 }
 
@@ -573,10 +535,10 @@ void Renderer::QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencilV
 		rPassData.bIsCubeMapCapture = true;
 	}
 
-	cullSceneToCameraForShadows(rShadowPass.camera, m_pCurrentAction->pScene, &rShadowPass.buckets);
+	cullSceneToCameraForShadows(rShadowPass.camera, &rShadowPass.buckets);
 	rShadowPass.buckets.SortDrawOps(RdrBucketType::Opaque);
 
-	createPerActionConstants(m_pCurrentAction->resourceCommands, rShadowPass.camera, viewport, m_pCurrentAction->pScene->GetSky(), rShadowPass.constants);
+	createPerActionConstants(m_pCurrentAction->resourceCommands, rShadowPass.camera, viewport, m_pCurrentAction->sky.volumetricFog, rShadowPass.constants);
 	rShadowPass.constants.hPsAtmosphere = 0;
 	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(m_pCurrentAction->resourceCommands, rLight.position, 0.1f, rLight.radius * 2.f);
 }
@@ -606,28 +568,11 @@ void Renderer::BeginPrimaryAction(Camera& rCamera, Scene& rScene)
 	m_pCurrentAction->passes[(int)RdrPass::Alpha].bEnabled = true;
 	m_pCurrentAction->passes[(int)RdrPass::UI].bEnabled = true;
 
-	m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
-	rScene.GetPostProcEffects()->PrepareDraw();
-
-	const Sky& rSky = rScene.GetSky();
-	const AssetLib::VolumetricFogSettings& rVolFogSettings = rSky.GetVolFogSettings();
-	m_pCurrentAction->lightParams.hVolumetricFogLut = rVolFogSettings.enabled ? m_volumetricFogData.hFinalLut : RdrResourceSystem::GetDefaultResourceHandle(RdrDefaultResource::kBlackTex3d);
-	m_pCurrentAction->lightParams.hSkyTransmittanceLut = rSky.GetTransmittanceLut();
-	m_pCurrentAction->lightParams.hEnvironmentMapTexArray = rScene.GetEnvironmentMapTexArray();
-
-	float sceneDepthMin, sceneDepthMax;
-	CullSceneToCamera(&sceneDepthMin, &sceneDepthMax);
-
-	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, rSky, m_pCurrentAction->constants);
-	m_pCurrentAction->constants.hPsAtmosphere = rSky.GetAtmosphereConstantBuffer();
-
+	m_pCurrentAction->sky = blendSkyForCamera(m_pCurrentAction->camera);
+	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, m_pCurrentAction->sky.volumetricFog, m_pCurrentAction->constants);
 	createUiConstants(m_pCurrentAction->resourceCommands, viewport, m_pCurrentAction->uiConstants);
 
-	// Lighting
-	m_lighting.QueueDraw(&m_pCurrentAction->lights, *this, rSky, m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax,
-		m_eLightingMethod, &m_pCurrentAction->lightParams);
-
-	QueueVolumetricFog(rVolFogSettings);
+	QueueScene(rScene);
 }
 
 void Renderer::BeginOffscreenAction(const wchar_t* actionName, Camera& rCamera, Scene& rScene, 
@@ -649,29 +594,10 @@ void Renderer::BeginOffscreenAction(const wchar_t* actionName, Camera& rCamera, 
 	m_pCurrentAction->passes[(int)RdrPass::Sky].bEnabled = true;
 	m_pCurrentAction->passes[(int)RdrPass::Alpha].bEnabled = true;
 
-	if (enablePostprocessing)
-	{
-		m_pCurrentAction->pPostProcEffects = rScene.GetPostProcEffects();
-		rScene.GetPostProcEffects()->PrepareDraw();
-	}
+	m_pCurrentAction->sky = blendSkyForCamera(m_pCurrentAction->camera);
+	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, m_pCurrentAction->sky.volumetricFog, m_pCurrentAction->constants);
 
-	const Sky& rSky = rScene.GetSky();
-	const AssetLib::VolumetricFogSettings& rVolFogSettings = rSky.GetVolFogSettings();
-	m_pCurrentAction->lightParams.hVolumetricFogLut = rVolFogSettings.enabled ? m_volumetricFogData.hFinalLut : RdrResourceSystem::GetDefaultResourceHandle(RdrDefaultResource::kBlackTex3d);
-	m_pCurrentAction->lightParams.hSkyTransmittanceLut = rSky.GetTransmittanceLut();
-	m_pCurrentAction->lightParams.hEnvironmentMapTexArray = rScene.GetEnvironmentMapTexArray();
-
-	float sceneDepthMin, sceneDepthMax;
-	CullSceneToCamera(&sceneDepthMin, &sceneDepthMax);
-
-	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, rSky, m_pCurrentAction->constants);
-	m_pCurrentAction->constants.hPsAtmosphere = rSky.GetAtmosphereConstantBuffer();
-
-	// Lighting
-	m_lighting.QueueDraw(&m_pCurrentAction->lights, *this, rSky, m_pCurrentAction->camera, sceneDepthMin, sceneDepthMax,
-		m_eLightingMethod, &m_pCurrentAction->lightParams);
-
-	QueueVolumetricFog(rVolFogSettings);
+	QueueScene(rScene);
 }
 
 void Renderer::EndAction()
@@ -1007,7 +933,7 @@ void Renderer::DrawFrame()
 			if (rAction.bEnablePostProcessing)
 			{
 				m_profiler.BeginSection(RdrProfileSection::PostProcessing);
-				m_postProcess.DoPostProcessing(*m_pInputManager, m_pContext, m_drawState, pColorBuffer, *rAction.pPostProcEffects);
+				m_postProcess.DoPostProcessing(*m_pInputManager, m_pContext, m_drawState, pColorBuffer, rAction.postProcessEffects);
 				m_profiler.EndSection();
 			}
 

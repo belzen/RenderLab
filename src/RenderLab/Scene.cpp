@@ -4,10 +4,12 @@
 #include "render/Renderer.h"
 #include "render/Font.h"
 #include "render/RdrOffscreenTasks.h"
-#include "WorldObject.h"
+#include "Entity.h"
 #include "components/ModelInstance.h"
 #include "components/Light.h"
 #include "components/RigidBody.h"
+#include "components/PostProcessVolume.h"
+#include "components/SkyVolume.h"
 #include "AssetLib/SceneAsset.h"
 #include "AssetLib/AssetLibrary.h"
 
@@ -21,14 +23,12 @@ void Scene::Cleanup()
 {
 	AssetLibrary<AssetLib::Scene>::RemoveReloadListener(this);
 
-	uint numObjects = (uint)m_objects.size();
-	for (uint i = 0; i < numObjects; ++i)
+	for (Entity* pEntity : m_entities)
 	{
-		m_objects[i]->Release();
+		pEntity->Release();
 	}
-	m_objects.clear();
+	m_entities.clear();
 
-	m_sky.Cleanup();
 	m_sceneName = nullptr;
 }
 
@@ -75,7 +75,7 @@ void Scene::CaptureEnvironmentLight(Light* pLight)
 
 	assert(m_apActiveEnvironmentLights[index] == pLight);
 	Rect viewport(0.f, 0.f, (float)m_environmentMapSize, (float)m_environmentMapSize);
-	RdrOffscreenTasks::QueueSpecularProbeCapture(pLight->GetParent()->GetPosition(), this, viewport,
+	RdrOffscreenTasks::QueueSpecularProbeCapture(pLight->GetEntity()->GetPosition(), this, viewport,
 		m_hEnvironmentMapTexArray, index, m_hEnvironmentMapDepthView);
 }
 
@@ -105,30 +105,15 @@ void Scene::Load(const char* sceneName)
 	m_cameraSpawnPosition = pSceneData->camPosition;
 	m_cameraSpawnPitchYawRoll = pSceneData->camPitchYawRoll;
 
-	// Sky
-	m_sky.Load(pSceneData->skyName);
-
-	// Post-processing effects
-	{
-		AssetLib::PostProcessEffects* pEffects = AssetLibrary<AssetLib::PostProcessEffects>::LoadAsset(pSceneData->postProcessingEffectsName);
-		if (!pEffects)
-		{
-			assert(false);
-			return;
-		}
-
-		m_postProcEffects.Init(pEffects);
-	}
-
-	// Objects
+	// Objects/Entities
 	for (const AssetLib::Object& rObjectData : pSceneData->objects)
 	{
-		WorldObject* pObject = WorldObject::Create(rObjectData.name, rObjectData.position, rObjectData.orientation, rObjectData.scale);
+		Entity* pEntity = Entity::Create(rObjectData.name, rObjectData.position, rObjectData.orientation, rObjectData.scale);
 
 		// Model
 		if (rObjectData.modelName)
 		{
-			pObject->AttachModel(ModelInstance::Create(rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
+			pEntity->AttachRenderable(ModelInstance::Create(rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
 		}
 
 		// Physics
@@ -142,30 +127,41 @@ void Scene::Load(const char* sceneName)
 			pRigidBody = RigidBody::CreateSphere(rObjectData.physics.halfSize.x, rObjectData.physics.density, rObjectData.physics.offset);
 			break;
 		}
-		pObject->AttachRigidBody(pRigidBody);
+		pEntity->AttachRigidBody(pRigidBody);
 
 		// Lighting
 		switch (rObjectData.light.type)
 		{
 		case LightType::Directional:
-			pObject->AttachLight(Light::CreateDirectional(rObjectData.light.color, rObjectData.light.direction));
+			pEntity->AttachLight(Light::CreateDirectional(rObjectData.light.color, rObjectData.light.intensity, rObjectData.light.pssmLambda));
 			break;
 		case LightType::Point:
-			pObject->AttachLight(Light::CreatePoint(rObjectData.light.color, rObjectData.light.radius));
+			pEntity->AttachLight(Light::CreatePoint(rObjectData.light.color, rObjectData.light.intensity, rObjectData.light.radius));
 			break;
 		case LightType::Spot:
-			pObject->AttachLight(Light::CreateSpot(rObjectData.light.color, rObjectData.light.direction, rObjectData.light.radius, rObjectData.light.innerConeAngle, rObjectData.light.outerConeAngle));
+			pEntity->AttachLight(Light::CreateSpot(rObjectData.light.color, rObjectData.light.intensity, rObjectData.light.radius, rObjectData.light.innerConeAngle, rObjectData.light.outerConeAngle));
 			break;
 		case LightType::Environment:
 			{
 				Light* pLight = Light::CreateEnvironment(rObjectData.light.bIsGlobalEnvironmentLight);
-				pObject->AttachLight(pLight);
+				pEntity->AttachLight(pLight);
 				CaptureEnvironmentLight(pLight);
 			}
 			break;
 		}
 
-		m_objects.push_back(pObject);
+		// Volume component
+		switch (rObjectData.volume.volumeType)
+		{
+		case AssetLib::VolumeType::kPostProcess:
+			pEntity->AttachVolume(PostProcessVolume::Create(rObjectData.volume));
+			break;
+		case AssetLib::VolumeType::kSky:
+			pEntity->AttachVolume(SkyVolume::Create(rObjectData.volume));
+			break;
+		}
+
+		m_entities.push_back(pEntity);
 	}
 
 	if (pSceneData->terrain.enabled)
@@ -186,25 +182,23 @@ void Scene::Update()
 		m_reloadPending = false;
 	}
 
-	m_sky.Update();
-
-	for (WorldObject* pObj : m_objects)
+	for (Entity* pEntity : m_entities)
 	{
-		pObj->Update();
+		pEntity->Update();
 	}
 }
 
-void Scene::AddObject(WorldObject* pObject)
+void Scene::AddEntity(Entity* pEntity)
 {
-	m_objects.push_back(pObject);
+	m_entities.push_back(pEntity);
 }
 
-void Scene::RemoveObject(WorldObject* pObject)
+void Scene::RemoveEntity(Entity* pEntity)
 {
-	auto iter = std::find(m_objects.begin(), m_objects.end(), pObject);
-	if (iter != m_objects.end())
+	auto iter = std::find(m_entities.begin(), m_entities.end(), pEntity);
+	if (iter != m_entities.end())
 	{
-		m_objects.erase(iter);
+		m_entities.erase(iter);
 	}
 }
 

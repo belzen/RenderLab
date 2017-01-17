@@ -8,7 +8,7 @@
 struct DirectionalLight
 {
 	float3 direction;
-	float unused;
+	float pssmLambda;
 
 	float3 color;
 	uint shadowMapIndex;

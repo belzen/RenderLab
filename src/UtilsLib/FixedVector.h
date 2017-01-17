@@ -76,12 +76,12 @@ public:
 		m_size = 0;
 	}
 
-	uint size()
+	uint size() const
 	{
 		return m_size;
 	}
 
-	uint capacity()
+	uint capacity() const
 	{
 		return T_kCapacity;
 	}

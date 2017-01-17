@@ -47,6 +47,13 @@ inline Vec3 Vec3TransformCoord(const Vec3& lhs, const Matrix44& transformMtx)
 	return DirectX::XMVector3TransformCoord(pos, mtx);
 }
 
+inline Vec3 Vec3Rotate(const Vec3& lhs, const Quaternion& rotationQuaternion)
+{
+	DirectX::XMVECTOR dir = DirectX::XMLoadFloat3(&lhs);
+	DirectX::XMVECTOR q = DirectX::XMLoadFloat4(&rotationQuaternion);
+	return DirectX::XMVector3Rotate(dir, q);
+}
+
 inline float Vec3MaxComponent(const Vec3& vec)
 {
 	using std::max;

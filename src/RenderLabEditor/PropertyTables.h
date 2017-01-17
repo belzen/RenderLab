@@ -1,7 +1,7 @@
 #pragma once
 
-#include <typeinfo>
 #include "Types.h"
+#include "Widgets/Widget.h"
 
 class PropertyDef
 {
@@ -12,8 +12,6 @@ public:
 	const char* GetName() const;
 	const char* GetDescription() const;
 
-	virtual uint64 GetTypeId() const = 0;
-
 private:
 	const char* m_name;
 	const char* m_description;
@@ -23,27 +21,18 @@ class BeginGroupPropertyDef : public PropertyDef
 {
 public:
 	BeginGroupPropertyDef(const char* name);
-
-	static const uint64 kTypeId;
-	uint64 GetTypeId() const;
 };
 
 class EndGroupPropertyDef : public PropertyDef
 {
 public:
 	EndGroupPropertyDef();
-
-	static const uint64 kTypeId;
-	uint64 GetTypeId() const;
 };
 
 class IntegerPropertyDef : public PropertyDef
 {
 public:
 	IntegerPropertyDef(const char* name, const char* desc, int minVal, int maxVal);
-
-	static const uint64 kTypeId;
-	uint64 GetTypeId() const;
 
 private:
 	int m_minVal;
@@ -57,9 +46,6 @@ public:
 	typedef bool (*ChangedFunc)(float newVal, void* pSource);
 
 	FloatPropertyDef(const char* name, const char* desc, float minValue, float maxValue, float step, GetValueFunc getValueCallback, ChangedFunc changedCallback);
-
-	static const uint64 kTypeId;
-	uint64 GetTypeId() const;
 
 	ChangedFunc GetChangedCallback() const;
 	float GetMinValue() const;
@@ -76,6 +62,27 @@ private:
 	float m_step;
 };
 
+class IntChoicePropertyDef : public PropertyDef
+{
+public:
+	typedef int (*GetValueFunc)(void* pSource);
+	typedef bool (*ChangedFunc)(int newValue, void* pSource);
+
+	IntChoicePropertyDef(const char* name, const char* desc, const NameValuePair* aOptions, int numOptions, GetValueFunc getValueCallback, ChangedFunc changedCallback);
+
+	ChangedFunc GetChangedCallback() const;
+	const NameValuePair* GetOptions() const;
+	int GetNumOptions() const;
+
+	int GetValue(void* pSource) const;
+
+private:
+	GetValueFunc m_getValueCallback;
+	ChangedFunc m_changedCallback;
+	const NameValuePair* m_aOptions;
+	int m_numOptions;
+};
+
 class Vector3PropertyDef : public PropertyDef
 {
 public:
@@ -85,9 +92,6 @@ public:
 
 	Vector3PropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback,
 		ElemChangedFunc xChangedCallback, ElemChangedFunc yChangedCallback, ElemChangedFunc zChangedCallback);
-
-	static const uint64 kTypeId;
-	uint64 GetTypeId() const;
 
 	ChangedFunc GetChangedCallback() const;
 	ElemChangedFunc GetXChangedCallback() const;
@@ -112,9 +116,6 @@ public:
 
 	BooleanPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback);
 
-	static const uint64 kTypeId;
-	uint64 GetTypeId() const;
-
 	ChangedFunc GetChangedCallback() const;
 
 	bool GetValue(void* pSource) const;
@@ -132,9 +133,6 @@ public:
 
 	TextPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback);
 
-	static const uint64 kTypeId;
-	uint64 GetTypeId() const;
-
 	ChangedFunc GetChangedCallback() const;
 
 	std::string GetValue(void* pSource) const;
@@ -144,24 +142,24 @@ private:
 	ChangedFunc m_changedCallback;
 };
 
-class ModelPropertyDef : public PropertyDef
+class AssetPropertyDef : public PropertyDef
 {
 public:
 	typedef std::string (*GetValueFunc)(void* pSource);
 	typedef bool (*ChangedFunc)(const std::string& newVal, void* pSource);
 
-	ModelPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback);
-
-	static const uint64 kTypeId;
-	uint64 GetTypeId() const;
+	AssetPropertyDef(const char* name, const char* desc, WidgetDragDataType assetType, GetValueFunc getValueCallback, ChangedFunc changedCallback);
 
 	ChangedFunc GetChangedCallback() const;
 
 	std::string GetValue(void* pSource) const;
 
+	WidgetDragDataType GetAssetType() const;
+
 private:
 	GetValueFunc m_getValueCallback;
 	ChangedFunc m_changedCallback;
+	WidgetDragDataType m_assetType; // TODO: Replace this with an actual asset identifier type
 };
 
 
@@ -192,22 +190,12 @@ inline BeginGroupPropertyDef::BeginGroupPropertyDef(const char* name)
 
 }
 
-inline uint64 BeginGroupPropertyDef::GetTypeId() const
-{
-	return kTypeId;
-}
-
 //////////////////////////////////////////////////////////////////////////
 // EndGroupPropertyDef inlines
 inline EndGroupPropertyDef::EndGroupPropertyDef()
 	: PropertyDef(nullptr, nullptr)
 {
 
-}
-
-inline uint64 EndGroupPropertyDef::GetTypeId() const
-{
-	return kTypeId;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -218,11 +206,6 @@ inline IntegerPropertyDef::IntegerPropertyDef(const char* name, const char* desc
 	, m_maxVal(maxVal)
 {
 
-}
-
-inline uint64 IntegerPropertyDef::GetTypeId() const
-{
-	return kTypeId;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -236,11 +219,6 @@ inline FloatPropertyDef::FloatPropertyDef(const char* name, const char* desc, fl
 	, m_step(step)
 {
 
-}
-
-inline uint64 FloatPropertyDef::GetTypeId() const
-{
-	return kTypeId;
 }
 
 inline FloatPropertyDef::ChangedFunc FloatPropertyDef::GetChangedCallback() const
@@ -269,6 +247,39 @@ inline float FloatPropertyDef::GetValue(void* pSource) const
 }
 
 //////////////////////////////////////////////////////////////////////////
+// IntChoicePropertyDef inlines
+inline IntChoicePropertyDef::IntChoicePropertyDef(const char* name, const char* desc, const NameValuePair* aOptions, int numOptions,
+	GetValueFunc getValueCallback, ChangedFunc changedCallback)
+	: PropertyDef(name, desc)
+	, m_getValueCallback(getValueCallback)
+	, m_changedCallback(changedCallback)
+	, m_aOptions(aOptions)
+	, m_numOptions(numOptions)
+{
+
+}
+
+inline IntChoicePropertyDef::ChangedFunc IntChoicePropertyDef::GetChangedCallback() const
+{
+	return m_changedCallback;
+}
+
+inline const NameValuePair* IntChoicePropertyDef::GetOptions() const
+{
+	return m_aOptions;
+}
+
+inline int IntChoicePropertyDef::GetNumOptions() const
+{
+	return m_numOptions;
+}
+
+inline int IntChoicePropertyDef::GetValue(void* pSource) const
+{
+	return m_getValueCallback(pSource);
+}
+
+//////////////////////////////////////////////////////////////////////////
 // Vector3PropertyDef inlines
 inline Vector3PropertyDef::Vector3PropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback,
 	ElemChangedFunc xChangedCallback, ElemChangedFunc yChangedCallback, ElemChangedFunc zChangedCallback)
@@ -280,11 +291,6 @@ inline Vector3PropertyDef::Vector3PropertyDef(const char* name, const char* desc
 	, m_zChangedCallback(zChangedCallback)
 {
 
-}
-
-inline uint64 Vector3PropertyDef::GetTypeId() const
-{
-	return kTypeId;
 }
 
 inline Vector3PropertyDef::ChangedFunc Vector3PropertyDef::GetChangedCallback() const
@@ -322,11 +328,6 @@ inline BooleanPropertyDef::BooleanPropertyDef(const char* name, const char* desc
 
 }
 
-inline uint64 BooleanPropertyDef::GetTypeId() const
-{
-	return kTypeId;
-}
-
 inline BooleanPropertyDef::ChangedFunc BooleanPropertyDef::GetChangedCallback() const
 {
 	return m_changedCallback;
@@ -347,11 +348,6 @@ inline TextPropertyDef::TextPropertyDef(const char* name, const char* desc, GetV
 
 }
 
-inline uint64 TextPropertyDef::GetTypeId() const
-{
-	return kTypeId;
-}
-
 inline TextPropertyDef::ChangedFunc TextPropertyDef::GetChangedCallback() const
 {
 	return m_changedCallback;
@@ -364,26 +360,27 @@ inline std::string TextPropertyDef::GetValue(void* pSource) const
 
 
 //////////////////////////////////////////////////////////////////////////
-// ModelPropertyDef inlines
-inline ModelPropertyDef::ModelPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback)
+// AssetPropertyDef inlines
+inline AssetPropertyDef::AssetPropertyDef(const char* name, const char* desc, WidgetDragDataType assetType, GetValueFunc getValueCallback, ChangedFunc changedCallback)
 	: PropertyDef(name, desc)
 	, m_getValueCallback(getValueCallback)
 	, m_changedCallback(changedCallback)
+	, m_assetType(assetType)
 {
 
 }
 
-inline uint64 ModelPropertyDef::GetTypeId() const
-{
-	return kTypeId;
-}
-
-inline ModelPropertyDef::ChangedFunc ModelPropertyDef::GetChangedCallback() const
+inline AssetPropertyDef::ChangedFunc AssetPropertyDef::GetChangedCallback() const
 {
 	return m_changedCallback;
 }
 
-inline std::string ModelPropertyDef::GetValue(void* pSource) const
+inline std::string AssetPropertyDef::GetValue(void* pSource) const
 {
 	return m_getValueCallback(pSource);
+}
+
+inline WidgetDragDataType AssetPropertyDef::GetAssetType() const
+{
+	return m_assetType;
 }

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "render/RdrPostProcessEffects.h"
 #include "render/RdrContext.h"
-#include "render/Sky.h"
 #include "render/Terrain.h"
 #include "render/RdrLighting.h"
 #include <vector>
@@ -11,11 +9,10 @@
 
 class Camera;
 class Renderer;
-class WorldObject;
+class Entity;
 class RdrContext;
-class RdrPostProcessEffects;
 
-typedef std::vector<WorldObject*> WorldObjectList;
+typedef std::vector<Entity*> EntityList;
 
 class Scene : public IAssetReloadListener<AssetLib::Scene>
 {
@@ -26,20 +23,14 @@ public:
 
 	void Update();
 
-	const Sky& GetSky() const;
-	Sky& GetSky();
-
 	const Terrain& GetTerrain() const;
 	Terrain& GetTerrain();
 
-	const WorldObjectList& GetWorldObjects() const;
-	WorldObjectList& GetWorldObjects();
+	const EntityList& GetEntities() const;
+	EntityList& GetEntities();
 
-	void AddObject(WorldObject* pObject);
-	void RemoveObject(WorldObject* pObject);
-
-	const RdrPostProcessEffects* GetPostProcEffects() const;
-	RdrPostProcessEffects* GetPostProcEffects();
+	void AddEntity(Entity* pEntity);
+	void RemoveEntity(Entity* pEntity);
 
 	RdrResourceHandle GetEnvironmentMapTexArray() const;
 	void InvalidateEnvironmentLights();
@@ -56,10 +47,8 @@ private:
 	void Cleanup();
 
 private:
-	WorldObjectList m_objects;
-	Sky m_sky;
+	EntityList m_entities;
 	Terrain m_terrain;
-	RdrPostProcessEffects m_postProcEffects;
 
 	Vec3 m_cameraSpawnPosition;
 	Vec3 m_cameraSpawnPitchYawRoll;
@@ -76,16 +65,6 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-inline const Sky& Scene::GetSky() const
-{
-	return m_sky;
-}
-
-inline Sky& Scene::GetSky()
-{
-	return m_sky;
-}
-
 inline const Terrain& Scene::GetTerrain() const
 {
 	return m_terrain;
@@ -96,24 +75,14 @@ inline Terrain& Scene::GetTerrain()
 	return m_terrain;
 }
 
-inline const WorldObjectList& Scene::GetWorldObjects() const
+inline const EntityList& Scene::GetEntities() const
 {
-	return m_objects;
+	return m_entities;
 }
 
-inline WorldObjectList& Scene::GetWorldObjects()
+inline EntityList& Scene::GetEntities()
 {
-	return m_objects;
-}
-
-inline const RdrPostProcessEffects* Scene::GetPostProcEffects() const
-{
-	return &m_postProcEffects;
-}
-
-inline RdrPostProcessEffects* Scene::GetPostProcEffects()
-{
-	return &m_postProcEffects;
+	return m_entities;
 }
 
 inline RdrResourceHandle Scene::GetEnvironmentMapTexArray() const

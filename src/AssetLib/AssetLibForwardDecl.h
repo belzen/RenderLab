@@ -5,10 +5,11 @@ namespace AssetLib
 	struct Terrain;
 	struct Model;
 	struct VolumetricFogSettings;
-	struct Sky;
+	struct SkySettings;
 	struct Texture;
 	struct Material;
 	struct PostProcessEffects;
 	struct MaterialSwap;
 	struct Object;
+	struct Volume;
 }

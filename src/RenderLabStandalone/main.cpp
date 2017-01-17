@@ -1,7 +1,6 @@
 #include "UtilsLib/Timer.h"
 #include "AssetLib/AssetLibrary.h"
-#include "AssetLib/SkyAsset.h"
-#include "WorldObject.h"
+#include "Entity.h"
 #include "RenderDoc\RenderDocUtil.h"
 #include "render\Renderer.h"
 #include "render\RdrOffscreenTasks.h"
@@ -93,7 +92,7 @@ namespace
 			break;
 		}
 
-		return DefWindowProc(hWnd, msg, wParam, lParam);
+		return ::DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 
 	HWND createRenderWindow(int width, int height)

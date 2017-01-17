@@ -1,50 +1,51 @@
 #include "Precompiled.h"
 #include "RigidBody.h"
 #include "Physics.h"
-#include "WorldObject.h"
+#include "Entity.h"
 
 namespace
 {
-	RigidBodyFreeList s_rigidBodies;
+	RigidBodyFreeList s_rigidBodyFreeList;
 }
 
 RigidBody* RigidBody::CreatePlane()
 {
-	RigidBody* pRigidBody = s_rigidBodies.allocSafe();
+	RigidBody* pRigidBody = s_rigidBodyFreeList.allocSafe();
 	pRigidBody->m_pActor = Physics::CreatePlane();
 	return pRigidBody;
 }
 
 RigidBody* RigidBody::CreateBox(const Vec3& halfSize, const float density, const Vec3& offset)
 {
-	RigidBody* pRigidBody = s_rigidBodies.allocSafe();
+	RigidBody* pRigidBody = s_rigidBodyFreeList.allocSafe();
 	pRigidBody->m_pActor = Physics::CreateBox(halfSize, density, offset);
 	return pRigidBody;
 }
 
 RigidBody* RigidBody::CreateSphere(const float radius, const float density, const Vec3& offset)
 {
-	RigidBody* pRigidBody = s_rigidBodies.allocSafe();
+	RigidBody* pRigidBody = s_rigidBodyFreeList.allocSafe();
 	pRigidBody->m_pActor = Physics::CreateSphere(radius, density, offset);
 	return pRigidBody;
 }
 
-void RigidBody::OnAttached(WorldObject* pObject)
+void RigidBody::OnAttached(Entity* pEntity)
 {
-	m_pParentObject = pObject;
-	Physics::SetActorUserData(m_pActor, pObject);
-	Physics::AddToScene(m_pActor, pObject->GetPosition(), pObject->GetOrientation());
+	m_pEntity = pEntity;
+	Physics::SetActorUserData(m_pActor, pEntity);
+	Physics::AddToScene(m_pActor, pEntity->GetPosition(), pEntity->GetOrientation());
 }
 
-void RigidBody::OnDetached(WorldObject* pObject)
+void RigidBody::OnDetached(Entity* pEntity)
 {
-	m_pParentObject = nullptr;
+	m_pEntity = nullptr;
 	Physics::SetActorUserData(m_pActor, nullptr);
 }
 
 void RigidBody::Release()
 {
 	Physics::DestroyActor(m_pActor);
+	s_rigidBodyFreeList.release(this);
 }
 
 Vec3 RigidBody::GetPosition() const
