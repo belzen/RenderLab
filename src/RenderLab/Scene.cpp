@@ -81,7 +81,11 @@ void Scene::CaptureEnvironmentLight(Light* pLight)
 
 void Scene::Load(const char* sceneName)
 {
-	assert(!m_sceneName.getString());
+	if (m_sceneName.getString())
+	{
+		Cleanup();
+	}
+
 	m_sceneName = sceneName;
 
 	AssetLib::Scene* pSceneData = AssetLibrary<AssetLib::Scene>::LoadAsset(m_sceneName);

@@ -1,11 +1,8 @@
 {
 	"camera" : {
-		"position" : [ -1.0, 3.0, -5.0 ],
-		"rotation" : [ 15.0, 0.0, 0.0 ]
+		"position" : [ -220.0, 525.0, 180.0 ],
+		"rotation" : [ 35.0, 115.0, 0.0 ]
 	},
-
-	"sky" : "cloudy",
-	"postProcessingEffects" : "default",
 	"terrain" : {
 		"cornerMin" : [ -256, -256 ],
 		"cornerMax" : [ 256, 256 ],
@@ -13,6 +10,40 @@
 		"heightScale" : 500.0
 	},
 	"objects" : [
+		{
+			"name" : "Post-Process Effects",
+			"volume" : {
+				"type" : "postProcess",
+				"eyeAdaptation" : {
+					"white" : 12.5,
+					"middleGrey" : 0.5,
+					"minExposure" : -16.0,
+					"maxExposure" : 16.0
+				},
+				"bloom" : {
+					"enabled" : true,
+					"threshold" : 5.5
+				}
+			}
+		},
+		{
+			"name" : "Sky",
+			"volume" : {
+				"type" : "sky",
+				"volumetricFog" : {
+					"enabled" : false,
+					"scatteringCoeff" : [0.008, 0.008, 0.008],
+					"absorptionCoeff" : [0.0, 0.0, 0.0],
+					"farDepth" : 64.0,
+					"phaseG" : 0.6
+				}
+			},
+			"light" : {
+				"type" : "directional",
+				"color" : [1.0, 1.0, 1.0],
+				"intensity" : 5.0,
+				"pssmLambda" : 0.6
+			}
+		}
 	]
-
 }

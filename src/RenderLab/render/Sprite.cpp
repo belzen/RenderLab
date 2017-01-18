@@ -57,7 +57,6 @@ void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, 
 
 	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
 	pDrawOp->hGeo = m_hGeo;
-	pDrawOp->bFreeGeo = false;
 	pDrawOp->hInputLayout = m_hInputLayout;
 	pDrawOp->vertexShader = kVertexShader;
 	pDrawOp->pMaterial = &m_material;

@@ -42,8 +42,14 @@ ModelInstance* ModelInstance::Create(const CachedString& modelAssetName, const A
 
 void ModelInstance::Release()
 {
-	// todo: refcount and free as necessary
-	//memset(m_subObjects, 0, sizeof(m_subObjects));
+	if (m_hVsPerObjectConstantBuffer)
+	{
+		g_pRenderer->GetPreFrameCommandList().ReleaseConstantBuffer(m_hVsPerObjectConstantBuffer);
+		m_hVsPerObjectConstantBuffer = 0;
+	}
+
+	memset(m_pMaterials, 0, sizeof(m_pMaterials));
+
 	s_modelInstanceFreeList.release(this);
 }
 
@@ -112,6 +118,8 @@ void ModelInstance::QueueDraw(RdrDrawBuckets* pDrawBuckets)
 		{
 			m_instancedDataId = 0;
 		}
+
+		m_lastTransformId = m_pEntity->GetTransformId();
 	}
 
 	uint numSubObjects = m_pModelData->GetNumSubObjects();

@@ -4,2297 +4,2712 @@
 		"position" : [ 0, 5, 0 ],
 		"rotation" : [ 0, 0, 0 ]
 	},
-	"sky" : "cloudy",
-	"postProcessingEffects" : "sponza",
 	"objects" : 
 	[
 		{
+			"name" : "Post-Process Effects",
+			"volume" : {
+				"type" : "postProcess",
+				"eyeAdaptation" : {
+					"white" : 12.5,
+					"middleGrey" : 0.5,
+					"minExposure" : -16.0,
+					"maxExposure" : 16.0
+				},
+				"bloom" : {
+					"enabled" : true,
+					"threshold" : 5.5
+				}
+			}
+		},
+		{
+			"name" : "Sky",
+			"volume" : {
+				"type" : "sky",
+				"volumetricFog" : {
+					"enabled" : false,
+					"scatteringCoeff" : [0.008, 0.008, 0.008],
+					"absorptionCoeff" : [0.0, 0.0, 0.0],
+					"farDepth" : 64.0,
+					"phaseG" : 0.6
+				}
+			},
+			"light" : {
+				"type" : "directional",
+				"color" : [1.0, 1.0, 1.0],
+				"intensity" : 5.0,
+				"pssmLambda" : 0.6
+			}
+		},
+		{
+			"name" : "sponza_00",
 			"model" : "sponza/sponza_00",
 			"position" : [ 49.527969360351563, 8.537139892578125, 19.849433898925781 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_01",
 			"model" : "sponza/sponza_01",
 			"position" : [ -24.324291229248047, -0.014010000042617321, -22.102069854736328 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_03",
 			"model" : "sponza/sponza_03",
 			"position" : [ -141.31719970703125, 49.304721832275391, -3.884070873260498 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_04",
 			"model" : "sponza/sponza_04",
 			"position" : [ 2.4477949142456055, 9.6912698745727539, -2.3849644660949707 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_05",
 			"model" : "sponza/sponza_05",
 			"position" : [ -6.5470085144042969, 41.391109466552734, -3.5727558135986328 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_06",
 			"model" : "sponza/sponza_06",
 			"position" : [ -6.4583358764648438, 22.148771286010742, -3.5343704223632813 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_07",
 			"model" : "sponza/sponza_07",
 			"position" : [ -6.5312156677246094, 49.298881530761719, -3.7273941040039063 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_08",
 			"model" : "sponza/sponza_08",
 			"position" : [ -6.3625335693359375, 21.580360412597656, -3.5122795104980469 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_09",
 			"model" : "sponza/sponza_09",
 			"position" : [ -62.021785736083984, -0.2460700124502182, 20.613100051879883 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_10",
 			"model" : "sponza/sponza_10",
 			"position" : [ -24.614356994628906, -0.2460700124502182, 20.581855773925781 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_11",
 			"model" : "sponza/sponza_11",
 			"position" : [ 12.197469711303711, -0.2460700124502182, 20.609075546264648 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_12",
 			"model" : "sponza/sponza_12",
 			"position" : [ 49.029296875, -0.2460700124502182, 20.613075256347656 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_13",
 			"model" : "sponza/sponza_13",
 			"position" : [ -61.990516662597656, -0.2460700124502182, -27.839046478271484 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_14",
 			"model" : "sponza/sponza_14",
 			"position" : [ -24.614349365234375, -0.2460700124502182, -27.811786651611328 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_15",
 			"model" : "sponza/sponza_15",
 			"position" : [ 12.166225433349609, -0.2460700124502182, -27.843015670776367 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_16",
 			"model" : "sponza/sponza_16",
 			"position" : [ 49.056415557861328, -0.2460700124502182, -27.807769775390625 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_17",
 			"model" : "sponza/sponza_17",
 			"position" : [ -6.4190444946289063, 21.139549255371094, -3.6105756759643555 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_18",
 			"model" : "sponza/sponza_18",
 			"position" : [ -6.5001754760742188, 41.553031921386719, -3.5622940063476563 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_19",
 			"model" : "sponza/sponza_19",
 			"position" : [ -6.3625335693359375, 69.446731567382813, -3.5122795104980469 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_20",
 			"model" : "sponza/sponza_20",
 			"position" : [ -101.05458068847656, 69.57373046875, -3.48321533203125 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_21",
 			"model" : "sponza/sponza_21",
 			"position" : [ 87.861251831054688, 69.57373046875, -3.48321533203125 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_22",
 			"model" : "sponza/sponza_22",
 			"position" : [ -99.719619750976563, 50.713981628417969, 19.425430297851563 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_23",
 			"model" : "sponza/sponza_23",
 			"position" : [ -61.832687377929688, 50.713981628417969, 20.60692024230957 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_24",
 			"model" : "sponza/sponza_24",
 			"position" : [ -24.878725051879883, 50.7139892578125, 20.60692024230957 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_25",
 			"model" : "sponza/sponza_25",
 			"position" : [ 11.994779586791992, 50.713981628417969, 20.60692024230957 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_26",
 			"model" : "sponza/sponza_26",
 			"position" : [ 49.183197021484375, 50.713981628417969, 20.60692024230957 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_27",
 			"model" : "sponza/sponza_27",
 			"position" : [ 86.840682983398438, 50.713981628417969, 19.425430297851563 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_28",
 			"model" : "sponza/sponza_28",
 			"position" : [ -99.7196044921875, 50.713981628417969, -26.635185241699219 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_29",
 			"model" : "sponza/sponza_29",
 			"position" : [ -61.832687377929688, 50.713981628417969, -27.816669464111328 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_30",
 			"model" : "sponza/sponza_30",
 			"position" : [ -24.878725051879883, 50.713981628417969, -27.816669464111328 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_31",
 			"model" : "sponza/sponza_31",
 			"position" : [ 11.994779586791992, 50.713981628417969, -27.816669464111328 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_32",
 			"model" : "sponza/sponza_32",
 			"position" : [ 49.183197021484375, 50.713981628417969, -27.816669464111328 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_33",
 			"model" : "sponza/sponza_33",
 			"position" : [ 86.840682983398438, 50.713981628417969, -26.635185241699219 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_34",
 			"model" : "sponza/sponza_34",
 			"position" : [ -6.6858139038085938, 69.376678466796875, -3.6679248809814453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_35",
 			"model" : "sponza/sponza_35",
 			"position" : [ -6.4955062866210938, 69.376678466796875, -3.5099401473999023 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_36",
 			"model" : "sponza/sponza_36",
 			"position" : [ -6.689117431640625, 92.1728515625, -3.6124944686889648 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_37",
 			"model" : "sponza/sponza_37",
 			"position" : [ 50.722789764404297, 121.59016418457031, -25.337898254394531 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_38",
 			"model" : "sponza/sponza_38",
 			"position" : [ 50.722785949707031, 122.69846343994141, -26.371566772460938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_39",
 			"model" : "sponza/sponza_39",
 			"position" : [ 13.710159301757813, 121.59016418457031, -25.337898254394531 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_40",
 			"model" : "sponza/sponza_40",
 			"position" : [ 13.710155487060547, 122.69846343994141, -26.371566772460938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_41",
 			"model" : "sponza/sponza_41",
 			"position" : [ -26.459880828857422, 121.59016418457031, -25.337898254394531 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_42",
 			"model" : "sponza/sponza_42",
 			"position" : [ -26.459884643554688, 122.69846343994141, -26.371566772460938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_43",
 			"model" : "sponza/sponza_43",
 			"position" : [ -63.482460021972656, 121.59016418457031, -25.337898254394531 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_44",
 			"model" : "sponza/sponza_44",
 			"position" : [ -63.482467651367188, 122.69846343994141, -26.371566772460938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_45",
 			"model" : "sponza/sponza_45",
 			"position" : [ -100.23612976074219, 121.74253082275391, -3.4971549510955811 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_46",
 			"model" : "sponza/sponza_46",
 			"position" : [ -101.26980590820313, 122.850830078125, -3.4971652030944824 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_47",
 			"model" : "sponza/sponza_47",
 			"position" : [ 50.722789764404297, 121.59016418457031, 17.96827507019043 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_48",
 			"model" : "sponza/sponza_48",
 			"position" : [ 50.722785949707031, 122.69846343994141, 19.001945495605469 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_49",
 			"model" : "sponza/sponza_49",
 			"position" : [ 13.710159301757813, 121.59016418457031, 17.96827507019043 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_50",
 			"model" : "sponza/sponza_50",
 			"position" : [ 13.710155487060547, 122.69846343994141, 19.001945495605469 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_51",
 			"model" : "sponza/sponza_51",
 			"position" : [ -26.459880828857422, 121.59016418457031, 17.96827507019043 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_52",
 			"model" : "sponza/sponza_52",
 			"position" : [ -26.459884643554688, 122.69846343994141, 19.001941680908203 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_53",
 			"model" : "sponza/sponza_53",
 			"position" : [ -63.482460021972656, 121.59016418457031, 17.96827507019043 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_54",
 			"model" : "sponza/sponza_54",
 			"position" : [ -63.482475280761719, 122.69846343994141, 19.001941680908203 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_55",
 			"model" : "sponza/sponza_55",
 			"position" : [ -80.489280700683594, 92.736320495605469, 18.605323791503906 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_56",
 			"model" : "sponza/sponza_56",
 			"position" : [ -43.386604309082031, 92.736320495605469, 18.605316162109375 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_57",
 			"model" : "sponza/sponza_57",
 			"position" : [ -6.1681056022644043, 92.736328125, 18.605300903320313 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_58",
 			"model" : "sponza/sponza_58",
 			"position" : [ 30.577831268310547, 92.736328125, 18.605289459228516 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_59",
 			"model" : "sponza/sponza_59",
 			"position" : [ 67.665496826171875, 92.736328125, 18.605276107788086 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_60",
 			"model" : "sponza/sponza_60",
 			"position" : [ -101.33201599121094, 92.1728515625, -3.418799877166748 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_61",
 			"model" : "sponza/sponza_61",
 			"position" : [ -80.489273071289063, 92.736320495605469, -25.804386138916016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_62",
 			"model" : "sponza/sponza_62",
 			"position" : [ -43.386604309082031, 92.736320495605469, -25.804386138916016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_63",
 			"model" : "sponza/sponza_63",
 			"position" : [ -6.1681056022644043, 92.736328125, -25.804386138916016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_64",
 			"model" : "sponza/sponza_64",
 			"position" : [ 30.577831268310547, 92.736328125, -25.804386138916016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_65",
 			"model" : "sponza/sponza_65",
 			"position" : [ 67.665496826171875, 92.736328125, -25.804386138916016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_66",
 			"model" : "sponza/sponza_66",
 			"position" : [ -4.4413337707519531, 90.774406433105469, -4.4622993469238281 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_67",
 			"model" : "sponza/sponza_67",
 			"position" : [ -6.5312156677246094, 91.545143127441406, -3.7273941040039063 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_68",
 			"model" : "sponza/sponza_68",
 			"position" : [ -6.4489517211914063, 41.553031921386719, -3.2963485717773438 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_69",
 			"model" : "sponza/sponza_69",
 			"position" : [ -6.3164443969726563, -0.26201000809669495, -3.5140857696533203 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_70",
 			"model" : "sponza/sponza_70",
 			"position" : [ -6.4456901550292969, -0.21349000930786133, 57.96417236328125 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_71",
 			"model" : "sponza/sponza_71",
 			"position" : [ -43.340553283691406, 11.980509757995605, 58.142837524414063 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_72",
 			"model" : "sponza/sponza_72",
 			"position" : [ 30.784336090087891, 11.980509757995605, 58.142845153808594 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_73",
 			"model" : "sponza/sponza_73",
 			"position" : [ -6.3711652755737305, -0.22155001759529114, -64.20867919921875 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_74",
 			"model" : "sponza/sponza_74",
 			"position" : [ 130.60726928710938, 41.424938201904297, -3.414330005645752 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_75",
 			"model" : "sponza/sponza_75",
 			"position" : [ -6.4853973388671875, 41.546138763427734, -3.3150997161865234 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_76",
 			"model" : "sponza/sponza_76",
 			"position" : [ 129.65528869628906, 66.036331176757813, -63.724136352539063 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_77",
 			"model" : "sponza/sponza_77",
 			"position" : [ 129.65528869628906, 66.036323547363281, 56.767814636230469 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_78",
 			"model" : "sponza/sponza_78",
 			"position" : [ 129.54641723632813, 66.036323547363281, -26.580154418945313 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_79",
 			"model" : "sponza/sponza_79",
 			"position" : [ 129.54641723632813, 66.036323547363281, 19.641950607299805 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_80",
 			"model" : "sponza/sponza_80",
 			"position" : [ -61.936973571777344, 66.036331176757813, 56.76800537109375 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_81",
 			"model" : "sponza/sponza_81",
 			"position" : [ -100.58998107910156, 66.036323547363281, 56.768009185791016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_82",
 			"model" : "sponza/sponza_82",
 			"position" : [ -24.829496383666992, 66.036323547363281, 56.768009185791016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_83",
 			"model" : "sponza/sponza_83",
 			"position" : [ 12.255559921264648, 66.036323547363281, 56.768009185791016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_84",
 			"model" : "sponza/sponza_84",
 			"position" : [ 49.301631927490234, 66.036323547363281, 56.768009185791016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_85",
 			"model" : "sponza/sponza_85",
 			"position" : [ 87.9473876953125, 66.036323547363281, 56.768009185791016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_86",
 			"model" : "sponza/sponza_86",
 			"position" : [ -61.936973571777344, 66.036331176757813, -63.915985107421875 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_87",
 			"model" : "sponza/sponza_87",
 			"position" : [ -100.58998107910156, 66.036323547363281, -63.916000366210938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_88",
 			"model" : "sponza/sponza_88",
 			"position" : [ -24.829496383666992, 66.036323547363281, -63.916000366210938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_89",
 			"model" : "sponza/sponza_89",
 			"position" : [ 12.255559921264648, 66.036323547363281, -63.916000366210938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_90",
 			"model" : "sponza/sponza_90",
 			"position" : [ 49.301631927490234, 66.036323547363281, -63.916000366210938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_91",
 			"model" : "sponza/sponza_91",
 			"position" : [ 87.9473876953125, 66.036323547363281, -63.916000366210938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_92",
 			"model" : "sponza/sponza_92",
 			"position" : [ -142.249755859375, 66.036323547363281, -26.580154418945313 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_93",
 			"model" : "sponza/sponza_93",
 			"position" : [ -142.249755859375, 66.036323547363281, 19.641950607299805 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_94",
 			"model" : "sponza/sponza_94",
 			"position" : [ -142.35993957519531, 66.036323547363281, -63.724136352539063 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_95",
 			"model" : "sponza/sponza_95",
 			"position" : [ -142.35993957519531, 66.036323547363281, 56.767826080322266 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_96",
 			"model" : "sponza/sponza_96",
 			"position" : [ 129.65528869628906, 18.265230178833008, -63.724136352539063 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_97",
 			"model" : "sponza/sponza_97",
 			"position" : [ 129.65528869628906, 18.265230178833008, 56.767814636230469 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_98",
 			"model" : "sponza/sponza_98",
 			"position" : [ 129.54641723632813, 18.265230178833008, -26.580154418945313 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_99",
 			"model" : "sponza/sponza_99",
 			"position" : [ 129.54641723632813, 18.265230178833008, 19.641950607299805 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_100",
 			"model" : "sponza/sponza_100",
 			"position" : [ -61.936973571777344, 18.265230178833008, 56.76800537109375 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_101",
 			"model" : "sponza/sponza_101",
 			"position" : [ -100.58998107910156, 18.265230178833008, 56.768009185791016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_102",
 			"model" : "sponza/sponza_102",
 			"position" : [ -24.829496383666992, 18.265230178833008, 56.768009185791016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_103",
 			"model" : "sponza/sponza_103",
 			"position" : [ 12.255559921264648, 18.265230178833008, 56.768009185791016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_104",
 			"model" : "sponza/sponza_104",
 			"position" : [ 49.301631927490234, 18.265230178833008, 56.768009185791016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_105",
 			"model" : "sponza/sponza_105",
 			"position" : [ 87.9473876953125, 18.265230178833008, 56.768009185791016 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_106",
 			"model" : "sponza/sponza_106",
 			"position" : [ -61.936973571777344, 18.265230178833008, -63.915985107421875 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_107",
 			"model" : "sponza/sponza_107",
 			"position" : [ -100.58998107910156, 18.265230178833008, -63.916000366210938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_108",
 			"model" : "sponza/sponza_108",
 			"position" : [ -24.829496383666992, 18.265230178833008, -63.916000366210938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_109",
 			"model" : "sponza/sponza_109",
 			"position" : [ 12.255559921264648, 18.265230178833008, -63.916000366210938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_110",
 			"model" : "sponza/sponza_110",
 			"position" : [ 49.301631927490234, 18.265230178833008, -63.916000366210938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_111",
 			"model" : "sponza/sponza_111",
 			"position" : [ 87.9473876953125, 18.265230178833008, -63.916000366210938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_112",
 			"model" : "sponza/sponza_112",
 			"position" : [ -142.249755859375, 18.265230178833008, -26.580154418945313 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_113",
 			"model" : "sponza/sponza_113",
 			"position" : [ -142.249755859375, 18.265230178833008, 19.641950607299805 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_114",
 			"model" : "sponza/sponza_114",
 			"position" : [ -142.35993957519531, 18.265230178833008, -63.724136352539063 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_115",
 			"model" : "sponza/sponza_115",
 			"position" : [ -142.35993957519531, 18.265230178833008, 56.767826080322266 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_116",
 			"model" : "sponza/sponza_116",
 			"position" : [ -6.3164596557617188, -0.33794000744819641, -3.5140857696533203 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_117",
 			"model" : "sponza/sponza_117",
 			"position" : [ -6.3164596557617188, -0.25062000751495361, -3.5140857696533203 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_118",
 			"model" : "sponza/sponza_118",
 			"position" : [ -100.2587890625, -0.2460700124502182, 19.198259353637695 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_119",
 			"model" : "sponza/sponza_119",
 			"position" : [ -100.2587890625, -0.2460700124502182, -26.223690032958984 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_120",
 			"model" : "sponza/sponza_120",
 			"position" : [ 87.097160339355469, -0.2460700124502182, -26.223690032958984 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_121",
 			"model" : "sponza/sponza_121",
 			"position" : [ 87.097160339355469, -0.2460700124502182, 19.198259353637695 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_122",
 			"model" : "sponza/sponza_122",
 			"position" : [ -6.5470123291015625, 41.391109466552734, -3.5727548599243164 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_123",
 			"model" : "sponza/sponza_123",
 			"position" : [ -6.39990234375, 69.092155456542969, -27.356315612792969 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_124",
 			"model" : "sponza/sponza_124",
 			"position" : [ -6.3998908996582031, 69.092155456542969, 20.264430999755859 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_125",
 			"model" : "sponza/sponza_125",
 			"position" : [ -101.22135162353516, 51.637237548828125, -3.4745399951934814 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_126",
 			"model" : "sponza/sponza_126",
 			"position" : [ -101.17458343505859, 68.095695495605469, -5.336674690246582 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_127",
 			"model" : "sponza/sponza_127",
 			"position" : [ -101.17923736572266, 66.970039367675781, -5.1132450103759766 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_128",
 			"model" : "sponza/sponza_128",
 			"position" : [ -99.321014404296875, 68.095695495605469, -3.4831552505493164 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_129",
 			"model" : "sponza/sponza_129",
 			"position" : [ -99.54443359375, 66.970039367675781, -3.4878101348876953 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_130",
 			"model" : "sponza/sponza_130",
 			"position" : [ -101.18307495117188, 68.095695495605469, -1.6406949758529663 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_131",
 			"model" : "sponza/sponza_131",
 			"position" : [ -101.17840576171875, 66.970039367675781, -1.8641200065612793 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_132",
 			"model" : "sponza/sponza_132",
 			"position" : [ -103.03663635253906, 68.095695495605469, -3.4942100048065186 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_133",
 			"model" : "sponza/sponza_133",
 			"position" : [ -102.81321716308594, 66.970039367675781, -3.4895548820495605 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_134",
 			"model" : "sponza/sponza_134",
 			"position" : [ -101.17628479003906, 69.227287292480469, -3.5094249248504639 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_135",
 			"model" : "sponza/sponza_135",
 			"position" : [ -101.19034576416016, 50.720191955566406, -3.4964499473571777 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_136",
 			"model" : "sponza/sponza_136",
 			"position" : [ 67.705848693847656, 51.722332000732422, -28.026460647583008 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_137",
 			"model" : "sponza/sponza_137",
 			"position" : [ 67.759857177734375, 67.412361145019531, -25.876075744628906 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_138",
 			"model" : "sponza/sponza_138",
 			"position" : [ 67.754486083984375, 66.112449645996094, -26.134090423583984 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_139",
 			"model" : "sponza/sponza_139",
 			"position" : [ 69.900367736816406, 67.412361145019531, -28.016517639160156 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_140",
 			"model" : "sponza/sponza_140",
 			"position" : [ 69.642349243164063, 66.112449645996094, -28.011138916015625 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_141",
 			"model" : "sponza/sponza_141",
 			"position" : [ 67.750068664550781, 67.412361145019531, -30.144195556640625 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_142",
 			"model" : "sponza/sponza_142",
 			"position" : [ 67.755447387695313, 66.112449645996094, -29.886177062988281 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_143",
 			"model" : "sponza/sponza_143",
 			"position" : [ 65.60955810546875, 67.412361145019531, -28.003749847412109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_144",
 			"model" : "sponza/sponza_144",
 			"position" : [ 65.867568969726563, 66.112449645996094, -28.009126663208008 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_145",
 			"model" : "sponza/sponza_145",
 			"position" : [ 67.757888793945313, 68.719131469726563, -27.986179351806641 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_146",
 			"model" : "sponza/sponza_146",
 			"position" : [ 67.741645812988281, 50.663322448730469, -28.001169204711914 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_147",
 			"model" : "sponza/sponza_147",
 			"position" : [ 30.592811584472656, 51.722332000732422, -28.026460647583008 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_148",
 			"model" : "sponza/sponza_148",
 			"position" : [ 30.538799285888672, 67.412361145019531, -25.876075744628906 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_149",
 			"model" : "sponza/sponza_149",
 			"position" : [ 30.544170379638672, 66.112449645996094, -26.134090423583984 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_150",
 			"model" : "sponza/sponza_150",
 			"position" : [ 28.398288726806641, 67.412361145019531, -28.016510009765625 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_151",
 			"model" : "sponza/sponza_151",
 			"position" : [ 28.656305313110352, 66.112449645996094, -28.011138916015625 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_152",
 			"model" : "sponza/sponza_152",
 			"position" : [ 30.548591613769531, 67.412361145019531, -30.144189834594727 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_153",
 			"model" : "sponza/sponza_153",
 			"position" : [ 30.543214797973633, 66.112449645996094, -29.886177062988281 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_154",
 			"model" : "sponza/sponza_154",
 			"position" : [ 32.689094543457031, 67.412361145019531, -28.003749847412109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_155",
 			"model" : "sponza/sponza_155",
 			"position" : [ 32.431083679199219, 66.112449645996094, -28.009126663208008 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_156",
 			"model" : "sponza/sponza_156",
 			"position" : [ 30.540760040283203, 68.719131469726563, -27.986179351806641 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_157",
 			"model" : "sponza/sponza_157",
 			"position" : [ 30.557010650634766, 50.663322448730469, -28.001169204711914 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_158",
 			"model" : "sponza/sponza_158",
 			"position" : [ -6.2899198532104492, 51.722332000732422, -27.945901870727539 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_159",
 			"model" : "sponza/sponza_159",
 			"position" : [ -6.3439302444458008, 67.412361145019531, -30.096284866333008 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_160",
 			"model" : "sponza/sponza_160",
 			"position" : [ -6.3385553359985352, 66.112449645996094, -29.838272094726563 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_161",
 			"model" : "sponza/sponza_161",
 			"position" : [ -8.4844398498535156, 67.412361145019531, -27.955844879150391 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_162",
 			"model" : "sponza/sponza_162",
 			"position" : [ -8.2264251708984375, 66.112449645996094, -27.961221694946289 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_163",
 			"model" : "sponza/sponza_163",
 			"position" : [ -6.3341403007507324, 67.412361145019531, -25.828170776367188 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_164",
 			"model" : "sponza/sponza_164",
 			"position" : [ -6.3395199775695801, 66.112449645996094, -26.086181640625 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_165",
 			"model" : "sponza/sponza_165",
 			"position" : [ -4.1936302185058594, 67.412361145019531, -27.968610763549805 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_166",
 			"model" : "sponza/sponza_166",
 			"position" : [ -4.4516501426696777, 66.112449645996094, -27.963233947753906 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_167",
 			"model" : "sponza/sponza_167",
 			"position" : [ -6.3419704437255859, 68.719131469726563, -27.986179351806641 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_168",
 			"model" : "sponza/sponza_168",
 			"position" : [ -6.3257203102111816, 50.663322448730469, -27.971195220947266 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_169",
 			"model" : "sponza/sponza_169",
 			"position" : [ -80.533889770507813, 51.722332000732422, -27.945896148681641 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_170",
 			"model" : "sponza/sponza_170",
 			"position" : [ -80.479881286621094, 67.412361145019531, -30.096284866333008 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_171",
 			"model" : "sponza/sponza_171",
 			"position" : [ -80.485260009765625, 66.112449645996094, -29.838272094726563 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_172",
 			"model" : "sponza/sponza_172",
 			"position" : [ -78.339370727539063, 67.412361145019531, -27.955844879150391 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_173",
 			"model" : "sponza/sponza_173",
 			"position" : [ -78.597381591796875, 66.112449645996094, -27.961221694946289 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_174",
 			"model" : "sponza/sponza_174",
 			"position" : [ -80.489669799804688, 67.412361145019531, -25.828170776367188 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_175",
 			"model" : "sponza/sponza_175",
 			"position" : [ -80.484298706054688, 66.112449645996094, -26.086181640625 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_176",
 			"model" : "sponza/sponza_176",
 			"position" : [ -82.630172729492188, 67.412361145019531, -27.968610763549805 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_177",
 			"model" : "sponza/sponza_177",
 			"position" : [ -82.372161865234375, 66.112449645996094, -27.963233947753906 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_178",
 			"model" : "sponza/sponza_178",
 			"position" : [ -80.481842041015625, 68.719131469726563, -27.986179351806641 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_179",
 			"model" : "sponza/sponza_179",
 			"position" : [ -80.498092651367188, 50.663322448730469, -27.97119140625 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_180",
 			"model" : "sponza/sponza_180",
 			"position" : [ -43.376266479492188, 51.722332000732422, -28.026460647583008 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_181",
 			"model" : "sponza/sponza_181",
 			"position" : [ -43.322261810302734, 67.412361145019531, -25.876075744628906 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_182",
 			"model" : "sponza/sponza_182",
 			"position" : [ -43.32763671875, 66.112449645996094, -26.134090423583984 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_183",
 			"model" : "sponza/sponza_183",
 			"position" : [ -41.181758880615234, 67.412361145019531, -28.016517639160156 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_184",
 			"model" : "sponza/sponza_184",
 			"position" : [ -41.439765930175781, 66.112449645996094, -28.011138916015625 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_185",
 			"model" : "sponza/sponza_185",
 			"position" : [ -43.332054138183594, 67.412361145019531, -30.144195556640625 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_186",
 			"model" : "sponza/sponza_186",
 			"position" : [ -43.326679229736328, 66.112449645996094, -29.886177062988281 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_187",
 			"model" : "sponza/sponza_187",
 			"position" : [ -45.472557067871094, 67.412361145019531, -28.003749847412109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_188",
 			"model" : "sponza/sponza_188",
 			"position" : [ -45.214546203613281, 66.112449645996094, -28.009126663208008 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_189",
 			"model" : "sponza/sponza_189",
 			"position" : [ -43.324226379394531, 68.719131469726563, -27.986179351806641 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_190",
 			"model" : "sponza/sponza_190",
 			"position" : [ -43.340476989746094, 50.663322448730469, -28.001169204711914 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_191",
 			"model" : "sponza/sponza_191",
 			"position" : [ 67.705848693847656, 51.722332000732422, 20.452686309814453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_192",
 			"model" : "sponza/sponza_192",
 			"position" : [ 67.759857177734375, 67.412361145019531, 22.603076934814453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_193",
 			"model" : "sponza/sponza_193",
 			"position" : [ 67.754486083984375, 66.112449645996094, 22.345060348510742 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_194",
 			"model" : "sponza/sponza_194",
 			"position" : [ 69.900367736816406, 67.412361145019531, 20.462629318237305 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_195",
 			"model" : "sponza/sponza_195",
 			"position" : [ 69.642349243164063, 66.112449645996094, 20.468009948730469 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_196",
 			"model" : "sponza/sponza_196",
 			"position" : [ 67.750068664550781, 67.412361145019531, 18.334955215454102 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_197",
 			"model" : "sponza/sponza_197",
 			"position" : [ 67.755447387695313, 66.112449645996094, 18.592971801757813 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_198",
 			"model" : "sponza/sponza_198",
 			"position" : [ 65.60955810546875, 67.412361145019531, 20.475395202636719 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_199",
 			"model" : "sponza/sponza_199",
 			"position" : [ 65.867568969726563, 66.112449645996094, 20.470020294189453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_200",
 			"model" : "sponza/sponza_200",
 			"position" : [ 67.757888793945313, 68.719131469726563, 20.492965698242188 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_201",
 			"model" : "sponza/sponza_201",
 			"position" : [ 67.741645812988281, 50.663322448730469, 20.47797966003418 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_202",
 			"model" : "sponza/sponza_202",
 			"position" : [ 30.592811584472656, 51.722332000732422, 20.452686309814453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_203",
 			"model" : "sponza/sponza_203",
 			"position" : [ 30.538799285888672, 67.412361145019531, 22.603076934814453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_204",
 			"model" : "sponza/sponza_204",
 			"position" : [ 30.544170379638672, 66.112449645996094, 22.345060348510742 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_205",
 			"model" : "sponza/sponza_205",
 			"position" : [ 28.398288726806641, 67.412361145019531, 20.462629318237305 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_206",
 			"model" : "sponza/sponza_206",
 			"position" : [ 28.656305313110352, 66.112449645996094, 20.468009948730469 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_207",
 			"model" : "sponza/sponza_207",
 			"position" : [ 30.548591613769531, 67.412361145019531, 18.3349609375 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_208",
 			"model" : "sponza/sponza_208",
 			"position" : [ 30.543214797973633, 66.112449645996094, 18.592971801757813 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_209",
 			"model" : "sponza/sponza_209",
 			"position" : [ 32.689094543457031, 67.412361145019531, 20.475400924682617 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_210",
 			"model" : "sponza/sponza_210",
 			"position" : [ 32.431083679199219, 66.112449645996094, 20.470020294189453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_211",
 			"model" : "sponza/sponza_211",
 			"position" : [ 30.540760040283203, 68.719131469726563, 20.492969512939453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_212",
 			"model" : "sponza/sponza_212",
 			"position" : [ 30.557010650634766, 50.663322448730469, 20.47797966003418 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_213",
 			"model" : "sponza/sponza_213",
 			"position" : [ -6.2899198532104492, 51.722332000732422, 20.53325080871582 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_214",
 			"model" : "sponza/sponza_214",
 			"position" : [ -6.3439302444458008, 67.412361145019531, 18.38286018371582 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_215",
 			"model" : "sponza/sponza_215",
 			"position" : [ -6.3385553359985352, 66.112449645996094, 18.640876770019531 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_216",
 			"model" : "sponza/sponza_216",
 			"position" : [ -8.4844398498535156, 67.412361145019531, 20.523303985595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_217",
 			"model" : "sponza/sponza_217",
 			"position" : [ -8.2264251708984375, 66.112449645996094, 20.517929077148438 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_218",
 			"model" : "sponza/sponza_218",
 			"position" : [ -6.3341403007507324, 67.412361145019531, 22.650974273681641 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_219",
 			"model" : "sponza/sponza_219",
 			"position" : [ -6.3395199775695801, 66.112449645996094, 22.392965316772461 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_220",
 			"model" : "sponza/sponza_220",
 			"position" : [ -4.1936302185058594, 67.412361145019531, 20.510540008544922 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_221",
 			"model" : "sponza/sponza_221",
 			"position" : [ -4.4516501426696777, 66.112449645996094, 20.515914916992188 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_222",
 			"model" : "sponza/sponza_222",
 			"position" : [ -6.3419704437255859, 68.719131469726563, 20.492965698242188 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_223",
 			"model" : "sponza/sponza_223",
 			"position" : [ -6.3257203102111816, 50.663322448730469, 20.507955551147461 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_224",
 			"model" : "sponza/sponza_224",
 			"position" : [ -80.533889770507813, 51.722332000732422, 20.53325080871582 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_225",
 			"model" : "sponza/sponza_225",
 			"position" : [ -80.479881286621094, 67.412361145019531, 18.38286018371582 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_226",
 			"model" : "sponza/sponza_226",
 			"position" : [ -80.485260009765625, 66.112449645996094, 18.640876770019531 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_227",
 			"model" : "sponza/sponza_227",
 			"position" : [ -78.339370727539063, 67.412361145019531, 20.523303985595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_228",
 			"model" : "sponza/sponza_228",
 			"position" : [ -78.597381591796875, 66.112449645996094, 20.517929077148438 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_229",
 			"model" : "sponza/sponza_229",
 			"position" : [ -80.489669799804688, 67.412361145019531, 22.650974273681641 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_230",
 			"model" : "sponza/sponza_230",
 			"position" : [ -80.484298706054688, 66.112449645996094, 22.392965316772461 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_231",
 			"model" : "sponza/sponza_231",
 			"position" : [ -82.630172729492188, 67.412361145019531, 20.510540008544922 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_232",
 			"model" : "sponza/sponza_232",
 			"position" : [ -82.372161865234375, 66.112449645996094, 20.515914916992188 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_233",
 			"model" : "sponza/sponza_233",
 			"position" : [ -80.481842041015625, 68.719131469726563, 20.492969512939453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_234",
 			"model" : "sponza/sponza_234",
 			"position" : [ -80.498092651367188, 50.663322448730469, 20.507955551147461 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_235",
 			"model" : "sponza/sponza_235",
 			"position" : [ -43.376266479492188, 51.722332000732422, 20.452686309814453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_236",
 			"model" : "sponza/sponza_236",
 			"position" : [ -43.322261810302734, 67.412361145019531, 22.603076934814453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_237",
 			"model" : "sponza/sponza_237",
 			"position" : [ -43.32763671875, 66.112449645996094, 22.345060348510742 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_238",
 			"model" : "sponza/sponza_238",
 			"position" : [ -41.181758880615234, 67.412361145019531, 20.462629318237305 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_239",
 			"model" : "sponza/sponza_239",
 			"position" : [ -41.439765930175781, 66.112449645996094, 20.468009948730469 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_240",
 			"model" : "sponza/sponza_240",
 			"position" : [ -43.332054138183594, 67.412361145019531, 18.334955215454102 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_241",
 			"model" : "sponza/sponza_241",
 			"position" : [ -43.326679229736328, 66.112449645996094, 18.592971801757813 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_242",
 			"model" : "sponza/sponza_242",
 			"position" : [ -45.472557067871094, 67.412361145019531, 20.475395202636719 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_243",
 			"model" : "sponza/sponza_243",
 			"position" : [ -45.214546203613281, 66.112449645996094, 20.470020294189453 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_244",
 			"model" : "sponza/sponza_244",
 			"position" : [ -43.324226379394531, 68.719131469726563, 20.492965698242188 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_245",
 			"model" : "sponza/sponza_245",
 			"position" : [ -43.340476989746094, 50.663322448730469, 20.47797966003418 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_246",
 			"model" : "sponza/sponza_246",
 			"position" : [ 88.106735229492188, 51.637237548828125, -3.4745399951934814 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_247",
 			"model" : "sponza/sponza_247",
 			"position" : [ 88.15350341796875, 68.095695495605469, -5.336674690246582 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_248",
 			"model" : "sponza/sponza_248",
 			"position" : [ 88.148849487304688, 66.970039367675781, -5.1132450103759766 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_249",
 			"model" : "sponza/sponza_249",
 			"position" : [ 90.007080078125, 68.095695495605469, -3.4831552505493164 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_250",
 			"model" : "sponza/sponza_250",
 			"position" : [ 89.783645629882813, 66.970039367675781, -3.4878101348876953 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_251",
 			"model" : "sponza/sponza_251",
 			"position" : [ 88.14501953125, 68.095695495605469, -1.6406949758529663 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_252",
 			"model" : "sponza/sponza_252",
 			"position" : [ 88.149673461914063, 66.970039367675781, -1.8641200065612793 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_253",
 			"model" : "sponza/sponza_253",
 			"position" : [ 86.291450500488281, 68.095695495605469, -3.4942100048065186 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_254",
 			"model" : "sponza/sponza_254",
 			"position" : [ 86.514877319335938, 66.970039367675781, -3.4895548820495605 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_255",
 			"model" : "sponza/sponza_255",
 			"position" : [ 88.151809692382813, 69.227287292480469, -3.5094249248504639 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_256",
 			"model" : "sponza/sponza_256",
 			"position" : [ 88.137733459472656, 50.720191955566406, -3.4964499473571777 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_257",
 			"model" : "sponza/sponza_257",
 			"position" : [ -6.3835101127624512, 25.673099517822266, 57.208179473876953 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_258",
 			"model" : "sponza/sponza_258",
 			"position" : [ -4.4413337707519531, 90.774406433105469, -4.4622993469238281 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_259",
 			"model" : "sponza/sponza_259",
 			"position" : [ 49.309047698974609, 83.165473937988281, -17.503381729125977 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_260",
 			"model" : "sponza/sponza_260",
 			"position" : [ 49.286872863769531, 82.881095886230469, -25.408527374267578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_261",
 			"model" : "sponza/sponza_261",
 			"position" : [ 12.178440093994141, 82.881095886230469, -25.408527374267578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_262",
 			"model" : "sponza/sponza_262",
 			"position" : [ 12.200614929199219, 83.165473937988281, -17.503381729125977 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_263",
 			"model" : "sponza/sponza_263",
 			"position" : [ -24.798542022705078, 82.881095886230469, -25.408527374267578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_264",
 			"model" : "sponza/sponza_264",
 			"position" : [ -24.776365280151367, 83.165473937988281, -17.503381729125977 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_265",
 			"model" : "sponza/sponza_265",
 			"position" : [ -61.832366943359375, 82.881095886230469, -25.408527374267578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_266",
 			"model" : "sponza/sponza_266",
 			"position" : [ -61.810188293457031, 83.165473937988281, -17.503381729125977 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_267",
 			"model" : "sponza/sponza_267",
 			"position" : [ 49.309047698974609, 83.165473937988281, 10.359415054321289 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_268",
 			"model" : "sponza/sponza_268",
 			"position" : [ 49.286872863769531, 82.881095886230469, 18.264564514160156 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_269",
 			"model" : "sponza/sponza_269",
 			"position" : [ 12.178440093994141, 82.881095886230469, 18.264564514160156 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_270",
 			"model" : "sponza/sponza_270",
 			"position" : [ 12.200614929199219, 83.165473937988281, 10.359415054321289 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_271",
 			"model" : "sponza/sponza_271",
 			"position" : [ -24.798542022705078, 82.881095886230469, 18.264564514160156 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_272",
 			"model" : "sponza/sponza_272",
 			"position" : [ -24.776365280151367, 83.165473937988281, 10.359415054321289 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_273",
 			"model" : "sponza/sponza_273",
 			"position" : [ -61.832366943359375, 82.881095886230469, 18.264564514160156 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_274",
 			"model" : "sponza/sponza_274",
 			"position" : [ -61.810188293457031, 83.165473937988281, 10.359415054321289 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_275",
 			"model" : "sponza/sponza_275",
 			"position" : [ -24.742879867553711, -2.8049600124359131, 20.764925003051758 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_276",
 			"model" : "sponza/sponza_276",
 			"position" : [ -61.41168212890625, -2.8049600124359131, 17.897180557250977 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_277",
 			"model" : "sponza/sponza_277",
 			"position" : [ -62.056732177734375, 12.353030204772949, -27.204822540283203 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_278",
 			"model" : "sponza/sponza_278",
 			"position" : [ -24.391944885253906, 9.6735496520996094, -27.456638336181641 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_279",
 			"model" : "sponza/sponza_279",
 			"position" : [ 11.760459899902344, 10.992430686950684, -27.382858276367188 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_280",
 			"model" : "sponza/sponza_280",
 			"position" : [ 49.000164031982422, -2.8049600124359131, -28.04170036315918 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_281",
 			"model" : "sponza/sponza_281",
 			"position" : [ 11.907170295715332, 10.992430686950684, 19.916265487670898 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_282",
 			"model" : "sponza/sponza_282",
 			"position" : [ -61.8828125, 33.944301605224609, 20.472505569458008 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_283",
 			"model" : "sponza/sponza_283",
 			"position" : [ -25.022199630737305, 33.944301605224609, 20.472496032714844 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_284",
 			"model" : "sponza/sponza_284",
 			"position" : [ 11.838415145874023, 33.944301605224609, 20.472490310668945 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_285",
 			"model" : "sponza/sponza_285",
 			"position" : [ 48.699020385742188, 33.944301605224609, 20.472484588623047 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_286",
 			"model" : "sponza/sponza_286",
 			"position" : [ 48.388572692871094, 33.944301605224609, -27.696552276611328 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_287",
 			"model" : "sponza/sponza_287",
 			"position" : [ 11.527959823608398, 33.944301605224609, -27.696552276611328 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_288",
 			"model" : "sponza/sponza_288",
 			"position" : [ -25.332656860351563, 33.944301605224609, -27.696552276611328 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_289",
 			"model" : "sponza/sponza_289",
 			"position" : [ -62.193267822265625, 33.944301605224609, -27.696552276611328 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_290",
 			"model" : "sponza/sponza_290",
 			"position" : [ -29.264621734619141, 27.495960235595703, -27.937366485595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_291",
 			"model" : "sponza/sponza_291",
 			"position" : [ -43.394725799560547, 27.988119125366211, -27.915195465087891 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_292",
 			"model" : "sponza/sponza_292",
 			"position" : [ -57.524822235107422, 27.495960235595703, -27.937366485595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_293",
 			"model" : "sponza/sponza_293",
 			"position" : [ 7.8842201232910156, 27.495960235595703, -27.937366485595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_294",
 			"model" : "sponza/sponza_294",
 			"position" : [ -6.2458853721618652, 27.988119125366211, -27.915195465087891 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_295",
 			"model" : "sponza/sponza_295",
 			"position" : [ -20.375980377197266, 27.495960235595703, -27.937366485595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_296",
 			"model" : "sponza/sponza_296",
 			"position" : [ 44.876228332519531, 27.495960235595703, -27.937366485595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_297",
 			"model" : "sponza/sponza_297",
 			"position" : [ 30.746135711669922, 27.988119125366211, -27.915195465087891 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_298",
 			"model" : "sponza/sponza_298",
 			"position" : [ 16.616031646728516, 27.495960235595703, -27.937366485595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_299",
 			"model" : "sponza/sponza_299",
 			"position" : [ 81.665634155273438, 27.495960235595703, -27.937366485595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_300",
 			"model" : "sponza/sponza_300",
 			"position" : [ 67.535537719726563, 27.988119125366211, -27.915195465087891 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_301",
 			"model" : "sponza/sponza_301",
 			"position" : [ 53.405441284179688, 27.495960235595703, -27.937366485595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_302",
 			"model" : "sponza/sponza_302",
 			"position" : [ -66.245834350585938, 27.495960235595703, -27.937366485595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_303",
 			"model" : "sponza/sponza_303",
 			"position" : [ -80.375930786132813, 27.988119125366211, -27.915195465087891 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_304",
 			"model" : "sponza/sponza_304",
 			"position" : [ -94.506019592285156, 27.495960235595703, -27.937366485595703 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_305",
 			"model" : "sponza/sponza_305",
 			"position" : [ -29.264621734619141, 27.495960235595703, 19.878505706787109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_306",
 			"model" : "sponza/sponza_306",
 			"position" : [ -43.394725799560547, 27.988119125366211, 19.900676727294922 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_307",
 			"model" : "sponza/sponza_307",
 			"position" : [ -57.524822235107422, 27.495960235595703, 19.878505706787109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_308",
 			"model" : "sponza/sponza_308",
 			"position" : [ -66.245834350585938, 27.495960235595703, 19.878505706787109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_309",
 			"model" : "sponza/sponza_309",
 			"position" : [ -80.375930786132813, 27.988119125366211, 19.900676727294922 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_310",
 			"model" : "sponza/sponza_310",
 			"position" : [ -94.506019592285156, 27.495960235595703, 19.878505706787109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_311",
 			"model" : "sponza/sponza_311",
 			"position" : [ 7.8842201232910156, 27.495960235595703, 19.878505706787109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_312",
 			"model" : "sponza/sponza_312",
 			"position" : [ -6.2458853721618652, 27.988119125366211, 19.900676727294922 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_313",
 			"model" : "sponza/sponza_313",
 			"position" : [ -20.375980377197266, 27.495960235595703, 19.878505706787109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_314",
 			"model" : "sponza/sponza_314",
 			"position" : [ 44.876228332519531, 27.495960235595703, 19.878505706787109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_315",
 			"model" : "sponza/sponza_315",
 			"position" : [ 30.746135711669922, 27.988119125366211, 19.900676727294922 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_316",
 			"model" : "sponza/sponza_316",
 			"position" : [ 16.616031646728516, 27.495960235595703, 19.878505706787109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_317",
 			"model" : "sponza/sponza_317",
 			"position" : [ 81.665634155273438, 27.495960235595703, 19.878505706787109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_318",
 			"model" : "sponza/sponza_318",
 			"position" : [ 67.535537719726563, 27.988119125366211, 19.900676727294922 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_319",
 			"model" : "sponza/sponza_319",
 			"position" : [ 53.405441284179688, 27.495960235595703, 19.878505706787109 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_320",
 			"model" : "sponza/sponza_320",
 			"position" : [ -6.1288800239562988, 0.013050000183284283, 20.11921501159668 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_321",
 			"model" : "sponza/sponza_321",
 			"position" : [ -43.409858703613281, -0.030890000984072685, 19.555835723876953 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_322",
 			"model" : "sponza/sponza_322",
 			"position" : [ -80.258926391601563, 0.013050000183284283, 20.11921501159668 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_323",
 			"model" : "sponza/sponza_323",
 			"position" : [ -80.258926391601563, 0.013050000183284283, -27.6966552734375 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_324",
 			"model" : "sponza/sponza_324",
 			"position" : [ 30.451217651367188, -0.030890000984072685, 19.555835723876953 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_325",
 			"model" : "sponza/sponza_325",
 			"position" : [ 67.652542114257813, 0.013050000183284283, 20.11921501159668 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_326",
 			"model" : "sponza/sponza_326",
 			"position" : [ -43.409858703613281, -0.030890000984072685, -28.260034561157227 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_327",
 			"model" : "sponza/sponza_327",
 			"position" : [ -6.1288800239562988, 0.013050000183284283, -27.6966552734375 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_328",
 			"model" : "sponza/sponza_328",
 			"position" : [ 30.451217651367188, -0.030890000984072685, -28.260034561157227 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_329",
 			"model" : "sponza/sponza_329",
 			"position" : [ 67.652542114257813, 0.013050000183284283, -27.6966552734375 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_330",
 			"model" : "sponza/sponza_330",
 			"position" : [ 49.951610565185547, 13.41569995880127, -21.970050811767578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_331",
 			"model" : "sponza/sponza_331",
 			"position" : [ 47.548751831054688, 13.375129699707031, -21.970050811767578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_332",
 			"model" : "sponza/sponza_332",
 			"position" : [ 49.951606750488281, 13.372130393981934, -21.970050811767578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_333",
 			"model" : "sponza/sponza_333",
 			"position" : [ 47.575393676757813, 13.441149711608887, -21.970050811767578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_334",
 			"model" : "sponza/sponza_334",
 			"position" : [ 48.7412109375, 10.480190277099609, -21.970195770263672 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_335",
 			"model" : "sponza/sponza_335",
 			"position" : [ 48.7415771484375, 9.8672895431518555, -21.975505828857422 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_336",
 			"model" : "sponza/sponza_336",
 			"position" : [ 51.502651214599609, 11.189760208129883, -21.970050811767578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_337",
 			"model" : "sponza/sponza_337",
 			"position" : [ 46.023719787597656, 11.189760208129883, -21.970029830932617 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_338",
 			"model" : "sponza/sponza_338",
 			"position" : [ 48.741203308105469, 20.745370864868164, -22.921772003173828 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_339",
 			"model" : "sponza/sponza_339",
 			"position" : [ -60.731998443603516, 13.41569995880127, -21.970050811767578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_340",
 			"model" : "sponza/sponza_340",
 			"position" : [ -63.134853363037109, 13.375129699707031, -21.970050811767578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_341",
 			"model" : "sponza/sponza_341",
 			"position" : [ -60.731998443603516, 13.372130393981934, -21.970050811767578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_342",
 			"model" : "sponza/sponza_342",
 			"position" : [ -63.108207702636719, 13.441149711608887, -21.970050811767578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_343",
 			"model" : "sponza/sponza_343",
 			"position" : [ -61.942398071289063, 10.480190277099609, -21.970195770263672 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_344",
 			"model" : "sponza/sponza_344",
 			"position" : [ -61.942035675048828, 9.8672895431518555, -21.975505828857422 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_345",
 			"model" : "sponza/sponza_345",
 			"position" : [ -59.18096923828125, 11.189760208129883, -21.970050811767578 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_346",
 			"model" : "sponza/sponza_346",
 			"position" : [ -64.659881591796875, 11.189760208129883, -21.970029830932617 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_347",
 			"model" : "sponza/sponza_347",
 			"position" : [ -61.942405700683594, 20.745370864868164, -22.921772003173828 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_348",
 			"model" : "sponza/sponza_348",
 			"position" : [ -63.108837127685547, 13.41569995880127, 14.334169387817383 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_349",
 			"model" : "sponza/sponza_349",
 			"position" : [ -60.705978393554688, 13.375129699707031, 14.334170341491699 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_350",
 			"model" : "sponza/sponza_350",
 			"position" : [ -63.108837127685547, 13.372130393981934, 14.334175109863281 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_351",
 			"model" : "sponza/sponza_351",
 			"position" : [ -60.732620239257813, 13.441149711608887, 14.334169387817383 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_352",
 			"model" : "sponza/sponza_352",
 			"position" : [ -61.8984375, 10.480190277099609, 14.334320068359375 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_353",
 			"model" : "sponza/sponza_353",
 			"position" : [ -61.8988037109375, 9.8672895431518555, 14.339630126953125 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_354",
 			"model" : "sponza/sponza_354",
 			"position" : [ -64.659873962402344, 11.189760208129883, 14.33418083190918 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_355",
 			"model" : "sponza/sponza_355",
 			"position" : [ -59.180946350097656, 11.189760208129883, 14.334160804748535 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_356",
 			"model" : "sponza/sponza_356",
 			"position" : [ -61.898429870605469, 20.745370864868164, 15.285900115966797 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_357",
 			"model" : "sponza/sponza_357",
 			"position" : [ 47.574775695800781, 13.41569995880127, 14.33415412902832 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_358",
 			"model" : "sponza/sponza_358",
 			"position" : [ 49.977630615234375, 13.375129699707031, 14.334159851074219 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_359",
 			"model" : "sponza/sponza_359",
 			"position" : [ 47.574775695800781, 13.372130393981934, 14.334159851074219 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_360",
 			"model" : "sponza/sponza_360",
 			"position" : [ 49.950981140136719, 13.441149711608887, 14.33415412902832 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_361",
 			"model" : "sponza/sponza_361",
 			"position" : [ 48.785171508789063, 10.480190277099609, 14.33430004119873 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_362",
 			"model" : "sponza/sponza_362",
 			"position" : [ 48.784805297851563, 9.8672895431518555, 14.339614868164063 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_363",
 			"model" : "sponza/sponza_363",
 			"position" : [ 46.023735046386719, 11.189760208129883, 14.334160804748535 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_364",
 			"model" : "sponza/sponza_364",
 			"position" : [ 51.502655029296875, 11.189760208129883, 14.334140777587891 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_365",
 			"model" : "sponza/sponza_365",
 			"position" : [ 48.785186767578125, 20.745370864868164, 15.285880088806152 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_366",
 			"model" : "sponza/sponza_366",
 			"position" : [ -96.0982666015625, -0.014010000042617321, -22.772384643554688 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_367",
 			"model" : "sponza/sponza_367",
 			"position" : [ -96.0982666015625, -0.39024999737739563, 14.917055130004883 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_368",
 			"model" : "sponza/sponza_368",
 			"position" : [ -24.324291229248047, -0.39024999737739563, 15.587369918823242 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_369",
 			"model" : "sponza/sponza_369",
 			"position" : [ 11.957069396972656, -0.40307003259658813, 15.474565505981445 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_370",
 			"model" : "sponza/sponza_370",
 			"position" : [ 83.412216186523438, -0.34790000319480896, 15.474565505981445 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_371",
 			"model" : "sponza/sponza_371",
 			"position" : [ 83.412216186523438, -0.014010000042617321, -22.214874267578125 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_372",
 			"model" : "sponza/sponza_372",
 			"position" : [ 11.957069396972656, -0.014010000042617321, -22.214874267578125 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_373",
 			"model" : "sponza/sponza_373",
 			"position" : [ -120.21975708007813, -0.06934000551700592, 40.37860107421875 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_374",
 			"model" : "sponza/sponza_374",
 			"position" : [ -120.21975708007813, -0.06934000551700592, -44.902378082275391 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_375",
 			"model" : "sponza/sponza_375",
 			"position" : [ 111.96946716308594, -0.06934000551700592, -44.902378082275391 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_376",
 			"model" : "sponza/sponza_376",
 			"position" : [ 111.96946716308594, -0.06934000551700592, 40.37860107421875 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_377",
 			"model" : "sponza/sponza_377",
 			"position" : [ 126.19575500488281, 4.0818600654602051, -3.5919194221496582 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_378",
 			"model" : "sponza/sponza_378",
 			"position" : [ -139.03656005859375, 4.0818600654602051, -3.5918855667114258 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_379",
 			"model" : "sponza/sponza_379",
 			"position" : [ -6.014495849609375, -12.64424991607666, -4.9659652709960938 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_380",
 			"model" : "sponza/sponza_380",
 			"position" : [ -6.0518875122070313, 133.00320434570313, -3.8690567016601563 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_381",
 			"model" : "sponza/sponza_381",
 			"position" : [ -6.144866943359375, 128.05134582519531, -3.7867107391357422 ],
 			"rotation" : [ 0, 0, 0 ],
 			"scale" : [ 1, 1, 1 ]
 		},
 		{
+			"name" : "sponza_382",
 			"model" : "sponza/sponza_382",
 			"position" : [ -6.1932373046875, -11.59791088104248, -5.3881797790527344 ],
 			"rotation" : [ 0, 0, 0 ],

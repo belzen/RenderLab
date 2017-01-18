@@ -1,5 +1,6 @@
 #include "Precompiled.h"
 #include "MainWindow.h"
+#include "FileDialog.h"
 #include "UtilsLib/Timer.h"
 #include "Widgets/PropertyPanel.h"
 #include "Widgets/TreeView.h"
@@ -60,6 +61,16 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	m_sceneViewModel.Init(&m_scene);
 
 	m_fileMenu.Init();
+	m_fileMenu.AddItem("Open Scene...", [](void* pUserData) {
+		std::string filename = FileDialog::Show("Scene (*.scene)\0*.scene\0\0");
+		if (filename.length() > 0)
+		{
+			const char* relativePath = filename.c_str() + strlen(Paths::GetDataDir()) + 1;
+			char sceneName[AssetLib::AssetDef::kMaxNameLen];
+			AssetLib::Scene::GetAssetDef().ExtractAssetName(relativePath, sceneName, AssetLib::AssetDef::kMaxNameLen);
+			((MainWindow*)pUserData)->LoadScene(sceneName);
+		}
+	}, this);
 	m_fileMenu.AddItem("Exit", [](void* pUserData) {
 		::PostQuitMessage(0);
 	}, this);
@@ -87,6 +98,13 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	m_mainMenu.AddSubMenu("Debug", &m_debugMenu);
 
 	SetMenuBar(&m_mainMenu);
+}
+
+void MainWindow::LoadScene(const char* sceneName)
+{
+	m_scene.Load(sceneName);
+	m_pRenderWindow->SetCameraPosition(m_scene.GetCameraSpawnPosition(), m_scene.GetCameraSpawnPitchYawRoll());
+	m_sceneViewModel.PopulateTreeView(m_pSceneTreeView);
 }
 
 bool MainWindow::OnResize(int newWidth, int newHeight)
@@ -150,10 +168,6 @@ int MainWindow::Run()
 	Debug::Init();
 	Physics::Init();
 
-	// Load in default scene
-	m_scene.Load(g_userConfig.defaultScene.c_str());
-	m_pRenderWindow->SetCameraPosition(m_scene.GetCameraSpawnPosition(), m_scene.GetCameraSpawnPitchYawRoll());
-
 	// Finish editor setup.
 	m_pPropertyPanel = PropertyPanel::Create(*this, renderWindowWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);
 	m_pAssetBrowser = AssetBrowser::Create(*this, 0, renderWindowHeight, renderWindowWidth, kDefaultBrowserHeight);
@@ -162,8 +176,10 @@ int MainWindow::Run()
 	m_pSceneTreeView->SetSelectionChangedCallback(sceneTreeViewSelectionChanged, &m_sceneViewModel);
 	m_pSceneTreeView->SetItemDeletedCallback(sceneTreeViewItemDeleted, &m_sceneViewModel);
 
-	m_sceneViewModel.PopulateTreeView(m_pSceneTreeView);
 	m_sceneViewModel.SetListener(this);
+
+	// Load in default scene
+	LoadScene(g_userConfig.defaultScene.c_str());
 
 	Timer::Handle hTimer = Timer::Create();
 

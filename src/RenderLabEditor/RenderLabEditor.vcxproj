@@ -180,6 +180,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FileDialog.cpp" />
     <ClCompile Include="IconLibrary.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
@@ -222,6 +223,7 @@
     <ClCompile Include="WindowBase.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FileDialog.h" />
     <ClInclude Include="IconLibrary.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="Precompiled.h" />
@@ -229,7 +231,6 @@
     <ClInclude Include="RenderWindow.h" />
     <ClInclude Include="ViewModels\LightViewModel.h" />
     <ClInclude Include="ViewModels\ModelInstanceViewModel.h" />
-    <ClInclude Include="WidgetDragData.h" />
     <ClInclude Include="ViewModels\IViewModel.h" />
     <ClInclude Include="ViewModels\PostProcessVolumeViewModel.h" />
     <ClInclude Include="ViewModels\SceneViewModel.h" />

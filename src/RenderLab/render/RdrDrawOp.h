@@ -59,9 +59,8 @@ struct RdrDrawOp
 	RdrResourceHandle hCustomInstanceBuffer;
 	uint16 instanceCount;
 
-	uint8 bFreeGeo : 1;
 	uint8 bHasAlpha : 1;
-	uint8 unused : 6;
+	uint8 unused : 7;
 };
 
 inline void RdrDrawOp::BuildSortKey(const RdrDrawOp* pDrawOp, const float minDepth, RdrDrawOpSortKey& rOutKey)

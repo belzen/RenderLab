@@ -72,9 +72,10 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	// Setup pixel material
 	memset(&m_material, 0, sizeof(m_material));
 	m_material.bNeedsLighting = true;
+	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
 	m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_terrain.hlsl", nullptr, 0);
 	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile("white", nullptr));
-	m_material.ahTextures.assign(1, rResCommandList.CreateTextureFromFile("test_ddn", nullptr));
+	m_material.ahTextures.assign(1, rResCommandList.CreateTextureFromFile("flat_ddn", nullptr));
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 }
 

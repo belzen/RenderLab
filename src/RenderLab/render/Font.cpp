@@ -41,13 +41,12 @@ namespace
 		delete pFileData;
 	}
 
-	void queueDrawCommon(Renderer& rRenderer, const UI::Position& uiPos, float size, const TextObject& rText, bool bFreeGeo, Color color)
+	void queueDrawCommon(Renderer& rRenderer, const UI::Position& uiPos, float size, const TextObject& rText, Color color)
 	{
 		Vec3 pos = UI::PosToScreenSpace(uiPos, Vec2(rText.size.x, rText.size.y) * size, rRenderer.GetViewportSize());
 
 		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
 		pDrawOp->hGeo = rText.hTextGeo;
-		pDrawOp->bFreeGeo = bFreeGeo;
 		pDrawOp->hInputLayout = s_text.hInputLayout;
 		pDrawOp->vertexShader = kVertexShader;
 		pDrawOp->pMaterial = &s_text.material;
@@ -158,10 +157,11 @@ TextObject Font::CreateText(const char* text)
 void Font::QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const char* text, Color color)
 {
 	TextObject textObj = CreateText(text);
-	queueDrawCommon(rRenderer, pos, size, textObj, true, color);
+	queueDrawCommon(rRenderer, pos, size, textObj, color);
+	rRenderer.GetPostFrameCommandList().ReleaseGeo(textObj.hTextGeo);
 }
 
 void Font::QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const TextObject& rText, Color color)
 {
-	queueDrawCommon(rRenderer, pos, size, rText, false, color);
+	queueDrawCommon(rRenderer, pos, size, rText, color);
 }

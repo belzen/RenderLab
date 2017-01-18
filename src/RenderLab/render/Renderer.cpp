@@ -791,21 +791,6 @@ void Renderer::PostFrameSync()
 	for (uint iAction = 0; iAction < rActiveState.numActions; ++iAction)
 	{
 		RdrAction& rAction = rActiveState.actions[iAction];
-
-		// Free streamed geo
-		for (uint iBucket = 0; iBucket < (uint)RdrBucketType::Count; ++iBucket)
-		{
-			const RdrDrawOpBucket& rBucket = rAction.opBuckets.GetDrawOpBucket((RdrBucketType)iBucket);
-			for (const RdrDrawBucketEntry& rEntry : rBucket)
-			{
-				const RdrDrawOp* pDrawOp = rEntry.pDrawOp;
-				if (pDrawOp->bFreeGeo)
-				{
-					rResCommandList.ReleaseGeo(pDrawOp->hGeo);
-				}
-			}
-		}
-
 		rAction.Reset();
 	}
 

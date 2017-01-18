@@ -134,8 +134,10 @@ public:
 
 	Iterator begin()
 	{
-		// First item starts at 1.  0 is an invalid ID.
-		return Iterator(1, this); 
+		Iterator iter(0, this);
+		// Step the iterator before returning.  
+		// 0 is an invalid ID and the ++ operator will find the first in-use element.
+		return ++iter;
 	}
 
 	Iterator end()

@@ -22,6 +22,8 @@ public:
 private:
 	MainWindow(int width, int height, const char* title);
 
+	void LoadScene(const char* sceneName);
+
 	// Input event handlers
 	bool OnResize(int newWidth, int newHeight);
 	bool OnClose();
