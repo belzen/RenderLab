@@ -109,7 +109,7 @@ namespace AssetLib
 	struct Object
 	{
 		Vec3 position;
-		Quaternion orientation;
+		Rotation rotation;
 		Vec3 scale;
 		ObjectPhysics physics;
 		Light light;
@@ -135,7 +135,7 @@ namespace AssetLib
 		static Scene* Load(const CachedString& assetName, Scene* pScene);
 
 		Vec3 camPosition;
-		Vec3 camPitchYawRoll;
+		Rotation camRotation;
 
 		std::vector<Object> objects;
 		Terrain terrain;

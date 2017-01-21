@@ -108,7 +108,7 @@ bool RenderWindow::OnMouseEnter(int mx, int my)
 		const WidgetDragData& rDragData = pDragWidget->GetDragData();
 		if (rDragData.type == WidgetDragDataType::kModelAsset)
 		{
-			m_pPlacingObject = Entity::Create("New Object", Vec3::kOrigin, Quaternion::kIdentity, Vec3::kOne);
+			m_pPlacingObject = Entity::Create("New Object", Vec3::kOrigin, Rotation::kIdentity, Vec3::kOne);
 			m_pPlacingObject->AttachRenderable(ModelInstance::Create(rDragData.data.assetName, nullptr, 0));
 			m_pSceneViewModel->AddEntity(m_pPlacingObject);
 		}
@@ -192,8 +192,8 @@ void RenderWindow::PostFrameSync()
 	m_renderer.PostFrameSync();
 }
 
-void RenderWindow::SetCameraPosition(const Vec3& position, const Vec3& pitchYawRoll)
+void RenderWindow::SetCameraPosition(const Vec3& position, const Rotation& rotation)
 {
 	m_mainCamera.SetPosition(position);
-	m_mainCamera.SetPitchYawRoll(pitchYawRoll);
+	m_mainCamera.SetRotation(rotation);
 }

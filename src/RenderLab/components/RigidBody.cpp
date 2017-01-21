@@ -8,6 +8,11 @@ namespace
 	RigidBodyFreeList s_rigidBodyFreeList;
 }
 
+RigidBodyFreeList& RigidBody::GetFreeList()
+{
+	return s_rigidBodyFreeList;
+}
+
 RigidBody* RigidBody::CreatePlane()
 {
 	RigidBody* pRigidBody = s_rigidBodyFreeList.allocSafe();
@@ -56,4 +61,17 @@ Vec3 RigidBody::GetPosition() const
 Quaternion RigidBody::GetOrientation() const
 {
 	return Physics::GetActorOrientation(m_pActor);
+}
+
+void RigidBody::UpdatePostSimulation()
+{
+	// Physics simulation is active, push the actor's transform to the entity.
+	m_pEntity->SetPosition(GetPosition());
+	m_pEntity->SetOrientation(GetOrientation());
+}
+
+void RigidBody::UpdateNoSimulation()
+{
+	// Simulation is disabled, pull the transform from the parent entity.
+	Physics::SetActorTransform(m_pActor, m_pEntity->GetPosition(), m_pEntity->GetOrientation());
 }

@@ -107,12 +107,12 @@ void Scene::Load(const char* sceneName)
 
 	// Camera
 	m_cameraSpawnPosition = pSceneData->camPosition;
-	m_cameraSpawnPitchYawRoll = pSceneData->camPitchYawRoll;
+	m_cameraSpawnRotation = pSceneData->camRotation;
 
 	// Objects/Entities
 	for (const AssetLib::Object& rObjectData : pSceneData->objects)
 	{
-		Entity* pEntity = Entity::Create(rObjectData.name, rObjectData.position, rObjectData.orientation, rObjectData.scale);
+		Entity* pEntity = Entity::Create(rObjectData.name, rObjectData.position, rObjectData.rotation, rObjectData.scale);
 
 		// Model
 		if (rObjectData.modelName)
@@ -185,11 +185,6 @@ void Scene::Update()
 		Load(sceneName.getString());
 		m_reloadPending = false;
 	}
-
-	for (Entity* pEntity : m_entities)
-	{
-		pEntity->Update();
-	}
 }
 
 void Scene::AddEntity(Entity* pEntity)
@@ -216,7 +211,7 @@ const Vec3& Scene::GetCameraSpawnPosition() const
 	return m_cameraSpawnPosition;
 }
 
-const Vec3& Scene::GetCameraSpawnPitchYawRoll() const
+const Rotation& Scene::GetCameraSpawnRotation() const
 {
-	return m_cameraSpawnPitchYawRoll;
+	return m_cameraSpawnRotation;
 }

@@ -14,7 +14,7 @@ typedef FreeList<Entity, 6 * 1024> EntityFreeList;
 class Entity
 {
 public:
-	static Entity* Create(const char* name, Vec3 pos, Quaternion orientation, Vec3 scale);
+	static Entity* Create(const char* name, Vec3 pos, Rotation rotation, Vec3 scale);
 	void Release();
 
 	const char* GetName() const;
@@ -37,17 +37,19 @@ public:
 	VolumeComponent* GetVolume();
 
 	const Vec3& GetPosition() const;
-	void SetPosition(Vec3 pos);
+	void SetPosition(const Vec3& pos);
 
 	const Quaternion& GetOrientation() const;
+	void SetOrientation(const Quaternion& q);
+
+	const Rotation& GetRotation() const;
+	void SetRotation(const Rotation& rotation);
 
 	const Vec3& GetScale() const;
-	void SetScale(Vec3 scale);
+	void SetScale(const Vec3& scale);
 
 	const Matrix44 GetTransform() const;
 	int GetTransformId() const;
-
-	void Update();
 
 private:
 	friend EntityFreeList;
@@ -57,6 +59,7 @@ private:
 	Vec3 m_position;
 	Vec3 m_scale;
 	Quaternion m_orientation;
+	Rotation m_rotation;
 	int m_transformId;
 
 	Renderable* m_pRenderable;
@@ -122,7 +125,7 @@ inline const Vec3& Entity::GetPosition() const
 	return m_position; 
 }
 
-inline void Entity::SetPosition(Vec3 pos)
+inline void Entity::SetPosition(const Vec3& pos)
 { 
 	m_position = pos;
 	++m_transformId;
@@ -133,12 +136,31 @@ inline const Quaternion& Entity::GetOrientation() const
 	return m_orientation; 
 }
 
+inline void Entity::SetOrientation(const Quaternion& q)
+{
+	m_orientation = q;
+	// TODO: Extract rotation from quaternion
+	++m_transformId;
+}
+
+inline const Rotation& Entity::GetRotation() const
+{
+	return m_rotation;
+}
+
+inline void Entity::SetRotation(const Rotation& r)
+{
+	m_rotation = r;
+	m_orientation = Quaternion::FromRotation(r);
+	++m_transformId;
+}
+
 inline const Vec3& Entity::GetScale() const
 { 
 	return m_scale;
 }
 
-inline void Entity::SetScale(Vec3 scale)
+inline void Entity::SetScale(const Vec3& scale)
 { 
 	m_scale = scale;
 	++m_transformId;

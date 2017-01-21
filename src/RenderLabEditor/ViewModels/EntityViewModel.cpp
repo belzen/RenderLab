@@ -19,6 +19,7 @@ const PropertyDef** EntityViewModel::GetProperties()
 	static const PropertyDef* s_ppProperties[] = {
 		new TextPropertyDef("Name", "", GetName, SetName),
 		new Vector3PropertyDef("Position", "", GetPosition, SetPosition, SetPositionX, SetPositionY, SetPositionZ),
+		new RotationPropertyDef("Rotation", "", GetRotation, SetRotation, SetRotationPitch, SetRotationYaw, SetRotationRoll),
 		new Vector3PropertyDef("Scale", "", GetScale, SetScale, SetScaleX, SetScaleY, SetScaleZ),
 		nullptr
 	};
@@ -75,6 +76,54 @@ bool EntityViewModel::SetPositionZ(const float newValue, void* pSource)
 	Vec3 pos = pViewModel->m_pEntity->GetPosition();
 	pos.z = newValue;
 	pViewModel->m_pEntity->SetPosition(pos);
+	return true;
+}
+
+Rotation EntityViewModel::GetRotation(void* pSource)
+{
+	EntityViewModel* pViewModel = (EntityViewModel*)pSource;
+	Rotation r = pViewModel->m_pEntity->GetRotation();
+	r.pitch = Maths::RadToDeg(r.pitch);
+	r.yaw = Maths::RadToDeg(r.yaw);
+	r.roll = Maths::RadToDeg(r.roll);
+	return r;
+}
+
+bool EntityViewModel::SetRotation(const Rotation& rotation, void* pSource)
+{
+	EntityViewModel* pViewModel = (EntityViewModel*)pSource;
+	Rotation r = rotation;
+	r.pitch = Maths::DegToRad(rotation.pitch);
+	r.yaw = Maths::DegToRad(rotation.yaw);
+	r.roll = Maths::DegToRad(rotation.roll);
+	pViewModel->m_pEntity->SetRotation(r);
+	return true;
+}
+
+bool EntityViewModel::SetRotationPitch(const float newValue, void* pSource)
+{
+	EntityViewModel* pViewModel = (EntityViewModel*)pSource;
+	Rotation r = pViewModel->m_pEntity->GetRotation();
+	r.pitch = Maths::DegToRad(newValue);
+	pViewModel->m_pEntity->SetRotation(r);
+	return true;
+}
+
+bool EntityViewModel::SetRotationYaw(const float newValue, void* pSource)
+{
+	EntityViewModel* pViewModel = (EntityViewModel*)pSource;
+	Rotation r = pViewModel->m_pEntity->GetRotation();
+	r.yaw = Maths::DegToRad(newValue);
+	pViewModel->m_pEntity->SetRotation(r);
+	return true;
+}
+
+bool EntityViewModel::SetRotationRoll(const float newValue, void* pSource)
+{
+	EntityViewModel* pViewModel = (EntityViewModel*)pSource;
+	Rotation r = pViewModel->m_pEntity->GetRotation();
+	r.roll = Maths::DegToRad(newValue);
+	pViewModel->m_pEntity->SetRotation(r);
 	return true;
 }
 

@@ -2,6 +2,7 @@
 #include "Physics.h"
 #include "PhysX/PhysXSDK/Include/PxPhysics.h"
 #include "PhysX/PhysXSDK/Include/PxPhysicsAPI.h"
+#include "components/RigidBody.h"
 
 using namespace physx;
 
@@ -21,6 +22,7 @@ namespace
 		PxMaterial* pDefaultMaterial;
 
 		float accumTime;
+		bool simulationActive;
 	} s_physics;
 
 	inline PxVec3 toPxVec3(const Vec3& v)
@@ -86,16 +88,31 @@ void Physics::Init()
 
 void Physics::Update()
 {
-	const float kStepTime = 0.016666660f;
-	s_physics.accumTime += Time::FrameTime();
-
-	while (s_physics.accumTime >= kStepTime)
+	if (s_physics.simulationActive)
 	{
-		s_physics.pScene->simulate(kStepTime);
-		// Wait for simulation to complete
-		s_physics.pScene->fetchResults(true);
+		const float kStepTime = 0.016666660f;
+		s_physics.accumTime += Time::FrameTime();
 
-		s_physics.accumTime -= kStepTime;
+		while (s_physics.accumTime >= kStepTime)
+		{
+			s_physics.pScene->simulate(kStepTime);
+			// Wait for simulation to complete
+			s_physics.pScene->fetchResults(true);
+
+			s_physics.accumTime -= kStepTime;
+		}
+
+		for (RigidBody& rRigidBody : RigidBody::GetFreeList())
+		{
+			rRigidBody.UpdatePostSimulation();
+		}
+	}
+	else
+	{
+		for (RigidBody& rRigidBody : RigidBody::GetFreeList())
+		{
+			rRigidBody.UpdateNoSimulation();
+		}
 	}
 }
 
@@ -144,6 +161,12 @@ Quaternion Physics::GetActorOrientation(PhysicsActor* pActor)
 {
 	const PxQuat& q = pActor->getGlobalPose().q;
 	return Quaternion(q.x, q.y, q.z, q.w);
+}
+
+void Physics::SetActorTransform(PhysicsActor* pActor, const Vec3& position, const Quaternion& orientation)
+{
+	PxTransform xform(position.x, position.y, position.z, toPxQuat(orientation));
+	pActor->setGlobalPose(xform);
 }
 
 void Physics::DestroyActor(PhysicsActor* pActor)

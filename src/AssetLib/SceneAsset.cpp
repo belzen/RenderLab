@@ -34,7 +34,7 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 	pScene->camPosition = jsonReadVec3(jPos);
 
 	Json::Value jRot = jCamera.get("rotation", Json::Value::null);
-	pScene->camPitchYawRoll = jsonReadPitchYawRoll(jRot);
+	pScene->camRotation = jsonReadRotation(jRot);
 
 	// Terrain
 	{
@@ -69,7 +69,7 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 			AssetLib::Object& rObj = pScene->objects[i];
 
 			rObj.position = jsonReadVec3(jObj.get("position", Json::Value::null));
-			rObj.orientation = jsonReadRotation(jObj.get("rotation", Json::Value::null));
+			rObj.rotation = jsonReadRotation(jObj.get("rotation", Json::Value::null));
 			rObj.scale = jsonReadScale(jObj.get("scale", Json::Value::null));
 			jsonReadCachedString(jObj.get("model", Json::Value::null), &rObj.modelName);
 			jsonReadString(jObj.get("name", Json::Value::null), rObj.name, ARRAY_SIZE(rObj.name));

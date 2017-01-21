@@ -13,14 +13,14 @@ namespace
 	EntityFreeList s_entityFreeList;
 }
 
-Entity* Entity::Create(const char* name, Vec3 pos, Quaternion orientation, Vec3 scale)
+Entity* Entity::Create(const char* name, Vec3 pos, Rotation rotation, Vec3 scale)
 {
 	Entity* pEntity = s_entityFreeList.allocSafe();
 
 	strcpy_s(pEntity->m_name, name);
 	pEntity->m_position = pos;
 	pEntity->m_scale = scale;
-	pEntity->m_orientation = orientation;
+	pEntity->SetRotation(rotation);
 	pEntity->m_transformId = 1;
 
 	return pEntity;
@@ -111,14 +111,4 @@ void Entity::Release()
 	}
 
 	s_entityFreeList.releaseSafe(this);
-}
-
-void Entity::Update()
-{
-	if (m_pRigidBody)
-	{
-		m_position = m_pRigidBody->GetPosition();
-		m_orientation = m_pRigidBody->GetOrientation();
-		++m_transformId; // Todo: This is only necessary if the object actually moved.
-	}
 }

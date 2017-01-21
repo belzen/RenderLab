@@ -108,6 +108,31 @@ private:
 	ElemChangedFunc m_zChangedCallback;
 };
 
+class RotationPropertyDef : public PropertyDef
+{
+public:
+	typedef Rotation (*GetValueFunc)(void* pSource);
+	typedef bool (*ChangedFunc)(const Rotation& newVal, void* pSource);
+	typedef bool (*ElemChangedFunc)(const float newVal, void* pSource);
+
+	RotationPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback,
+		ElemChangedFunc pitchChangedCallback, ElemChangedFunc yawChangedCallback, ElemChangedFunc rollChangedCallback);
+
+	ChangedFunc GetChangedCallback() const;
+	ElemChangedFunc GetPitchChangedCallback() const;
+	ElemChangedFunc GetYawChangedCallback() const;
+	ElemChangedFunc GetRollChangedCallback() const;
+
+	Rotation GetValue(void* pSource) const;
+
+private:
+	GetValueFunc m_getValueCallback;
+	ChangedFunc m_changedCallback;
+	ElemChangedFunc m_pitchChangedCallback;
+	ElemChangedFunc m_yawChangedCallback;
+	ElemChangedFunc m_rollChangedCallback;
+};
+
 class BooleanPropertyDef : public PropertyDef
 {
 public:
@@ -314,6 +339,45 @@ inline Vector3PropertyDef::ElemChangedFunc Vector3PropertyDef::GetZChangedCallba
 }
 
 inline Vec3 Vector3PropertyDef::GetValue(void* pSource) const
+{
+	return m_getValueCallback(pSource);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// RotationPropertyDef inlines
+inline RotationPropertyDef::RotationPropertyDef(const char* name, const char* desc, GetValueFunc getValueCallback, ChangedFunc changedCallback,
+	ElemChangedFunc pitchChangedCallback, ElemChangedFunc yawChangedCallback, ElemChangedFunc rollChangedCallback)
+	: PropertyDef(name, desc)
+	, m_getValueCallback(getValueCallback)
+	, m_changedCallback(changedCallback)
+	, m_pitchChangedCallback(pitchChangedCallback)
+	, m_yawChangedCallback(yawChangedCallback)
+	, m_rollChangedCallback(rollChangedCallback)
+{
+
+}
+
+inline RotationPropertyDef::ChangedFunc RotationPropertyDef::GetChangedCallback() const
+{
+	return m_changedCallback;
+}
+
+inline RotationPropertyDef::ElemChangedFunc RotationPropertyDef::GetPitchChangedCallback() const
+{
+	return m_pitchChangedCallback;
+}
+
+inline RotationPropertyDef::ElemChangedFunc RotationPropertyDef::GetYawChangedCallback() const
+{
+	return m_yawChangedCallback;
+}
+
+inline RotationPropertyDef::ElemChangedFunc RotationPropertyDef::GetRollChangedCallback() const
+{
+	return m_rollChangedCallback;
+}
+
+inline Rotation RotationPropertyDef::GetValue(void* pSource) const
 {
 	return m_getValueCallback(pSource);
 }

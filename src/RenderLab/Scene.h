@@ -38,7 +38,7 @@ public:
 	const char* GetName() const;
 
 	const Vec3& GetCameraSpawnPosition() const;
-	const Vec3& GetCameraSpawnPitchYawRoll() const;
+	const Rotation& GetCameraSpawnRotation() const;
 
 private:
 	void OnAssetReloaded(const AssetLib::Scene* pSceneAsset);
@@ -51,7 +51,7 @@ private:
 	Terrain m_terrain;
 
 	Vec3 m_cameraSpawnPosition;
-	Vec3 m_cameraSpawnPitchYawRoll;
+	Rotation m_cameraSpawnRotation;
 
 	Light* m_apActiveEnvironmentLights[MAX_ENVIRONMENT_MAPS];
 	RdrResourceHandle m_hEnvironmentMapTexArray;

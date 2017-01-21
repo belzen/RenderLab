@@ -152,7 +152,7 @@ int main(int argc, char** argv)
 	Scene scene;
 	scene.Load(g_userConfig.defaultScene.c_str());
 	mainCamera.SetPosition(scene.GetCameraSpawnPosition());
-	mainCamera.SetPitchYawRoll(scene.GetCameraSpawnPitchYawRoll());
+	mainCamera.SetRotation(scene.GetCameraSpawnRotation());
 
 	Timer::Handle hTimer = Timer::Create();
 
@@ -179,9 +179,9 @@ int main(int argc, char** argv)
 		Time::Update(Timer::GetElapsedSecondsAndReset(hTimer));
 		g_inputManager.GetActiveContext()->Update(g_inputManager);
 
-		scene.Update();
-		Physics::Update();
 		Debug::Update();
+		Physics::Update();
+		scene.Update();
 
 		// Queue drawing
 		{

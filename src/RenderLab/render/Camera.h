@@ -41,8 +41,8 @@ public:
 	void SetPosition(const Vec3& pos);
 	const Vec3& GetPosition(void) const;
 
-	const Vec3& GetPitchYawRoll() const;
-	void SetPitchYawRoll(const Vec3& pitchYawRoll);
+	const Rotation& GetRotation() const;
+	void SetRotation(const Rotation& r);
 
 	const Vec3& GetDirection(void) const;
 
@@ -63,7 +63,7 @@ private:
 	Matrix44 m_projMatrix;
 	Vec3 m_position;
 	Vec3 m_direction;
-	Vec3 m_pitchYawRoll;
+	Rotation m_rotation;
 	
 	Frustum m_frustum;
 
@@ -75,13 +75,6 @@ private:
 	float m_orthoHeight;
 	bool m_isOrtho;
 };
-
-inline void Camera::SetPitchYawRoll(const Vec3& pitchYawRoll)
-{
-	m_pitchYawRoll = pitchYawRoll;
-	Matrix44 rotation = Matrix44RotationPitchYawRoll(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z);
-	m_direction = Vec3TransformNormal(Vec3::kUnitZ, rotation);
-}
 
 inline float Camera::GetAspectRatio() const
 { 
@@ -113,9 +106,15 @@ inline const Vec3& Camera::GetPosition(void) const
 	return m_position; 
 }
 
-inline const Vec3& Camera::GetPitchYawRoll() const
+inline void Camera::SetRotation(const Rotation& r)
+{
+	m_rotation = r;
+	m_direction = Vec3Rotate(Vec3::kUnitZ, Quaternion::FromRotation(r));
+}
+
+inline const Rotation& Camera::GetRotation() const
 { 
-	return m_pitchYawRoll; 
+	return m_rotation; 
 }
 
 inline const Vec3& Camera::GetDirection(void) const

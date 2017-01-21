@@ -50,24 +50,11 @@ inline Vec3 jsonReadScale(const Json::Value& val)
 	return vec;
 }
 
-inline Quaternion jsonReadRotation(const Json::Value& val)
+inline Rotation jsonReadRotation(const Json::Value& val)
 {
-	Vec3 pitchYawRoll;
-	pitchYawRoll.x = val.get((uint)0, Json::Value(0.f)).asFloat();
-	pitchYawRoll.y = val.get((uint)1, Json::Value(0.f)).asFloat();
-	pitchYawRoll.z = val.get((uint)2, Json::Value(0.f)).asFloat();
-
-	return QuaternionPitchYawRoll(
-		Maths::DegToRad(pitchYawRoll.x),
-		Maths::DegToRad(pitchYawRoll.y),
-		Maths::DegToRad(pitchYawRoll.z));
-}
-
-inline Vec3 jsonReadPitchYawRoll(const Json::Value& val)
-{
-	Vec3 pitchYawRoll;
-	pitchYawRoll.x = Maths::DegToRad(val.get((uint)0, Json::Value(0.f)).asFloat());
-	pitchYawRoll.y = Maths::DegToRad(val.get((uint)1, Json::Value(0.f)).asFloat());
-	pitchYawRoll.z = Maths::DegToRad(val.get((uint)2, Json::Value(0.f)).asFloat());
-	return pitchYawRoll;
+	Rotation r;
+	r.pitch = Maths::DegToRad(val.get((uint)0, Json::Value(0.f)).asFloat());
+	r.yaw = Maths::DegToRad(val.get((uint)1, Json::Value(0.f)).asFloat());
+	r.roll = Maths::DegToRad(val.get((uint)2, Json::Value(0.f)).asFloat());
+	return r;
 }

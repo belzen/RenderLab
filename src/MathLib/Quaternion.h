@@ -1,5 +1,8 @@
 #pragma once
 
+#include <DirectXMath.h>
+#include "Rotation.h"
+
 struct Quaternion : public DirectX::XMFLOAT4
 {
 	static const Quaternion kIdentity;
@@ -8,6 +11,8 @@ struct Quaternion : public DirectX::XMFLOAT4
 	Quaternion(float x, float y, float z, float w);
 	Quaternion(const float* pFloats);
 	Quaternion(const DirectX::XMVECTOR& vec);
+
+	static Quaternion FromRotation(const Rotation& r);
 };
 
 inline Quaternion::Quaternion()
@@ -32,7 +37,7 @@ inline Quaternion::Quaternion(const DirectX::XMVECTOR& vec)
 	DirectX::XMStoreFloat4(this, vec);
 }
 
-inline Quaternion QuaternionPitchYawRoll(float pitch, float yaw, float roll)
+inline Quaternion Quaternion::FromRotation(const Rotation& r)
 {
-	return DirectX::XMQuaternionRotationRollPitchYaw(pitch, yaw, roll);
+	return DirectX::XMQuaternionRotationRollPitchYaw(r.pitch, r.yaw, r.roll);
 }

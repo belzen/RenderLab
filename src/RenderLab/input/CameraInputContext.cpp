@@ -26,17 +26,17 @@ void CameraInputContext::Update(const InputManager& rInputManager)
 		int moveX, moveY;
 		rInputManager.GetMouseMove(moveX, moveY);
 
-		Vec3 pitchYawRoll = m_pCamera->GetPitchYawRoll();
+		Rotation r = m_pCamera->GetRotation();
 
-		pitchYawRoll.x += moveY * kPixelToAngle;
-		pitchYawRoll.y += moveX * kPixelToAngle;
+		r.pitch += moveY * kPixelToAngle;
+		r.yaw += moveX * kPixelToAngle;
 
-		if (pitchYawRoll.x < -kMaxPitch)
-			pitchYawRoll.x = -kMaxPitch;
-		else if (pitchYawRoll.x > kMaxPitch)
-			pitchYawRoll.x = kMaxPitch;
+		if (r.pitch < -kMaxPitch)
+			r.pitch = -kMaxPitch;
+		else if (r.pitch > kMaxPitch)
+			r.pitch = kMaxPitch;
 
-		m_pCamera->SetPitchYawRoll(pitchYawRoll);
+		m_pCamera->SetRotation(r);
 
 		if (rInputManager.IsMouseDown(0))
 		{

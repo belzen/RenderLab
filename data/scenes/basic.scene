@@ -88,7 +88,7 @@
 		{
 			"name" : "sphere1",
 			"position" : [ -3.0, 1.5, 0.0 ],
-			"rotation" : [ 0.0, 45.0, 0.0 ],
+			"rotation" : [ 0.0, 0.0, 0.0 ],
 			"scale" : [ 1.5, 1.5, 1.5 ],
 			"model" : "sphere",
 			"materialSwaps" : {
@@ -103,6 +103,7 @@
 		{
 			"name" : "box1",
 			"position" : [ 10.0, 1.5, -5.0 ],
+			"rotation" : [ 0.0, 0.0, 0.0 ],
 			"model" : "box",
 			"physics" : {
 				"shape" : "box",

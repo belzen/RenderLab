@@ -8,6 +8,7 @@
 #include "UVec2.h"
 #include "UVec3.h"
 #include "IVec3.h"
+#include "Rotation.h"
 #include "Quaternion.h"
 #include "Matrix44.h"
 #include "Matrix33.h"

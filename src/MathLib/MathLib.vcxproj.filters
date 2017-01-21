@@ -12,6 +12,7 @@
     <ClInclude Include="Vec4.h" />
     <ClInclude Include="UVec2.h" />
     <ClInclude Include="UVec3.h" />
+    <ClInclude Include="Rotation.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MathConstants.cpp" />

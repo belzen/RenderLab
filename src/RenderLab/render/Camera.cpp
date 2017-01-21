@@ -5,7 +5,7 @@
 Camera::Camera()
 	: m_position(0.f, 0.f, 0.f)
 	, m_direction(0.f, 0.f, 1.f)
-	, m_pitchYawRoll(0.f, 0.f, 0.f)
+	, m_rotation(Rotation::kIdentity)
 	, m_fovY(60.f / 180.f * Maths::kPi)
 	, m_nearDist(0.01f)
 	, m_farDist(1000.f)
@@ -20,7 +20,7 @@ void Camera::SetAsPerspective(const Vec3& pos, const Vec3& dir, float fovY, floa
 	m_isOrtho = false;
 	m_position = pos;
 	m_direction = dir;
-	m_pitchYawRoll = Vec3::kZero;
+	m_rotation = Rotation::kIdentity;
 	m_fovY = fovY;
 	m_nearDist = nearDist;
 	m_farDist = farDist;
@@ -32,7 +32,7 @@ void Camera::SetAsOrtho(const Vec3& pos, const Vec3& dir, float orthoHeight, flo
 	m_isOrtho = true;
 	m_position = pos;
 	m_direction = dir;
-	m_pitchYawRoll = Vec3::kZero;
+	m_rotation = Rotation::kIdentity;
 	m_orthoHeight = orthoHeight;
 	m_nearDist = nearDist;
 	m_farDist = farDist;

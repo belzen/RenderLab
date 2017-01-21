@@ -21,7 +21,7 @@ public:
 
 	void Close();
 
-	void SetCameraPosition(const Vec3& position, const Vec3& pitchYawRoll);
+	void SetCameraPosition(const Vec3& position, const Rotation& rotation);
 
 	// Main thread updating/commands
 	void EarlyUpdate();

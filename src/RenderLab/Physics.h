@@ -27,6 +27,7 @@ namespace Physics
 
 	Vec3 GetActorPosition(PhysicsActor* pActor);
 	Quaternion GetActorOrientation(PhysicsActor* pActor);
+	void SetActorTransform(PhysicsActor* pActor, const Vec3& position, const Quaternion& orientation);
 
 	void DestroyActor(PhysicsActor* pActor);
 

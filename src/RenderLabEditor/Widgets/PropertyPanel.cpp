@@ -185,6 +185,29 @@ void PropertyPanel::AddViewModel(IViewModel* pViewModel)
 				m_childWidgets.push_back(pTextBoxY);
 				m_childWidgets.push_back(pTextBoxZ);
 			}
+			else if (rTypeInfo == typeid(RotationPropertyDef))
+			{
+				const RotationPropertyDef* pRotDef = (const RotationPropertyDef*)pDef;
+
+				int elemWidth = controlWidth / 3;
+				NumericTextBox* pTextBoxPitch = NumericTextBox::Create(*this, x, y, elemWidth, kRowHeight,
+					pRotDef->GetPitchChangedCallback(), pViewModel);
+				NumericTextBox* pTextBoxYaw = NumericTextBox::Create(*this, x + elemWidth, y, elemWidth, kRowHeight,
+					pRotDef->GetYawChangedCallback(), pViewModel);
+				NumericTextBox* pTextBoxRoll = NumericTextBox::Create(*this, x + 2 * elemWidth, y, elemWidth, kRowHeight,
+					pRotDef->GetRollChangedCallback(), pViewModel);
+
+				Rotation rotValue = pRotDef->GetValue(pViewModel);
+				pTextBoxPitch->SetValue(rotValue.pitch, false);
+				pTextBoxYaw->SetValue(rotValue.yaw, false);
+				pTextBoxRoll->SetValue(rotValue.roll, false);
+
+				y += pTextBoxPitch->GetHeight();
+
+				m_childWidgets.push_back(pTextBoxPitch);
+				m_childWidgets.push_back(pTextBoxYaw);
+				m_childWidgets.push_back(pTextBoxRoll);
+			}
 			else if (rTypeInfo == typeid(AssetPropertyDef))
 			{
 				const AssetPropertyDef* pAssetDef = (const AssetPropertyDef*)pDef;

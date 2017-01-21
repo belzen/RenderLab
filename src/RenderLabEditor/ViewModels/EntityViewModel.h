@@ -22,6 +22,12 @@ private:
 	static bool SetPositionY(const float newValue, void* pSource);
 	static bool SetPositionZ(const float newValue, void* pSource);
 
+	static Rotation GetRotation(void* pSource);
+	static bool SetRotation(const Rotation& rotation, void* pSource);
+	static bool SetRotationPitch(const float newValue, void* pSource);
+	static bool SetRotationYaw(const float newValue, void* pSource);
+	static bool SetRotationRoll(const float newValue, void* pSource);
+
 	static Vec3 GetScale(void* pSource);
 	static bool SetScale(const Vec3& position, void* pSource);
 	static bool SetScaleX(const float newValue, void* pSource);

@@ -78,7 +78,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	m_addMenu.Init();
 	m_addMenu.AddItem("Add Object", [](void* pUserData) {
 		MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
-		Entity* pEntity = Entity::Create("New Object", Vec3::kZero, Quaternion::kIdentity, Vec3::kOne);
+		Entity* pEntity = Entity::Create("New Object", Vec3::kZero, Rotation::kIdentity, Vec3::kOne);
 		pEntity->AttachRenderable(ModelInstance::Create("box", nullptr, 0));
 		pWindow->m_sceneViewModel.AddEntity(pEntity);
 	}, this);
@@ -103,7 +103,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 void MainWindow::LoadScene(const char* sceneName)
 {
 	m_scene.Load(sceneName);
-	m_pRenderWindow->SetCameraPosition(m_scene.GetCameraSpawnPosition(), m_scene.GetCameraSpawnPitchYawRoll());
+	m_pRenderWindow->SetCameraPosition(m_scene.GetCameraSpawnPosition(), m_scene.GetCameraSpawnRotation());
 	m_sceneViewModel.PopulateTreeView(m_pSceneTreeView);
 }
 
@@ -207,9 +207,9 @@ int MainWindow::Run()
 
 		m_pRenderWindow->Update();
 
-		m_scene.Update();
-		Physics::Update();
 		Debug::Update();
+		Physics::Update();
+		m_scene.Update();
 
 		m_pRenderWindow->QueueDraw();
 
