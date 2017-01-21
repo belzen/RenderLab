@@ -13,6 +13,11 @@ namespace
 	EntityFreeList s_entityFreeList;
 }
 
+EntityFreeList& Entity::GetFreeList()
+{
+	return s_entityFreeList;
+}
+
 Entity* Entity::Create(const char* name, Vec3 pos, Rotation rotation, Vec3 scale)
 {
 	Entity* pEntity = s_entityFreeList.allocSafe();

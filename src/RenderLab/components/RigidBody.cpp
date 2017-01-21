@@ -63,6 +63,21 @@ Quaternion RigidBody::GetOrientation() const
 	return Physics::GetActorOrientation(m_pActor);
 }
 
+void RigidBody::SetVelocities(const Vec3& linearVelocity, const Vec3& angularVelocity)
+{
+	Physics::SetActorVelocities(m_pActor, linearVelocity, angularVelocity);
+}
+
+void RigidBody::SetLinearVelocity(const Vec3& linearVelocity)
+{
+	Physics::SetActorLinearVelocity(m_pActor, linearVelocity);
+}
+
+void RigidBody::SetAngularVelocity(const Vec3& angularVelocity)
+{
+	Physics::SetActorAngularVelocity(m_pActor, angularVelocity);
+}
+
 void RigidBody::UpdatePostSimulation()
 {
 	// Physics simulation is active, push the actor's transform to the entity.

@@ -146,6 +146,10 @@ public:
 	}
 
 private:
+	// Disable copy constructor
+	FreeList(const FreeList&);
+
+private:
 	T_object m_objects[T_nMaxEntries];
 	Handle m_freeIdStack[T_nMaxEntries];
 	bool m_inUse[T_nMaxEntries];

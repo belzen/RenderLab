@@ -14,7 +14,10 @@ typedef FreeList<Entity, 6 * 1024> EntityFreeList;
 class Entity
 {
 public:
+	static EntityFreeList& GetFreeList();
 	static Entity* Create(const char* name, Vec3 pos, Rotation rotation, Vec3 scale);
+
+public:
 	void Release();
 
 	const char* GetName() const;
@@ -53,7 +56,10 @@ public:
 
 private:
 	friend EntityFreeList;
+	Entity() {}
+	Entity(const Entity&);
 
+private:
 	char m_name[64];
 
 	Vec3 m_position;

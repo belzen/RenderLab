@@ -183,6 +183,7 @@
     <ClCompile Include="debug\Debug.cpp" />
     <ClCompile Include="debug\DebugConsole.cpp" />
     <ClCompile Include="debug\PostProcessDebugger.cpp" />
+    <ClCompile Include="Game.cpp" />
     <ClCompile Include="render\RdrSky.cpp" />
     <ClCompile Include="Time.cpp" />
     <ClCompile Include="GlobalState.cpp" />
@@ -239,6 +240,7 @@
     <ClInclude Include="debug\Debug.h" />
     <ClInclude Include="debug\DebugConsole.h" />
     <ClInclude Include="debug\PostProcessDebugger.h" />
+    <ClInclude Include="Game.h" />
     <ClInclude Include="render\RdrSky.h" />
     <ClInclude Include="Time.h" />
     <ClInclude Include="FreeList.h" />

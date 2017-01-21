@@ -218,6 +218,7 @@
     <ClCompile Include="components\PostProcessVolume.cpp">
       <Filter>components</Filter>
     </ClCompile>
+    <ClCompile Include="Game.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -392,6 +393,7 @@
     <ClInclude Include="components\PostProcessVolume.h">
       <Filter>components</Filter>
     </ClInclude>
+    <ClInclude Include="Game.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\shaders\p_common.hlsli">

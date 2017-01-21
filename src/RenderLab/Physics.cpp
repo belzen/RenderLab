@@ -86,11 +86,17 @@ void Physics::Init()
 	s_physics.pDefaultMaterial = s_physics.pPhysics->createMaterial(0.5f, 0.5f, 0.1f);
 }
 
+void Physics::SetSimulationActive(bool active)
+{
+	s_physics.simulationActive = active;
+	s_physics.accumTime = 0.f;
+}
+
 void Physics::Update()
 {
 	if (s_physics.simulationActive)
 	{
-		const float kStepTime = 0.016666660f;
+		const float kStepTime = 1.f / 60.f;
 		s_physics.accumTime += Time::FrameTime();
 
 		while (s_physics.accumTime >= kStepTime)
@@ -167,6 +173,34 @@ void Physics::SetActorTransform(PhysicsActor* pActor, const Vec3& position, cons
 {
 	PxTransform xform(position.x, position.y, position.z, toPxQuat(orientation));
 	pActor->setGlobalPose(xform);
+}
+
+void Physics::SetActorVelocities(PhysicsActor* pActor, const Vec3& linearVelocity, const Vec3& angularVelocity)
+{
+	PxRigidDynamic* pDynamicActor = pActor->isRigidDynamic();
+	if (pDynamicActor)
+	{
+		pDynamicActor->setLinearVelocity(toPxVec3(linearVelocity));
+		pDynamicActor->setAngularVelocity(toPxVec3(angularVelocity));
+	}
+}
+
+void Physics::SetActorLinearVelocity(PhysicsActor* pActor, const Vec3& linearVelocity)
+{
+	PxRigidDynamic* pDynamicActor = pActor->isRigidDynamic();
+	if (pDynamicActor)
+	{
+		pDynamicActor->setLinearVelocity(toPxVec3(linearVelocity));
+	}
+}
+
+void Physics::SetActorAngularVelocity(PhysicsActor* pActor, const Vec3& angularVelocity)
+{
+	PxRigidDynamic* pDynamicActor = pActor->isRigidDynamic();
+	if (pDynamicActor)
+	{
+		pDynamicActor->setAngularVelocity(toPxVec3(angularVelocity));
+	}
 }
 
 void Physics::DestroyActor(PhysicsActor* pActor)

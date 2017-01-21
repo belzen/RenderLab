@@ -14,8 +14,11 @@ namespace Physics
 
 	void Init();
 
+	void SetSimulationActive(bool active);
 	void Update();
 
+	//////////////////////////////////////////////////////////////////////////
+	// Physics actors
 	PhysicsActor* CreatePlane();
 	PhysicsActor* CreateBox(const Vec3& halfSize, float density, const Vec3& offset);
 	PhysicsActor* CreateSphere(const float radius, float density, const Vec3& offset);
@@ -27,10 +30,17 @@ namespace Physics
 
 	Vec3 GetActorPosition(PhysicsActor* pActor);
 	Quaternion GetActorOrientation(PhysicsActor* pActor);
+
 	void SetActorTransform(PhysicsActor* pActor, const Vec3& position, const Quaternion& orientation);
+
+	void SetActorVelocities(PhysicsActor* pActor, const Vec3& linearVelocity, const Vec3& angularVelocity);
+	void SetActorLinearVelocity(PhysicsActor* pActor, const Vec3& linearVelocity);
+	void SetActorAngularVelocity(PhysicsActor* pActor, const Vec3& angularVelocity);
 
 	void DestroyActor(PhysicsActor* pActor);
 
+	//////////////////////////////////////////////////////////////////////////
+	// Scene queries
 	struct RaycastResult
 	{
 		PhysicsActor* pActor;

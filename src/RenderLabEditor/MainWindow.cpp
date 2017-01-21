@@ -11,6 +11,7 @@
 #include "RenderDoc\RenderDocUtil.h"
 #include "UserConfig.h"
 #include "Physics.h"
+#include "Game.h"
 #include "Time.h"
 #include "components/Light.h"
 #include "components/Renderable.h"
@@ -60,6 +61,8 @@ MainWindow::MainWindow(int width, int height, const char* title)
 
 	m_sceneViewModel.Init(&m_scene);
 
+	//////////////////////////////////////////////////////////////////////////
+	// File menu
 	m_fileMenu.Init();
 	m_fileMenu.AddItem("Open Scene...", [](void* pUserData) {
 		std::string filename = FileDialog::Show("Scene (*.scene)\0*.scene\0\0");
@@ -75,6 +78,8 @@ MainWindow::MainWindow(int width, int height, const char* title)
 		::PostQuitMessage(0);
 	}, this);
 
+	//////////////////////////////////////////////////////////////////////////
+	// Add/create menu
 	m_addMenu.Init();
 	m_addMenu.AddItem("Add Object", [](void* pUserData) {
 		MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
@@ -83,6 +88,21 @@ MainWindow::MainWindow(int width, int height, const char* title)
 		pWindow->m_sceneViewModel.AddEntity(pEntity);
 	}, this);
 
+	//////////////////////////////////////////////////////////////////////////
+	// Game menu
+	m_gameMenu.Init();
+	m_gameMenu.AddItem("Play", [](void* pUserData) {
+		Game::Play();
+	}, this);
+	m_gameMenu.AddItem("Pause", [](void* pUserData) {
+		Game::Pause();
+	}, this);
+	m_gameMenu.AddItem("Stop", [](void* pUserData) {
+		Game::Stop();
+	}, this);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Debug menu
 	m_debugMenu.Init();
 	m_debugMenu.AddItem("RenderDoc Capture", [](void* pUserData) {
 		RenderDoc::Capture();
@@ -92,9 +112,12 @@ MainWindow::MainWindow(int width, int height, const char* title)
 		pWindow->m_scene.InvalidateEnvironmentLights();
 	}, this);
 
+	//////////////////////////////////////////////////////////////////////////
+	// Main menu
 	m_mainMenu.Init();
 	m_mainMenu.AddSubMenu("File", &m_fileMenu);
 	m_mainMenu.AddSubMenu("Add", &m_addMenu);
+	m_mainMenu.AddSubMenu("Game", &m_gameMenu);
 	m_mainMenu.AddSubMenu("Debug", &m_debugMenu);
 
 	SetMenuBar(&m_mainMenu);

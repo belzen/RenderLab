@@ -97,7 +97,7 @@
 			"physics" : {
 				"shape" : "sphere",
 				"radius" : 1.5,
-				"density" : 0.0
+				"density" : 2.0
 			}
 		},
 		{
@@ -108,7 +108,7 @@
 			"physics" : {
 				"shape" : "box",
 				"halfSize" : [ 1.0, 1.0, 1.0 ],
-				"density" : 0.0
+				"density" : 2.0
 			}
 		}
 	]

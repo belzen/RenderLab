@@ -24,6 +24,10 @@ public:
 	Vec3 GetPosition() const;
 	Quaternion GetOrientation() const;
 
+	void SetVelocities(const Vec3& linearVelocity, const Vec3& angularVelocity);
+	void SetLinearVelocity(const Vec3& linearVelocity);
+	void SetAngularVelocity(const Vec3& angularVelocity);
+
 	// Update after physics simulation has been processed.
 	void UpdatePostSimulation();
 
