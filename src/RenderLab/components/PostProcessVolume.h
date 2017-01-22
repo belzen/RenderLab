@@ -4,14 +4,10 @@
 #include "VolumeComponent.h"
 #include "AssetLib\SceneAsset.h"
 
-class PostProcessVolume;
-typedef FreeList<PostProcessVolume, 128> PostProcessVolumeFreeList;
-
 class PostProcessVolume : public VolumeComponent
 {
 public:
-	static PostProcessVolumeFreeList& GetFreeList();
-	static PostProcessVolume* Create(const AssetLib::Volume& rVolume);
+	static PostProcessVolume* Create(IComponentAllocator* pAllocator, const AssetLib::Volume& rVolume);
 
 public:
 	void Release();
@@ -23,7 +19,7 @@ public:
 	AssetLib::PostProcessEffects& GetEffects();
 
 private:
-	friend PostProcessVolumeFreeList;
+	FRIEND_FREELIST;
 	PostProcessVolume();
 	PostProcessVolume(const PostProcessVolume&);
 	virtual ~PostProcessVolume() {}

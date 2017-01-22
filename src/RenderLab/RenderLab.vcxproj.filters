@@ -219,6 +219,9 @@
       <Filter>components</Filter>
     </ClCompile>
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="components\ComponentAllocator.cpp">
+      <Filter>components</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -394,6 +397,9 @@
       <Filter>components</Filter>
     </ClInclude>
     <ClInclude Include="Game.h" />
+    <ClInclude Include="components\ComponentAllocator.h">
+      <Filter>components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\shaders\p_common.hlsli">

@@ -2,7 +2,6 @@
 
 #include "IViewModel.h"
 
-class Scene;
 class Entity;
 class TreeView;
 
@@ -17,12 +16,8 @@ public:
 class SceneViewModel : public IViewModel
 {
 public:
-	void Init(Scene* pScene);
-
 	const char* GetTypeName();
 	const PropertyDef** GetProperties();
-
-	Scene* GetScene() const;
 
 	void AddEntity(Entity* pObject);
 	void RemoveObject(Entity* pObject);
@@ -35,7 +30,6 @@ public:
 	void SetListener(ISceneListener* pListener);
 
 private:
-	Scene* m_pScene;
 	ISceneListener* m_pListener;
 	Entity* m_pSelectedEntity;
 };

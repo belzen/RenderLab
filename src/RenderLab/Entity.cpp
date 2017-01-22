@@ -115,5 +115,11 @@ void Entity::Release()
 		m_pLight = nullptr;
 	}
 
+	if (m_pVolume)
+	{
+		m_pVolume->Release();
+		m_pVolume = nullptr;
+	}
+
 	s_entityFreeList.releaseSafe(this);
 }

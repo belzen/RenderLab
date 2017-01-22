@@ -1,20 +1,11 @@
 #include "Precompiled.h"
 #include "Light.h"
 #include "Entity.h"
+#include "ComponentAllocator.h"
 
-namespace
+Light* Light::CreateDirectional(IComponentAllocator* pAllocator, const Vec3& color, float intensity, float pssmLambda)
 {
-	LightFreeList s_lightFreeList;
-}
-
-LightFreeList& Light::GetFreeList()
-{
-	return s_lightFreeList;
-}
-
-Light* Light::CreateDirectional(const Vec3& color, float intensity, float pssmLambda)
-{
-	Light* pLight = s_lightFreeList.allocSafe();
+	Light* pLight = pAllocator->AllocLight();
 	pLight->m_type = LightType::Directional;
 	pLight->m_colorRgb = color;
 	pLight->m_intensity = intensity;
@@ -23,9 +14,9 @@ Light* Light::CreateDirectional(const Vec3& color, float intensity, float pssmLa
 	return pLight;
 }
 
-Light* Light::CreateSpot(const Vec3& color, float intensity, float radius, float innerConeAngle, float outerConeAngle)
+Light* Light::CreateSpot(IComponentAllocator* pAllocator, const Vec3& color, float intensity, float radius, float innerConeAngle, float outerConeAngle)
 {
-	Light* pLight = s_lightFreeList.allocSafe();
+	Light* pLight = pAllocator->AllocLight();
 	pLight->m_type = LightType::Spot;
 	pLight->m_colorRgb = color;
 	pLight->m_intensity = intensity;
@@ -38,9 +29,9 @@ Light* Light::CreateSpot(const Vec3& color, float intensity, float radius, float
 	return pLight;
 }
 
-Light* Light::CreatePoint(const Vec3& color, float intensity, const float radius)
+Light* Light::CreatePoint(IComponentAllocator* pAllocator, const Vec3& color, float intensity, const float radius)
 {
-	Light* pLight = s_lightFreeList.allocSafe();
+	Light* pLight = pAllocator->AllocLight();
 	pLight->m_type = LightType::Point;
 	pLight->m_colorRgb = color;
 	pLight->m_intensity = intensity;
@@ -49,9 +40,9 @@ Light* Light::CreatePoint(const Vec3& color, float intensity, const float radius
 	return pLight;
 }
 
-Light* Light::CreateEnvironment(bool isGlobal)
+Light* Light::CreateEnvironment(IComponentAllocator* pAllocator, bool isGlobal)
 {
-	Light* pLight = s_lightFreeList.allocSafe();
+	Light* pLight = pAllocator->AllocLight();
 	pLight->m_type = LightType::Environment;
 	pLight->m_environmentTextureIndex = -1;
 	pLight->m_isGlobalEnvironmentLight = isGlobal;
@@ -70,7 +61,7 @@ void Light::OnDetached(Entity* pEntity)
 
 void Light::Release()
 {
-	s_lightFreeList.release(this);
+	m_pAllocator->ReleaseComponent(this);
 }
 
 void Light::SetEnvironmentTextureIndex(int index)

@@ -17,6 +17,8 @@ enum class RdrProfileSection
 	Sky,
 	PostProcessing,
 	UI,
+	Editor,
+	Wireframe,
 
 	Count
 };

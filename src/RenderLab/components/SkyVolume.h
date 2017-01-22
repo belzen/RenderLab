@@ -4,14 +4,10 @@
 #include "VolumeComponent.h"
 #include "AssetLib\SceneAsset.h"
 
-class SkyVolume;
-typedef FreeList<SkyVolume, 128> SkyVolumeFreeList;
-
 class SkyVolume : public VolumeComponent
 {
 public:
-	static SkyVolumeFreeList& GetFreeList();
-	static SkyVolume* Create(const AssetLib::Volume& rVolume);
+	static SkyVolume* Create(IComponentAllocator* pAllocator, const AssetLib::Volume& rVolume);
 
 public:
 	void Release();
@@ -23,7 +19,7 @@ public:
 	AssetLib::SkySettings& GetSkySettings();
 
 private:
-	friend SkyVolumeFreeList;
+	FRIEND_FREELIST;
 	SkyVolume();
 	SkyVolume(const SkyVolume&);
 	virtual ~SkyVolume() {}

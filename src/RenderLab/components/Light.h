@@ -5,17 +5,13 @@
 #include "MathLib/Vec3.h"
 #include "AssetLib/SceneAsset.h"
 
-class Light;
-typedef FreeList<Light, 6 * 1024> LightFreeList;
-
 class Light : public EntityComponent
 {
 public:
-	static LightFreeList& GetFreeList();
-	static Light* CreateDirectional(const Vec3& color, float intensity, float pssmLambda);
-	static Light* CreateSpot(const Vec3& color, float intensity, float radius, float innerConeAngle, float outerConeAngle);
-	static Light* CreatePoint(const Vec3& color, float intensity, const float radius);
-	static Light* CreateEnvironment(bool isGlobal);
+	static Light* CreateDirectional(IComponentAllocator* pAllocator, const Vec3& color, float intensity, float pssmLambda);
+	static Light* CreateSpot(IComponentAllocator* pAllocator, const Vec3& color, float intensity, float radius, float innerConeAngle, float outerConeAngle);
+	static Light* CreatePoint(IComponentAllocator* pAllocator, const Vec3& color, float intensity, const float radius);
+	static Light* CreateEnvironment(IComponentAllocator* pAllocator, bool isGlobal);
 
 public:
 	void OnAttached(Entity* pEntity);
@@ -63,7 +59,7 @@ public:
 	int GetEnvironmentTextureIndex() const;
 
 private:
-	friend LightFreeList;
+	FRIEND_FREELIST;
 	Light() {}
 	Light(Light&);
 	virtual ~Light() {}

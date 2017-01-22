@@ -56,6 +56,8 @@ enum class RdrPass
 	Opaque,
 	Sky,
 	Alpha,
+	Editor,
+	Wireframe,
 	UI,
 
 	Count
@@ -68,6 +70,8 @@ enum class RdrBucketType
 	Opaque,
 	Sky,
 	Alpha,
+	Editor,
+	Wireframe,
 	UI,
 
 	Count

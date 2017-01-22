@@ -59,8 +59,6 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	HFONT hDefaultFont = CreateFontA(14, 0, 0, 0, FW_DONTCARE, false, false, false, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Arial");
 	Widget::SetDefaultFont(hDefaultFont);
 
-	m_sceneViewModel.Init(&m_scene);
-
 	//////////////////////////////////////////////////////////////////////////
 	// File menu
 	m_fileMenu.Init();
@@ -84,7 +82,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	m_addMenu.AddItem("Add Object", [](void* pUserData) {
 		MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
 		Entity* pEntity = Entity::Create("New Object", Vec3::kZero, Rotation::kIdentity, Vec3::kOne);
-		pEntity->AttachRenderable(ModelInstance::Create("box", nullptr, 0));
+		pEntity->AttachRenderable(ModelInstance::Create(Scene::GetComponentAllocator(), "box", nullptr, 0));
 		pWindow->m_sceneViewModel.AddEntity(pEntity);
 	}, this);
 
@@ -108,8 +106,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 		RenderDoc::Capture();
 	}, this);
 	m_debugMenu.AddItem("Invalidate Spec Probes", [](void* pUserData) {
-		MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
-		pWindow->m_scene.InvalidateEnvironmentLights();
+		Scene::InvalidateEnvironmentLights();
 	}, this);
 
 	//////////////////////////////////////////////////////////////////////////
@@ -125,8 +122,8 @@ MainWindow::MainWindow(int width, int height, const char* title)
 
 void MainWindow::LoadScene(const char* sceneName)
 {
-	m_scene.Load(sceneName);
-	m_pRenderWindow->SetCameraPosition(m_scene.GetCameraSpawnPosition(), m_scene.GetCameraSpawnRotation());
+	Scene::Load(sceneName);
+	m_pRenderWindow->SetCameraPosition(Scene::GetCameraSpawnPosition(), Scene::GetCameraSpawnRotation());
 	m_sceneViewModel.PopulateTreeView(m_pSceneTreeView);
 }
 
@@ -231,8 +228,7 @@ int MainWindow::Run()
 		m_pRenderWindow->Update();
 
 		Debug::Update();
-		Physics::Update();
-		m_scene.Update();
+		Scene::Update();
 
 		m_pRenderWindow->QueueDraw();
 

@@ -4,16 +4,12 @@
 #include "FreeList.h"
 #include "PhysicsTypes.h"
 
-class RigidBody;
-typedef FreeList<RigidBody, 6 * 1024> RigidBodyFreeList;
-
 class RigidBody : public EntityComponent
 {
 public:
-	static RigidBodyFreeList& GetFreeList();
-	static RigidBody* CreatePlane();
-	static RigidBody* CreateBox(const Vec3& halfSize, const float density, const Vec3& offset);
-	static RigidBody* CreateSphere(const float radius, const float density, const Vec3& offset);
+	static RigidBody* CreatePlane(IComponentAllocator* pAllocator);
+	static RigidBody* CreateBox(IComponentAllocator* pAllocator, const Vec3& halfSize, const float density, const Vec3& offset);
+	static RigidBody* CreateSphere(IComponentAllocator* pAllocator, const float radius, const float density, const Vec3& offset);
 
 public:
 	void OnAttached(Entity* pEntity);
@@ -35,7 +31,7 @@ public:
 	void UpdateNoSimulation();
 
 private:
-	friend RigidBodyFreeList;
+	FRIEND_FREELIST;
 	RigidBody() {}
 	RigidBody(const RigidBody&);
 	virtual ~RigidBody() {}

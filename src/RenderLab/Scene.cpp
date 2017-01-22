@@ -5,109 +5,116 @@
 #include "render/Font.h"
 #include "render/RdrOffscreenTasks.h"
 #include "Entity.h"
-#include "components/ModelInstance.h"
-#include "components/Light.h"
-#include "components/RigidBody.h"
-#include "components/PostProcessVolume.h"
-#include "components/SkyVolume.h"
 #include "AssetLib/SceneAsset.h"
 #include "AssetLib/AssetLibrary.h"
+#include "Game.h"
 
-Scene::Scene()
-	: m_environmentMapSize(128)
-	, m_reloadPending(false)
+namespace
 {
+	struct
+	{
+		DefaultComponentAllocator m_componentAllocator;
+		EntityList m_entities;
+		Terrain m_terrain;
+
+		Vec3 m_cameraSpawnPosition;
+		Rotation m_cameraSpawnRotation;
+
+		Light* m_apActiveEnvironmentLights[MAX_ENVIRONMENT_MAPS];
+		RdrResourceHandle m_hEnvironmentMapTexArray;
+		RdrResourceHandle m_hEnvironmentMapDepthBuffer;
+		RdrDepthStencilViewHandle m_hEnvironmentMapDepthView;
+		uint m_environmentMapSize;
+
+		CachedString m_name;
+	} s_scene;
+
+	void captureEnvironmentLight(Light* pLight)
+	{
+		int index = pLight->GetEnvironmentTextureIndex();
+		if (index < 0)
+		{
+			// Find an empty environment light slot
+			for (int i = 0; i < ARRAY_SIZE(s_scene.m_apActiveEnvironmentLights); ++i)
+			{
+				if (!s_scene.m_apActiveEnvironmentLights[i])
+				{
+					s_scene.m_apActiveEnvironmentLights[i] = pLight;
+					pLight->SetEnvironmentTextureIndex(i);
+					index = i;
+					break;
+				}
+			}
+
+			// Bail if there were no open slots.
+			if (index < 0)
+				return;
+		}
+
+		assert(s_scene.m_apActiveEnvironmentLights[index] == pLight);
+		Rect viewport(0.f, 0.f, (float)s_scene.m_environmentMapSize, (float)s_scene.m_environmentMapSize);
+		RdrOffscreenTasks::QueueSpecularProbeCapture(pLight->GetEntity()->GetPosition(), viewport,
+			s_scene.m_hEnvironmentMapTexArray, index, s_scene.m_hEnvironmentMapDepthView);
+	}
 }
 
 void Scene::Cleanup()
 {
-	AssetLibrary<AssetLib::Scene>::RemoveReloadListener(this);
-
-	for (Entity* pEntity : m_entities)
+	for (Entity* pEntity : s_scene.m_entities)
 	{
 		pEntity->Release();
 	}
-	m_entities.clear();
+	s_scene.m_entities.clear();
 
-	m_sceneName = nullptr;
-}
-
-void Scene::OnAssetReloaded(const AssetLib::Scene* pSceneAsset)
-{
-	if (m_sceneName == pSceneAsset->assetName)
-	{
-		m_reloadPending = true;
-	}
+	s_scene.m_name = nullptr;
 }
 
 void Scene::InvalidateEnvironmentLights()
 {
-	for (int i = 0; i < ARRAY_SIZE(m_apActiveEnvironmentLights); ++i)
+	for (int i = 0; i < ARRAY_SIZE(s_scene.m_apActiveEnvironmentLights); ++i)
 	{
-		if (m_apActiveEnvironmentLights[i])
+		if (s_scene.m_apActiveEnvironmentLights[i])
 		{
-			CaptureEnvironmentLight(m_apActiveEnvironmentLights[i]);
+			captureEnvironmentLight(s_scene.m_apActiveEnvironmentLights[i]);
 		}
 	}
-}
-
-void Scene::CaptureEnvironmentLight(Light* pLight)
-{
-	int index = pLight->GetEnvironmentTextureIndex();
-	if (index < 0)
-	{
-		// Find an empty environment light slot
-		for (int i = 0; i < ARRAY_SIZE(m_apActiveEnvironmentLights); ++i)
-		{
-			if (!m_apActiveEnvironmentLights[i])
-			{
-				m_apActiveEnvironmentLights[i] = pLight;
-				pLight->SetEnvironmentTextureIndex(i);
-				index = i;
-				break;
-			}
-		}
-
-		// Bail if there were no open slots.
-		if (index < 0)
-			return;
-	}
-
-	assert(m_apActiveEnvironmentLights[index] == pLight);
-	Rect viewport(0.f, 0.f, (float)m_environmentMapSize, (float)m_environmentMapSize);
-	RdrOffscreenTasks::QueueSpecularProbeCapture(pLight->GetEntity()->GetPosition(), this, viewport,
-		m_hEnvironmentMapTexArray, index, m_hEnvironmentMapDepthView);
 }
 
 void Scene::Load(const char* sceneName)
 {
-	if (m_sceneName.getString())
+	if (s_scene.m_name.getString())
 	{
 		Cleanup();
 	}
 
-	m_sceneName = sceneName;
+	s_scene.m_name = sceneName;
 
-	AssetLib::Scene* pSceneData = AssetLibrary<AssetLib::Scene>::LoadAsset(m_sceneName);
-	AssetLibrary<AssetLib::Scene>::AddReloadListener(this);
+	AssetLib::Scene* pSceneData = AssetLibrary<AssetLib::Scene>::LoadAsset(s_scene.m_name);
 	if (!pSceneData)
 	{
 		assert(false);
 		return;
 	}
 
-	memset(m_apActiveEnvironmentLights, 0, sizeof(m_apActiveEnvironmentLights));
-	if (!m_hEnvironmentMapTexArray)
+	memset(s_scene.m_apActiveEnvironmentLights, 0, sizeof(s_scene.m_apActiveEnvironmentLights));
+	if (!s_scene.m_hEnvironmentMapTexArray || s_scene.m_environmentMapSize != pSceneData->environmentMapTexSize)
 	{
 		RdrResourceCommandList& rResCommands = g_pRenderer->GetPreFrameCommandList();
-		m_hEnvironmentMapTexArray = rResCommands.CreateTextureCubeArray(m_environmentMapSize, m_environmentMapSize, MAX_ENVIRONMENT_MAPS, RdrResourceFormat::R16G16B16A16_FLOAT);
-		m_hEnvironmentMapDepthBuffer = rResCommands.CreateTexture2D(m_environmentMapSize, m_environmentMapSize, RdrResourceFormat::D24_UNORM_S8_UINT, RdrResourceUsage::Default, nullptr);
-		m_hEnvironmentMapDepthView = rResCommands.CreateDepthStencilView(m_hEnvironmentMapDepthBuffer);
+		if (s_scene.m_hEnvironmentMapTexArray)
+		{
+			rResCommands.ReleaseResource(s_scene.m_hEnvironmentMapTexArray);
+			s_scene.m_hEnvironmentMapTexArray = 0;
+		}
+
+		s_scene.m_environmentMapSize = pSceneData->environmentMapTexSize;
+		s_scene.m_hEnvironmentMapTexArray = rResCommands.CreateTextureCubeArray(s_scene.m_environmentMapSize, s_scene.m_environmentMapSize, MAX_ENVIRONMENT_MAPS, RdrResourceFormat::R16G16B16A16_FLOAT);
+		s_scene.m_hEnvironmentMapDepthBuffer = rResCommands.CreateTexture2D(s_scene.m_environmentMapSize, s_scene.m_environmentMapSize, RdrResourceFormat::D24_UNORM_S8_UINT, RdrResourceUsage::Default, nullptr);
+		s_scene.m_hEnvironmentMapDepthView = rResCommands.CreateDepthStencilView(s_scene.m_hEnvironmentMapDepthBuffer);
 	}
 
 	// Camera
-	m_cameraSpawnPosition = pSceneData->camPosition;
-	m_cameraSpawnRotation = pSceneData->camRotation;
+	s_scene.m_cameraSpawnPosition = pSceneData->camPosition;
+	s_scene.m_cameraSpawnRotation = pSceneData->camRotation;
 
 	// Objects/Entities
 	for (const AssetLib::Object& rObjectData : pSceneData->objects)
@@ -117,7 +124,7 @@ void Scene::Load(const char* sceneName)
 		// Model
 		if (rObjectData.modelName)
 		{
-			pEntity->AttachRenderable(ModelInstance::Create(rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
+			pEntity->AttachRenderable(ModelInstance::Create(&s_scene.m_componentAllocator, rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
 		}
 
 		// Physics
@@ -125,10 +132,10 @@ void Scene::Load(const char* sceneName)
 		switch (rObjectData.physics.shape)
 		{
 		case AssetLib::ShapeType::Box:
-			pRigidBody = RigidBody::CreateBox(rObjectData.physics.halfSize, rObjectData.physics.density, rObjectData.physics.offset);
+			pRigidBody = RigidBody::CreateBox(&s_scene.m_componentAllocator, rObjectData.physics.halfSize, rObjectData.physics.density, rObjectData.physics.offset);
 			break;
 		case AssetLib::ShapeType::Sphere:
-			pRigidBody = RigidBody::CreateSphere(rObjectData.physics.halfSize.x, rObjectData.physics.density, rObjectData.physics.offset);
+			pRigidBody = RigidBody::CreateSphere(&s_scene.m_componentAllocator, rObjectData.physics.halfSize.x, rObjectData.physics.density, rObjectData.physics.offset);
 			break;
 		}
 		pEntity->AttachRigidBody(pRigidBody);
@@ -137,19 +144,19 @@ void Scene::Load(const char* sceneName)
 		switch (rObjectData.light.type)
 		{
 		case LightType::Directional:
-			pEntity->AttachLight(Light::CreateDirectional(rObjectData.light.color, rObjectData.light.intensity, rObjectData.light.pssmLambda));
+			pEntity->AttachLight(Light::CreateDirectional(&s_scene.m_componentAllocator, rObjectData.light.color, rObjectData.light.intensity, rObjectData.light.pssmLambda));
 			break;
 		case LightType::Point:
-			pEntity->AttachLight(Light::CreatePoint(rObjectData.light.color, rObjectData.light.intensity, rObjectData.light.radius));
+			pEntity->AttachLight(Light::CreatePoint(&s_scene.m_componentAllocator, rObjectData.light.color, rObjectData.light.intensity, rObjectData.light.radius));
 			break;
 		case LightType::Spot:
-			pEntity->AttachLight(Light::CreateSpot(rObjectData.light.color, rObjectData.light.intensity, rObjectData.light.radius, rObjectData.light.innerConeAngle, rObjectData.light.outerConeAngle));
+			pEntity->AttachLight(Light::CreateSpot(&s_scene.m_componentAllocator, rObjectData.light.color, rObjectData.light.intensity, rObjectData.light.radius, rObjectData.light.innerConeAngle, rObjectData.light.outerConeAngle));
 			break;
 		case LightType::Environment:
 			{
-				Light* pLight = Light::CreateEnvironment(rObjectData.light.bIsGlobalEnvironmentLight);
+				Light* pLight = Light::CreateEnvironment(&s_scene.m_componentAllocator, rObjectData.light.bIsGlobalEnvironmentLight);
 				pEntity->AttachLight(pLight);
-				CaptureEnvironmentLight(pLight);
+				captureEnvironmentLight(pLight);
 			}
 			break;
 		}
@@ -158,19 +165,19 @@ void Scene::Load(const char* sceneName)
 		switch (rObjectData.volume.volumeType)
 		{
 		case AssetLib::VolumeType::kPostProcess:
-			pEntity->AttachVolume(PostProcessVolume::Create(rObjectData.volume));
+			pEntity->AttachVolume(PostProcessVolume::Create(&s_scene.m_componentAllocator, rObjectData.volume));
 			break;
 		case AssetLib::VolumeType::kSky:
-			pEntity->AttachVolume(SkyVolume::Create(rObjectData.volume));
+			pEntity->AttachVolume(SkyVolume::Create(&s_scene.m_componentAllocator, rObjectData.volume));
 			break;
 		}
 
-		m_entities.push_back(pEntity);
+		s_scene.m_entities.push_back(pEntity);
 	}
 
 	if (pSceneData->terrain.enabled)
 	{
-		m_terrain.Init(pSceneData->terrain);
+		s_scene.m_terrain.Init(pSceneData->terrain);
 	}
 
 	// TODO: quad/oct tree for scene
@@ -178,40 +185,69 @@ void Scene::Load(const char* sceneName)
 
 void Scene::Update()
 {
-	if (m_reloadPending)
+	if (Game::IsActive())
 	{
-		CachedString sceneName = m_sceneName;
-		Cleanup();
-		Load(sceneName.getString());
-		m_reloadPending = false;
+		Physics::Update();
+
+		for (RigidBody& rRigidBody : s_scene.m_componentAllocator.GetRigidBodyFreeList())
+		{
+			rRigidBody.UpdatePostSimulation();
+		}
+	}
+	else
+	{
+		for (RigidBody& rRigidBody : s_scene.m_componentAllocator.GetRigidBodyFreeList())
+		{
+			rRigidBody.UpdateNoSimulation();
+		}
 	}
 }
 
 void Scene::AddEntity(Entity* pEntity)
 {
-	m_entities.push_back(pEntity);
+	s_scene.m_entities.push_back(pEntity);
 }
 
 void Scene::RemoveEntity(Entity* pEntity)
 {
-	auto iter = std::find(m_entities.begin(), m_entities.end(), pEntity);
-	if (iter != m_entities.end())
+	auto iter = std::find(s_scene.m_entities.begin(), s_scene.m_entities.end(), pEntity);
+	if (iter != s_scene.m_entities.end())
 	{
-		m_entities.erase(iter);
+		s_scene.m_entities.erase(iter);
 	}
 }
 
-const char* Scene::GetName() const
+const char* Scene::GetName()
 {
-	return m_sceneName.getString();
+	return s_scene.m_name.getString();
 }
 
-const Vec3& Scene::GetCameraSpawnPosition() const
+const Vec3& Scene::GetCameraSpawnPosition()
 {
-	return m_cameraSpawnPosition;
+	return s_scene.m_cameraSpawnPosition;
 }
 
-const Rotation& Scene::GetCameraSpawnRotation() const
+const Rotation& Scene::GetCameraSpawnRotation()
 {
-	return m_cameraSpawnRotation;
+	return s_scene.m_cameraSpawnRotation;
+}
+
+DefaultComponentAllocator* Scene::GetComponentAllocator()
+{
+	return &s_scene.m_componentAllocator;
+}
+
+Terrain& Scene::GetTerrain()
+{
+	return s_scene.m_terrain;
+}
+
+EntityList& Scene::GetEntities()
+{
+	return s_scene.m_entities;
+}
+
+RdrResourceHandle Scene::GetEnvironmentMapTexArray()
+{
+	return s_scene.m_hEnvironmentMapTexArray;
 }

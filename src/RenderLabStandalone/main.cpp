@@ -149,10 +149,9 @@ int main(int argc, char** argv)
 	g_inputManager.PushContext(&inputContext);
 
 	// Load in default scene
-	Scene scene;
-	scene.Load(g_userConfig.defaultScene.c_str());
-	mainCamera.SetPosition(scene.GetCameraSpawnPosition());
-	mainCamera.SetRotation(scene.GetCameraSpawnRotation());
+	Scene::Load(g_userConfig.defaultScene.c_str());
+	mainCamera.SetPosition(Scene::GetCameraSpawnPosition());
+	mainCamera.SetRotation(Scene::GetCameraSpawnRotation());
 
 	Timer::Handle hTimer = Timer::Create();
 
@@ -180,8 +179,7 @@ int main(int argc, char** argv)
 		g_inputManager.GetActiveContext()->Update(g_inputManager);
 
 		Debug::Update();
-		Physics::Update();
-		scene.Update();
+		Scene::Update();
 
 		// Queue drawing
 		{
@@ -191,7 +189,7 @@ int main(int argc, char** argv)
 			RdrOffscreenTasks::IssuePendingActions(g_renderer);
 
 			// Primary render action
-			g_renderer.BeginPrimaryAction(mainCamera, scene);
+			g_renderer.BeginPrimaryAction(mainCamera);
 			{
 				Debug::QueueDraw(g_renderer, mainCamera);
 			}

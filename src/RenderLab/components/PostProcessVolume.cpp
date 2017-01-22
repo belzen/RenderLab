@@ -1,21 +1,12 @@
 #include "Precompiled.h"
 #include "PostProcessVolume.h"
+#include "ComponentAllocator.h"
 
-namespace
-{
-	PostProcessVolumeFreeList s_postProcessVolumeFreeList;
-}
-
-PostProcessVolumeFreeList& PostProcessVolume::GetFreeList()
-{
-	return s_postProcessVolumeFreeList;
-}
-
-PostProcessVolume* PostProcessVolume::Create(const AssetLib::Volume& rVolume)
+PostProcessVolume* PostProcessVolume::Create(IComponentAllocator* pAllocator, const AssetLib::Volume& rVolume)
 {
 	assert(rVolume.volumeType == AssetLib::VolumeType::kPostProcess);
 
-	PostProcessVolume* pPostProcess = s_postProcessVolumeFreeList.allocSafe();
+	PostProcessVolume* pPostProcess = pAllocator->AllocPostProcessVolume();
 	pPostProcess->m_effects = rVolume.postProcessEffects;
 	return pPostProcess;
 }
@@ -27,7 +18,7 @@ PostProcessVolume::PostProcessVolume()
 
 void PostProcessVolume::Release()
 {
-	s_postProcessVolumeFreeList.release(this);
+	m_pAllocator->ReleaseComponent(this);
 }
 
 void PostProcessVolume::OnAttached(Entity* pEntity)

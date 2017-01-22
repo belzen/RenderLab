@@ -13,7 +13,6 @@
 
 struct RdrDrawOp;
 struct RdrComputeOp;
-class Scene;
 class LightList;
 class InputManager;
 
@@ -113,7 +112,6 @@ struct RdrAction
 	RdrShadowPass shadowPasses[MAX_SHADOW_MAPS_PER_FRAME];
 	int shadowPassCount;
 
-	Scene* pScene;
 	Camera camera;
 	AssetLib::SkySettings sky;
 	AssetLib::PostProcessEffects postProcessEffects;

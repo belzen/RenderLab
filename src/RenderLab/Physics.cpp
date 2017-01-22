@@ -22,7 +22,6 @@ namespace
 		PxMaterial* pDefaultMaterial;
 
 		float accumTime;
-		bool simulationActive;
 	} s_physics;
 
 	inline PxVec3 toPxVec3(const Vec3& v)
@@ -86,39 +85,18 @@ void Physics::Init()
 	s_physics.pDefaultMaterial = s_physics.pPhysics->createMaterial(0.5f, 0.5f, 0.1f);
 }
 
-void Physics::SetSimulationActive(bool active)
-{
-	s_physics.simulationActive = active;
-	s_physics.accumTime = 0.f;
-}
-
 void Physics::Update()
 {
-	if (s_physics.simulationActive)
+	const float kStepTime = 1.f / 60.f;
+	s_physics.accumTime += Time::FrameTime();
+
+	while (s_physics.accumTime >= kStepTime)
 	{
-		const float kStepTime = 1.f / 60.f;
-		s_physics.accumTime += Time::FrameTime();
+		s_physics.pScene->simulate(kStepTime);
+		// Wait for simulation to complete
+		s_physics.pScene->fetchResults(true);
 
-		while (s_physics.accumTime >= kStepTime)
-		{
-			s_physics.pScene->simulate(kStepTime);
-			// Wait for simulation to complete
-			s_physics.pScene->fetchResults(true);
-
-			s_physics.accumTime -= kStepTime;
-		}
-
-		for (RigidBody& rRigidBody : RigidBody::GetFreeList())
-		{
-			rRigidBody.UpdatePostSimulation();
-		}
-	}
-	else
-	{
-		for (RigidBody& rRigidBody : RigidBody::GetFreeList())
-		{
-			rRigidBody.UpdateNoSimulation();
-		}
+		s_physics.accumTime -= kStepTime;
 	}
 }
 

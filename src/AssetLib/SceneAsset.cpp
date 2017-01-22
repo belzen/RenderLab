@@ -27,6 +27,7 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 	}
 
 	pScene->assetName = assetName;
+	pScene->environmentMapTexSize = jRoot.get("environmentMapTexSize", 128).asUInt();
 
 	Json::Value jCamera = jRoot.get("camera", Json::Value::null);
 

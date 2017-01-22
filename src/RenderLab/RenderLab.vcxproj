@@ -175,6 +175,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="components\ComponentAllocator.cpp" />
     <ClCompile Include="components\Light.cpp" />
     <ClCompile Include="components\ModelInstance.cpp" />
     <ClCompile Include="components\PostProcessVolume.cpp" />
@@ -229,6 +230,7 @@
     <ClInclude Include="..\..\data\shaders\light_types.h" />
     <ClInclude Include="..\..\data\shaders\p_constants.h" />
     <ClInclude Include="..\Types.h" />
+    <ClInclude Include="components\ComponentAllocator.h" />
     <ClInclude Include="components\Light.h" />
     <ClInclude Include="components\EntityComponent.h" />
     <ClInclude Include="components\ModelInstance.h" />

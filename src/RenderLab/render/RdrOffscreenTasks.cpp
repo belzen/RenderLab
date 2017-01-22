@@ -23,13 +23,12 @@ namespace
 
 		Vec3 position;
 		Rect viewport;
-		Scene* pScene;
 	};
 
 	std::vector<RdrOffscreenTask> s_offscreenTasks;
 }
 
-void RdrOffscreenTasks::QueueSpecularProbeCapture(const Vec3& position, Scene* pScene, const Rect& viewport, 
+void RdrOffscreenTasks::QueueSpecularProbeCapture(const Vec3& position, const Rect& viewport, 
 	RdrResourceHandle hCubemapTex, int cubemapArrayIndex, RdrDepthStencilViewHandle hDepthView)
 {
 	RdrOffscreenTask task;
@@ -37,7 +36,6 @@ void RdrOffscreenTasks::QueueSpecularProbeCapture(const Vec3& position, Scene* p
 	task.state = 0;
 	task.position = position;
 	task.viewport = viewport;
-	task.pScene = pScene;
 	task.hTargetResource = hCubemapTex;
 	task.targetArrayIndex = cubemapArrayIndex;
 	task.hDepthView = hDepthView;
@@ -45,7 +43,7 @@ void RdrOffscreenTasks::QueueSpecularProbeCapture(const Vec3& position, Scene* p
 	s_offscreenTasks.push_back(task);
 }
 
-void RdrOffscreenTasks::QueueDiffuseProbeCapture(const Vec3& position, Scene* pScene, const Rect& viewport,
+void RdrOffscreenTasks::QueueDiffuseProbeCapture(const Vec3& position, const Rect& viewport,
 	RdrResourceHandle hCubemapTex, int cubemapArrayIndex, RdrDepthStencilViewHandle hDepthView)
 {
 	RdrOffscreenTask task;
@@ -53,7 +51,6 @@ void RdrOffscreenTasks::QueueDiffuseProbeCapture(const Vec3& position, Scene* pS
 	task.state = 0;
 	task.position = position;
 	task.viewport = viewport;
-	task.pScene = pScene;
 	task.hTargetResource = hCubemapTex;
 	task.targetArrayIndex = cubemapArrayIndex;
 	task.hDepthView = hDepthView;
@@ -83,7 +80,7 @@ void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 					surface.hRenderTarget = rPrimaryCommandList.CreateRenderTargetView(rTask.hTargetResource, (rTask.targetArrayIndex * (uint)CubemapFace::Count) + rTask.state, 1);
 					surface.hDepthTarget = rTask.hDepthView;
 
-					rRenderer.BeginOffscreenAction(L"Spec Probe Capture", cam, *rTask.pScene, false, rTask.viewport, surface);
+					rRenderer.BeginOffscreenAction(L"Spec Probe Capture", cam, false, rTask.viewport, surface);
 					rRenderer.EndAction();
 
 					// Clean up render target view
@@ -113,7 +110,7 @@ void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 					surface.hRenderTarget = rPrimaryCommandList.CreateRenderTargetView(rTask.hTargetResource, (rTask.targetArrayIndex * (uint)CubemapFace::Count) + rTask.state, 1);
 					surface.hDepthTarget = rTask.hDepthView;
 
-					rRenderer.BeginOffscreenAction(L"Diffuse Probe Capture", cam, *rTask.pScene, false, rTask.viewport, surface);
+					rRenderer.BeginOffscreenAction(L"Diffuse Probe Capture", cam, false, rTask.viewport, surface);
 					rRenderer.EndAction();
 
 					// Clean up render target view

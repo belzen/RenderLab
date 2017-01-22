@@ -1,6 +1,7 @@
 #pragma once
 
 class Entity;
+class IComponentAllocator;
 
 class EntityComponent
 {
@@ -14,9 +15,14 @@ public:
 	const Entity* GetEntity() const;
 
 protected:
+	friend IComponentAllocator;
 	virtual ~EntityComponent() {}
 
+	// Entity this is attached to.
 	Entity* m_pEntity;
+
+	// Allocator this was created from.
+	IComponentAllocator* m_pAllocator;
 };
 
 //////////////////////////////////////////////////////////////////////////

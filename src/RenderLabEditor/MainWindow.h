@@ -37,7 +37,6 @@ private:
 	void OnSceneSelectionChanged(Entity* pEntity);
 
 private:
-	Scene m_scene;
 	SceneViewModel m_sceneViewModel;
 
 	RenderWindow* m_pRenderWindow;

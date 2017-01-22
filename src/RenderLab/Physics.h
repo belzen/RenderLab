@@ -13,8 +13,6 @@ namespace Physics
 	typedef uint ActorId;
 
 	void Init();
-
-	void SetSimulationActive(bool active);
 	void Update();
 
 	//////////////////////////////////////////////////////////////////////////

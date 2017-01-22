@@ -7,14 +7,10 @@
 #include "render/RdrShaders.h"
 #include "render/ModelData.h"
 
-class ModelInstance;
-typedef FreeList<ModelInstance, 6 * 1024> ModelInstanceFreeList;
-
 class ModelInstance : public Renderable
 {
 public:
-	static ModelInstanceFreeList& GetFreeList();
-	static ModelInstance* Create(const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps);
+	static ModelInstance* Create(IComponentAllocator* pAllocator, const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps);
 
 public:
 	void Release();
@@ -30,7 +26,7 @@ public:
 	const ModelData* GetModelData() const;
 
 private:
-	friend ModelInstanceFreeList;
+	FRIEND_FREELIST;
 	ModelInstance() {}
 	ModelInstance(const ModelInstance&);
 	virtual ~ModelInstance() {}

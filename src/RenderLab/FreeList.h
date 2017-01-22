@@ -1,7 +1,10 @@
 #pragma once
 #include "UtilsLib/ThreadMutex.h"
 
-template <class T_object, uint16 T_nMaxEntries>
+// Macro to easily add all FreeList types as friends to a class.
+#define FRIEND_FREELIST template<typename T_object, uint16 T_nMaxEntries> friend class FreeList
+
+template <typename T_object, uint16 T_nMaxEntries>
 class FreeList
 {
 public:

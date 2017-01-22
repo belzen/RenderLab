@@ -34,8 +34,8 @@ public:
 
 	void ApplyDeviceChanges();
 
-	void BeginPrimaryAction(Camera& rCamera, Scene& rScene);
-	void BeginOffscreenAction(const wchar_t* actionName, Camera& rCamera, Scene& rScene,
+	void BeginPrimaryAction(Camera& rCamera);
+	void BeginOffscreenAction(const wchar_t* actionName, Camera& rCamera,
 		bool enablePostprocessing, const Rect& viewport, const RdrSurface& outputSurface);
 	void EndAction();
 
@@ -85,7 +85,7 @@ private:
 
 	void ProcessReadbackRequests();
 
-	void QueueScene(const Scene& rScene);
+	void QueueScene();
 
 private:
 	///

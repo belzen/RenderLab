@@ -35,9 +35,6 @@ void Game::Play()
 
 	s_gameData.playId++;
 	s_gameData.isActive = true;
-
-	// Enable simulation and reset time scale.
-	Physics::SetSimulationActive(true);
 	Time::SetTimeScale(1.f);
 
 	// Cache entity state to restore on Stop().
@@ -67,9 +64,6 @@ void Game::Stop()
 		return;
 
 	s_gameData.isActive = false;
-
-	// Disable simulation and reset time scale
-	Physics::SetSimulationActive(false);
 	Time::SetTimeScale(1.f);
 
 	// Restore entity state.
@@ -84,11 +78,16 @@ void Game::Stop()
 			rEntity.SetPosition(rState.position);
 			rEntity.SetRotation(rState.rotation);
 		}
-	}
 
-	// Reset physics state
-	for (RigidBody& rRigidBody : RigidBody::GetFreeList())
-	{
-		rRigidBody.SetVelocities(Vec3::kZero, Vec3::kZero);
+		RigidBody* pRigidBody = rEntity.GetRigidBody();
+		if (pRigidBody)
+		{
+			pRigidBody->SetVelocities(Vec3::kZero, Vec3::kZero);
+		}
 	}
+}
+
+bool Game::IsActive()
+{
+	return s_gameData.isActive;
 }

@@ -5,4 +5,6 @@ namespace Game
 	void Play();
 	void Stop();
 	void Pause();
+
+	bool IsActive();
 }

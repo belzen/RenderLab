@@ -1,22 +1,13 @@
 #include "Precompiled.h"
 #include "SkyVolume.h"
 #include "render/ModelData.h"
+#include "ComponentAllocator.h"
 
-namespace
-{
-	SkyVolumeFreeList s_skyVolumeFreeList;
-}
-
-SkyVolumeFreeList& SkyVolume::GetFreeList()
-{
-	return s_skyVolumeFreeList;
-}
-
-SkyVolume* SkyVolume::Create(const AssetLib::Volume& rVolume)
+SkyVolume* SkyVolume::Create(IComponentAllocator* pAllocator, const AssetLib::Volume& rVolume)
 {
 	assert(rVolume.volumeType == AssetLib::VolumeType::kSky);
 
-	SkyVolume* pSky = s_skyVolumeFreeList.allocSafe();
+	SkyVolume* pSky = pAllocator->AllocSkyVolume();
 	pSky->m_sky = rVolume.skySettings;
 	return pSky;
 }
@@ -28,7 +19,7 @@ SkyVolume::SkyVolume()
 
 void SkyVolume::Release()
 {
-	s_skyVolumeFreeList.release(this);
+	m_pAllocator->ReleaseComponent(this);
 }
 
 void SkyVolume::OnAttached(Entity* pEntity)

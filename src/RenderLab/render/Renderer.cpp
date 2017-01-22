@@ -57,6 +57,8 @@ namespace
 		RdrBucketType::Opaque,	      // RdrPass::Opaque
 		RdrBucketType::Sky,	          // RdrPass::Sky
 		RdrBucketType::Alpha,		  // RdrPass::Alpha
+		RdrBucketType::Editor,		  // RdrPass::Editor
+		RdrBucketType::Wireframe,     // RdrPass::Wireframe
 		RdrBucketType::UI,		      // RdrPass::UI
 	};
 	static_assert(sizeof(s_passBuckets) / sizeof(s_passBuckets[0]) == (int)RdrPass::Count, "Missing pass -> bucket mappings");
@@ -70,6 +72,8 @@ namespace
 		L"Opaque",			// RdrPass::Opaque
 		L"Sky",				// RdrPass::Sky
 		L"Alpha",			// RdrPass::Alpha
+		L"Editor",			// RdrPass::Editor
+		L"Wireframe",		// RdrPass::Wireframe
 		L"UI",				// RdrPass::UI
 	};
 	static_assert(sizeof(s_passNames) / sizeof(s_passNames[0]) == (int)RdrPass::Count, "Missing RdrPass names!");
@@ -83,13 +87,15 @@ namespace
 		RdrProfileSection::Opaque,			// RdrPass::Opaque
 		RdrProfileSection::Sky,				// RdrPass::Sky
 		RdrProfileSection::Alpha,			// RdrPass::Alpha
+		RdrProfileSection::Editor,			// RdrPass::Editor
+		RdrProfileSection::Wireframe,		// RdrPass::Wireframe
 		RdrProfileSection::UI,				// RdrPass::UI
 	};
 	static_assert(sizeof(s_passProfileSections) / sizeof(s_passProfileSections[0]) == (int)RdrPass::Count, "Missing RdrPass profile sections!");
 
 	void cullSceneToCameraForShadows(const Camera& rCamera, RdrDrawBuckets* pBuckets)
 	{
-		for (ModelInstance& rModel : ModelInstance::GetFreeList())
+		for (ModelInstance& rModel : Scene::GetComponentAllocator()->GetModelInstanceFreeList())
 		{
 			Entity* pEntity = rModel.GetEntity();
 			if (rCamera.CanSee(pEntity->GetPosition(), rModel.GetRadius()))
@@ -103,7 +109,7 @@ namespace
 	AssetLib::SkySettings blendSkyForCamera(const Camera& rCamera)
 	{
 		AssetLib::SkySettings sky;
-		for (SkyVolume& rSkyVolume : SkyVolume::GetFreeList())
+		for (SkyVolume& rSkyVolume : Scene::GetComponentAllocator()->GetSkyVolumeFreeList())
 		{
 			sky = rSkyVolume.GetSkySettings();
 			// For now, only support one sky object.
@@ -387,11 +393,32 @@ RdrAction* Renderer::GetNextAction(const wchar_t* actionName, const Rect& viewpo
 		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
+	// Editor
+	pPass = &pAction->passes[(int)RdrPass::Editor];
+	{
+		pPass->viewport = viewport;
+		pPass->ahRenderTargets[0] = outputSurface.hRenderTarget;
+		pPass->bAlphaBlend = true;
+		pPass->depthTestMode = RdrDepthTestMode::None;
+		pPass->bDepthWriteEnabled = false;
+		pPass->shaderMode = RdrShaderMode::Normal;
+	}
+
+	// Wireframe
+	pPass = &pAction->passes[(int)RdrPass::Wireframe];
+	{
+		pPass->viewport = viewport;
+		pPass->ahRenderTargets[0] = outputSurface.hRenderTarget;
+		pPass->bAlphaBlend = true;
+		pPass->depthTestMode = RdrDepthTestMode::None;
+		pPass->bDepthWriteEnabled = false;
+		pPass->shaderMode = RdrShaderMode::Normal;
+	}
+
 	// UI
 	pPass = &pAction->passes[(int)RdrPass::UI];
 	{
 		pPass->viewport = viewport;
-		pPass->bEnabled = true;
 		pPass->ahRenderTargets[0] = outputSurface.hRenderTarget;
 		pPass->bAlphaBlend = true;
 		pPass->depthTestMode = RdrDepthTestMode::None;
@@ -408,20 +435,21 @@ void Renderer::SetLightingMethod(RdrLightingMethod eLightingMethod)
 	RdrShaderSystem::SetGlobalShaderDefine("CLUSTERED_LIGHTING", (eLightingMethod == RdrLightingMethod::Clustered));
 }
 
-void Renderer::QueueScene(const Scene& rScene)
+void Renderer::QueueScene()
 {
 	const Camera& rCamera = m_pCurrentAction->camera;
-	Scene* pScene = m_pCurrentAction->pScene;
 	RdrLightList* pLightList = &m_pCurrentAction->lights;
 	RdrDrawBuckets* pDrawBuckets = &m_pCurrentAction->opBuckets;
+	DefaultComponentAllocator* pComponents = Scene::GetComponentAllocator();
 
 	Vec3 camDir = rCamera.GetDirection();
 	Vec3 camPos = rCamera.GetPosition();
 	float depthMin = FLT_MAX;
 	float depthMax = 0.f;
 
+
 	// Models
-	for (ModelInstance& rModel : ModelInstance::GetFreeList())
+	for (ModelInstance& rModel : pComponents->GetModelInstanceFreeList())
 	{
 		Entity* pEntity = rModel.GetEntity();
 		float radius = rModel.GetRadius();
@@ -445,19 +473,19 @@ void Renderer::QueueScene(const Scene& rScene)
 	}
 
 	// Terrain
-	pScene->GetTerrain().QueueDraw(pDrawBuckets, rCamera);
+	Scene::GetTerrain().QueueDraw(pDrawBuckets, rCamera);
 
 	// Depth min/max.
 	depthMin = max(rCamera.GetNearDist(), depthMin);
 	depthMax = min(rCamera.GetFarDist(), depthMax);
 
 	// Lighting
-	for (Light& rLight : Light::GetFreeList())
+	for (Light& rLight : pComponents->GetLightFreeList())
 	{
 		pLightList->AddLight(&rLight);
 	}
 
-	m_pCurrentAction->lightParams.hEnvironmentMapTexArray = rScene.GetEnvironmentMapTexArray();
+	m_pCurrentAction->lightParams.hEnvironmentMapTexArray = Scene::GetEnvironmentMapTexArray();
 	m_lighting.QueueDraw(&m_pCurrentAction->lights, *this, m_pCurrentAction->camera, depthMin, depthMax,
 		m_eLightingMethod, &m_pCurrentAction->lightParams);
 
@@ -467,7 +495,7 @@ void Renderer::QueueScene(const Scene& rScene)
 	// Post-processing
 	if (m_pCurrentAction->bEnablePostProcessing)
 	{
-		for (PostProcessVolume& rPostProcess : PostProcessVolume::GetFreeList())
+		for (PostProcessVolume& rPostProcess : pComponents->GetPostProcessVolumeFreeList())
 		{
 			m_pCurrentAction->postProcessEffects = rPostProcess.GetEffects();
 			// TODO: Add post-process effects blending.
@@ -543,7 +571,7 @@ void Renderer::QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencilV
 	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(m_pCurrentAction->resourceCommands, rLight.position, 0.1f, rLight.radius * 2.f);
 }
 
-void Renderer::BeginPrimaryAction(Camera& rCamera, Scene& rScene)
+void Renderer::BeginPrimaryAction(Camera& rCamera)
 {
 	assert(m_pCurrentAction == nullptr);
 
@@ -555,8 +583,6 @@ void Renderer::BeginPrimaryAction(Camera& rCamera, Scene& rScene)
 
 	m_pCurrentAction = GetNextAction(L"Primary Action", viewport, true, surface);
 
-	m_pCurrentAction->pScene = &rScene;
-
 	rCamera.SetAspectRatio(m_viewWidth / (float)m_viewHeight);
 	rCamera.UpdateFrustum();
 	m_pCurrentAction->camera = rCamera;
@@ -567,22 +593,22 @@ void Renderer::BeginPrimaryAction(Camera& rCamera, Scene& rScene)
 	m_pCurrentAction->passes[(int)RdrPass::Sky].bEnabled = true;
 	m_pCurrentAction->passes[(int)RdrPass::Alpha].bEnabled = true;
 	m_pCurrentAction->passes[(int)RdrPass::UI].bEnabled = true;
+	m_pCurrentAction->passes[(int)RdrPass::Wireframe].bEnabled = true;
+	m_pCurrentAction->passes[(int)RdrPass::Editor].bEnabled = true;
 
 	m_pCurrentAction->sky = blendSkyForCamera(m_pCurrentAction->camera);
 	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, m_pCurrentAction->sky.volumetricFog, m_pCurrentAction->constants);
 	createUiConstants(m_pCurrentAction->resourceCommands, viewport, m_pCurrentAction->uiConstants);
 
-	QueueScene(rScene);
+	QueueScene();
 }
 
-void Renderer::BeginOffscreenAction(const wchar_t* actionName, Camera& rCamera, Scene& rScene, 
+void Renderer::BeginOffscreenAction(const wchar_t* actionName, Camera& rCamera,
 	bool enablePostprocessing, const Rect& viewport, const RdrSurface& outputSurface)
 {
 	assert(m_pCurrentAction == nullptr);
 
 	m_pCurrentAction = GetNextAction(actionName, viewport, enablePostprocessing, outputSurface);
-
-	m_pCurrentAction->pScene = &rScene;
 
 	rCamera.SetAspectRatio(viewport.width / viewport.height);
 	rCamera.UpdateFrustum();
@@ -597,7 +623,7 @@ void Renderer::BeginOffscreenAction(const wchar_t* actionName, Camera& rCamera, 
 	m_pCurrentAction->sky = blendSkyForCamera(m_pCurrentAction->camera);
 	createPerActionConstants(m_pCurrentAction->resourceCommands, m_pCurrentAction->camera, viewport, m_pCurrentAction->sky.volumetricFog, m_pCurrentAction->constants);
 
-	QueueScene(rScene);
+	QueueScene();
 }
 
 void Renderer::EndAction()
@@ -920,6 +946,19 @@ void Renderer::DrawFrame()
 				m_profiler.BeginSection(RdrProfileSection::PostProcessing);
 				m_postProcess.DoPostProcessing(*m_pInputManager, m_pContext, m_drawState, pColorBuffer, rAction.postProcessEffects);
 				m_profiler.EndSection();
+			}
+
+
+			DrawPass(rAction, RdrPass::Editor);
+
+			{
+				rasterState.bWireframe = true;
+				m_pContext->SetRasterState(rasterState);
+
+				DrawPass(rAction, RdrPass::Wireframe);
+
+				rasterState.bWireframe = false;
+				m_pContext->SetRasterState(rasterState);
 			}
 
 			DrawPass(rAction, RdrPass::UI);

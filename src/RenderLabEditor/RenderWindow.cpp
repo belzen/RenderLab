@@ -6,6 +6,7 @@
 #include "components/ModelInstance.h"
 #include "Physics.h"
 #include "Entity.h"
+#include "Scene.h"
 #include "ViewModels/SceneViewModel.h"
 #include "UI.h"
 
@@ -109,7 +110,7 @@ bool RenderWindow::OnMouseEnter(int mx, int my)
 		if (rDragData.type == WidgetDragDataType::kModelAsset)
 		{
 			m_pPlacingObject = Entity::Create("New Object", Vec3::kOrigin, Rotation::kIdentity, Vec3::kOne);
-			m_pPlacingObject->AttachRenderable(ModelInstance::Create(rDragData.data.assetName, nullptr, 0));
+			m_pPlacingObject->AttachRenderable(ModelInstance::Create(Scene::GetComponentAllocator(), rDragData.data.assetName, nullptr, 0));
 			m_pSceneViewModel->AddEntity(m_pPlacingObject);
 		}
 		else if (rDragData.type == WidgetDragDataType::kObjectAsset)
@@ -175,7 +176,7 @@ void RenderWindow::QueueDraw()
 	RdrOffscreenTasks::IssuePendingActions(m_renderer);
 
 	// Primary render action
-	m_renderer.BeginPrimaryAction(m_mainCamera, *m_pSceneViewModel->GetScene());
+	m_renderer.BeginPrimaryAction(m_mainCamera);
 	{
 		Debug::QueueDraw(m_renderer, m_mainCamera);
 	}

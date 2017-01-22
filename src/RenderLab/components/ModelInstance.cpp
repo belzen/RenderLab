@@ -1,5 +1,6 @@
 #include "Precompiled.h"
 #include "ModelInstance.h"
+#include "ComponentAllocator.h"
 #include "AssetLib/SceneAsset.h"
 #include "render/ModelData.h"
 #include "render/RdrFrameMem.h"
@@ -23,18 +24,12 @@ namespace
 		{ RdrShaderSemantic::Tangent, 0, RdrVertexInputFormat::RGB_F32, 0, 48, RdrVertexInputClass::PerVertex, 0 },
 		{ RdrShaderSemantic::Binormal, 0, RdrVertexInputFormat::RGB_F32, 0, 60, RdrVertexInputClass::PerVertex, 0 }
 	};
-
-	ModelInstanceFreeList s_modelInstanceFreeList;
 }
 
-ModelInstanceFreeList& ModelInstance::GetFreeList()
-{
-	return s_modelInstanceFreeList;
-}
 
-ModelInstance* ModelInstance::Create(const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps)
+ModelInstance* ModelInstance::Create(IComponentAllocator* pAllocator, const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps)
 {
-	ModelInstance* pModel = s_modelInstanceFreeList.allocSafe();
+	ModelInstance* pModel = pAllocator->AllocModelInstance();
 	pModel->m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAY_SIZE(s_modelVertexDesc));
 	pModel->SetModelData(modelAssetName, aMaterialSwaps, numMaterialSwaps);
 	return pModel;
@@ -50,7 +45,7 @@ void ModelInstance::Release()
 
 	memset(m_pMaterials, 0, sizeof(m_pMaterials));
 
-	s_modelInstanceFreeList.release(this);
+	m_pAllocator->ReleaseComponent(this);
 }
 
 void ModelInstance::OnAttached(Entity* pEntity)

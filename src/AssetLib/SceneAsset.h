@@ -139,8 +139,10 @@ namespace AssetLib
 
 		std::vector<Object> objects;
 		Terrain terrain;
+		
 		Vec3 globalEnvironmentLightPosition;
-
+		uint environmentMapTexSize;
+		
 		uint timeLastModified;
 		CachedString assetName;
 	};

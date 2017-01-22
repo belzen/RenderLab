@@ -2,34 +2,25 @@
 #include "RigidBody.h"
 #include "Physics.h"
 #include "Entity.h"
+#include "ComponentAllocator.h"
 
-namespace
+RigidBody* RigidBody::CreatePlane(IComponentAllocator* pAllocator)
 {
-	RigidBodyFreeList s_rigidBodyFreeList;
-}
-
-RigidBodyFreeList& RigidBody::GetFreeList()
-{
-	return s_rigidBodyFreeList;
-}
-
-RigidBody* RigidBody::CreatePlane()
-{
-	RigidBody* pRigidBody = s_rigidBodyFreeList.allocSafe();
+	RigidBody* pRigidBody = pAllocator->AllocRigidBody();
 	pRigidBody->m_pActor = Physics::CreatePlane();
 	return pRigidBody;
 }
 
-RigidBody* RigidBody::CreateBox(const Vec3& halfSize, const float density, const Vec3& offset)
+RigidBody* RigidBody::CreateBox(IComponentAllocator* pAllocator, const Vec3& halfSize, const float density, const Vec3& offset)
 {
-	RigidBody* pRigidBody = s_rigidBodyFreeList.allocSafe();
+	RigidBody* pRigidBody = pAllocator->AllocRigidBody();
 	pRigidBody->m_pActor = Physics::CreateBox(halfSize, density, offset);
 	return pRigidBody;
 }
 
-RigidBody* RigidBody::CreateSphere(const float radius, const float density, const Vec3& offset)
+RigidBody* RigidBody::CreateSphere(IComponentAllocator* pAllocator, const float radius, const float density, const Vec3& offset)
 {
-	RigidBody* pRigidBody = s_rigidBodyFreeList.allocSafe();
+	RigidBody* pRigidBody = pAllocator->AllocRigidBody();
 	pRigidBody->m_pActor = Physics::CreateSphere(radius, density, offset);
 	return pRigidBody;
 }
@@ -50,7 +41,7 @@ void RigidBody::OnDetached(Entity* pEntity)
 void RigidBody::Release()
 {
 	Physics::DestroyActor(m_pActor);
-	s_rigidBodyFreeList.release(this);
+	m_pAllocator->ReleaseComponent(this);
 }
 
 Vec3 RigidBody::GetPosition() const
