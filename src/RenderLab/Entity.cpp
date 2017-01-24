@@ -1,6 +1,6 @@
 #include "Precompiled.h"
 #include "Entity.h"
-#include "components/ModelInstance.h"
+#include "components/ModelComponent.h"
 #include "components/RigidBody.h"
 #include "components/Light.h"
 #include "components/VolumeComponent.h"

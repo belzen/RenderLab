@@ -16,7 +16,7 @@
 #include "components/Light.h"
 #include "components/Renderable.h"
 #include "components/VolumeComponent.h"
-#include "components/ModelInstance.h"
+#include "components/ModelComponent.h"
 
 namespace
 {
@@ -82,7 +82,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	m_addMenu.AddItem("Add Object", [](void* pUserData) {
 		MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
 		Entity* pEntity = Entity::Create("New Object", Vec3::kZero, Rotation::kIdentity, Vec3::kOne);
-		pEntity->AttachRenderable(ModelInstance::Create(Scene::GetComponentAllocator(), "box", nullptr, 0));
+		pEntity->AttachRenderable(ModelComponent::Create(Scene::GetComponentAllocator(), "box", nullptr, 0));
 		pWindow->m_sceneViewModel.AddEntity(pEntity);
 	}, this);
 

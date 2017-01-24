@@ -6,14 +6,11 @@
 #include "render/RdrResource.h"
 #include "render/RdrShaders.h"
 #include "render/ModelData.h"
-#include "render/RdrDrawOp.h"
 
-class RdrAction;
-
-class ModelInstance : public Renderable
+class ModelComponent : public Renderable
 {
 public:
-	static ModelInstance* Create(IComponentAllocator* pAllocator, const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps);
+	static ModelComponent* Create(IComponentAllocator* pAllocator, const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps);
 
 public:
 	void Release();
@@ -30,9 +27,9 @@ public:
 
 private:
 	FRIEND_FREELIST;
-	ModelInstance() {}
-	ModelInstance(const ModelInstance&);
-	virtual ~ModelInstance() {}
+	ModelComponent() {}
+	ModelComponent(const ModelComponent&);
+	virtual ~ModelComponent() {}
 
 	// Whether the model should allow GPU hardware instancing.
 	bool CanInstance() const;
@@ -48,12 +45,12 @@ private:
 	uint16 m_instancedDataId;
 };
 
-inline float ModelInstance::GetRadius() const
+inline float ModelComponent::GetRadius() const
 {
 	return m_pModelData->GetRadius() * Vec3MaxComponent(m_pEntity->GetScale());
 }
 
-inline const ModelData* ModelInstance::GetModelData() const
+inline const ModelData* ModelComponent::GetModelData() const
 {
 	return m_pModelData;
 }

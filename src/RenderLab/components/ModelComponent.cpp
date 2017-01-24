@@ -1,5 +1,5 @@
 #include "Precompiled.h"
-#include "ModelInstance.h"
+#include "ModelComponent.h"
 #include "ComponentAllocator.h"
 #include "AssetLib/SceneAsset.h"
 #include "render/ModelData.h"
@@ -27,15 +27,15 @@ namespace
 }
 
 
-ModelInstance* ModelInstance::Create(IComponentAllocator* pAllocator, const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps)
+ModelComponent* ModelComponent::Create(IComponentAllocator* pAllocator, const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps)
 {
-	ModelInstance* pModel = pAllocator->AllocModelInstance();
+	ModelComponent* pModel = pAllocator->AllocModelInstance();
 	pModel->m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAY_SIZE(s_modelVertexDesc));
 	pModel->SetModelData(modelAssetName, aMaterialSwaps, numMaterialSwaps);
 	return pModel;
 }
 
-void ModelInstance::Release()
+void ModelComponent::Release()
 {
 	if (m_hVsPerObjectConstantBuffer)
 	{
@@ -48,23 +48,23 @@ void ModelInstance::Release()
 	m_pAllocator->ReleaseComponent(this);
 }
 
-void ModelInstance::OnAttached(Entity* pEntity)
+void ModelComponent::OnAttached(Entity* pEntity)
 {
 	m_pEntity = pEntity;
 }
 
-void ModelInstance::OnDetached(Entity* pEntity)
+void ModelComponent::OnDetached(Entity* pEntity)
 {
 	m_pEntity = nullptr;
 }
 
-bool ModelInstance::CanInstance() const
+bool ModelComponent::CanInstance() const
 {
 	// TODO: Heuristic based on tri count.  Instancing seems to perform best on low-mid triangle counts.
 	return true;
 }
 
-void ModelInstance::SetModelData(const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps)
+void ModelComponent::SetModelData(const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps)
 {
 	m_pModelData = ModelData::LoadFromFile(modelAssetName);
 
@@ -85,7 +85,7 @@ void ModelInstance::SetModelData(const CachedString& modelAssetName, const Asset
 	}
 }
 
-RdrDrawOpSet ModelInstance::BuildDrawOps(RdrAction* pAction)
+RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 {
 	if (!m_hVsPerObjectConstantBuffer || m_lastTransformId != m_pEntity->GetTransformId())
 	{

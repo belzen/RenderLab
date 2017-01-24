@@ -195,9 +195,6 @@
     <ClCompile Include="components\RigidBody.cpp">
       <Filter>components</Filter>
     </ClCompile>
-    <ClCompile Include="components\ModelInstance.cpp">
-      <Filter>components</Filter>
-    </ClCompile>
     <ClCompile Include="Time.cpp" />
     <ClCompile Include="components\Light.cpp">
       <Filter>components</Filter>
@@ -221,6 +218,9 @@
     </ClCompile>
     <ClCompile Include="render\RdrAction.cpp">
       <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="components\ModelComponent.cpp">
+      <Filter>components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -364,9 +364,6 @@
       <Filter>components</Filter>
     </ClInclude>
     <ClInclude Include="PhysicsTypes.h" />
-    <ClInclude Include="components\ModelInstance.h">
-      <Filter>components</Filter>
-    </ClInclude>
     <ClInclude Include="Time.h" />
     <ClInclude Include="components\Light.h">
       <Filter>components</Filter>
@@ -399,6 +396,9 @@
     </ClInclude>
     <ClInclude Include="render\RdrAction.h">
       <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="components\ModelComponent.h">
+      <Filter>components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -3,7 +3,7 @@
 #include "PostProcessVolumeViewModel.h"
 #include "SkyVolumeViewModel.h"
 #include "LightViewModel.h"
-#include "ModelInstanceViewModel.h"
+#include "ModelComponentViewModel.h"
 #include "EntityViewModel.h"
 
 IViewModel* IViewModel::Create(const std::type_info& typeId, void* pTypeData)
@@ -26,10 +26,10 @@ IViewModel* IViewModel::Create(const std::type_info& typeId, void* pTypeData)
 		pViewModel->SetTarget(static_cast<Light*>(pTypeData));
 		return pViewModel;
 	}
-	else if (typeId == typeid(ModelInstance))
+	else if (typeId == typeid(ModelComponent))
 	{
-		ModelInstanceViewModel* pViewModel = new ModelInstanceViewModel();
-		pViewModel->SetTarget(static_cast<ModelInstance*>(pTypeData));
+		ModelComponentViewModel* pViewModel = new ModelComponentViewModel();
+		pViewModel->SetTarget(static_cast<ModelComponent*>(pTypeData));
 		return pViewModel;
 	}
 	else if (typeId == typeid(Entity))

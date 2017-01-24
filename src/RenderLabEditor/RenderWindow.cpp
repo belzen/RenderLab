@@ -3,7 +3,7 @@
 #include "render\Renderer.h"
 #include "render\RdrOffscreenTasks.h"
 #include "RenderDoc/RenderDocUtil.h"
-#include "components/ModelInstance.h"
+#include "components/ModelComponent.h"
 #include "Physics.h"
 #include "Entity.h"
 #include "Scene.h"
@@ -110,7 +110,7 @@ bool RenderWindow::OnMouseEnter(int mx, int my)
 		if (rDragData.type == WidgetDragDataType::kModelAsset)
 		{
 			m_pPlacingObject = Entity::Create("New Object", Vec3::kOrigin, Rotation::kIdentity, Vec3::kOne);
-			m_pPlacingObject->AttachRenderable(ModelInstance::Create(Scene::GetComponentAllocator(), rDragData.data.assetName, nullptr, 0));
+			m_pPlacingObject->AttachRenderable(ModelComponent::Create(Scene::GetComponentAllocator(), rDragData.data.assetName, nullptr, 0));
 			m_pSceneViewModel->AddEntity(m_pPlacingObject);
 		}
 		else if (rDragData.type == WidgetDragDataType::kObjectAsset)
@@ -180,6 +180,21 @@ void RenderWindow::QueueDraw()
 	{
 		Scene::QueueDraw(pPrimaryAction);
 		Debug::QueueDraw(pPrimaryAction);
+
+		// Draw selected entities in wireframe mode.
+		Entity* pEntity = m_pSceneViewModel->GetSelected();
+		if (pEntity)
+		{
+			Renderable* pRenderable = pEntity->GetRenderable();
+			if (pRenderable)
+			{
+				RdrDrawOpSet set = pRenderable->BuildDrawOps(pPrimaryAction);
+				for (int i = 0; i < set.numDrawOps; ++i)
+				{
+					pPrimaryAction->AddDrawOp(&set.aDrawOps[i], RdrBucketType::Wireframe);
+				}
+			}
+		}
 	}
 	m_renderer.QueueAction(pPrimaryAction);
 }

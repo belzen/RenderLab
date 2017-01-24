@@ -71,9 +71,6 @@
     <ClCompile Include="ViewModels\LightViewModel.cpp">
       <Filter>ViewModels</Filter>
     </ClCompile>
-    <ClCompile Include="ViewModels\ModelInstanceViewModel.cpp">
-      <Filter>ViewModels</Filter>
-    </ClCompile>
     <ClCompile Include="Widgets\ComboBox.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
@@ -81,6 +78,9 @@
       <Filter>Widgets</Filter>
     </ClCompile>
     <ClCompile Include="FileDialog.cpp" />
+    <ClCompile Include="ViewModels\ModelComponentViewModel.cpp">
+      <Filter>ViewModels</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainWindow.h" />
@@ -156,9 +156,6 @@
     <ClInclude Include="ViewModels\LightViewModel.h">
       <Filter>ViewModels</Filter>
     </ClInclude>
-    <ClInclude Include="ViewModels\ModelInstanceViewModel.h">
-      <Filter>ViewModels</Filter>
-    </ClInclude>
     <ClInclude Include="Widgets\ComboBox.h">
       <Filter>Widgets</Filter>
     </ClInclude>
@@ -166,6 +163,9 @@
       <Filter>Widgets</Filter>
     </ClInclude>
     <ClInclude Include="FileDialog.h" />
+    <ClInclude Include="ViewModels\ModelComponentViewModel.h">
+      <Filter>ViewModels</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="ViewModels">

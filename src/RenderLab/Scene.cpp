@@ -124,7 +124,7 @@ void Scene::Load(const char* sceneName)
 		// Model
 		if (rObjectData.modelName)
 		{
-			pEntity->AttachRenderable(ModelInstance::Create(&s_scene.m_componentAllocator, rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
+			pEntity->AttachRenderable(ModelComponent::Create(&s_scene.m_componentAllocator, rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
 		}
 
 		// Physics
@@ -228,7 +228,7 @@ void Scene::QueueDraw(RdrAction* pAction)
 
 	//////////////////////////////////////////////////////////////////////////
 	// Models
-	for (ModelInstance& rModel : s_scene.m_componentAllocator.GetModelInstanceFreeList())
+	for (ModelComponent& rModel : s_scene.m_componentAllocator.GetModelInstanceFreeList())
 	{
 		Entity* pEntity = rModel.GetEntity();
 		float radius = rModel.GetRadius();
@@ -292,7 +292,7 @@ void Scene::QueueDraw(RdrAction* pAction)
 	// Can only be after lighting is queued else there are no shadow passes.
 	// TODO: Better way to handle shadows.  Perhaps have the scene decide which lights will cast shadows this frame rather than RdrLighting.
 	int numShadowPasses = pAction->GetShadowPassCount();
-	for (ModelInstance& rModel : Scene::GetComponentAllocator()->GetModelInstanceFreeList())
+	for (ModelComponent& rModel : Scene::GetComponentAllocator()->GetModelInstanceFreeList())
 	{
 		Entity* pEntity = rModel.GetEntity();
 		RdrDrawOpSet ops;

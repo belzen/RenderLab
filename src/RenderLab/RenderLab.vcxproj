@@ -177,7 +177,7 @@
   <ItemGroup>
     <ClCompile Include="components\ComponentAllocator.cpp" />
     <ClCompile Include="components\Light.cpp" />
-    <ClCompile Include="components\ModelInstance.cpp" />
+    <ClCompile Include="components\ModelComponent.cpp" />
     <ClCompile Include="components\PostProcessVolume.cpp" />
     <ClCompile Include="components\RigidBody.cpp" />
     <ClCompile Include="components\SkyVolume.cpp" />
@@ -233,7 +233,7 @@
     <ClInclude Include="components\ComponentAllocator.h" />
     <ClInclude Include="components\Light.h" />
     <ClInclude Include="components\EntityComponent.h" />
-    <ClInclude Include="components\ModelInstance.h" />
+    <ClInclude Include="components\ModelComponent.h" />
     <ClInclude Include="components\PostProcessVolume.h" />
     <ClInclude Include="components\Renderable.h" />
     <ClInclude Include="components\RigidBody.h" />

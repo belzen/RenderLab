@@ -16,7 +16,7 @@
 #include "components/Light.h"
 #include "components/SkyVolume.h"
 #include "components/PostProcessVolume.h"
-#include "components/ModelInstance.h"
+#include "components/ModelComponent.h"
 #include "AssetLib/SceneAsset.h"
 
 Renderer* g_pRenderer = nullptr;

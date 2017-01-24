@@ -14,9 +14,9 @@ Light* DefaultComponentAllocator::AllocLight()
 	return pComponent;
 }
 
-ModelInstance* DefaultComponentAllocator::AllocModelInstance()
+ModelComponent* DefaultComponentAllocator::AllocModelInstance()
 {
-	ModelInstance* pComponent = m_models.allocSafe();
+	ModelComponent* pComponent = m_models.allocSafe();
 	InitComponent(pComponent);
 	return pComponent;
 }
@@ -47,7 +47,7 @@ void DefaultComponentAllocator::ReleaseComponent(const Light* pComponent)
 	return m_lights.release(pComponent);
 }
 
-void DefaultComponentAllocator::ReleaseComponent(const ModelInstance* pComponent)
+void DefaultComponentAllocator::ReleaseComponent(const ModelComponent* pComponent)
 {
 	return m_models.release(pComponent);
 }

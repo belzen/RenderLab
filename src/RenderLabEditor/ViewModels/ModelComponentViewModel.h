@@ -1,12 +1,12 @@
 #pragma once
 
 #include "IViewModel.h"
-#include "components/ModelInstance.h"
+#include "components/ModelComponent.h"
 
-class ModelInstanceViewModel : public IViewModel
+class ModelComponentViewModel : public IViewModel
 {
 public:
-	void SetTarget(ModelInstance* pModel);
+	void SetTarget(ModelComponent* pModel);
 
 	const char* GetTypeName();
 	const PropertyDef** GetProperties();
@@ -16,5 +16,5 @@ private:
 	static bool SetModel(const std::string& modelName, void* pSource);
 
 private:
-	ModelInstance* m_pModel;
+	ModelComponent* m_pModel;
 };

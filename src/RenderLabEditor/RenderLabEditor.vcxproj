@@ -197,7 +197,7 @@
     <ClCompile Include="PropertyTables.cpp" />
     <ClCompile Include="RenderWindow.cpp" />
     <ClCompile Include="ViewModels\LightViewModel.cpp" />
-    <ClCompile Include="ViewModels\ModelInstanceViewModel.cpp" />
+    <ClCompile Include="ViewModels\ModelComponentViewModel.cpp" />
     <ClCompile Include="ViewModels\PostProcessVolumeViewModel.cpp" />
     <ClCompile Include="ViewModels\SceneViewModel.cpp" />
     <ClCompile Include="ViewModels\SkyVolumeViewModel.cpp" />
@@ -230,7 +230,7 @@
     <ClInclude Include="PropertyTables.h" />
     <ClInclude Include="RenderWindow.h" />
     <ClInclude Include="ViewModels\LightViewModel.h" />
-    <ClInclude Include="ViewModels\ModelInstanceViewModel.h" />
+    <ClInclude Include="ViewModels\ModelComponentViewModel.h" />
     <ClInclude Include="ViewModels\IViewModel.h" />
     <ClInclude Include="ViewModels\PostProcessVolumeViewModel.h" />
     <ClInclude Include="ViewModels\SceneViewModel.h" />

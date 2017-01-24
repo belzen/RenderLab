@@ -2,7 +2,7 @@
 #include "EntityViewModel.h"
 #include "Entity.h"
 #include "PropertyTables.h"
-#include "components/ModelInstance.h"
+#include "components/ModelComponent.h"
 
 void EntityViewModel::SetTarget(Entity* pObject)
 {
