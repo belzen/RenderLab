@@ -18,7 +18,7 @@ public:
 	void OnDeactivate();
 
 	void Update();
-	void QueueDraw(Renderer& rRenderer);
+	void QueueDraw(RdrAction* pAction);
 
 private:
 	RdrPostProcess* m_pPostProc;

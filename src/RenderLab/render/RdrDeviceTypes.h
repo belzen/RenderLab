@@ -74,6 +74,17 @@ enum class RdrBucketType
 	Wireframe,
 	UI,
 
+	ShadowMap0,
+	ShadowMap1,
+	ShadowMap2,
+	ShadowMap3,
+	ShadowMap4,
+	ShadowMap5,
+	ShadowMap6,
+	ShadowMap7,
+	ShadowMap8,
+	ShadowMap9,
+
 	Count
 };
 

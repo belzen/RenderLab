@@ -3,6 +3,8 @@
 #include "RdrResource.h"
 #include "RdrShaderConstants.h"
 
+class Renderer;
+
 typedef uint16 RdrInstancedObjectDataId;
 
 namespace RdrInstancedObjectDataBuffer

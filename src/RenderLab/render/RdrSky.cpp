@@ -36,16 +36,10 @@ namespace
 		{ RdrShaderSemantic::Tangent, 0, RdrVertexInputFormat::RGB_F32, 0, 48, RdrVertexInputClass::PerVertex, 0 },
 		{ RdrShaderSemantic::Binormal, 0, RdrVertexInputFormat::RGB_F32, 0, 60, RdrVertexInputClass::PerVertex, 0 }
 	};
-
-	RdrInputLayoutHandle s_hSkyInputLayout = 0;
 }
 
 RdrSky::RdrSky()
 	: m_hVsPerObjectConstantBuffer(0)
-	, m_hFogConstants(0)
-	, m_hFogDensityLightLut(0)
-	, m_hFogFinalLut(0)
-	, m_fogLutSize(0,0,0)
 	, m_hAtmosphereConstants(0)
 	, m_hTransmittanceLut(0)
 	, m_hScatteringRayleighDeltaLut(0)
@@ -60,15 +54,15 @@ RdrSky::RdrSky()
 	memset(m_hIrradianceSumLuts, 0, sizeof(m_hIrradianceSumLuts));
 }
 
-void RdrSky::Init()
+void RdrSky::LazyInit()
 {
-	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
-	if (!s_hSkyInputLayout)
-	{
-		s_hSkyInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_skyVertexDesc, ARRAY_SIZE(s_skyVertexDesc));
-	}
+	if (m_hSkyDomeInputLayout)
+		return;
 
+	m_hSkyDomeInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_skyVertexDesc, ARRAY_SIZE(s_skyVertexDesc));
 	m_pSkyDomeModel = ModelData::LoadFromFile("skydome");
+	
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
 
 	// Transmittance LUTs
 	m_hTransmittanceLut = rResCommandList.CreateTexture2D(TRANSMITTANCE_LUT_WIDTH, TRANSMITTANCE_LUT_HEIGHT,
@@ -106,8 +100,15 @@ void RdrSky::Init()
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 }
 
+void RdrSky::AssignExternalResources(RdrResourceHandle hVolumetricFogLut)
+{
+	m_material.ahTextures.assign(2, hVolumetricFogLut); // todo: this isn't thread-safe
+}
+
 void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySettings, const RdrLightList* pLightList)
 {
+	LazyInit();
+
 	//////////////////////////////////////////////////////////////////////////
 	// Sky / atmosphere
 	if (!m_hVsPerObjectConstantBuffer)
@@ -116,10 +117,9 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		uint constantsSize = sizeof(Vec4) * 4;
 		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
-		m_hVsPerObjectConstantBuffer = g_pRenderer->GetActionCommandList()->CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
+		m_hVsPerObjectConstantBuffer = pAction->GetResCommandList().CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
 	}
 
-	RdrDrawBuckets& rDrawBuckets = pAction->opBuckets;
 	uint numSubObjects = m_pSkyDomeModel->GetNumSubObjects();
 	for (uint i = 0; i < numSubObjects; ++i)
 	{
@@ -129,13 +129,13 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
 		pDrawOp->pMaterial = &m_material;
 
-		pDrawOp->hInputLayout = s_hSkyInputLayout;
+		pDrawOp->hInputLayout = m_hSkyDomeInputLayout;
 		pDrawOp->vertexShader = kVertexShader;
 
 		pDrawOp->hGeo = rSubObject.hGeo;
 		pDrawOp->bHasAlpha = false;
 
-		rDrawBuckets.AddDrawOp(pDrawOp, RdrBucketType::Sky);
+		pAction->AddDrawOp(pDrawOp, RdrBucketType::Sky);
 	}
 
 	// Update atmosphere constants
@@ -167,7 +167,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			pParams->sunColor = float3(0.f, 0.f, 0.f);
 		}
 
-		m_hAtmosphereConstants = g_pRenderer->GetActionCommandList()->CreateUpdateConstantBuffer(m_hAtmosphereConstants,
+		m_hAtmosphereConstants = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_hAtmosphereConstants,
 			pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	}
 
@@ -184,7 +184,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			pOp->threads[1] = RdrComputeOp::getThreadGroupCount(TRANSMITTANCE_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 			pOp->threads[2] = 1;
 
-			rDrawBuckets.AddComputeOp(pOp, RdrPass::Sky);
+			pAction->AddComputeOp(pOp, RdrPass::Sky);
 		}
 
 
@@ -202,7 +202,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			pOp->threads[1] = RdrComputeOp::getThreadGroupCount(SCATTERING_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 			pOp->threads[2] = SCATTERING_LUT_DEPTH;
 
-			rDrawBuckets.AddComputeOp(pOp, RdrPass::Sky);
+			pAction->AddComputeOp(pOp, RdrPass::Sky);
 		}
 
 		// Initial delta E (irradiance)
@@ -217,7 +217,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			pOp->threads[1] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 			pOp->threads[2] = 1;
 
-			rDrawBuckets.AddComputeOp(pOp, RdrPass::Sky);
+			pAction->AddComputeOp(pOp, RdrPass::Sky);
 		}
 
 		// Clear E (irradiance)
@@ -230,7 +230,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			pOp->threads[1] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 			pOp->threads[2] = 1;
 
-			rDrawBuckets.AddComputeOp(pOp, RdrPass::Sky);
+			pAction->AddComputeOp(pOp, RdrPass::Sky);
 		}
 
 		uint currScatterIndex = 1;
@@ -260,7 +260,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 				pOp->threads[1] = RdrComputeOp::getThreadGroupCount(RADIANCE_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 				pOp->threads[2] = RADIANCE_LUT_DEPTH;
 
-				rDrawBuckets.AddComputeOp(pOp, RdrPass::Sky);
+				pAction->AddComputeOp(pOp, RdrPass::Sky);
 			}
 
 			// Delta E (irradiance)
@@ -284,7 +284,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 				pOp->threads[1] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 				pOp->threads[2] = 1;
 
-				rDrawBuckets.AddComputeOp(pOp, RdrPass::Sky);
+				pAction->AddComputeOp(pOp, RdrPass::Sky);
 			}
 
 			// Delta S (scatter)
@@ -300,7 +300,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 				pOp->threads[1] = RdrComputeOp::getThreadGroupCount(SCATTERING_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 				pOp->threads[2] = SCATTERING_LUT_DEPTH;
 
-				rDrawBuckets.AddComputeOp(pOp, RdrPass::Sky);
+				pAction->AddComputeOp(pOp, RdrPass::Sky);
 			}
 
 			// Sum E (irradiance)
@@ -314,7 +314,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 				pOp->threads[1] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_HEIGHT, ADD_THREADS_Y);
 				pOp->threads[2] = 1;
 
-				rDrawBuckets.AddComputeOp(pOp, RdrPass::Sky);
+				pAction->AddComputeOp(pOp, RdrPass::Sky);
 			}
 
 			// Sum S (scatter)
@@ -328,7 +328,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 				pOp->threads[1] = RdrComputeOp::getThreadGroupCount(SCATTERING_LUT_HEIGHT, ADD_THREADS_Y);
 				pOp->threads[2] = SCATTERING_LUT_DEPTH;
 
-				rDrawBuckets.AddComputeOp(pOp, RdrPass::Sky);
+				pAction->AddComputeOp(pOp, RdrPass::Sky);
 			}
 
 			currIrradianceIndex = !currIrradianceIndex;
@@ -337,103 +337,4 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 
 		m_bNeedsTransmittanceLutUpdate = false;
 	}
-
-	pAction->lightParams.hSkyTransmittanceLut = m_hTransmittanceLut;
-
-
-	//////////////////////////////////////////////////////////////////////////
-	// Volumetric fog
-	RdrResourceHandle hFogLut = 0;
-	if (rSkySettings.volumetricFog.enabled)
-	{
-		QueueVolumetricFog(pAction, rSkySettings.volumetricFog);
-		hFogLut = m_hFogFinalLut;
-	}
-	else
-	{
-		hFogLut = RdrResourceSystem::GetDefaultResourceHandle(RdrDefaultResource::kBlackTex3d);
-	}
-
-	m_material.ahTextures.assign(2, hFogLut); // todo: this isn't thread-safe
-	pAction->lightParams.hVolumetricFogLut = hFogLut;
-}
-
-void RdrSky::QueueVolumetricFog(RdrAction* pAction, const AssetLib::VolumetricFogSettings& rFogSettings)
-{
-	RdrResourceCommandList& rResCommandList = pAction->resourceCommands;
-	RdrLightResources& rLightParams = pAction->lightParams;
-
-	// Volumetric fog LUTs
-	UVec3 lutSize(
-		RdrComputeOp::getThreadGroupCount((uint)pAction->primaryViewport.width, VOLFOG_LUT_THREADS_X),
-		RdrComputeOp::getThreadGroupCount((uint)pAction->primaryViewport.height, VOLFOG_LUT_THREADS_Y),
-		64);
-	if (lutSize.x != m_fogLutSize.x || lutSize.y != m_fogLutSize.y)
-	{
-		if (m_hFogDensityLightLut)
-			rResCommandList.ReleaseResource(m_hFogDensityLightLut);
-		if (m_hFogFinalLut)
-			rResCommandList.ReleaseResource(m_hFogFinalLut);
-
-		m_hFogDensityLightLut = rResCommandList.CreateTexture3D(
-			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
-		m_hFogFinalLut = rResCommandList.CreateTexture3D(
-			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
-
-		m_fogLutSize = lutSize;
-	}
-
-	pAction->passes[(int)RdrPass::VolumetricFog].bEnabled = true;
-
-	// Update constants
-	VolumetricFogParams* pFogParams = (VolumetricFogParams*)RdrFrameMem::AllocAligned(sizeof(VolumetricFogParams), 16);
-	pFogParams->lutSize = m_fogLutSize;
-	pFogParams->farDepth = rFogSettings.farDepth;
-	pFogParams->phaseG = rFogSettings.phaseG;
-	pFogParams->absorptionCoeff = rFogSettings.absorptionCoeff;
-	pFogParams->scatteringCoeff = rFogSettings.scatteringCoeff;
-
-	m_hFogConstants = rResCommandList.CreateUpdateConstantBuffer(m_hFogConstants,
-		pFogParams, sizeof(VolumetricFogParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
-
-	//////////////////////////////////////////////////////////////////////////
-	// Participating media density and per-froxel lighting.
-	RdrComputeOp* pLightOp = RdrFrameMem::AllocComputeOp();
-	pLightOp->shader = RdrComputeShader::VolumetricFog_Light;
-
-	pLightOp->ahWritableResources.assign(0, m_hFogDensityLightLut);
-
-	pLightOp->ahConstantBuffers.assign(0, pAction->constants.hPsPerAction);
-	pLightOp->ahConstantBuffers.assign(1, rLightParams.hGlobalLightsCb);
-	pLightOp->ahConstantBuffers.assign(2, m_hAtmosphereConstants);
-	pLightOp->ahConstantBuffers.assign(3, m_hFogConstants);
-
-	pLightOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
-	pLightOp->aSamplers.assign(1, RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false));
-
-	pLightOp->ahResources.assign(0, rLightParams.hSkyTransmittanceLut);
-	pLightOp->ahResources.assign(1, rLightParams.hShadowMapTexArray);
-	pLightOp->ahResources.assign(2, rLightParams.hShadowCubeMapTexArray);
-	pLightOp->ahResources.assign(3, rLightParams.hSpotLightListRes);
-	pLightOp->ahResources.assign(4, rLightParams.hPointLightListRes);
-	pLightOp->ahResources.assign(5, rLightParams.hLightIndicesRes);
-
-	pLightOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.x, VOLFOG_LUT_THREADS_X);
-	pLightOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.y, VOLFOG_LUT_THREADS_Y);
-	pLightOp->threads[2] = m_fogLutSize.z;
-	pAction->opBuckets.AddComputeOp(pLightOp, RdrPass::VolumetricFog);
-
-	//////////////////////////////////////////////////////////////////////////
-	// Scattering accumulation
-	RdrComputeOp* pAccumOp = RdrFrameMem::AllocComputeOp();
-	pAccumOp->shader = RdrComputeShader::VolumetricFog_Accum;
-	pAccumOp->ahConstantBuffers.assign(0, pAction->constants.hPsPerAction);
-	pAccumOp->ahConstantBuffers.assign(1, m_hFogConstants);
-	pAccumOp->ahResources.assign(0, m_hFogDensityLightLut);
-	pAccumOp->ahWritableResources.assign(0, m_hFogFinalLut);
-
-	pAccumOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.x, VOLFOG_LUT_THREADS_X);
-	pAccumOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.y, VOLFOG_LUT_THREADS_Y);
-	pAccumOp->threads[2] = 1;
-	pAction->opBuckets.AddComputeOp(pAccumOp, RdrPass::VolumetricFog);
 }

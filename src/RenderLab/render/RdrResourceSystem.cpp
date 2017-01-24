@@ -2,7 +2,7 @@
 #include "RdrResourceSystem.h"
 #include "RdrContext.h"
 #include "RdrFrameMem.h"
-#include "RdrFrameState.h"
+#include "RdrAction.h"
 #include "Renderer.h"
 #include "AssetLib/TextureAsset.h"
 #include "AssetLib/AssetLibrary.h"
@@ -695,7 +695,7 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 		{
 			ConstantBufferPool& rPool = s_resourceSystem.constantBufferPools[poolIndex];
 			*pBuffer = rPool.aBuffers[--rPool.bufferCount];
-			pRdrContext->UpdateConstantBuffer(*pBuffer, cmd.pData);
+			pRdrContext->UpdateConstantBuffer(pBuffer->bufferObj, cmd.pData, cmd.size);
 		}
 		else
 		{
@@ -711,7 +711,7 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 	{
 		const CmdUpdateConstantBuffer& cmd = m_constantBufferUpdates[i];
 		RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
-		pRdrContext->UpdateConstantBuffer(*pBuffer, cmd.pData);
+		pRdrContext->UpdateConstantBuffer(pBuffer->bufferObj, cmd.pData, pBuffer->size);
 	}
 
 	// Create/Update geos

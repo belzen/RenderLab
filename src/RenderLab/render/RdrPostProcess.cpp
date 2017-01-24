@@ -84,7 +84,7 @@ namespace
 	}
 }
 
-void RdrPostProcess::Init()
+void RdrPostProcess::Init(RdrContext* pRdrContext)
 {
 	m_debugger.Init(this);
 	m_useHistogramToneMap = false;
@@ -94,6 +94,8 @@ void RdrPostProcess::Init()
 
 	const char* histogramDefines[] = { "TONEMAP_HISTOGRAM" };
 	m_hToneMapHistogramPs = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", histogramDefines, 1);
+
+	m_toneMapInputConstants = pRdrContext->CreateConstantBuffer(nullptr, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 }
 
 void RdrPostProcess::HandleResize(uint width, uint height)
@@ -190,23 +192,6 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 	}
 }
 
-void RdrPostProcess::QueueDraw(const AssetLib::PostProcessEffects& rEffects)
-{
-	// For now, just queue the tone map constants for the current action.
-	// TODO: Move all post-processing to queueable ops?
-	uint constantsSize = sizeof(ToneMapInputParams);
-	ToneMapInputParams* pTonemapSettings = (ToneMapInputParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
-	pTonemapSettings->white = rEffects.eyeAdaptation.white;
-	pTonemapSettings->middleGrey = rEffects.eyeAdaptation.middleGrey;
-	pTonemapSettings->minExposure = pow(2.f, rEffects.eyeAdaptation.minExposure);
-	pTonemapSettings->maxExposure = pow(2.f, rEffects.eyeAdaptation.maxExposure);
-	pTonemapSettings->bloomThreshold = rEffects.bloom.threshold;
-	pTonemapSettings->frameTime = Time::FrameTime();
-
-	m_hToneMapInputConstants = g_pRenderer->GetActionCommandList()->CreateUpdateConstantBuffer(m_hToneMapInputConstants,
-		pTonemapSettings, sizeof(ToneMapInputParams), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
-}
-
 void RdrPostProcess::DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const AssetLib::PostProcessEffects& rEffects)
 {
 	pRdrContext->BeginEvent(L"Post-Process");
@@ -221,19 +206,31 @@ void RdrPostProcess::DoPostProcessing(const InputManager& rInputManager, RdrCont
 		dbgLuminanceInput(rInputManager, pRdrContext, pColorBuffer, m_lumDebugRes[m_dbgFrame], m_lumDebugRes[dbgReadIdx], m_debugData);
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// Update tonemapping input constants
+	ToneMapInputParams tonemapSettings;
+	tonemapSettings.white = rEffects.eyeAdaptation.white;
+	tonemapSettings.middleGrey = rEffects.eyeAdaptation.middleGrey;
+	tonemapSettings.minExposure = pow(2.f, rEffects.eyeAdaptation.minExposure);
+	tonemapSettings.maxExposure = pow(2.f, rEffects.eyeAdaptation.maxExposure);
+	tonemapSettings.bloomThreshold = rEffects.bloom.threshold;
+	tonemapSettings.frameTime = Time::FrameTime(); // TODO: Need previous frame's time for this to be correct.
+	pRdrContext->UpdateConstantBuffer(m_toneMapInputConstants, &tonemapSettings, sizeof(ToneMapInputParams));
+
+	//////////////////////////////////////////////////////////////////////////
 	if (m_useHistogramToneMap)
 	{
 		DoLuminanceHistogram(pRdrContext, rDrawState, pColorBuffer);
 	}
 	else
 	{
-		DoLuminanceMeasurement(pRdrContext, rDrawState, pColorBuffer, m_hToneMapInputConstants);
+		DoLuminanceMeasurement(pRdrContext, rDrawState, pColorBuffer);
 	}
 
 	const RdrResource* pBloomBuffer = nullptr;
 	if (rEffects.bloom.enabled)
 	{
-		DoBloom(pRdrContext, rDrawState, pColorBuffer, m_hToneMapInputConstants);
+		DoBloom(pRdrContext, rDrawState, pColorBuffer);
 		pBloomBuffer = RdrResourceSystem::GetResource(m_bloomBuffers[0].hResources[1]);
 	}
 	else
@@ -246,7 +243,7 @@ void RdrPostProcess::DoPostProcessing(const InputManager& rInputManager, RdrCont
 	pRdrContext->EndEvent();
 }
 
-void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrConstantBufferHandle hToneMapInputConstants)
+void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer)
 {
 	pRdrContext->BeginEvent(L"Lum Measurement");
 	
@@ -260,7 +257,7 @@ void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawStat
 	rDrawState.pComputeShader = RdrShaderSystem::GetComputeShader(RdrComputeShader::LuminanceMeasure_First);
 	rDrawState.csResources[0] = pLumInput->resourceView;
 	rDrawState.csUavs[0] = pLumOutput->uav;
-	rDrawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hToneMapInputConstants)->bufferObj;
+	rDrawState.csConstantBuffers[0] = m_toneMapInputConstants;
 	rDrawState.csConstantBufferCount = 1;
 	pRdrContext->DispatchCompute(rDrawState, w, h, 1);
 
@@ -336,7 +333,7 @@ void RdrPostProcess::DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState&
 	pRdrContext->EndEvent();
 }
 
-void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrConstantBufferHandle hToneMapInputConstants)
+void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer)
 {
 	pRdrContext->BeginEvent(L"Bloom");
 
@@ -352,7 +349,7 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
 	rDrawState.csResources[0] = pLumInput->resourceView;
 	rDrawState.csResources[1] = pTonemapBuffer->resourceView;
 	rDrawState.csUavs[0] = pHighPassShrinkOutput->uav;
-	rDrawState.csConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hToneMapInputConstants)->bufferObj;
+	rDrawState.csConstantBuffers[0] = m_toneMapInputConstants;
 	rDrawState.csConstantBufferCount = 1;
 	pRdrContext->DispatchCompute(rDrawState, w, h, 1);
 

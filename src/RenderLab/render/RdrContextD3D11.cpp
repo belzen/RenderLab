@@ -1228,14 +1228,14 @@ RdrConstantBufferDeviceObj RdrContextD3D11::CreateConstantBuffer(const void* pDa
 	return devObj;
 }
 
-void RdrContextD3D11::UpdateConstantBuffer(RdrConstantBuffer& buffer, const void* pSrcData)
+void RdrContextD3D11::UpdateConstantBuffer(const RdrConstantBufferDeviceObj& buffer, const void* pSrcData, const uint dataSize)
 {
 	D3D11_MAPPED_SUBRESOURCE mapped;
-	HRESULT hr = m_pDevContext->Map(buffer.bufferObj.pBufferD3D11, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+	HRESULT hr = m_pDevContext->Map(buffer.pBufferD3D11, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 
-	memcpy(mapped.pData, pSrcData, buffer.size);
+	memcpy(mapped.pData, pSrcData, dataSize);
 
-	m_pDevContext->Unmap(buffer.bufferObj.pBufferD3D11, 0);
+	m_pDevContext->Unmap(buffer.pBufferD3D11, 0);
 }
 
 void RdrContextD3D11::ReleaseConstantBuffer(const RdrConstantBufferDeviceObj& buffer)

@@ -14,7 +14,7 @@ public:
 	// Texcoords: TL TR BL BR
 	void Init(const Vec2 aTexcoords[4], const char* texture);
 
-	void QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha);
+	void QueueDraw(RdrAction* pAction, const Vec3& pos, const Vec2& scale, float alpha);
 
 private:
 	RdrInputLayoutHandle m_hInputLayout;

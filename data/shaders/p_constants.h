@@ -14,9 +14,6 @@ struct PsPerAction
 	uint2 viewSize;
 	float cameraFovY;
 	float aspectRatio;
-
-	float volumetricFogFarDepth;
-	float3 unused;
 };
 
 struct ToneMapOutputParams

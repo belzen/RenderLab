@@ -189,11 +189,12 @@ int main(int argc, char** argv)
 			RdrOffscreenTasks::IssuePendingActions(g_renderer);
 
 			// Primary render action
-			g_renderer.BeginPrimaryAction(mainCamera);
+			RdrAction* pAction = RdrAction::CreatePrimary(mainCamera);
 			{
-				Debug::QueueDraw(g_renderer, mainCamera);
+				Scene::QueueDraw(pAction);
+				Debug::QueueDraw(pAction);
 			}
-			g_renderer.EndAction();
+			g_renderer.QueueAction(pAction);
 		}
 
 		// Wait for render thread.

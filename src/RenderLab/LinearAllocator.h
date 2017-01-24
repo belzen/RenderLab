@@ -60,8 +60,14 @@ public:
 
 	inline DataTypeT* Alloc()
 	{
-		uint elem = InterlockedIncrement(&m_size);
-		return &m_data[elem];
+		uint newSize = InterlockedIncrement(&m_size);
+		return &m_data[newSize - 1];
+	}
+
+	inline DataTypeT* AllocArray(uint count)
+	{
+		uint newSize = InterlockedAdd((LONG*)&m_size, count);
+		return &m_data[newSize - count];
 	}
 
 	inline void Reset()

@@ -60,7 +60,8 @@ struct GlobalLightData
 
 	uint numDirectionalLights;
 	uint clusterTileSize;
-	float2 unused;
+	float volumetricFogFarDepth;
+	float unused;
 };
 
 struct ClusteredLightCullingParams

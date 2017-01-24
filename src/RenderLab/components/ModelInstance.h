@@ -6,6 +6,9 @@
 #include "render/RdrResource.h"
 #include "render/RdrShaders.h"
 #include "render/ModelData.h"
+#include "render/RdrDrawOp.h"
+
+class RdrAction;
 
 class ModelInstance : public Renderable
 {
@@ -18,7 +21,7 @@ public:
 	void OnAttached(Entity* pEntity);
 	void OnDetached(Entity* pEntity);
 
-	void QueueDraw(RdrDrawBuckets* pDrawBuckets);
+	RdrDrawOpSet BuildDrawOps(RdrAction* pAction);
 
 	float GetRadius() const;
 

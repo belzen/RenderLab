@@ -7,7 +7,7 @@
 #include "UtilsLib/FixedVector.h"
 #include "../../data/shaders/light_types.h"
 
-class Renderer;
+class RdrAction;
 class Camera;
 class Light;
 
@@ -72,18 +72,21 @@ class RdrLighting
 public:
 	RdrLighting();
 
-	void Init();
 	void Cleanup();
 
-	void QueueDraw(RdrLightList* pLights, Renderer& rRenderer, const Camera& rCamera, const float sceneDepthMin, const float sceneDepthMax,
-		RdrLightingMethod lightingMethod, RdrLightResources* pOutResources);
+	void QueueDraw(RdrAction* pAction, RdrLightList* pLights, RdrLightingMethod lightingMethod,
+		const AssetLib::VolumetricFogSettings& rFog, const float sceneDepthMin, const float sceneDepthMax,
+		RdrLightResources* pOutResources);
 
 private:
-	void QueueClusteredLightCulling(Renderer& rRenderer, const Camera& rCamera, int numSpotLights, int numPointLights);
-	void QueueTiledLightCulling(Renderer& rRenderer, const Camera& rCamera, int numSpotLights, int numPointLights);
+	void LazyInitShadowResources();
+
+	void QueueClusteredLightCulling(RdrAction* pAction, const Camera& rCamera, int numSpotLights, int numPointLights);
+	void QueueTiledLightCulling(RdrAction* pAction, const Camera& rCamera, int numSpotLights, int numPointLights);
+	void QueueVolumetricFog(RdrAction* pAction, const AssetLib::VolumetricFogSettings& rFogSettings, const RdrResourceHandle hLightIndicesRes);
 
 private:
-	// Render resources
+	// Lighting render resources
 	RdrConstantBufferHandle m_hGlobalLightsCb;
 	RdrResourceHandle m_hSpotLightListRes;
 	RdrResourceHandle m_hPointLightListRes;
@@ -101,5 +104,11 @@ private:
 	// Lighting mode data.
 	RdrTiledLightingData m_tiledLightData;
 	RdrClusteredLightingData m_clusteredLightData;
+
+	// Volumetric fog resources
+	RdrConstantBufferHandle m_hFogConstants;
+	RdrResourceHandle m_hFogDensityLightLut;
+	RdrResourceHandle m_hFogFinalLut;
+	UVec3 m_fogLutSize;
 };
 

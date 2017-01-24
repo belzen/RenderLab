@@ -45,6 +45,11 @@ RdrDrawOp* RdrFrameMem::AllocDrawOp()
 	return s_frameMem[s_frame].drawOps.Alloc();
 }
 
+RdrDrawOp* RdrFrameMem::AllocDrawOps(uint16 count)
+{
+	return s_frameMem[s_frame].drawOps.AllocArray(count);
+}
+
 RdrComputeOp* RdrFrameMem::AllocComputeOp()
 {
 	return s_frameMem[s_frame].computeOps.Alloc();

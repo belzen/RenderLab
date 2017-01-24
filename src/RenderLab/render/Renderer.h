@@ -2,7 +2,7 @@
 
 #include "AssetLib/AssetLibForwardDecl.h"
 #include "RdrContext.h"
-#include "RdrFrameState.h"
+#include "RdrAction.h"
 #include "RdrShaderSystem.h"
 #include "RdrResourceSystem.h"
 #include "RdrDrawState.h"
@@ -11,14 +11,16 @@
 #include "RdrProfiler.h"
 #include "RdrLighting.h"
 #include "RdrSky.h"
+#include "RdrAction.h"
 
 class Camera;
 class Renderer;
 
-struct RdrSurface
+struct RdrFrameState
 {
-	RdrRenderTargetViewHandle hRenderTarget;
-	RdrDepthStencilViewHandle hDepthTarget;
+	FixedVector<RdrAction*, MAX_ACTIONS_PER_FRAME> actions;
+	RdrResourceCommandList preFrameResourceCommands;
+	RdrResourceCommandList postFrameResourceCommands;
 };
 
 // Global pointer to active renderer.
@@ -34,25 +36,13 @@ public:
 
 	void ApplyDeviceChanges();
 
-	void BeginPrimaryAction(Camera& rCamera);
-	void BeginOffscreenAction(const wchar_t* actionName, Camera& rCamera,
-		bool enablePostprocessing, const Rect& viewport, const RdrSurface& outputSurface);
-	void EndAction();
+	void QueueAction(RdrAction* pAction);
 
 	RdrResourceCommandList& GetPreFrameCommandList();
 	RdrResourceCommandList& GetPostFrameCommandList();
-	RdrResourceCommandList* GetActionCommandList();
-
-	void QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
-	void QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
-
-	void AddDrawOpToBucket(const RdrDrawOp* pDrawOp, RdrBucketType eBucket);
-	void AddComputeOpToPass(const RdrComputeOp* pComputeOp, RdrPass ePass);
 
 	void DrawFrame();
 	void PostFrameSync();
-
-	const Camera& GetCurrentCamera() const;
 
 	int GetViewportWidth() const;
 	int GetViewportHeight() const;
@@ -66,17 +56,18 @@ public:
 
 	const RdrProfiler& GetProfiler() const;
 
+	RdrLightingMethod GetLightingMethod() const;
+
+	RdrRenderTargetViewHandle GetColorBufferRenderTarget() const;
 	RdrResourceHandle GetPrimaryDepthBuffer() const;
-	RdrResourceHandle GetPrimaryDepthStencilView() const;
+	RdrDepthStencilViewHandle GetPrimaryDepthStencilView() const;
 
 private:
 	void DrawPass(const RdrAction& rAction, RdrPass ePass);
-	void DrawShadowPass(const RdrShadowPass& rPass);
+	void DrawShadowPass(const RdrAction& rAction, int shadowPassIndex);
 
 	RdrFrameState& GetQueueState();
 	RdrFrameState& GetActiveState();
-
-	RdrAction* GetNextAction(const wchar_t* actionName, const Rect& viewport, bool enablePostProcessing, const RdrSurface& outputSurface);
 
 	void DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants, const RdrLightResources& rLightParams);
 	void DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants,
@@ -84,8 +75,6 @@ private:
 	void DispatchCompute(const RdrComputeOp* pComputeOp);
 
 	void ProcessReadbackRequests();
-
-	void QueueScene();
 
 private:
 	///
@@ -102,12 +91,9 @@ private:
 	RdrRenderTargetViewHandle m_hColorBufferRenderTarget;
 
 	RdrDrawState m_drawState;
-	RdrLighting m_lighting;
 
 	RdrFrameState m_frameStates[2];
 	uint          m_queueState; // Index of the state being queued to by the main thread. (The other state is the active frame state).
-
-	RdrAction* m_pCurrentAction;
 
 	int m_viewWidth;
 	int m_viewHeight;
@@ -117,7 +103,6 @@ private:
 	RdrLightingMethod m_ePendingLightingMethod;
 	RdrLightingMethod m_eLightingMethod;
 
-	RdrSky m_sky;
 	RdrPostProcess m_postProcess;
 
 	RdrResourceReadbackRequestList m_readbackRequests; // Average out to a max of 32 requests per frame
@@ -136,19 +121,17 @@ private:
 
 inline int Renderer::GetViewportWidth() const 
 { 
-	return m_pCurrentAction ? (int)m_pCurrentAction->primaryViewport.width : m_viewWidth;
+	return m_viewWidth;
 }
 
 inline int Renderer::GetViewportHeight() const 
 { 
-	return m_pCurrentAction ? (int)m_pCurrentAction->primaryViewport.height : m_viewHeight; 
+	return m_viewHeight; 
 }
 
 inline Vec2 Renderer::GetViewportSize() const 
 {
-	return m_pCurrentAction ?
-		Vec2(m_pCurrentAction->primaryViewport.width, m_pCurrentAction->primaryViewport.height) :
-		Vec2((float)m_viewWidth, (float)m_viewHeight);
+	return Vec2((float)m_viewWidth, (float)m_viewHeight);
 }
 
 inline RdrFrameState& Renderer::GetQueueState()
@@ -166,12 +149,22 @@ inline const RdrProfiler& Renderer::GetProfiler() const
 	return m_profiler;
 }
 
+inline RdrRenderTargetViewHandle Renderer::GetColorBufferRenderTarget() const
+{
+	return m_hColorBufferRenderTarget;
+}
+
 inline RdrResourceHandle Renderer::GetPrimaryDepthBuffer() const
 {
 	return m_hPrimaryDepthBuffer;
 }
 
-inline RdrResourceHandle Renderer::GetPrimaryDepthStencilView() const
+inline RdrDepthStencilViewHandle Renderer::GetPrimaryDepthStencilView() const
 {
 	return m_hPrimaryDepthStencilView;
+}
+
+inline RdrLightingMethod Renderer::GetLightingMethod() const
+{
+	return m_eLightingMethod;
 }

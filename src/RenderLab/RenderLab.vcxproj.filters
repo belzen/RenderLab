@@ -156,9 +156,6 @@
     <ClCompile Include="render\RdrDeviceTypes.cpp">
       <Filter>render</Filter>
     </ClCompile>
-    <ClCompile Include="render\RdrFrameState.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
     <ClCompile Include="render\RdrMaterial.cpp">
       <Filter>render</Filter>
     </ClCompile>
@@ -221,6 +218,9 @@
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="components\ComponentAllocator.cpp">
       <Filter>components</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrAction.cpp">
+      <Filter>render</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -295,9 +295,6 @@
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="render\RdrDrawState.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="render\RdrFrameState.h">
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="render\RdrGeometry.h">
@@ -399,6 +396,9 @@
     <ClInclude Include="Game.h" />
     <ClInclude Include="components\ComponentAllocator.h">
       <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="render\RdrAction.h">
+      <Filter>render</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

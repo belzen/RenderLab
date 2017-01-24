@@ -217,6 +217,123 @@ void Scene::RemoveEntity(Entity* pEntity)
 	}
 }
 
+void Scene::QueueDraw(RdrAction* pAction)
+{
+	const Camera& rCamera = pAction->GetCamera();
+	Vec3 camDir = rCamera.GetDirection();
+	Vec3 camPos = rCamera.GetPosition();
+	float depthMin = FLT_MAX;
+	float depthMax = 0.f;
+	RdrDrawOpSet opSet;
+
+	//////////////////////////////////////////////////////////////////////////
+	// Models
+	for (ModelInstance& rModel : s_scene.m_componentAllocator.GetModelInstanceFreeList())
+	{
+		Entity* pEntity = rModel.GetEntity();
+		float radius = rModel.GetRadius();
+		if (!rCamera.CanSee(pEntity->GetPosition(), radius))
+		{
+			// Can't see the model.
+			continue;
+		}
+
+		opSet = rModel.BuildDrawOps(pAction);
+		for (uint16 i = 0; i < opSet.numDrawOps; ++i)
+		{
+			RdrDrawOp* pDrawOp = &opSet.aDrawOps[i];
+			RdrBucketType bucket = pDrawOp->bHasAlpha ? RdrBucketType::Alpha : RdrBucketType::Opaque;
+			pAction->AddDrawOp(pDrawOp, bucket);
+		}
+
+		Vec3 diff = pEntity->GetPosition() - camPos;
+		float distSqr = Vec3Dot(camDir, diff);
+		float dist = sqrtf(max(0.f, distSqr));
+
+		if (dist - radius < depthMin)
+			depthMin = dist - radius;
+
+		if (dist + radius > depthMax)
+			depthMax = dist + radius;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Terrain
+	opSet = Scene::GetTerrain().BuildDrawOps(pAction);
+	for (uint16 i = 0; i < opSet.numDrawOps; ++i)
+	{
+		pAction->AddDrawOp(&opSet.aDrawOps[i], RdrBucketType::Opaque);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Sky & Lighting
+	for (Light& rLight : s_scene.m_componentAllocator.GetLightFreeList())
+	{
+		pAction->AddLight(&rLight);
+	}
+
+	AssetLib::SkySettings sky;
+	for (SkyVolume& rSkyVolume : Scene::GetComponentAllocator()->GetSkyVolumeFreeList())
+	{
+		sky = rSkyVolume.GetSkySettings();
+		// For now, only support one sky object.
+		// TODO: Support blending of skies via volume changes and such.
+		//		Will probably need to trim the SkyComponent down to mostly data and
+		//		create a function/class that blends them together and maintains the render resources.	
+		break;
+	}
+
+	depthMin = max(rCamera.GetNearDist(), depthMin);
+	depthMax = min(rCamera.GetFarDist(), depthMax);
+	pAction->QueueSkyAndLighting(sky, s_scene.m_hEnvironmentMapTexArray, depthMin, depthMax);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Shadows
+	// Can only be after lighting is queued else there are no shadow passes.
+	// TODO: Better way to handle shadows.  Perhaps have the scene decide which lights will cast shadows this frame rather than RdrLighting.
+	int numShadowPasses = pAction->GetShadowPassCount();
+	for (ModelInstance& rModel : Scene::GetComponentAllocator()->GetModelInstanceFreeList())
+	{
+		Entity* pEntity = rModel.GetEntity();
+		RdrDrawOpSet ops;
+
+		for (int iShadowPass = 0; iShadowPass < numShadowPasses; ++iShadowPass)
+		{
+			const Camera& rShadowCamera = pAction->GetShadowCamera(iShadowPass);
+			if (rShadowCamera.CanSee(pEntity->GetPosition(), rModel.GetRadius()))
+			{
+				RdrBucketType shadowBucket = (RdrBucketType)((int)RdrBucketType::ShadowMap0 + iShadowPass);
+
+				// Re-use draw ops if we've already built them for a previous shadow pass.
+				if (ops.numDrawOps == 0)
+				{
+					ops = rModel.BuildDrawOps(pAction);
+				}
+
+				for (int i = 0; i < ops.numDrawOps; ++i)
+				{
+					if (!ops.aDrawOps[i].bHasAlpha)
+					{
+						pAction->AddDrawOp(&ops.aDrawOps[i], shadowBucket);
+					}
+				}
+			}
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Post-processing
+	AssetLib::PostProcessEffects postProcFx;
+	for (PostProcessVolume& rPostProcess : s_scene.m_componentAllocator.GetPostProcessVolumeFreeList())
+	{
+		postProcFx = rPostProcess.GetEffects();
+		// TODO: Add post-process effects blending.
+		break;
+	}
+
+	pAction->SetPostProcessingEffects(postProcFx);
+}
+
 const char* Scene::GetName()
 {
 	return s_scene.m_name.getString();

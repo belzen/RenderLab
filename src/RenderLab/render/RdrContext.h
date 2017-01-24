@@ -96,7 +96,7 @@ public:
 	/////////////////////////////////////////////////////////////
 	// Constant Buffers
 	virtual RdrConstantBufferDeviceObj CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage) = 0;
-	virtual void UpdateConstantBuffer(RdrConstantBuffer& buffer, const void* pData) = 0;
+	virtual void UpdateConstantBuffer(const RdrConstantBufferDeviceObj& buffer, const void* pData, const uint dataSize) = 0;
 	virtual void ReleaseConstantBuffer(const RdrConstantBufferDeviceObj& buffer) = 0;
 
 	/////////////////////////////////////////////////////////////

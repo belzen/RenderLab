@@ -10,24 +10,32 @@ struct RdrDrawOpSortKey
 {
 	union
 	{
+		// Note: Each uint64 must be in reverse order due to the byte ordering
+		//	when using the unioned comparison values.
 		struct
 		{
-			uint depth;
-			uint16 vertexShaderType;
+			// First uint64
 			uint16 vertexShaderFlags;
-			uint16 geo;
-			uint16 material;
+			uint16 vertexShaderType;
+			uint depth;
+
+			// Second uint64
 			uint unused;
+			uint16 material;
+			uint16 geo;
 		} alpha;
 
 		struct 
 		{
-			uint16 vertexShaderType;
-			uint16 vertexShaderFlags;
-			uint16 geo;
+			// First uint64
 			uint16 material;
-			uint unused1;
+			uint16 geo;
+			uint16 vertexShaderFlags;
+			uint16 vertexShaderType;
+
+			// Second uint64
 			uint unused2;
+			uint unused1;
 		} opaque;
 
 		struct  
@@ -62,6 +70,19 @@ struct RdrDrawOp
 	uint8 bHasAlpha : 1;
 	uint8 unused : 7;
 };
+
+struct RdrDrawOpSet
+{
+	RdrDrawOpSet()
+		: aDrawOps(nullptr), numDrawOps(0) {}
+	RdrDrawOpSet(RdrDrawOp* aDrawOps, uint16 numDrawOps)
+		: aDrawOps(aDrawOps), numDrawOps(numDrawOps) {}
+
+	RdrDrawOp* aDrawOps;
+	uint16 numDrawOps;
+};
+
+//////////////////////////////////////////////////////////////////////////
 
 inline void RdrDrawOp::BuildSortKey(const RdrDrawOp* pDrawOp, const float minDepth, RdrDrawOpSortKey& rOutKey)
 {

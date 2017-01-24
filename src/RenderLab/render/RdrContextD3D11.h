@@ -113,7 +113,7 @@ public:
 	/////////////////////////////////////////////////////////////
 	// Constant Buffers
 	RdrConstantBufferDeviceObj CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
-	void UpdateConstantBuffer(RdrConstantBuffer& buffer, const void* pData);
+	void UpdateConstantBuffer(const RdrConstantBufferDeviceObj& buffer, const void* pData, const uint dataSize);
 	void ReleaseConstantBuffer(const RdrConstantBufferDeviceObj& buffer);
 
 	/////////////////////////////////////////////////////////////

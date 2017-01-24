@@ -8,7 +8,7 @@
 #include "render/RdrResourceSystem.h"
 #include "render/RdrShaderSystem.h"
 #include "render/RdrInstancedObjectDataBuffer.h"
-#include "render/RdrFrameState.h"
+#include "render/RdrAction.h"
 #include "render/Renderer.h"
 
 namespace
@@ -85,7 +85,7 @@ void ModelInstance::SetModelData(const CachedString& modelAssetName, const Asset
 	}
 }
 
-void ModelInstance::QueueDraw(RdrDrawBuckets* pDrawBuckets)
+RdrDrawOpSet ModelInstance::BuildDrawOps(RdrAction* pAction)
 {
 	if (!m_hVsPerObjectConstantBuffer || m_lastTransformId != m_pEntity->GetTransformId())
 	{
@@ -96,7 +96,7 @@ void ModelInstance::QueueDraw(RdrDrawBuckets* pDrawBuckets)
 		memset(pConstants, 0, constantsSize);
 		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
 
-		m_hVsPerObjectConstantBuffer = g_pRenderer->GetActionCommandList()->CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer, 
+		m_hVsPerObjectConstantBuffer = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer, 
 			pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	
 		if (CanInstance())
@@ -118,26 +118,27 @@ void ModelInstance::QueueDraw(RdrDrawBuckets* pDrawBuckets)
 	}
 
 	uint numSubObjects = m_pModelData->GetNumSubObjects();
+	RdrDrawOp* aDrawOps = RdrFrameMem::AllocDrawOps(numSubObjects);
+
 	for (uint i = 0; i < numSubObjects; ++i)
 	{
 		const ModelData::SubObject& rSubObject = m_pModelData->GetSubObject(i);
+		RdrDrawOp& rDrawOp = aDrawOps[i];
 
-		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+		rDrawOp.instanceDataId = m_instancedDataId;
+		rDrawOp.hVsConstants = m_hVsPerObjectConstantBuffer;
+		rDrawOp.pMaterial = m_pMaterials[i];
 
-		pDrawOp->instanceDataId = m_instancedDataId;
-		pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
-		pDrawOp->pMaterial = m_pMaterials[i];
-
-		pDrawOp->hInputLayout = m_hInputLayout;
-		pDrawOp->vertexShader = kVertexShader;
+		rDrawOp.hInputLayout = m_hInputLayout;
+		rDrawOp.vertexShader = kVertexShader;
 		if (rSubObject.pMaterial->bAlphaCutout)
 		{
-			pDrawOp->vertexShader.flags |= RdrShaderFlags::AlphaCutout;
+			rDrawOp.vertexShader.flags |= RdrShaderFlags::AlphaCutout;
 		}
 
-		pDrawOp->hGeo = rSubObject.hGeo;
-		pDrawOp->bHasAlpha = false;
-
-		pDrawBuckets->AddDrawOp(pDrawOp, RdrBucketType::Opaque);
+		rDrawOp.hGeo = rSubObject.hGeo;
+		rDrawOp.bHasAlpha = false;
 	}
+
+	return RdrDrawOpSet(aDrawOps, numSubObjects);
 }

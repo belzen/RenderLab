@@ -11,7 +11,7 @@ public:
 	virtual void OnDeactivate() = 0;
 
 	virtual void Update() = 0;
-	virtual void QueueDraw(Renderer& rRenderer) = 0;
+	virtual void QueueDraw(RdrAction* pAction) = 0;
 };
 
 namespace Debug
@@ -23,5 +23,5 @@ namespace Debug
 	void DeactivateDebugger(const char* name);
 
 	void Update();
-	void QueueDraw(Renderer& rRenderer, const Camera& rCamera);
+	void QueueDraw(RdrAction* pAction);
 }

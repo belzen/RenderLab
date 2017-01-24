@@ -176,11 +176,12 @@ void RenderWindow::QueueDraw()
 	RdrOffscreenTasks::IssuePendingActions(m_renderer);
 
 	// Primary render action
-	m_renderer.BeginPrimaryAction(m_mainCamera);
+	RdrAction* pPrimaryAction = RdrAction::CreatePrimary(m_mainCamera);
 	{
-		Debug::QueueDraw(m_renderer, m_mainCamera);
+		Scene::QueueDraw(pPrimaryAction);
+		Debug::QueueDraw(pPrimaryAction);
 	}
-	m_renderer.EndAction();
+	m_renderer.QueueAction(pPrimaryAction);
 }
 
 void RenderWindow::DrawFrame()

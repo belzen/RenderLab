@@ -41,9 +41,10 @@ namespace
 		delete pFileData;
 	}
 
-	void queueDrawCommon(Renderer& rRenderer, const UI::Position& uiPos, float size, const TextObject& rText, Color color)
+	void queueDrawCommon(RdrAction* pAction, const UI::Position& uiPos, float size, const TextObject& rText, Color color)
 	{
-		Vec3 pos = UI::PosToScreenSpace(uiPos, Vec2(rText.size.x, rText.size.y) * size, rRenderer.GetViewportSize());
+		const Rect& viewport = pAction->GetViewport();
+		Vec3 pos = UI::PosToScreenSpace(uiPos, Vec2(rText.size.x, rText.size.y) * size, Vec2(viewport.width, viewport.height));
 
 		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
 		pDrawOp->hGeo = rText.hTextGeo;
@@ -55,9 +56,9 @@ namespace
 		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pConstants[0] = Vec4(color.r, color.g, color.b, color.a);
 		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
-		pDrawOp->hVsConstants = rRenderer.GetActionCommandList()->CreateTempConstantBuffer(pConstants, constantsSize);
+		pDrawOp->hVsConstants = pAction->GetResCommandList().CreateTempConstantBuffer(pConstants, constantsSize);
 
-		rRenderer.AddDrawOpToBucket(pDrawOp, RdrBucketType::UI);
+		pAction->AddDrawOp(pDrawOp, RdrBucketType::UI);
 	}
 }
 
@@ -154,14 +155,14 @@ TextObject Font::CreateText(const char* text)
 	return obj;
 }
 
-void Font::QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const char* text, Color color)
+void Font::QueueDraw(RdrAction* pAction, const UI::Position& pos, float size, const char* text, Color color)
 {
 	TextObject textObj = CreateText(text);
-	queueDrawCommon(rRenderer, pos, size, textObj, color);
-	rRenderer.GetPostFrameCommandList().ReleaseGeo(textObj.hTextGeo);
+	queueDrawCommon(pAction, pos, size, textObj, color);
+	g_pRenderer->GetPostFrameCommandList().ReleaseGeo(textObj.hTextGeo);
 }
 
-void Font::QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const TextObject& rText, Color color)
+void Font::QueueDraw(RdrAction* pAction, const UI::Position& pos, float size, const TextObject& rText, Color color)
 {
-	queueDrawCommon(rRenderer, pos, size, rText, color);
+	queueDrawCommon(pAction, pos, size, rText, color);
 }

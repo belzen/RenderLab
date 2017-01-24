@@ -13,6 +13,7 @@ namespace RdrFrameMem
 	void* AllocAligned(const uint size, const uint alignment);
 
 	RdrDrawOp* AllocDrawOp();
+	RdrDrawOp* AllocDrawOps(uint16 count);
 	RdrComputeOp* AllocComputeOp();
 
 	void FlipState();

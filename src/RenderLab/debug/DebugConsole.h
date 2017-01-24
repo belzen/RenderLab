@@ -2,7 +2,7 @@
 
 #include "input/Input.h"
 
-class Renderer;
+class RdrAction;
 
 enum class DebugCommandArgType
 {
@@ -34,7 +34,7 @@ namespace DebugConsole
 	void RegisterCommand(const char* name, DebugCommandCallback func, DebugCommandArgType arg1, DebugCommandArgType arg2, DebugCommandArgType arg3);
 	void RegisterCommand(const char* name, DebugCommandCallback func, DebugCommandArgType arg1, DebugCommandArgType arg2, DebugCommandArgType arg3, DebugCommandArgType arg4);
 
-	void QueueDraw(Renderer& rRenderer);
+	void QueueDraw(RdrAction* pAction);
 
 	void ToggleActive(InputManager& rInputManager);
 }

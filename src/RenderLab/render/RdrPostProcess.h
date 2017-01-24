@@ -21,9 +21,7 @@ struct RdrPostProcessDbgData
 class RdrPostProcess
 {
 public:
-	void Init();
-
-	void QueueDraw(const AssetLib::PostProcessEffects& rEffects);
+	void Init(RdrContext* pRdrContext);
 
 	void HandleResize(uint width, uint height);
 	void DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const AssetLib::PostProcessEffects& rEffects);
@@ -31,12 +29,12 @@ public:
 	const RdrPostProcessDbgData& GetDebugData() const;
 
 private:
-	void DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrConstantBufferHandle hToneMapInputConstants);
+	void DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
 	void DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
-	void DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrConstantBufferHandle hToneMapInputConstants);
+	void DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
 	void DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrResource* pBloomBuffer);
-
-	RdrConstantBufferHandle m_hToneMapInputConstants;
+	
+	RdrConstantBufferDeviceObj m_toneMapInputConstants;
 
 	RdrShaderHandle m_hToneMapPs;
 	RdrResourceHandle m_hToneMapOutputConstants;

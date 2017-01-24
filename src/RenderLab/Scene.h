@@ -22,6 +22,7 @@ namespace Scene
 	void Cleanup();
 
 	void Update();
+	void QueueDraw(RdrAction* pAction);
 
 	Terrain& GetTerrain();
 

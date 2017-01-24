@@ -1,6 +1,6 @@
 #include "Precompiled.h"
 #include "DebugConsole.h"
-#include "render/Renderer.h"
+#include "render/RdrAction.h"
 #include "render/Sprite.h"
 #include "render/Font.h"
 #include "UI.h"
@@ -273,18 +273,18 @@ void DebugConsole::RegisterCommand(const char* name, DebugCommandCallback func, 
 	s_debugConsole.commands.insert(std::make_pair(std::string(cmd.name), cmd));
 }
 
-void DebugConsole::QueueDraw(Renderer& rRenderer)
+void DebugConsole::QueueDraw(RdrAction* pAction)
 {
 	if (!s_debugConsole.isActive)
 		return;
 
-	Vec2 size((float)rRenderer.GetViewportWidth(), 400.f);
-	s_debugConsole.bgSprite.QueueDraw(rRenderer, Vec3::kZero, size, 0.25f);
+	Vec2 size(pAction->GetViewport().width, 400.f);
+	s_debugConsole.bgSprite.QueueDraw(pAction, Vec3::kZero, size, 0.25f);
 
 	if (s_debugConsole.currentCommandLen > 0)
 	{
 		UI::Position pos(0.f, size.y - DEBUG_FONT_SIZE, 0.f, UI::AlignmentFlags::Default);
-		Font::QueueDraw(rRenderer, pos, DEBUG_FONT_SIZE, s_debugConsole.currentCommand, Color::kWhite);
+		Font::QueueDraw(pAction, pos, DEBUG_FONT_SIZE, s_debugConsole.currentCommand, Color::kWhite);
 	}
 }
 

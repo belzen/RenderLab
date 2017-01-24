@@ -4,7 +4,7 @@
 #include "RdrShaderSystem.h"
 #include "RdrDrawOp.h"
 #include "RdrFrameMem.h"
-#include "RdrFrameState.h"
+#include "RdrAction.h"
 #include "Renderer.h"
 
 namespace
@@ -79,7 +79,7 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 }
 
-void Terrain::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Camera& rCamera)
+RdrDrawOpSet Terrain::BuildDrawOps(RdrAction* pAction)
 {
 	// TODO: Remaining terrain tasks:
 	//	* Update instance buffer with LOD cells culled to the camera
@@ -87,7 +87,7 @@ void Terrain::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Camera& rCamera)
 	//	* Clipmapped height data
 	//	* Materials
 	if (!m_initialized)
-		return;
+		return RdrDrawOpSet();
 
 	DsTerrain* pDsConstants = (DsTerrain*)RdrFrameMem::AllocAligned(sizeof(DsTerrain), 16);
 	pDsConstants->lods[0].minPos = m_srcData.cornerMin;
@@ -95,7 +95,7 @@ void Terrain::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Camera& rCamera)
 	pDsConstants->heightmapTexelSize.x = 1.f / m_heightmapSize.x;
 	pDsConstants->heightmapTexelSize.y = 1.f / m_heightmapSize.y;
 	pDsConstants->heightScale = m_srcData.heightScale;
-	m_tessMaterial.hDsConstants = g_pRenderer->GetActionCommandList()->CreateUpdateConstantBuffer(m_tessMaterial.hDsConstants,
+	m_tessMaterial.hDsConstants = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_tessMaterial.hDsConstants,
 		pDsConstants, sizeof(DsTerrain), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	
 	//////////////////////////////////////////////////////////////////////////
@@ -109,5 +109,5 @@ void Terrain::QueueDraw(RdrDrawBuckets* pDrawBuckets, const Camera& rCamera)
 	pDrawOp->pTessellationMaterial = &m_tessMaterial;
 	pDrawOp->instanceCount = m_gridSize.x * m_gridSize.y;
 
-	pDrawBuckets->AddDrawOp(pDrawOp, RdrBucketType::Opaque);
+	return RdrDrawOpSet(pDrawOp, 1);
 }

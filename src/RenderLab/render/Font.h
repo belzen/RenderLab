@@ -27,6 +27,6 @@ namespace Font
 
 	TextObject CreateText(const char* text);
 
-	void QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const char* text, Color color);
-	void QueueDraw(Renderer& rRenderer, const UI::Position& pos, float size, const TextObject &rText, Color color);
+	void QueueDraw(RdrAction* pAction, const UI::Position& pos, float size, const char* text, Color color);
+	void QueueDraw(RdrAction* pAction, const UI::Position& pos, float size, const TextObject &rText, Color color);
 }

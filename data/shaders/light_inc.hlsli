@@ -183,7 +183,7 @@ void accumulateLighting(
 float3 applyVolumetricFog(in float3 litColor, in float viewDepth, 
 	in float2 screenPos, in Texture3D<float4> texVolumetricFogLut)
 {
-	float3 fogLutCoords = float3(screenPos.xy / cbPerAction.viewSize, viewDepth / (cbPerAction.volumetricFogFarDepth - cbPerAction.cameraNearDist));
+	float3 fogLutCoords = float3(screenPos.xy / cbPerAction.viewSize, viewDepth / (cbGlobalLights.volumetricFogFarDepth - cbPerAction.cameraNearDist));
 	float4 fog = texVolumetricFogLut.SampleLevel(g_samClamp, fogLutCoords, 0);
 	return litColor * fog.a + fog.rgb;
 }

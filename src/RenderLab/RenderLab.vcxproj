@@ -204,7 +204,7 @@
     <ClCompile Include="render\RdrDeviceTypes.cpp" />
     <ClCompile Include="render\RdrLighting.cpp" />
     <ClCompile Include="render\ModelData.cpp" />
-    <ClCompile Include="render\RdrFrameState.cpp" />
+    <ClCompile Include="render\RdrAction.cpp" />
     <ClCompile Include="render\RdrContextD3D11.cpp" />
     <ClCompile Include="render\RdrContextD3D11_Shaders.cpp" />
     <ClCompile Include="render\RdrMaterial.cpp" />
@@ -266,7 +266,7 @@
     <ClInclude Include="render\RdrDeviceTypes.h" />
     <ClInclude Include="render\RdrDrawOp.h" />
     <ClInclude Include="render\RdrDrawState.h" />
-    <ClInclude Include="render\RdrFrameState.h" />
+    <ClInclude Include="render\RdrAction.h" />
     <ClInclude Include="render\RdrGeometry.h" />
     <ClInclude Include="render\RdrMaterial.h" />
     <ClInclude Include="render\RdrInstancedObjectDataBuffer.h" />
@@ -626,6 +626,7 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="..\..\data\shaders\h_terrain.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Hull</ShaderType>

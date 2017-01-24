@@ -1,9 +1,7 @@
 #include "Precompiled.h"
 #include "Sprite.h"
 #include "Renderer.h"
-#include "RdrDrawOp.h"
 #include "RdrFrameMem.h"
-#include "RdrResource.h"
 
 namespace
 {
@@ -51,21 +49,20 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 }
 
-void Sprite::QueueDraw(Renderer& rRenderer, const Vec3& pos, const Vec2& scale, float alpha)
+void Sprite::QueueDraw(RdrAction* pAction, const Vec3& pos, const Vec2& scale, float alpha)
 {
-	RdrResourceCommandList* pResCommandList = rRenderer.GetActionCommandList();
-
 	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
 	pDrawOp->hGeo = m_hGeo;
 	pDrawOp->hInputLayout = m_hInputLayout;
 	pDrawOp->vertexShader = kVertexShader;
 	pDrawOp->pMaterial = &m_material;
 
+	const Rect& viewport = pAction->GetViewport();
 	uint constantsSize = sizeof(Vec4) * 2;
 	Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
-	pConstants[0] = Vec4(pos.x - rRenderer.GetViewportWidth() * 0.5f, pos.y + rRenderer.GetViewportHeight() * 0.5f, pos.z + 1.f, 0.f);
+	pConstants[0] = Vec4(pos.x - viewport.width * 0.5f, pos.y + viewport.height * 0.5f, pos.z + 1.f, 0.f);
 	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
-	pDrawOp->hVsConstants = pResCommandList->CreateTempConstantBuffer(pConstants, constantsSize);
+	pDrawOp->hVsConstants = pAction->GetResCommandList().CreateTempConstantBuffer(pConstants, constantsSize);
 
-	rRenderer.AddDrawOpToBucket(pDrawOp, RdrBucketType::UI);
+	pAction->AddDrawOp(pDrawOp, RdrBucketType::UI);
 }

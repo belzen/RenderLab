@@ -6,8 +6,9 @@
 #include "RdrGeometry.h"
 #include "RdrMaterial.h"
 #include "RdrTessellationMaterial.h"
+#include "RdrDrawOp.h"
 
-class RdrDrawBuckets;
+class RdrAction;
 class Camera;
 
 class Terrain
@@ -16,7 +17,7 @@ public:
 	Terrain();
 
 	void Init(const AssetLib::Terrain& rTerrainAsset);
-	void QueueDraw(RdrDrawBuckets* pDrawBuckets, const Camera& rCamera);
+	RdrDrawOpSet BuildDrawOps(RdrAction* pAction);
 
 private:
 	AssetLib::Terrain m_srcData;

@@ -33,20 +33,20 @@ void PostProcessDebugger::Update()
 
 }
 
-void PostProcessDebugger::QueueDraw(Renderer& rRenderer)
+void PostProcessDebugger::QueueDraw(RdrAction* pAction)
 {
 	char str[128];
 	const RdrPostProcessDbgData& dbgData = m_pPostProc->GetDebugData();
 
 	UI::Position uiPos(0.f, 40.f, 0.f, UI::AlignmentFlags::Left);
 	sprintf_s(str, "Avg Lum: %f", dbgData.adaptedLum);
-	Font::QueueDraw(rRenderer, uiPos, 20.f, str, Color::kWhite);
+	Font::QueueDraw(pAction, uiPos, 20.f, str, Color::kWhite);
 
 	uiPos.y.val += 20.f;
 	sprintf_s(str, "Exposure: %f (%.4f EV)", dbgData.linearExposure, log2f(dbgData.linearExposure));
-	Font::QueueDraw(rRenderer, uiPos, 20.f, str, Color::kWhite);
+	Font::QueueDraw(pAction, uiPos, 20.f, str, Color::kWhite);
 
 	uiPos.y.val += 20.f;
 	sprintf_s(str, "Lum @ cursor: %f (%.3f, %.3f, %.3f)", dbgData.lumAtCursor, dbgData.lumColor.x, dbgData.lumColor.y, dbgData.lumColor.z);
-	Font::QueueDraw(rRenderer, uiPos, 20.f, str, Color::kWhite);
+	Font::QueueDraw(pAction, uiPos, 20.f, str, Color::kWhite);
 }
