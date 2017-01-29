@@ -39,21 +39,32 @@ namespace
 		return PxQuat(q.x, q.y, q.z, q.w);
 	}
 
-	inline PhysicsActor* createPhysicsActor(float density, const PxGeometry& geo, const Vec3& geoOffset)
+	inline PhysicsActor* createPhysicsActor(PhysicsGroup group, float density, const PxGeometry& geo, const Vec3& geoOffset)
 	{
 		PxTransform xform(PxIdentity);
 		PxTransform geoXform(geoOffset.x, geoOffset.y, geoOffset.z);
+
+		PhysicsActor* pActor;
 		if (density > 0.f)
 		{
-			PxRigidDynamic* pActor = PxCreateDynamic(*s_physics.pPhysics, xform, geo, *s_physics.pDefaultMaterial, density, geoXform);
-			pActor->setWakeCounter(500);
-			pActor->setSleepThreshold(0);
-			return pActor;
+			PxRigidDynamic* pDynamicActor = PxCreateDynamic(*s_physics.pPhysics, xform, geo, *s_physics.pDefaultMaterial, density, geoXform);
+			pDynamicActor->setWakeCounter(500);
+			pDynamicActor->setSleepThreshold(0);
+			pActor = pDynamicActor;
 		}
 		else
 		{
-			return PxCreateStatic(*s_physics.pPhysics, xform, geo, *s_physics.pDefaultMaterial, geoXform);
+			pActor = PxCreateStatic(*s_physics.pPhysics, xform, geo, *s_physics.pDefaultMaterial, geoXform);
 		}
+
+		PxSetGroup(*pActor, (PxU16)group);
+
+		// Set query filter data
+		PxShape* pShape;
+		pActor->getShapes(&pShape, 1, 0);
+		pShape->setQueryFilterData(PxFilterData((1 << (int)group), 0, 0, 0));
+
+		return pActor;
 	}
 
 	void cmdPvdConnect(DebugCommandArg* args, int numArgs)
@@ -74,15 +85,15 @@ void Physics::Init()
 
 	PxTolerancesScale tolerancesScale;
 	s_physics.pPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *s_physics.pFoundation, tolerancesScale);
+	s_physics.pDefaultMaterial = s_physics.pPhysics->createMaterial(0.5f, 0.5f, 0.1f);
+
+	PxSetGroupCollisionFlag((PxU16)PhysicsGroup::kDefault, (PxU16)PhysicsGroup::kDefault, true);
 
 	PxSceneDesc sceneDesc(tolerancesScale);
 	sceneDesc.gravity = kGravity;
 	sceneDesc.cpuDispatcher = s_physics.pCpuDispatcher = PxDefaultCpuDispatcherCreate(2);
 	sceneDesc.filterShader = PxDefaultSimulationFilterShader;
-
 	s_physics.pScene = s_physics.pPhysics->createScene(sceneDesc);
-
-	s_physics.pDefaultMaterial = s_physics.pPhysics->createMaterial(0.5f, 0.5f, 0.1f);
 }
 
 void Physics::Update()
@@ -100,21 +111,21 @@ void Physics::Update()
 	}
 }
 
-PhysicsActor* Physics::CreatePlane()
+PhysicsActor* Physics::CreatePlane(PhysicsGroup group)
 {
-	PhysicsActor* pActor = createPhysicsActor(0.f, PxPlaneGeometry(), Vec3::kZero);
+	PhysicsActor* pActor = createPhysicsActor(group, 0.f, PxPlaneGeometry(), Vec3::kZero);
 	return pActor;
 }
 
-PhysicsActor* Physics::CreateBox(const Vec3& halfSize, float density, const Vec3& geoOffset)
+PhysicsActor* Physics::CreateBox(PhysicsGroup group, const Vec3& halfSize, float density, const Vec3& geoOffset)
 {
-	PhysicsActor* pActor = createPhysicsActor(density, PxBoxGeometry(halfSize.x, halfSize.y, halfSize.z), geoOffset);
+	PhysicsActor* pActor = createPhysicsActor(group, density, PxBoxGeometry(halfSize.x, halfSize.y, halfSize.z), geoOffset);
 	return pActor;
 }
 
-PhysicsActor* Physics::CreateSphere(const float radius, float density, const Vec3& geoOffset)
+PhysicsActor* Physics::CreateSphere(PhysicsGroup group, const float radius, float density, const Vec3& geoOffset)
 {
-	PhysicsActor* pActor = createPhysicsActor(density, PxSphereGeometry(radius), geoOffset);
+	PhysicsActor* pActor = createPhysicsActor(group, density, PxSphereGeometry(radius), geoOffset);
 	return pActor;
 }
 
@@ -123,6 +134,11 @@ void Physics::AddToScene(PhysicsActor* pActor, const Vec3& position, const Quate
 	PxTransform xform(position.x, position.y, position.z, toPxQuat(orientation));
 	pActor->setGlobalPose(xform);
 	s_physics.pScene->addActor(*pActor);
+}
+
+void Physics::RemoveFromScene(PhysicsActor* pActor)
+{
+	s_physics.pScene->removeActor(*pActor);
 }
 
 void Physics::SetActorUserData(PhysicsActor* pActor, void* pUserData)
@@ -183,17 +199,20 @@ void Physics::SetActorAngularVelocity(PhysicsActor* pActor, const Vec3& angularV
 
 void Physics::DestroyActor(PhysicsActor* pActor)
 {
-	s_physics.pScene->removeActor(*pActor);
+	RemoveFromScene(pActor);
 	pActor->release();
 }
 
-bool Physics::Raycast(const Vec3& position, const Vec3& direction, const float distance, RaycastResult* pResult)
+bool Physics::Raycast(PhysicsGroupFlags groupMask, const Vec3& position, const Vec3& direction, const float distance, RaycastResult* pResult)
 {
 	Physics::RaycastResult results;
 	const PxHitFlags hitFlags = PxHitFlag::ePOSITION | PxHitFlag::eNORMAL | PxHitFlag::eDISTANCE;
 	PxRaycastBuffer hitBuffer;
 
-	bool hit = s_physics.pScene->raycast(toPxVec3(position), toPxVec3(direction), distance, hitBuffer, hitFlags);
+	PxQueryFilterData filterData;
+	filterData.data.word0 = (int)groupMask;
+
+	bool hit = s_physics.pScene->raycast(toPxVec3(position), toPxVec3(direction), distance, hitBuffer, hitFlags, filterData);
 	if (hit && pResult)
 	{
 		pResult->pActor = hitBuffer.block.actor;

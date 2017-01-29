@@ -2,22 +2,35 @@
 
 struct Vec2
 {
-	Vec2() : x(0.0f), y(0.0f) {}
-	Vec2(float px, float py) :x(px), y(py) {}
+	float x, y;
 
-	float& operator[] (int idx) { return _m[idx]; }
-	const float& operator[] (int idx) const { return _m[idx]; }
+	//////////////////////////////////////////////////////////////////////////
+	Vec2();
+	Vec2(float px, float py);
 
-	union
-	{
-		struct
-		{
-			float x;
-			float y;
-		};
-		float _m[2];
-	};
+	float& operator[] (int idx);
+	const float& operator[] (int idx) const;
 };
+
+inline Vec2::Vec2()
+	: x(0.0f), y(0.0f) 
+{
+}
+
+inline Vec2::Vec2(float px, float py)
+	: x(px), y(py) 
+{
+}
+
+inline float& Vec2::operator[] (int component)
+{ 
+	return *(&x + component);
+}
+
+inline const float& Vec2::operator[] (int component) const 
+{
+	return *(&x + component);
+}
 
 inline Vec2 operator - (const Vec2& v)
 {

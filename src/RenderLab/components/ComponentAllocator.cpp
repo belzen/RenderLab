@@ -14,7 +14,7 @@ Light* DefaultComponentAllocator::AllocLight()
 	return pComponent;
 }
 
-ModelComponent* DefaultComponentAllocator::AllocModelInstance()
+ModelComponent* DefaultComponentAllocator::AllocModelComponent()
 {
 	ModelComponent* pComponent = m_models.allocSafe();
 	InitComponent(pComponent);
@@ -67,7 +67,7 @@ void DefaultComponentAllocator::ReleaseComponent(const PostProcessVolume* pCompo
 	return m_postProcVolumes.release(pComponent);
 }
 
-ModelInstanceFreeList& DefaultComponentAllocator::GetModelInstanceFreeList()
+ModelComponentFreeList& DefaultComponentAllocator::GetModelComponentFreeList()
 {
 	return m_models;
 }

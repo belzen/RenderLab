@@ -1076,13 +1076,21 @@ void RdrContextD3D11::SetRasterState(const RdrRasterState& rasterState)
 		desc.AntialiasedLineEnable = !rasterState.bEnableMSAA;
 		desc.MultisampleEnable = rasterState.bEnableMSAA;
 		desc.CullMode = D3D11_CULL_BACK;
-		desc.DepthBias = 0;
 		desc.SlopeScaledDepthBias = rasterState.bUseSlopeScaledDepthBias ? m_slopeScaledDepthBias : 0.f;
 		desc.DepthBiasClamp = 0.f;
 		desc.DepthClipEnable = true;
 		desc.FrontCounterClockwise = false;
-		desc.FillMode = rasterState.bWireframe ? D3D11_FILL_WIREFRAME : D3D11_FILL_SOLID;
 		desc.ScissorEnable = rasterState.bEnableScissor;
+		if (rasterState.bWireframe)
+		{
+			desc.FillMode = D3D11_FILL_WIREFRAME;
+			desc.DepthBias = -2; // Wireframe gets a slight depth bias so z-fighting doesn't occur.
+		}
+		else
+		{
+			desc.FillMode = D3D11_FILL_SOLID;
+			desc.DepthBias = 0;
+		}
 
 		ID3D11RasterizerState* pRasterState = nullptr;
 		HRESULT hr = m_pDevice->CreateRasterizerState(&desc, &pRasterState);

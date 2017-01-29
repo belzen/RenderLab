@@ -1,27 +1,19 @@
 #pragma once
 #include "PhysicsTypes.h"
 
-namespace physx
-{
-	class PxRigidActor;
-}
-
-typedef physx::PxRigidActor PhysicsActor;
-
 namespace Physics
 {
-	typedef uint ActorId;
-
 	void Init();
 	void Update();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Physics actors
-	PhysicsActor* CreatePlane();
-	PhysicsActor* CreateBox(const Vec3& halfSize, float density, const Vec3& offset);
-	PhysicsActor* CreateSphere(const float radius, float density, const Vec3& offset);
+	PhysicsActor* CreatePlane(PhysicsGroup category);
+	PhysicsActor* CreateBox(PhysicsGroup category, const Vec3& halfSize, float density, const Vec3& offset);
+	PhysicsActor* CreateSphere(PhysicsGroup category, const float radius, float density, const Vec3& offset);
 
 	void AddToScene(PhysicsActor* pActor, const Vec3& position, const Quaternion& orientation);
+	void RemoveFromScene(PhysicsActor* pActor);
 
 	void SetActorUserData(PhysicsActor* pActor, void* pUserData);
 	void* GetActorUserData(PhysicsActor* pActor);
@@ -46,5 +38,5 @@ namespace Physics
 		Vec3 normal;
 		float distance;
 	};
-	bool Raycast(const Vec3& position, const Vec3& direction, const float distance, RaycastResult* pResult);
+	bool Raycast(PhysicsGroupFlags groupMask, const Vec3& position, const Vec3& direction, const float distance, RaycastResult* pResult);
 }

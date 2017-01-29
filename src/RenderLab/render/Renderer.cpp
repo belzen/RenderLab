@@ -514,8 +514,7 @@ void Renderer::DrawFrame()
 				m_profiler.EndSection();
 			}
 
-			DrawPass(*pAction, RdrPass::Editor);
-
+			// Wireframe
 			{
 				rasterState.bWireframe = true;
 				m_pContext->SetRasterState(rasterState);
@@ -526,6 +525,7 @@ void Renderer::DrawFrame()
 				m_pContext->SetRasterState(rasterState);
 			}
 
+			DrawPass(*pAction, RdrPass::Editor);
 			DrawPass(*pAction, RdrPass::UI);
 
 			m_pContext->EndEvent();
@@ -691,9 +691,17 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 	const RdrMaterial* pMaterial = pDrawOp->pMaterial;
 	if (pMaterial)
 	{
-		m_drawState.pPixelShader = pMaterial->hPixelShaders[(int)rPass.shaderMode] ?
-			RdrShaderSystem::GetPixelShader(pMaterial->hPixelShaders[(int)rPass.shaderMode]) :
-			nullptr;
+		if (rPass.pOverridePixelShader)
+		{
+			m_drawState.pPixelShader = rPass.pOverridePixelShader;
+		}
+		else
+		{
+			m_drawState.pPixelShader = pMaterial->hPixelShaders[(int)rPass.shaderMode] ?
+				RdrShaderSystem::GetPixelShader(pMaterial->hPixelShaders[(int)rPass.shaderMode]) :
+				nullptr;
+		}
+
 		if (m_drawState.pPixelShader)
 		{
 			m_drawState.psResourceCount = pMaterial->ahTextures.size();
@@ -709,18 +717,19 @@ void Renderer::DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket,
 			}
 
 			m_drawState.psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsPerAction)->bufferObj;
-			m_drawState.psConstantBufferCount++;
+			m_drawState.psConstantBufferCount = 1;
+
+			if (pMaterial->hConstants)
+			{
+				m_drawState.psConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pMaterial->hConstants)->bufferObj;
+				m_drawState.psConstantBufferCount = 2;
+			}
 
 			if (pMaterial->bNeedsLighting && !bDepthOnly)
 			{
-				m_drawState.psConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(rLightParams.hGlobalLightsCb)->bufferObj;
-				m_drawState.psConstantBufferCount++;
-
-				m_drawState.psConstantBuffers[2] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsAtmosphere)->bufferObj;
-				m_drawState.psConstantBufferCount++;
-
-				m_drawState.psConstantBuffers[3] = RdrResourceSystem::GetConstantBuffer(pMaterial->hConstants)->bufferObj;
-				m_drawState.psConstantBufferCount++;
+				m_drawState.psConstantBuffers[2] = RdrResourceSystem::GetConstantBuffer(rLightParams.hGlobalLightsCb)->bufferObj;
+				m_drawState.psConstantBuffers[3] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsAtmosphere)->bufferObj;
+				m_drawState.psConstantBufferCount = 4;
 
 				m_drawState.psResources[(int)RdrPsResourceSlots::SpotLightList] = RdrResourceSystem::GetResource(rLightParams.hSpotLightListRes)->resourceView;
 				m_drawState.psResources[(int)RdrPsResourceSlots::PointLightList] = RdrResourceSystem::GetResource(rLightParams.hPointLightListRes)->resourceView;

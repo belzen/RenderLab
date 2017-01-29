@@ -2,8 +2,11 @@
 
 #include <DirectXMath.h>
 
-struct Vec3 : public DirectX::XMFLOAT3
+struct Vec3
 {
+	float x, y, z;
+
+	//////////////////////////////////////////////////////////////////////////
 	static const Vec3 kOrigin;
 	static const Vec3 kOne;
 	static const Vec3 kZero;
@@ -21,25 +24,25 @@ struct Vec3 : public DirectX::XMFLOAT3
 };
 
 inline Vec3::Vec3()
-	: XMFLOAT3(0.f, 0.f, 0.0f)
+	: x(0.f), y(0.f), z(0.f)
 {
 }
 
-inline Vec3::Vec3(float x, float y, float z)
-	: XMFLOAT3(x, y, z)
+inline Vec3::Vec3(float vx, float vy, float vz)
+	: x(vx), y(vy), z(vz)
 {
 
 }
 
 inline Vec3::Vec3(const float* pFloats)
-	: XMFLOAT3(pFloats)
+	: x(pFloats[0]), y(pFloats[1]), z(pFloats[2])
 {
 
 }
 
 inline Vec3::Vec3(const DirectX::XMVECTOR& vec)
 {
-	DirectX::XMStoreFloat3(this, vec);
+	DirectX::XMStoreFloat3((DirectX::XMFLOAT3*)this, vec);
 }
 
 inline Vec3 operator - (const Vec3& v)

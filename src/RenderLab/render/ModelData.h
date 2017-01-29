@@ -33,6 +33,8 @@ public:
 
 	const char* GetName() const;
 
+	const AssetLib::Model* GetSource() const;
+
 private:
 	friend ModelDataFreeList;
 	ModelData() {}
@@ -65,4 +67,9 @@ inline uint ModelData::GetNumSubObjects() const
 inline const char* ModelData::GetName() const
 {
 	return m_modelName.getString();
+}
+
+inline const AssetLib::Model* ModelData::GetSource() const
+{
+	return m_pBinData;
 }

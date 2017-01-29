@@ -184,6 +184,7 @@
     <ClCompile Include="IconLibrary.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="Manipulator.cpp" />
     <ClCompile Include="Precompiled.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Precompiled.h</PrecompiledHeaderFile>
@@ -226,6 +227,7 @@
     <ClInclude Include="FileDialog.h" />
     <ClInclude Include="IconLibrary.h" />
     <ClInclude Include="MainWindow.h" />
+    <ClInclude Include="Manipulator.h" />
     <ClInclude Include="Precompiled.h" />
     <ClInclude Include="PropertyTables.h" />
     <ClInclude Include="RenderWindow.h" />

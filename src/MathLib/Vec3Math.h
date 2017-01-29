@@ -35,21 +35,21 @@ inline float Vec3Length(const Vec3& vec)
 
 inline Vec3 Vec3TransformNormal(const Vec3& lhs, const Matrix44& rotationMtx)
 {
-	DirectX::XMVECTOR normal = DirectX::XMLoadFloat3(&lhs);
+	DirectX::XMVECTOR normal = DirectX::XMLoadFloat3((DirectX::XMFLOAT3*)&lhs);
 	DirectX::XMMATRIX mtx = DirectX::XMLoadFloat4x4(&rotationMtx);
 	return DirectX::XMVector3TransformNormal(normal, mtx);
 }
 
 inline Vec3 Vec3TransformCoord(const Vec3& lhs, const Matrix44& transformMtx)
 {
-	DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&lhs);
+	DirectX::XMVECTOR pos = DirectX::XMLoadFloat3((DirectX::XMFLOAT3*)&lhs);
 	DirectX::XMMATRIX mtx = DirectX::XMLoadFloat4x4(&transformMtx);
 	return DirectX::XMVector3TransformCoord(pos, mtx);
 }
 
 inline Vec3 Vec3Rotate(const Vec3& lhs, const Quaternion& rotationQuaternion)
 {
-	DirectX::XMVECTOR dir = DirectX::XMLoadFloat3(&lhs);
+	DirectX::XMVECTOR dir = DirectX::XMLoadFloat3((DirectX::XMFLOAT3*)&lhs);
 	DirectX::XMVECTOR q = DirectX::XMLoadFloat4(&rotationQuaternion);
 	return DirectX::XMVector3Rotate(dir, q);
 }

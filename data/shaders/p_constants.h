@@ -36,6 +36,9 @@ struct MaterialParams
 	float roughness;
 	float metalness;
 	float2 unused;
+
+	float3 color; // Optional color tint.
+	float unused2;
 };
 
 #endif // SHADER_P_CONSTANTS_H

@@ -1,6 +1,6 @@
 #include "MaterialAsset.h"
 #include "BinFile.h"
-#include "UtilsLib/json/json.h"
+#include "UtilsLib/JsonUtils.h"
 #include "UtilsLib/FileLoader.h"
 #include "UtilsLib/Error.h"
 #include <assert.h>
@@ -34,6 +34,9 @@ Material* Material::Load(const CachedString& assetName, Material* pMaterial)
 	pMaterial->bAlphaCutout = jRoot.get("alphaCutout", false).asBool();
 	pMaterial->roughness = jRoot.get("roughness", 1.0f).asFloat();
 	pMaterial->metalness = jRoot.get("metalness", 0.0f).asFloat();
+
+	Json::Value jColor = jRoot.get("color", Json::Value::null);
+	pMaterial->color = jColor.isArray() ? jsonReadVec3(jColor) : Vec3::kOne;
 
 	Json::Value jTextures = jRoot.get("textures", Json::Value::null);
 	pMaterial->texCount = jTextures.size();

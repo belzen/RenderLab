@@ -1,5 +1,6 @@
 #pragma once
 #include "AssetDef.h"
+#include "MathLib/Vec3.h"
 
 namespace AssetLib
 {
@@ -14,6 +15,7 @@ namespace AssetLib
 		bool bNeedsLighting;
 		bool bAlphaCutout;
 
+		Vec3 color;
 		float roughness;
 		float metalness;
 

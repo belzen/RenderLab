@@ -4,6 +4,8 @@
 #include "render/Camera.h"
 #include "WindowBase.h"
 #include "render/Renderer.h"
+#include "Manipulator.h"
+#include "PhysicsTypes.h"
 
 class SceneViewModel;
 class FrameTimer;
@@ -49,7 +51,7 @@ private:
 	void OnDragEnd(Widget* pDraggedWidget);
 	bool ShouldCaptureMouse() const;
 
-	bool RaycastAtCursor(int mx, int my, Physics::RaycastResult* pResult);
+	bool RaycastAtCursor(int mx, int my, PhysicsGroupFlags groupMask, Physics::RaycastResult* pResult);
 
 	//////////////////////////////////////////////////////////////////////////
 	void CancelObjectPlacement();
@@ -61,5 +63,6 @@ private:
 	Renderer m_renderer;
 	SceneViewModel* m_pSceneViewModel;
 
+	Manipulator m_manipulator;
 	Entity* m_pPlacingObject;
 };

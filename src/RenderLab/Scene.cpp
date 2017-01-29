@@ -132,10 +132,10 @@ void Scene::Load(const char* sceneName)
 		switch (rObjectData.physics.shape)
 		{
 		case AssetLib::ShapeType::Box:
-			pRigidBody = RigidBody::CreateBox(&s_scene.m_componentAllocator, rObjectData.physics.halfSize, rObjectData.physics.density, rObjectData.physics.offset);
+			pRigidBody = RigidBody::CreateBox(&s_scene.m_componentAllocator, PhysicsGroup::kDefault, rObjectData.physics.halfSize, rObjectData.physics.density, rObjectData.physics.offset);
 			break;
 		case AssetLib::ShapeType::Sphere:
-			pRigidBody = RigidBody::CreateSphere(&s_scene.m_componentAllocator, rObjectData.physics.halfSize.x, rObjectData.physics.density, rObjectData.physics.offset);
+			pRigidBody = RigidBody::CreateSphere(&s_scene.m_componentAllocator, PhysicsGroup::kDefault, rObjectData.physics.halfSize.x, rObjectData.physics.density, rObjectData.physics.offset);
 			break;
 		}
 		pEntity->AttachRigidBody(pRigidBody);
@@ -228,7 +228,7 @@ void Scene::QueueDraw(RdrAction* pAction)
 
 	//////////////////////////////////////////////////////////////////////////
 	// Models
-	for (ModelComponent& rModel : s_scene.m_componentAllocator.GetModelInstanceFreeList())
+	for (ModelComponent& rModel : s_scene.m_componentAllocator.GetModelComponentFreeList())
 	{
 		Entity* pEntity = rModel.GetEntity();
 		float radius = rModel.GetRadius();
@@ -292,7 +292,7 @@ void Scene::QueueDraw(RdrAction* pAction)
 	// Can only be after lighting is queued else there are no shadow passes.
 	// TODO: Better way to handle shadows.  Perhaps have the scene decide which lights will cast shadows this frame rather than RdrLighting.
 	int numShadowPasses = pAction->GetShadowPassCount();
-	for (ModelComponent& rModel : Scene::GetComponentAllocator()->GetModelInstanceFreeList())
+	for (ModelComponent& rModel : Scene::GetComponentAllocator()->GetModelComponentFreeList())
 	{
 		Entity* pEntity = rModel.GetEntity();
 		RdrDrawOpSet ops;

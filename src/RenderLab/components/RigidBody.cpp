@@ -4,24 +4,24 @@
 #include "Entity.h"
 #include "ComponentAllocator.h"
 
-RigidBody* RigidBody::CreatePlane(IComponentAllocator* pAllocator)
+RigidBody* RigidBody::CreatePlane(IComponentAllocator* pAllocator, PhysicsGroup category)
 {
 	RigidBody* pRigidBody = pAllocator->AllocRigidBody();
-	pRigidBody->m_pActor = Physics::CreatePlane();
+	pRigidBody->m_pActor = Physics::CreatePlane(category);
 	return pRigidBody;
 }
 
-RigidBody* RigidBody::CreateBox(IComponentAllocator* pAllocator, const Vec3& halfSize, const float density, const Vec3& offset)
+RigidBody* RigidBody::CreateBox(IComponentAllocator* pAllocator, PhysicsGroup category, const Vec3& halfSize, const float density, const Vec3& offset)
 {
 	RigidBody* pRigidBody = pAllocator->AllocRigidBody();
-	pRigidBody->m_pActor = Physics::CreateBox(halfSize, density, offset);
+	pRigidBody->m_pActor = Physics::CreateBox(category, halfSize, density, offset);
 	return pRigidBody;
 }
 
-RigidBody* RigidBody::CreateSphere(IComponentAllocator* pAllocator, const float radius, const float density, const Vec3& offset)
+RigidBody* RigidBody::CreateSphere(IComponentAllocator* pAllocator, PhysicsGroup category, const float radius, const float density, const Vec3& offset)
 {
 	RigidBody* pRigidBody = pAllocator->AllocRigidBody();
-	pRigidBody->m_pActor = Physics::CreateSphere(radius, density, offset);
+	pRigidBody->m_pActor = Physics::CreateSphere(category, radius, density, offset);
 	return pRigidBody;
 }
 
@@ -29,7 +29,7 @@ void RigidBody::OnAttached(Entity* pEntity)
 {
 	m_pEntity = pEntity;
 	Physics::SetActorUserData(m_pActor, pEntity);
-	Physics::AddToScene(m_pActor, pEntity->GetPosition(), pEntity->GetOrientation());
+	SetEnabled(true);
 }
 
 void RigidBody::OnDetached(Entity* pEntity)
@@ -42,6 +42,21 @@ void RigidBody::Release()
 {
 	Physics::DestroyActor(m_pActor);
 	m_pAllocator->ReleaseComponent(this);
+}
+
+void RigidBody::SetEnabled(bool enabled)
+{
+	if (m_enabled == enabled)
+		return;
+
+	if (enabled)
+	{
+		Physics::AddToScene(m_pActor, m_pEntity->GetPosition(), m_pEntity->GetOrientation());
+	}
+	else
+	{
+		Physics::RemoveFromScene(m_pActor);
+	}
 }
 
 Vec3 RigidBody::GetPosition() const

@@ -61,6 +61,7 @@ struct RdrPassData
 
 	RdrShaderMode shaderMode;
 	RdrDepthTestMode depthTestMode;
+	const RdrShader* pOverridePixelShader;
 	bool bDepthWriteEnabled;
 	bool bAlphaBlend;
 

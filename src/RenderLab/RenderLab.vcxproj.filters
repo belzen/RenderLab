@@ -115,6 +115,12 @@
     <FxCompile Include="..\..\data\shaders\c_shrink.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_wireframe.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_editor_gizmo.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Precompiled.cpp" />
@@ -222,6 +228,7 @@
     <ClCompile Include="components\ModelComponent.cpp">
       <Filter>components</Filter>
     </ClCompile>
+    <ClCompile Include="Raycast.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -399,6 +406,10 @@
     </ClInclude>
     <ClInclude Include="components\ModelComponent.h">
       <Filter>components</Filter>
+    </ClInclude>
+    <ClInclude Include="Raycast.h" />
+    <ClInclude Include="shapes\OBB.h">
+      <Filter>shapes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

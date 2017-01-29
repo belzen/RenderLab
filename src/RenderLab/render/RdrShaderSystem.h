@@ -24,6 +24,8 @@ namespace RdrShaderSystem
 	const RdrShader* GetPixelShader(const RdrShaderHandle hShader);
 	const RdrShader* GetComputeShader(const RdrComputeShader eShader);
 
+	const RdrShader* GetWireframePixelShader();
+
 	const RdrInputLayout* GetInputLayout(const RdrInputLayoutHandle hLayout);
 
 	void FlipState();

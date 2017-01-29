@@ -138,6 +138,8 @@ namespace
 
 		RdrShader computeShaders[(int)RdrComputeShader::Count];
 
+		RdrShader wireframePixelShader;
+
 		RdrShaderHandleMap pixelShaderCache;
 		RdrShaderList      pixelShaders;
 
@@ -411,6 +413,9 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 	RdrShaderDef errorPixelShader = { "p_error.hlsl", 0 };
 	createDefaultShader(pRdrContext, RdrShaderStage::Pixel, errorPixelShader, RdrShaderFlags::None, s_shaderSystem.errorShaders[(int)RdrShaderStage::Pixel]);
 
+	RdrShaderDef wireframePixelShader = { "p_wireframe.hlsl", 0 };
+	createDefaultShader(pRdrContext, RdrShaderStage::Pixel, wireframePixelShader, RdrShaderFlags::None, s_shaderSystem.wireframePixelShader);
+
 	FileWatcher::AddListener(kShaderFilePattern, handleShaderFileChanged, nullptr);
 
 	s_shaderSystem.bInitialized = true;
@@ -641,6 +646,11 @@ const RdrShader* RdrShaderSystem::GetComputeShader(const RdrComputeShader eShade
 const RdrShader* RdrShaderSystem::GetPixelShader(const RdrShaderHandle hShader)
 {
 	return s_shaderSystem.pixelShaders.get(hShader);
+}
+
+const RdrShader* RdrShaderSystem::GetWireframePixelShader()
+{
+	return &s_shaderSystem.wireframePixelShader;
 }
 
 const RdrInputLayout* RdrShaderSystem::GetInputLayout(const RdrInputLayoutHandle hLayout)

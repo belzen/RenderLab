@@ -11,7 +11,7 @@ class IComponentAllocator
 {
 public:
 	virtual Light* AllocLight() = 0;
-	virtual ModelComponent* AllocModelInstance() = 0;
+	virtual ModelComponent* AllocModelComponent() = 0;
 	virtual RigidBody* AllocRigidBody() = 0;
 	virtual SkyVolume* AllocSkyVolume() = 0;
 	virtual PostProcessVolume* AllocPostProcessVolume() = 0;
@@ -26,7 +26,7 @@ public:
 };
 
 typedef FreeList<Light, 6 * 1024> LightFreeList;
-typedef FreeList<ModelComponent, 6 * 1024> ModelInstanceFreeList;
+typedef FreeList<ModelComponent, 6 * 1024> ModelComponentFreeList;
 typedef FreeList<RigidBody, 6 * 1024> RigidBodyFreeList;
 typedef FreeList<PostProcessVolume, 128> PostProcessVolumeFreeList;
 typedef FreeList<SkyVolume, 128> SkyVolumeFreeList;
@@ -35,7 +35,7 @@ class DefaultComponentAllocator : public IComponentAllocator
 {
 public:
 	Light* AllocLight();
-	ModelComponent* AllocModelInstance();
+	ModelComponent* AllocModelComponent();
 	RigidBody* AllocRigidBody();
 	SkyVolume* AllocSkyVolume();
 	PostProcessVolume* AllocPostProcessVolume();
@@ -46,14 +46,14 @@ public:
 	void ReleaseComponent(const SkyVolume* pComponent);
 	void ReleaseComponent(const PostProcessVolume* pComponent);
 
-	ModelInstanceFreeList& GetModelInstanceFreeList();
+	ModelComponentFreeList& GetModelComponentFreeList();
 	LightFreeList& GetLightFreeList();
 	RigidBodyFreeList& GetRigidBodyFreeList();
 	PostProcessVolumeFreeList& GetPostProcessVolumeFreeList();
 	SkyVolumeFreeList& GetSkyVolumeFreeList();
 
 private:
-	ModelInstanceFreeList m_models;
+	ModelComponentFreeList m_models;
 	LightFreeList m_lights;
 	RigidBodyFreeList m_rigidBodies;
 	PostProcessVolumeFreeList m_postProcVolumes;

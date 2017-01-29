@@ -228,9 +228,11 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 	{
 		pPass->viewport = viewport;
 		pPass->ahRenderTargets[0] = outputSurface.hRenderTarget;
+		pPass->hDepthTarget = hDepthTarget;
 		pPass->bAlphaBlend = true;
-		pPass->depthTestMode = RdrDepthTestMode::None;
-		pPass->bDepthWriteEnabled = false;
+		pPass->depthTestMode = RdrDepthTestMode::Less;
+		pPass->bDepthWriteEnabled = true;
+		pPass->bClearDepthTarget = true;
 		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
@@ -239,10 +241,12 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 	{
 		pPass->viewport = viewport;
 		pPass->ahRenderTargets[0] = outputSurface.hRenderTarget;
-		pPass->bAlphaBlend = true;
-		pPass->depthTestMode = RdrDepthTestMode::None;
+		pPass->hDepthTarget = hDepthTarget;
+		pPass->bAlphaBlend = false;
+		pPass->depthTestMode = RdrDepthTestMode::Less;
 		pPass->bDepthWriteEnabled = false;
 		pPass->shaderMode = RdrShaderMode::Normal;
+		pPass->pOverridePixelShader = RdrShaderSystem::GetWireframePixelShader();
 	}
 
 	// UI

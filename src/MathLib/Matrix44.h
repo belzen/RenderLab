@@ -65,12 +65,12 @@ inline Matrix44 Matrix44Transformation(
 	const Quaternion& rotationQuaternion,
 	const Vec3& translation )
 {
-	DirectX::XMVECTOR vScalingOrigin = DirectX::XMLoadFloat3(&scalingOrigin);
+	DirectX::XMVECTOR vScalingOrigin = DirectX::XMLoadFloat3((DirectX::XMFLOAT3*)&scalingOrigin);
 	DirectX::XMVECTOR vScalingOrientationQuaternion = DirectX::XMLoadFloat4(&scalingOrientationQuaternion);
-	DirectX::XMVECTOR vScaling = DirectX::XMLoadFloat3(&scaling);
-	DirectX::XMVECTOR vRotationOrigin = DirectX::XMLoadFloat3(&rotationOrigin);
-	DirectX::XMVECTOR vRotationQuaternion = DirectX::XMLoadFloat4(&rotationQuaternion);
-	DirectX::XMVECTOR vTranslation = DirectX::XMLoadFloat3(&translation);
+	DirectX::XMVECTOR vScaling = DirectX::XMLoadFloat3((DirectX::XMFLOAT3*)&scaling);
+	DirectX::XMVECTOR vRotationOrigin = DirectX::XMLoadFloat3((DirectX::XMFLOAT3*)&rotationOrigin);
+	DirectX::XMVECTOR vRotationQuaternion = DirectX::XMLoadFloat4((DirectX::XMFLOAT4*)&rotationQuaternion);
+	DirectX::XMVECTOR vTranslation = DirectX::XMLoadFloat3((DirectX::XMFLOAT3*)&translation);
 	return DirectX::XMMatrixTransformation(
 		vScalingOrigin,
 		vScalingOrientationQuaternion,
@@ -91,11 +91,17 @@ inline Matrix44 Matrix44Transpose(const Matrix44& src)
 	return DirectX::XMMatrixTranspose(result);
 }
 
+inline float Matrix44Determinant(const Matrix44& mtx)
+{
+	DirectX::XMMATRIX m = DirectX::XMLoadFloat4x4(&mtx);
+	return DirectX::XMMatrixDeterminant(m).m128_f32[0];
+}
+
 inline Matrix44 Matrix44LookToLH(const Vec3& eyePos, const Vec3& eyeDir, const Vec3& upDir)
 {
-	DirectX::XMVECTOR vEyePos = DirectX::XMLoadFloat3(&eyePos);
-	DirectX::XMVECTOR vEyeDir = DirectX::XMLoadFloat3(&eyeDir);
-	DirectX::XMVECTOR vUpDir = DirectX::XMLoadFloat3(&upDir);
+	DirectX::XMVECTOR vEyePos = DirectX::XMLoadFloat3((DirectX::XMFLOAT3*)&eyePos);
+	DirectX::XMVECTOR vEyeDir = DirectX::XMLoadFloat3((DirectX::XMFLOAT3*)&eyeDir);
+	DirectX::XMVECTOR vUpDir = DirectX::XMLoadFloat3((DirectX::XMFLOAT3*)&upDir);
 	return DirectX::XMMatrixLookToLH(vEyePos, vEyeDir, vUpDir);
 }
 

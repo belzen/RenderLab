@@ -25,6 +25,8 @@ int main(int argc, char** argv)
 {
 	GlobalState::Init();
 	UserConfig::Load();
+	Physics::Init();
+
 	if (g_userConfig.attachRenderDoc)
 	{
 		RenderDoc::Init();

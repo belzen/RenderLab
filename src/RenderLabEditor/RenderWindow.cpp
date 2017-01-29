@@ -9,6 +9,30 @@
 #include "Scene.h"
 #include "ViewModels/SceneViewModel.h"
 #include "UI.h"
+#include "Raycast.h"
+
+namespace
+{
+	Entity* raycastScene(const Vec3& rayOrigin, const Vec3& rayDir)
+	{
+		float closestT = FLT_MAX;
+		Entity* pClosestEntity = nullptr;
+
+		// TODO: Scene needs an acceleration structure to speed this up.
+		DefaultComponentAllocator* pComponents = Scene::GetComponentAllocator();
+		for (ModelComponent& rModel : pComponents->GetModelComponentFreeList())
+		{
+			float t;
+			if (rayModelIntersect(rayOrigin, rayDir, &rModel, &t) && t < closestT)
+			{
+				closestT = t;
+				pClosestEntity = rModel.GetEntity();
+			}
+		}
+
+		return pClosestEntity;
+	}
+}
 
 RenderWindow* RenderWindow::Create(int x, int y, int width, int height, SceneViewModel* pSceneViewModel, const Widget* pParent)
 {
@@ -23,6 +47,7 @@ RenderWindow::RenderWindow(int x, int y, int width, int height, SceneViewModel* 
 	m_renderer.Init(GetWindowHandle(), width, height, &m_inputManager);
 	m_defaultInputContext.SetCamera(&m_mainCamera);
 	m_inputManager.PushContext(&m_defaultInputContext);
+	m_manipulator.Init();
 }
 
 void RenderWindow::Close()
@@ -65,11 +90,17 @@ bool RenderWindow::OnMouseDown(int button, int mx, int my)
 {
 	m_inputManager.SetMouseDown(button, true, mx, my);
 
-	Physics::RaycastResult res;
-	if (button == 0 && RaycastAtCursor(mx, my, &res) && res.pActor)
+	if (button == 0)
 	{
-		Entity* pEntity = static_cast<Entity*>(Physics::GetActorUserData(res.pActor));
-		m_pSceneViewModel->SetSelected(pEntity);
+		Vec3 rayDir = m_mainCamera.CalcRayDirection(mx / (float)GetWidth(), my / (float)GetHeight());
+		if (!m_manipulator.Begin(m_mainCamera, rayDir, m_pSceneViewModel->GetSelected()))
+		{
+			Entity* pEntity = raycastScene(m_mainCamera.GetPosition(), rayDir);
+			if (pEntity)
+			{
+				m_pSceneViewModel->SetSelected(pEntity);
+			}
+		}
 	}
 
 	return true;
@@ -78,6 +109,7 @@ bool RenderWindow::OnMouseDown(int button, int mx, int my)
 bool RenderWindow::OnMouseUp(int button, int mx, int my)
 {
 	m_inputManager.SetMouseDown(button, false, mx, my);
+	m_manipulator.End();
 	return true;
 }
 
@@ -87,7 +119,7 @@ bool RenderWindow::OnMouseMove(int mx, int my)
 	{
 		// Update placing object's position.
 		Physics::RaycastResult res;
-		if (RaycastAtCursor(mx, my, &res))
+		if (RaycastAtCursor(mx, my, PhysicsGroupFlags::kDefault, &res))
 		{
 			m_pPlacingObject->SetPosition(res.position);
 		}
@@ -142,10 +174,10 @@ bool RenderWindow::ShouldCaptureMouse() const
 	return true;
 }
 
-bool RenderWindow::RaycastAtCursor(int mx, int my, Physics::RaycastResult* pResult)
+bool RenderWindow::RaycastAtCursor(int mx, int my, PhysicsGroupFlags groupMask, Physics::RaycastResult* pResult)
 {
 	Vec3 rayDir = m_mainCamera.CalcRayDirection(mx / (float)GetWidth(), my / (float)GetHeight());
-	return Physics::Raycast(m_mainCamera.GetPosition(), rayDir, 50000.f, pResult);
+	return Physics::Raycast(groupMask, m_mainCamera.GetPosition(), rayDir, m_mainCamera.GetFarDist(), pResult);
 }
 
 void RenderWindow::CancelObjectPlacement()
@@ -166,6 +198,15 @@ void RenderWindow::EarlyUpdate()
 void RenderWindow::Update()
 {
 	m_inputManager.GetActiveContext()->Update(m_inputManager);
+
+	Entity* pEntity = m_pSceneViewModel->GetSelected();
+	if (pEntity)
+	{
+		int mx, my;
+		m_inputManager.GetMousePos(mx, my);
+		Vec3 rayDir = m_mainCamera.CalcRayDirection(mx / (float)GetWidth(), my / (float)GetHeight());
+		m_manipulator.Update(pEntity->GetPosition(), m_mainCamera.GetPosition(), rayDir, m_mainCamera);
+	}
 }
 
 void RenderWindow::QueueDraw()
@@ -194,7 +235,11 @@ void RenderWindow::QueueDraw()
 					pPrimaryAction->AddDrawOp(&set.aDrawOps[i], RdrBucketType::Wireframe);
 				}
 			}
+
+			// Draw manipulator gizmo
+			m_manipulator.QueueDraw(pPrimaryAction);
 		}
+
 	}
 	m_renderer.QueueAction(pPrimaryAction);
 }

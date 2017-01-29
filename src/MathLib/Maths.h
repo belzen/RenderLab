@@ -18,7 +18,10 @@
 
 namespace Maths
 {
+	const float kEpsilon = 0.000001f;
+
 	const float kPi = DirectX::XM_PI;
+	const float kHalfPi = DirectX::XM_PIDIV2;
 	const float kTwoPi = DirectX::XM_2PI;
 
 	inline float DegToRad(float deg)

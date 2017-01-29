@@ -29,7 +29,7 @@ namespace
 
 ModelComponent* ModelComponent::Create(IComponentAllocator* pAllocator, const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps)
 {
-	ModelComponent* pModel = pAllocator->AllocModelInstance();
+	ModelComponent* pModel = pAllocator->AllocModelComponent();
 	pModel->m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAY_SIZE(s_modelVertexDesc));
 	pModel->SetModelData(modelAssetName, aMaterialSwaps, numMaterialSwaps);
 	return pModel;

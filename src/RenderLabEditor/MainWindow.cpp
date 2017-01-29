@@ -186,7 +186,6 @@ int MainWindow::Run()
 	m_pRenderWindow = RenderWindow::Create(0, 0, renderWindowWidth, renderWindowHeight, &m_sceneViewModel, this);
 
 	Debug::Init();
-	Physics::Init();
 
 	// Finish editor setup.
 	m_pPropertyPanel = PropertyPanel::Create(*this, renderWindowWidth, GetHeight() / 2, kDefaultPanelWidth, GetHeight() / 2);

@@ -7,15 +7,18 @@
 class RigidBody : public EntityComponent
 {
 public:
-	static RigidBody* CreatePlane(IComponentAllocator* pAllocator);
-	static RigidBody* CreateBox(IComponentAllocator* pAllocator, const Vec3& halfSize, const float density, const Vec3& offset);
-	static RigidBody* CreateSphere(IComponentAllocator* pAllocator, const float radius, const float density, const Vec3& offset);
+	static RigidBody* CreatePlane(IComponentAllocator* pAllocator, PhysicsGroup category);
+	static RigidBody* CreateBox(IComponentAllocator* pAllocator, PhysicsGroup category, const Vec3& halfSize, const float density, const Vec3& offset);
+	static RigidBody* CreateSphere(IComponentAllocator* pAllocator, PhysicsGroup category, const float radius, const float density, const Vec3& offset);
 
 public:
 	void OnAttached(Entity* pEntity);
 	void OnDetached(Entity* pEntity);
 
 	void Release();
+
+	// Enable/disable collision and simulation
+	void SetEnabled(bool enabled);
 
 	Vec3 GetPosition() const;
 	Quaternion GetOrientation() const;
@@ -38,4 +41,5 @@ private:
 
 private:
 	PhysicsActor* m_pActor;
+	bool m_enabled;
 };
