@@ -13,6 +13,7 @@
 #include "Physics.h"
 #include "Game.h"
 #include "Time.h"
+#include "GlobalState.h"
 #include "components/Light.h"
 #include "components/Renderable.h"
 #include "components/VolumeComponent.h"
@@ -34,6 +35,12 @@ namespace
 	{
 		SceneViewModel* pSceneViewModel = static_cast<SceneViewModel*>(pUserData);
 		pSceneViewModel->RemoveObject(static_cast<Entity*>(pDeletedItem->pData));
+	}
+
+	void setDebugVisualizationMode(Menu* pVisMenu, DebugVisMode visMode)
+	{
+		g_debugState.visMode = visMode;
+		pVisMenu->SetRadioItemChecked((int)visMode);
 	}
 }
 
@@ -108,6 +115,22 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	m_debugMenu.AddItem("Invalidate Spec Probes", [](void* pUserData) {
 		Scene::InvalidateEnvironmentLights();
 	}, this);
+
+	// Visualization sub-menu
+	{
+		m_debugVisMenu.Init();
+		m_debugVisMenu.AddItem("Disabled", [](void* pUserData) {
+			MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
+			setDebugVisualizationMode(&pWindow->m_debugVisMenu, DebugVisMode::kNone);
+		}, this);
+		m_debugVisMenu.AddItem("SSAO", [](void* pUserData) {
+			MainWindow* pWindow = static_cast<MainWindow*>(pUserData);
+			setDebugVisualizationMode(&pWindow->m_debugVisMenu, DebugVisMode::kSsao);
+		}, this);
+
+		setDebugVisualizationMode(&m_debugVisMenu, DebugVisMode::kNone);
+	}
+	m_debugMenu.AddSubMenu("Visualization", &m_debugVisMenu);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Main menu

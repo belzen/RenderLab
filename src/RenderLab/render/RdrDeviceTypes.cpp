@@ -1,53 +1,51 @@
 #include "Precompiled.h"
 #include "RdrDeviceTypes.h"
 
+namespace
+{
+	struct RdrResourceBlockInfo
+	{
+		int blockPixelSize;
+		int blockByteSize;
+	};
+
+	RdrResourceBlockInfo s_resourceBlockInfo[]
+	{
+		{1, 1}, // UNKNOWN
+		{1, 2}, // D16
+		{1, 4}, // D24_UNORM_S8_UINT
+		{1, 2}, // R16_UNORM
+		{1, 2}, // R16_UINT
+		{1, 2}, // R16_FLOAT
+		{1, 4}, // R32_UINT
+		{1, 4}, // R16G16_FLOAT
+		{1, 1}, // R8_UNORM
+		{4, 2}, // DXT1
+		{4, 2}, // DXT1_sRGB
+		{4, 4}, // DXT5
+		{4, 4}, // DXT5_sRGB
+		{1, 4}, // B8G8R8A8_UNORM
+		{1, 4}, // B8G8R8A8_UNORM_sRGB
+		{1, 4}, // R8G8B8A8_UNORM
+		{1, 2}, // R8G8_UNORM
+		{1, 8}, // R16G16B16A16_FLOAT
+	};
+
+	static_assert(ARRAY_SIZE(s_resourceBlockInfo) == (int)RdrResourceFormat::Count, "Missing resource block info!");
+}
 
 int rdrGetTexturePitch(const int width, const RdrResourceFormat eFormat)
 {
-	switch (eFormat)
-	{
-	case RdrResourceFormat::R16G16B16A16_FLOAT:
-		return width * 8;
-	case RdrResourceFormat::R8_UNORM:
-		return width * 1;
-	case RdrResourceFormat::R16_UINT:
-	case RdrResourceFormat::R16_UNORM:
-	case RdrResourceFormat::R16_FLOAT:
-		return width * 2;
-	case RdrResourceFormat::R32_UINT:
-		return width * 4;
-	case RdrResourceFormat::DXT1:
-	case RdrResourceFormat::DXT1_sRGB:
-		return ((width + 3) & ~3) * 2;
-	case RdrResourceFormat::DXT5:
-	case RdrResourceFormat::DXT5_sRGB:
-		return ((width + 3) & ~3) * 4;
-	case RdrResourceFormat::B8G8R8A8_UNORM:
-	case RdrResourceFormat::B8G8R8A8_UNORM_sRGB:
-		return width * 4;
-	default:
-		assert(false);
-		return 0;
-	}
+	const RdrResourceBlockInfo& rBlockInfo = s_resourceBlockInfo[(int)eFormat];
+	int blockPixelsMinusOne = rBlockInfo.blockPixelSize - 1;
+	int pitch = ((width + blockPixelsMinusOne) & ~blockPixelsMinusOne) * rBlockInfo.blockByteSize;
+	return pitch;
 }
 
 int rdrGetTextureRows(const int height, const RdrResourceFormat eFormat)
 {
-	switch (eFormat)
-	{
-	case RdrResourceFormat::R16G16B16A16_FLOAT:
-	case RdrResourceFormat::R8_UNORM:
-	case RdrResourceFormat::R16_UNORM:
-	case RdrResourceFormat::B8G8R8A8_UNORM:
-	case RdrResourceFormat::B8G8R8A8_UNORM_sRGB:
-		return height;
-	case RdrResourceFormat::DXT1:
-	case RdrResourceFormat::DXT1_sRGB:
-	case RdrResourceFormat::DXT5:
-	case RdrResourceFormat::DXT5_sRGB:
-		return ((height + 3) & ~3) / 4;
-	default:
-		assert(false);
-		return 0;
-	}
+	const RdrResourceBlockInfo& rBlockInfo = s_resourceBlockInfo[(int)eFormat];
+	int blockPixelsMinusOne = rBlockInfo.blockPixelSize - 1;
+	int rows = ((height + blockPixelsMinusOne) & ~blockPixelsMinusOne) / rBlockInfo.blockPixelSize;
+	return rows;
 }

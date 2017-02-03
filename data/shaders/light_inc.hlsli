@@ -7,8 +7,6 @@
 #define PBR 3
 #define SPECULAR_MODEL PBR // Active specular model
 
-static const float3 ambient_color = float3(1.f, 1.f, 1.f);
-static const float ambient_intensity = 0.05f;
 static const float kShadowBias = 0.002f;
 
 float calcShadowFactor(in float3 pos_ws, in float3 light_dir, in float lightRadius, in uint shadowMapIndex)
@@ -188,14 +186,14 @@ float3 applyVolumetricFog(in float3 litColor, in float viewDepth,
 	return litColor * fog.a + fog.rgb;
 }
 
-float3 doLighting(in float3 pos_ws, in float3 baseColor, 
+void doLighting(in float3 pos_ws, in float3 baseColor, 
 	in float roughness, in float metalness,
 	in float3 normal, in float3 viewDir, 
 	in float2 screenPos, 
-	in TextureCubeArray texEnvironmentMaps, in Texture3D<float4> texVolumetricFogLut)
+	in TextureCubeArray texEnvironmentMaps, in Texture3D<float4> texVolumetricFogLut,
+	out float3 litColor, out float3 albedo)
 {
 	float viewDepth = dot((pos_ws - cbPerAction.cameraPos), cbPerAction.cameraDir);
-	float3 litColor = 0;
 
 	uint lightListIdx = getLightListIndex(screenPos, viewDepth);
 	uint numSpotLights = g_bufLightIndices[lightListIdx++];
@@ -205,7 +203,9 @@ float3 doLighting(in float3 pos_ws, in float3 baseColor,
 	float3 diffuse = 0;
 	float3 specular = 0;
 
-	float3 albedo = baseColor - baseColor * metalness;
+	litColor = 0;
+	albedo = baseColor - baseColor * metalness;
+
 	float3 dielectricColor = 0.04f;
 	float3 specColor = lerp(dielectricColor, baseColor, metalness);
 
@@ -311,5 +311,5 @@ float3 doLighting(in float3 pos_ws, in float3 baseColor,
 
 	float kEpsilon = 0.0001f; // Small value to prevent solid black color which can mess up tonemapping.
 	float3 ambient = albedo * ambient_color * ambient_intensity;
-	return ambient + litColor + kEpsilon;
+	litColor += ambient + kEpsilon;
 }

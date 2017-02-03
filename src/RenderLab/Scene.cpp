@@ -107,8 +107,10 @@ void Scene::Load(const char* sceneName)
 		}
 
 		s_scene.m_environmentMapSize = pSceneData->environmentMapTexSize;
-		s_scene.m_hEnvironmentMapTexArray = rResCommands.CreateTextureCubeArray(s_scene.m_environmentMapSize, s_scene.m_environmentMapSize, MAX_ENVIRONMENT_MAPS, RdrResourceFormat::R16G16B16A16_FLOAT);
-		s_scene.m_hEnvironmentMapDepthBuffer = rResCommands.CreateTexture2D(s_scene.m_environmentMapSize, s_scene.m_environmentMapSize, RdrResourceFormat::D24_UNORM_S8_UINT, RdrResourceUsage::Default, nullptr);
+		s_scene.m_hEnvironmentMapTexArray = rResCommands.CreateTextureCubeArray(s_scene.m_environmentMapSize, s_scene.m_environmentMapSize, MAX_ENVIRONMENT_MAPS, 
+			RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget);
+		s_scene.m_hEnvironmentMapDepthBuffer = rResCommands.CreateTexture2D(s_scene.m_environmentMapSize, s_scene.m_environmentMapSize, 
+			RdrResourceFormat::D24_UNORM_S8_UINT, RdrResourceUsage::Default, RdrResourceBindings::kNone, nullptr);
 		s_scene.m_hEnvironmentMapDepthView = rResCommands.CreateDepthStencilView(s_scene.m_hEnvironmentMapDepthBuffer);
 	}
 

@@ -29,6 +29,8 @@ cbuffer AtmosphereParamsBuffer : register(b3)
 #else
 struct PsOutput
 {
-	float4 color : SV_TARGET;
+	float4 color : SV_TARGET0;
+	float3 albedo : SV_TARGET1;
+	float3 normal : SV_TARGET2;
 };
 #endif

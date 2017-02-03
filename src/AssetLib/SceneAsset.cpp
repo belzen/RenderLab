@@ -198,12 +198,18 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 					rEffects.bloom.enabled = jBloom.get("enabled", true).asBool();
 					rEffects.bloom.threshold = jBloom.get("threshold", 1.f).asFloat();
 
+					// SSAO
+					Json::Value jSsao = jVolume.get("ssao", Json::Value::null);
+					rEffects.ssao.enabled = jSsao.get("enabled", true).asBool();
+					rEffects.ssao.sampleRadius = jSsao.get("sampleRadius", 1.f).asFloat();
+
 					// Eye adaptation
 					Json::Value jEyeAdaptation = jVolume.get("eyeAdaptation", Json::Value::null);
 					rEffects.eyeAdaptation.white = jEyeAdaptation.get("white", 12.5f).asFloat();
 					rEffects.eyeAdaptation.middleGrey = jEyeAdaptation.get("middleGrey", 0.5f).asFloat();
 					rEffects.eyeAdaptation.minExposure = jEyeAdaptation.get("minExposure", -16.f).asFloat();
 					rEffects.eyeAdaptation.maxExposure = jEyeAdaptation.get("maxExposure", 16.f).asFloat();
+					rEffects.eyeAdaptation.adaptationSpeed = jEyeAdaptation.get("adaptationSpeed", 1.f).asFloat();
 				}
 			}
 		}

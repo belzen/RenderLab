@@ -169,13 +169,15 @@ void RdrLighting::LazyInitShadowResources()
 	if (!m_hShadowMapTexArray)
 	{
 		RdrResourceCommandList& rResCommands = g_pRenderer->GetPreFrameCommandList();
-		m_hShadowMapTexArray = rResCommands.CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, RdrResourceFormat::D24_UNORM_S8_UINT);
+		m_hShadowMapTexArray = rResCommands.CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, 
+			RdrResourceFormat::D24_UNORM_S8_UINT, RdrResourceUsage::Default, RdrResourceBindings::kNone);
 		for (int i = 0; i < MAX_SHADOW_MAPS; ++i)
 		{
 			m_shadowMapDepthViews[i] = rResCommands.CreateDepthStencilView(m_hShadowMapTexArray, i, 1);
 		}
 
-		m_hShadowCubeMapTexArray = rResCommands.CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, RdrResourceFormat::D24_UNORM_S8_UINT);
+		m_hShadowCubeMapTexArray = rResCommands.CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, 
+			RdrResourceFormat::D24_UNORM_S8_UINT, RdrResourceUsage::Default, RdrResourceBindings::kNone);
 
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
 		for (int i = 0; i < MAX_SHADOW_CUBEMAPS; ++i)
@@ -479,7 +481,8 @@ void RdrLighting::QueueTiledLightCulling(RdrAction* pAction, const Camera& rCame
 	{
 		if (m_tiledLightData.hDepthMinMaxTex)
 			rResCommandList.ReleaseResource(m_tiledLightData.hDepthMinMaxTex);
-		m_tiledLightData.hDepthMinMaxTex = rResCommandList.CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT, RdrResourceUsage::Default, nullptr);
+		m_tiledLightData.hDepthMinMaxTex = rResCommandList.CreateTexture2D(tileCountX, tileCountY, RdrResourceFormat::R16G16_FLOAT, 
+			RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 	}
 
 	// Update constants
@@ -579,10 +582,10 @@ void RdrLighting::QueueVolumetricFog(RdrAction* pAction, const AssetLib::Volumet
 		if (m_hFogFinalLut)
 			rResCommandList.ReleaseResource(m_hFogFinalLut);
 
-		m_hFogDensityLightLut = rResCommandList.CreateTexture3D(
-			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
-		m_hFogFinalLut = rResCommandList.CreateTexture3D(
-			lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		m_hFogDensityLightLut = rResCommandList.CreateTexture3D(lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, 
+			RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
+		m_hFogFinalLut = rResCommandList.CreateTexture3D(lutSize.x, lutSize.y, lutSize.z, RdrResourceFormat::R16G16B16A16_FLOAT, 
+			RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 
 		m_fogLutSize = lutSize;
 	}

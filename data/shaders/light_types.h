@@ -114,5 +114,7 @@ struct TiledLightCullingParams
 #define CLUSTEREDLIGHTING_MAX_LIGHTS_PER 64
 #define CLUSTEREDLIGHTING_BLOCK_SIZE (LIGHTLIST_NUM_LIGHT_TYPES + CLUSTEREDLIGHTING_MAX_LIGHTS_PER)
 
+static const float3 ambient_color = float3(1.f, 1.f, 1.f);
+static const float ambient_intensity = 0.05f;
 
 #endif // LIGHT_TYPES_H

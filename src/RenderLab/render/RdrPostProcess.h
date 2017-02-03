@@ -3,6 +3,7 @@
 #include "AssetLib/AssetLibForwardDecl.h"
 #include "RdrGeometry.h"
 #include "RdrShaders.h"
+#include "RdrAction.h"
 #include "debug/PostProcessDebugger.h"
 
 class RdrContext;
@@ -24,16 +25,24 @@ public:
 	void Init(RdrContext* pRdrContext);
 
 	void HandleResize(uint width, uint height);
-	void DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const AssetLib::PostProcessEffects& rEffects);
+	void DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, 
+		const RdrResource* pColorBuffer, const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants);
 
 	const RdrPostProcessDbgData& GetDebugData() const;
+
+	RdrResourceHandle GetSsaoBlurredBuffer() const;
+
+	void CopyToTarget(RdrContext* pRdrContext, RdrDrawState& rDrawState, RdrResourceHandle hTextureInput, RdrRenderTargetViewHandle hTarget);
 
 private:
 	void DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
 	void DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
 	void DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
 	void DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrResource* pBloomBuffer);
-	
+
+	void ResizeSsaoResources(uint width, uint height);
+	void DoSsao(RdrContext* pRdrContext, RdrDrawState& rDrawState, const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants);
+
 	RdrConstantBufferDeviceObj m_toneMapInputConstants;
 
 	RdrShaderHandle m_hToneMapPs;
@@ -55,7 +64,22 @@ private:
 	BloomBuffer m_bloomBuffers[6];
 
 	//////////////////////////////////////////////////////////////////////////
+	// SSAO
+	SsaoParams m_ssaoParams;
+	RdrConstantBufferDeviceObj m_ssaoConstants;
+	RdrResourceHandle m_hSsaoNoiseTexture;
+	RdrResourceHandle m_hSsaoBuffer;
+	RdrRenderTargetViewHandle m_hSsaoBufferTarget;
+	RdrResourceHandle m_hSsaoBlurredBuffer;
+	RdrRenderTargetViewHandle m_hSsaoBlurredBufferTarget;
+	RdrShaderHandle m_hSsaoGenPixelShader;
+	RdrShaderHandle m_hSsaoBlurPixelShader;
+	RdrShaderHandle m_hSsaoApplyPixelShader;
+
+	//////////////////////////////////////////////////////////////////////////
 	// Debug
+	RdrShaderHandle m_hCopyPixelShader;
+
 	PostProcessDebugger m_debugger;
 	RdrPostProcessDbgData m_debugData;
 	RdrResource m_lumDebugRes[3];
@@ -67,4 +91,9 @@ private:
 inline const RdrPostProcessDbgData& RdrPostProcess::GetDebugData() const
 {
 	return m_debugData;
+}
+
+inline RdrResourceHandle RdrPostProcess::GetSsaoBlurredBuffer() const
+{
+	return m_hSsaoBlurredBuffer;
 }

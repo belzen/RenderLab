@@ -20,10 +20,15 @@ const PropertyDef** PostProcessVolumeViewModel::GetProperties()
 		new FloatPropertyDef("Middle Grey", "", 0.01f, 1.f, 0.01f, GetMiddleGrey, SetMiddleGrey),
 		new FloatPropertyDef("Min Exposure", "", -16.f, 16.f, 0.1f, GetMinExposure, SetMinExposure),
 		new FloatPropertyDef("Max Exposure", "", -16.f, 16.f, 0.1f, GetMaxExposure, SetMaxExposure),
+		new FloatPropertyDef("Adaptation Speed", "", 0.1f, 10.f, 0.1f, GetAdaptationSpeed, SetAdaptationSpeed),
 		new EndGroupPropertyDef(),
 		new BeginGroupPropertyDef("Bloom"),
 		new BooleanPropertyDef("Enabled", nullptr, GetBloomEnabled, SetBloomEnabled),
 		new FloatPropertyDef("Threshold", nullptr, 0.1f, 30.f, 0.1f, GetBloomThreshold, SetBloomThreshold),
+		new EndGroupPropertyDef(),
+		new BeginGroupPropertyDef("SSAO"),
+		new BooleanPropertyDef("Enabled", nullptr, GetSsaoEnabled, SetSsaoEnabled),
+		new FloatPropertyDef("Sample Radius", nullptr, 0.1f, 3.f, 0.01f, GetSsaoSampleRadius, SetSsaoSampleRadius),
 		new EndGroupPropertyDef(),
 		nullptr
 	};
@@ -82,6 +87,19 @@ bool PostProcessVolumeViewModel::SetMaxExposure(const float maxExposure, void* p
 	return true;
 }
 
+float PostProcessVolumeViewModel::GetAdaptationSpeed(void* pSource)
+{
+	PostProcessVolumeViewModel* pViewModel = (PostProcessVolumeViewModel*)pSource;
+	return pViewModel->m_pTarget->GetEffects().eyeAdaptation.adaptationSpeed;
+}
+
+bool PostProcessVolumeViewModel::SetAdaptationSpeed(const float adaptationSpeed, void* pSource)
+{
+	PostProcessVolumeViewModel* pViewModel = (PostProcessVolumeViewModel*)pSource;
+	pViewModel->m_pTarget->GetEffects().eyeAdaptation.adaptationSpeed = adaptationSpeed;
+	return true;
+}
+
 float PostProcessVolumeViewModel::GetBloomThreshold(void* pSource)
 {
 	PostProcessVolumeViewModel* pViewModel = (PostProcessVolumeViewModel*)pSource;
@@ -105,5 +123,31 @@ bool PostProcessVolumeViewModel::SetBloomEnabled(const bool enabled, void* pSour
 {
 	PostProcessVolumeViewModel* pViewModel = (PostProcessVolumeViewModel*)pSource;
 	pViewModel->m_pTarget->GetEffects().bloom.enabled = enabled;
+	return true;
+}
+
+bool PostProcessVolumeViewModel::GetSsaoEnabled(void* pSource)
+{
+	PostProcessVolumeViewModel* pViewModel = (PostProcessVolumeViewModel*)pSource;
+	return pViewModel->m_pTarget->GetEffects().ssao.enabled;
+}
+
+bool PostProcessVolumeViewModel::SetSsaoEnabled(const bool enabled, void* pSource)
+{
+	PostProcessVolumeViewModel* pViewModel = (PostProcessVolumeViewModel*)pSource;
+	pViewModel->m_pTarget->GetEffects().ssao.enabled = enabled;
+	return true;
+}
+
+float PostProcessVolumeViewModel::GetSsaoSampleRadius(void* pSource)
+{
+	PostProcessVolumeViewModel* pViewModel = (PostProcessVolumeViewModel*)pSource;
+	return pViewModel->m_pTarget->GetEffects().ssao.sampleRadius;
+}
+
+bool PostProcessVolumeViewModel::SetSsaoSampleRadius(const float radius, void* pSource)
+{
+	PostProcessVolumeViewModel* pViewModel = (PostProcessVolumeViewModel*)pSource;
+	pViewModel->m_pTarget->GetEffects().ssao.sampleRadius = radius;
 	return true;
 }

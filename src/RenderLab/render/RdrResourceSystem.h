@@ -40,14 +40,14 @@ public:
 
 	RdrResourceHandle CreateTextureFromFile(const CachedString& texName, RdrTextureInfo* pOutInfo);
 
-	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage, char* pTexData);
-	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount);
-	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat);
+	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTexData);
+	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount, RdrResourceUsage eUsage, RdrResourceBindings eBindings);
+	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings);
 
-	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat);
-	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat);
+	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings);
+	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings);
 
-	RdrResourceHandle CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage, char* pTexData);
+	RdrResourceHandle CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTexData);
 
 	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
 		RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax);
@@ -80,7 +80,7 @@ public:
 
 private:
 	RdrResourceHandle CreateTextureCommon(RdrTextureType texType, uint width, uint height, uint depth,
-		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage, char* pTextureData);
+		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTextureData);
 
 private:
 	// Command definitions
@@ -89,6 +89,7 @@ private:
 		RdrResourceHandle hResource;
 		RdrTextureInfo texInfo;
 		RdrResourceUsage eUsage;
+		RdrResourceBindings eBindings;
 
 		char* pFileData; // Pointer to start of texture data when loaded from a file.
 		char* pData; // Pointer to start of raw data.

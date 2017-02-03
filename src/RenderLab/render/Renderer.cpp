@@ -179,12 +179,24 @@ void Renderer::ApplyDeviceChanges()
 			rResCommandList.ReleaseResource(m_hColorBufferMultisampled);
 		if (m_hColorBufferRenderTarget)
 			rResCommandList.ReleaseRenderTargetView(m_hColorBufferRenderTarget);
+		if (m_hNormalBuffer)
+			rResCommandList.ReleaseResource(m_hNormalBuffer);
+		if (m_hNormalBufferMultisampled)
+			rResCommandList.ReleaseResource(m_hNormalBufferMultisampled);
+		if (m_hAlbedoBuffer)
+			rResCommandList.ReleaseResource(m_hAlbedoBuffer);
+		if (m_hAlbedoBufferMultisampled)
+			rResCommandList.ReleaseResource(m_hAlbedoBufferMultisampled);
+		if (m_hNormalBufferRenderTarget)
+			rResCommandList.ReleaseRenderTargetView(m_hNormalBufferRenderTarget);
 
 		// FP16 color
-		m_hColorBuffer = rResCommandList.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		m_hColorBuffer = rResCommandList.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, 
+			RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget, nullptr);
 		if (g_debugState.msaaLevel > 1)
 		{
-			m_hColorBufferMultisampled = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, g_debugState.msaaLevel);
+			m_hColorBufferMultisampled = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, 
+				g_debugState.msaaLevel, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget);
 			m_hColorBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hColorBufferMultisampled);
 		}
 		else
@@ -193,8 +205,39 @@ void Renderer::ApplyDeviceChanges()
 			m_hColorBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hColorBuffer);
 		}
 
+		// Albedo buffer
+		m_hAlbedoBuffer = rResCommandList.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::B8G8R8A8_UNORM,
+			RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget, nullptr);
+		if (g_debugState.msaaLevel > 1)
+		{
+			m_hAlbedoBufferMultisampled = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::B8G8R8A8_UNORM,
+				g_debugState.msaaLevel, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget);
+			m_hAlbedoBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hAlbedoBufferMultisampled);
+		}
+		else
+		{
+			m_hAlbedoBufferMultisampled = 0;
+			m_hAlbedoBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hAlbedoBuffer);
+		}
+
+		// Normals buffer
+		m_hNormalBuffer = rResCommandList.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::B8G8R8A8_UNORM,
+			RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget, nullptr);
+		if (g_debugState.msaaLevel > 1)
+		{
+			m_hNormalBufferMultisampled = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::B8G8R8A8_UNORM, 
+				g_debugState.msaaLevel, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget);
+			m_hNormalBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hNormalBufferMultisampled);
+		}
+		else
+		{
+			m_hNormalBufferMultisampled = 0;
+			m_hNormalBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hNormalBuffer);
+		}
+
 		// Depth Buffer
-		m_hPrimaryDepthBuffer = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::D24_UNORM_S8_UINT, g_debugState.msaaLevel);
+		m_hPrimaryDepthBuffer = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::D24_UNORM_S8_UINT, 
+			g_debugState.msaaLevel, RdrResourceUsage::Default, RdrResourceBindings::kNone);
 		m_hPrimaryDepthStencilView = rResCommandList.CreateDepthStencilView(m_hPrimaryDepthBuffer);
 
 		m_viewWidth = m_pendingViewWidth;
@@ -276,7 +319,7 @@ void Renderer::DrawPass(const RdrAction& rAction, RdrPass ePass)
 
 	m_pContext->SetRenderTargets(MAX_RENDER_TARGETS, renderTargets, depthView);
 	m_pContext->SetDepthStencilState(rPass.depthTestMode, rPass.bDepthWriteEnabled);
-	m_pContext->SetBlendState(rPass.bAlphaBlend);
+	m_pContext->SetBlendState(rPass.blendMode);
 
 	m_pContext->SetViewport(rPass.viewport);
 
@@ -345,7 +388,7 @@ void Renderer::DrawShadowPass(const RdrAction& rAction, int shadowPassIndex)
 
 	m_pContext->SetRenderTargets(MAX_RENDER_TARGETS, renderTargets, depthView);
 	m_pContext->SetDepthStencilState(rPassData.depthTestMode, rPassData.bDepthWriteEnabled);
-	m_pContext->SetBlendState(rPassData.bAlphaBlend);
+	m_pContext->SetBlendState(rPassData.blendMode);
 
 	m_pContext->SetViewport(rPassData.viewport);
 
@@ -500,17 +543,11 @@ void Renderer::DrawFrame()
 				rasterState.bEnableMSAA = false;
 				m_pContext->SetRasterState(rasterState);
 			}
-			else
-			{
-				RdrRenderTargetView renderTargets[MAX_RENDER_TARGETS] = { 0 };
-				RdrDepthStencilView depthView = { 0 };
-				m_pContext->SetRenderTargets(MAX_RENDER_TARGETS, renderTargets, depthView);
-			}
 
 			if (pAction->m_bEnablePostProcessing)
 			{
 				m_profiler.BeginSection(RdrProfileSection::PostProcessing);
-				m_postProcess.DoPostProcessing(*m_pInputManager, m_pContext, m_drawState, pColorBuffer, pAction->m_postProcessEffects);
+				m_postProcess.DoPostProcessing(*m_pInputManager, m_pContext, m_drawState, pColorBuffer, pAction->m_postProcessEffects, pAction->GetGlobalConstants());
 				m_profiler.EndSection();
 			}
 
@@ -527,6 +564,11 @@ void Renderer::DrawFrame()
 
 			DrawPass(*pAction, RdrPass::Editor);
 			DrawPass(*pAction, RdrPass::UI);
+
+			if (pAction->m_hDebugCopyTexture)
+			{
+				m_postProcess.CopyToTarget(m_pContext, m_drawState, pAction->m_hDebugCopyTexture, pAction->m_outputSurface.hRenderTarget);
+			}
 
 			m_pContext->EndEvent();
 		}
@@ -838,7 +880,8 @@ RdrResourceReadbackRequestHandle Renderer::IssueTextureReadbackRequest(RdrResour
 	pReq->frameCount = 0;
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(pixelCoord.x, pixelCoord.y, 0, 1, 1, 1);
-	pReq->hDstResource = GetPreFrameCommandList().CreateTexture2D(1, 1, pSrcResource->texInfo.format, RdrResourceUsage::Staging, nullptr);
+	pReq->hDstResource = GetPreFrameCommandList().CreateTexture2D(1, 1, pSrcResource->texInfo.format, 
+		RdrResourceUsage::Staging, RdrResourceBindings::kNone, nullptr);
 	pReq->dataSize = rdrGetTexturePitch(1, pSrcResource->texInfo.format);
 	pReq->pData = new char[pReq->dataSize]; // todo: custom heap
 

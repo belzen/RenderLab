@@ -1,6 +1,7 @@
 #pragma once
-
 #include <string>
+
+// Misc utility functions.
 
 #define SAFE_DELETE(mem) if ( mem ) { delete mem; mem = nullptr; }
 
@@ -31,3 +32,20 @@ struct StringInvariantCompare
 		return _stricmp(lhs.c_str(), rhs.c_str()) < 0;
 	}
 };
+
+// Random float between 0.0 and 1.0.
+inline float randFloat()
+{
+	return rand() / (float)RAND_MAX;
+}
+
+// Random float between min and max
+inline float randFloatRange(float min, float max)
+{
+	return min + (max - min) * randFloat();
+}
+
+inline float lerp(float start, float end, float blend)
+{
+	return start * (1.f - blend) + end * blend;
+}

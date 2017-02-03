@@ -3,6 +3,7 @@
 #include "AssetLib/AssetLibForwardDecl.h"
 #include "Math.h"
 #include "RdrShaderTypes.h"
+#include "RdrShaders.h"
 #include "RdrResource.h"
 #include "UtilsLib/FixedVector.h"
 #include "../../data/shaders/light_types.h"

@@ -123,6 +123,7 @@ enum class RdrResourceFormat
 	B8G8R8A8_UNORM,
 	B8G8R8A8_UNORM_sRGB,
 	R8G8B8A8_UNORM,
+	R8G8_UNORM,
 	R16G16B16A16_FLOAT,
 
 	Count
@@ -152,7 +153,17 @@ enum class RdrDepthTestMode
 	Less,
 	Equal,
 
-	Count,
+	Count
+};
+
+enum class RdrBlendMode
+{
+	kOpaque,
+	kAlpha,
+	kAdditive,
+	kSubtractive,
+
+	kCount
 };
 
 struct RdrRasterState
@@ -221,6 +232,13 @@ enum class RdrResourceUsage
 	Staging,
 
 	Count
+};
+
+enum class RdrResourceBindings
+{
+	kNone,
+	kUnorderedAccessView,
+	kRenderTarget,
 };
 
 struct RdrBox

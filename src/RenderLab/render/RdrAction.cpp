@@ -37,7 +37,12 @@ namespace
 
 		pPsPerAction->cameraPos = rCamera.GetPosition();
 		pPsPerAction->cameraDir = rCamera.GetDirection();
+		pPsPerAction->mtxView = mtxView;
+		pPsPerAction->mtxView = Matrix44Transpose(pPsPerAction->mtxView);
+		pPsPerAction->mtxProj = mtxProj;
+		pPsPerAction->mtxProj = Matrix44Transpose(pPsPerAction->mtxProj);
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
+		pPsPerAction->mtxInvProj = Matrix44Transpose(pPsPerAction->mtxInvProj);
 		pPsPerAction->viewSize.x = (uint)rViewport.width;
 		pPsPerAction->viewSize.y = (uint)rViewport.height;
 		pPsPerAction->cameraNearDist = rCamera.GetNearDist();
@@ -69,7 +74,12 @@ namespace
 
 		pPsPerAction->cameraPos = Vec3::kOrigin;
 		pPsPerAction->cameraDir = Vec3::kUnitZ;
+		pPsPerAction->mtxView = mtxView;
+		pPsPerAction->mtxView = Matrix44Transpose(pPsPerAction->mtxView);
+		pPsPerAction->mtxProj = mtxProj;
+		pPsPerAction->mtxProj = Matrix44Transpose(pPsPerAction->mtxProj);
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
+		pPsPerAction->mtxInvProj = Matrix44Transpose(pPsPerAction->mtxInvProj);
 		pPsPerAction->viewSize.x = (uint)rViewport.width;
 		pPsPerAction->viewSize.y = (uint)rViewport.height;
 
@@ -135,6 +145,16 @@ void RdrAction::InitAsPrimary(Camera& rCamera)
 
 	createPerActionConstants(m_resourceCommands, m_camera, m_primaryViewport, m_constants);
 	createUiConstants(m_resourceCommands, m_primaryViewport, m_uiConstants);
+
+	switch (g_debugState.visMode)
+	{
+	case DebugVisMode::kSsao:
+		m_hDebugCopyTexture = g_pRenderer->GetPostProcess().GetSsaoBlurredBuffer();
+		break;
+	default:
+		m_hDebugCopyTexture = 0;
+		break;
+	}
 }
 
 void RdrAction::InitAsOffscreen(const wchar_t* actionName, Camera& rCamera,
@@ -158,9 +178,12 @@ void RdrAction::InitAsOffscreen(const wchar_t* actionName, Camera& rCamera,
 void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool enablePostProcessing, const RdrSurface& outputSurface)
 {
 	RdrRenderTargetViewHandle hColorTarget = enablePostProcessing ? g_pRenderer->GetColorBufferRenderTarget() : outputSurface.hRenderTarget;
+	RdrRenderTargetViewHandle hAlbedoTarget = g_pRenderer->GetAlbedoBufferRenderTarget();
+	RdrRenderTargetViewHandle hNormalTarget = g_pRenderer->GetNormalBufferRenderTarget();
 	RdrDepthStencilViewHandle hDepthTarget = outputSurface.hDepthTarget;
 
 	// Setup default action and pass states
+	m_outputSurface = outputSurface;
 	m_name = actionName;
 	m_primaryViewport = viewport;
 	m_bEnablePostProcessing = enablePostProcessing;
@@ -169,7 +192,7 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 	RdrPassData* pPass = &m_passes[(int)RdrPass::ZPrepass];
 	{
 		pPass->viewport = viewport;
-		pPass->bAlphaBlend = false;
+		pPass->blendMode = RdrBlendMode::kOpaque;
 		pPass->hDepthTarget = hDepthTarget;
 		pPass->bClearDepthTarget = true;
 		pPass->depthTestMode = RdrDepthTestMode::Less;
@@ -181,7 +204,7 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 	pPass = &m_passes[(int)RdrPass::LightCulling];
 	{
 		pPass->viewport = viewport;
-		pPass->bAlphaBlend = false;
+		pPass->blendMode = RdrBlendMode::kOpaque;
 		pPass->bClearDepthTarget = false;
 		pPass->depthTestMode = RdrDepthTestMode::None;
 		pPass->bDepthWriteEnabled = false;
@@ -192,7 +215,7 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 	pPass = &m_passes[(int)RdrPass::VolumetricFog];
 	{
 		pPass->viewport = viewport;
-		pPass->bAlphaBlend = false;
+		pPass->blendMode = RdrBlendMode::kOpaque;
 		pPass->bClearDepthTarget = false;
 		pPass->depthTestMode = RdrDepthTestMode::None;
 		pPass->bDepthWriteEnabled = false;
@@ -204,8 +227,10 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 	{
 		pPass->viewport = viewport;
 		pPass->ahRenderTargets[0] = hColorTarget;
+		pPass->ahRenderTargets[1] = hAlbedoTarget;
+		pPass->ahRenderTargets[2] = hNormalTarget;
 		pPass->bClearRenderTargets = true;
-		pPass->bAlphaBlend = false;
+		pPass->blendMode = RdrBlendMode::kOpaque;
 		pPass->hDepthTarget = hDepthTarget;
 		pPass->depthTestMode = RdrDepthTestMode::Equal;
 		pPass->bDepthWriteEnabled = false;
@@ -229,7 +254,7 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 		pPass->viewport = viewport;
 		pPass->ahRenderTargets[0] = outputSurface.hRenderTarget;
 		pPass->hDepthTarget = hDepthTarget;
-		pPass->bAlphaBlend = true;
+		pPass->blendMode = RdrBlendMode::kAlpha;
 		pPass->depthTestMode = RdrDepthTestMode::Less;
 		pPass->bDepthWriteEnabled = true;
 		pPass->bClearDepthTarget = true;
@@ -242,7 +267,7 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 		pPass->viewport = viewport;
 		pPass->ahRenderTargets[0] = outputSurface.hRenderTarget;
 		pPass->hDepthTarget = hDepthTarget;
-		pPass->bAlphaBlend = false;
+		pPass->blendMode = RdrBlendMode::kOpaque;
 		pPass->depthTestMode = RdrDepthTestMode::Less;
 		pPass->bDepthWriteEnabled = false;
 		pPass->shaderMode = RdrShaderMode::Normal;
@@ -254,7 +279,7 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 	{
 		pPass->viewport = viewport;
 		pPass->ahRenderTargets[0] = outputSurface.hRenderTarget;
-		pPass->bAlphaBlend = true;
+		pPass->blendMode = RdrBlendMode::kAlpha;
 		pPass->depthTestMode = RdrDepthTestMode::None;
 		pPass->bDepthWriteEnabled = false;
 		pPass->shaderMode = RdrShaderMode::Normal;
@@ -285,7 +310,7 @@ void RdrAction::Release()
 		rPass.viewport = Rect(0, 0, 0, 0);
 		rPass.shaderMode = RdrShaderMode::Normal;
 		rPass.depthTestMode = RdrDepthTestMode::None;
-		rPass.bAlphaBlend = false;
+		rPass.blendMode = RdrBlendMode::kOpaque;
 		rPass.bEnabled = false;
 		rPass.bClearRenderTargets = false;
 		rPass.bClearDepthTarget = false;
@@ -357,7 +382,7 @@ void RdrAction::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHan
 		rPassData.bClearDepthTarget = true;
 		rPassData.depthTestMode = RdrDepthTestMode::Less;
 		rPassData.bDepthWriteEnabled = true;
-		rPassData.bAlphaBlend = false;
+		rPassData.blendMode = RdrBlendMode::kOpaque;
 		rPassData.shaderMode = RdrShaderMode::DepthOnly;
 	}
 
@@ -381,7 +406,7 @@ void RdrAction::QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencil
 	{
 		rPassData.viewport = viewport;
 		rPassData.bEnabled = true;
-		rPassData.bAlphaBlend = false;
+		rPassData.blendMode = RdrBlendMode::kOpaque;
 		rPassData.shaderMode = RdrShaderMode::DepthOnly;
 		rPassData.depthTestMode = RdrDepthTestMode::Less;
 		rPassData.bDepthWriteEnabled = true;

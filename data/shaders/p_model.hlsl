@@ -39,12 +39,21 @@ PsOutput main(VsOutputModel input)
 
 	float3 cameraViewDir = normalize(cbPerAction.cameraPos - input.position_ws.xyz);
 
+	float3 litColor;
+	float3 albedo;
+
 	PsOutput output;
-	output.color.rgb = doLighting(input.position_ws.xyz, 
+	doLighting(input.position_ws.xyz, 
 		color.rgb, cbMaterial.roughness, cbMaterial.metalness, 
 		normal, cameraViewDir, input.position.xy, 
-		g_texEnvironmentMaps, g_texVolumetricFogLut);
+		g_texEnvironmentMaps, g_texVolumetricFogLut,
+		// outputs
+		litColor, albedo);
+
+	output.color.rgb = litColor;
 	output.color.a = 1.f;
+	output.albedo = albedo;
+	output.normal = normal * 0.5f + 0.5f;
 	return output;
 #endif
 }

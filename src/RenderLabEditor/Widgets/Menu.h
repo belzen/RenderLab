@@ -13,6 +13,9 @@ public:
 	void AddItem(const char* text, MenuCommandCallback callbackFunc, void* pUserData);
 	void AddSubMenu(const char* name, Menu* pMenu);
 
+	void SetItemChecked(int itemIndex, bool check);
+	void SetRadioItemChecked(int itemIndex);
+
 	bool HandleMenuCommand(int commandId);
 
 	HMENU GetMenuHandle();

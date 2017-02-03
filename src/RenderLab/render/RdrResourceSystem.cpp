@@ -86,10 +86,12 @@ void RdrResourceSystem::Init(Renderer& rRenderer)
 
 	// Create default resources.
 	static uchar blackTexData[4] = { 0, 0, 0, 255 };
-	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex2d] = 
-		rRenderer.GetPreFrameCommandList().CreateTexture2D(1, 1, RdrResourceFormat::B8G8R8A8_UNORM, RdrResourceUsage::Immutable, (char*)blackTexData);
+	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex2d] =
+		rRenderer.GetPreFrameCommandList().CreateTexture2D(1, 1, RdrResourceFormat::B8G8R8A8_UNORM,
+			RdrResourceUsage::Immutable, RdrResourceBindings::kNone, (char*)blackTexData);
 	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex3d] =
-		rRenderer.GetPreFrameCommandList().CreateTexture3D(1, 1, 1, RdrResourceFormat::B8G8R8A8_UNORM, RdrResourceUsage::Immutable, (char*)blackTexData);
+		rRenderer.GetPreFrameCommandList().CreateTexture3D(1, 1, 1, RdrResourceFormat::B8G8R8A8_UNORM, 
+			RdrResourceUsage::Immutable, RdrResourceBindings::kNone, (char*)blackTexData);
 }
 
 const RdrResource* RdrResourceSystem::GetDefaultResource(const RdrDefaultResource resType)
@@ -193,7 +195,7 @@ RdrResourceHandle RdrResourceCommandList::CreateTextureFromFile(const CachedStri
 }
 
 RdrResourceHandle RdrResourceCommandList::CreateTextureCommon(RdrTextureType texType, uint width, uint height, uint depth,
-	uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage, char* pTextureData)
+	uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTextureData)
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
@@ -202,6 +204,7 @@ RdrResourceHandle RdrResourceCommandList::CreateTextureCommon(RdrTextureType tex
 
 	cmd.hResource = s_resourceSystem.resources.getId(pResource);
 	cmd.eUsage = eUsage;
+	cmd.eBindings = eBindings;
 	cmd.pData = pTextureData;
 	cmd.texInfo.texType = texType;
 	cmd.texInfo.format = eFormat;
@@ -214,34 +217,34 @@ RdrResourceHandle RdrResourceCommandList::CreateTextureCommon(RdrTextureType tex
 	return cmd.hResource;
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage, char* pTexData)
+RdrResourceHandle RdrResourceCommandList::CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTexData)
 {
-	return CreateTextureCommon(RdrTextureType::k2D, width, height, 1, 1, eFormat, 1, eUsage, pTexData);
+	return CreateTextureCommon(RdrTextureType::k2D, width, height, 1, 1, eFormat, 1, eUsage, eBindings, pTexData);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture2DMS(uint width, uint height, RdrResourceFormat eFormat, uint sampleCount)
+RdrResourceHandle RdrResourceCommandList::CreateTexture2DMS(uint width, uint height, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage, RdrResourceBindings eBindings)
 {
-	return CreateTextureCommon(RdrTextureType::k2D, width, height, 1, 1, eFormat, sampleCount, RdrResourceUsage::Default, nullptr);
+	return CreateTextureCommon(RdrTextureType::k2D, width, height, 1, 1, eFormat, sampleCount, eUsage, eBindings, nullptr);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat)
+RdrResourceHandle RdrResourceCommandList::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings)
 {
-	return CreateTextureCommon(RdrTextureType::k2D, width, height, arraySize, 1, eFormat, 1, RdrResourceUsage::Default, nullptr);
+	return CreateTextureCommon(RdrTextureType::k2D, width, height, arraySize, 1, eFormat, 1, eUsage, eBindings, nullptr);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat)
+RdrResourceHandle RdrResourceCommandList::CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings)
 {
-	return CreateTextureCommon(RdrTextureType::kCube, width, height, 1, 1, eFormat, 1, RdrResourceUsage::Default, nullptr);
+	return CreateTextureCommon(RdrTextureType::kCube, width, height, 1, 1, eFormat, 1, eUsage, eBindings, nullptr);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat)
+RdrResourceHandle RdrResourceCommandList::CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings)
 {
-	return CreateTextureCommon(RdrTextureType::kCube, width, height, arraySize, 1, eFormat, 1, RdrResourceUsage::Default, nullptr);
+	return CreateTextureCommon(RdrTextureType::kCube, width, height, arraySize, 1, eFormat, 1, eUsage, eBindings, nullptr);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage, char* pTexData)
+RdrResourceHandle RdrResourceCommandList::CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTexData)
 {
-	return CreateTextureCommon(RdrTextureType::k3D, width, height, depth, 1, eFormat, 1, eUsage, pTexData);
+	return CreateTextureCommon(RdrTextureType::k3D, width, height, depth, 1, eFormat, 1, eUsage, eBindings, pTexData);
 }
 
 RdrResourceHandle RdrResourceCommandList::CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceUsage eUsage)
@@ -586,7 +589,7 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 	{
 		CmdCreateTexture& cmd = m_textureCreates[i];
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
-		pRdrContext->CreateTexture(cmd.pData, cmd.texInfo, cmd.eUsage, *pResource);
+		pRdrContext->CreateTexture(cmd.pData, cmd.texInfo, cmd.eUsage, cmd.eBindings, *pResource);
 		pResource->texInfo = cmd.texInfo;
 		pResource->eUsage = cmd.eUsage;
 		pResource->bIsTexture = true;

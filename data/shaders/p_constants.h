@@ -3,6 +3,8 @@
 
 struct PsPerAction
 {
+	float4x4 mtxView;
+	float4x4 mtxProj;
 	float4x4 mtxInvProj;
 
 	float3 cameraPos;
@@ -39,6 +41,19 @@ struct MaterialParams
 
 	float3 color; // Optional color tint.
 	float unused2;
+};
+
+#define SSAO_KERNEL_SIZE 4
+struct SsaoParams
+{
+	float4 sampleKernel[SSAO_KERNEL_SIZE * SSAO_KERNEL_SIZE];
+
+	float2 noiseUvScale;
+	float sampleRadius;
+	float blurSize;
+
+	float2 texelSize; // Texel size of the SSAO buffer.
+	float2 unused2;
 };
 
 #endif // SHADER_P_CONSTANTS_H

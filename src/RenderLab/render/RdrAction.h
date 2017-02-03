@@ -61,9 +61,9 @@ struct RdrPassData
 
 	RdrShaderMode shaderMode;
 	RdrDepthTestMode depthTestMode;
+	RdrBlendMode blendMode;
 	const RdrShader* pOverridePixelShader;
 	bool bDepthWriteEnabled;
-	bool bAlphaBlend;
 
 	bool bEnabled;
 	bool bClearRenderTargets;
@@ -132,6 +132,7 @@ private:
 	LPCWSTR m_name;
 
 	RdrResourceCommandList m_resourceCommands;
+	RdrSurface m_outputSurface;
 
 	RdrPassData m_passes[(int)RdrPass::Count];
 	RdrDrawOpBucket m_drawOpBuckets[(int)RdrBucketType::Count];
@@ -145,6 +146,10 @@ private:
 	AssetLib::PostProcessEffects m_postProcessEffects;
 
 	Rect m_primaryViewport;
+
+	// Debug texture to copy to the output surface.
+	// This will typically be a texture that is written to as part of the action.
+	RdrResourceHandle m_hDebugCopyTexture;
 
 	RdrLightResources m_lightResources;
 	RdrLightList m_lights;

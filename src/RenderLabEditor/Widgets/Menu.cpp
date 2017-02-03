@@ -42,6 +42,17 @@ void Menu::AddSubMenu(const char* name, Menu* pMenu)
 	::AppendMenuA(m_hMenu, MF_POPUP, (UINT_PTR)pMenu->m_hMenu, name);
 }
 
+void Menu::SetItemChecked(int itemIndex, bool check)
+{
+	int stateFlag = check ? MF_CHECKED : MF_UNCHECKED;
+	CheckMenuItem(m_hMenu, itemIndex, MF_BYPOSITION | stateFlag);
+}
+
+void Menu::SetRadioItemChecked(int itemIndex)
+{
+	CheckMenuRadioItem(m_hMenu, 0, m_items.size() - 1, itemIndex, MF_BYPOSITION);
+}
+
 bool Menu::HandleMenuCommand(int commandId)
 {
 	int numItems = (int)m_items.size();

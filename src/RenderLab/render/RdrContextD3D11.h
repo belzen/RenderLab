@@ -47,7 +47,7 @@ public:
 
 	/////////////////////////////////////////////////////////////
 	// Resources
-	bool CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource);
+	bool CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResourceBindings eBindings, RdrResource& rResource);
 
 	bool CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResource& rResource);
 	bool CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage, RdrResource& rResource);
@@ -99,7 +99,7 @@ public:
 	// Pipeline state
 	void SetRenderTargets(uint numTargets, const RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget);
 	void SetDepthStencilState(RdrDepthTestMode eDepthTest, bool bWriteEnabled);
-	void SetBlendState(const bool bAlphaBlend);
+	void SetBlendState(RdrBlendMode blendMode);
 	void SetRasterState(const RdrRasterState& rasterState);
 	void SetViewport(const Rect& viewport);
 
@@ -140,7 +140,7 @@ private:
 	ID3D11RenderTargetView*   m_pPrimaryRenderTarget;
 
 	ID3D11SamplerState*      m_pSamplers[SAMPLER_TYPES_COUNT];
-	ID3D11BlendState*        m_pBlendStates[2];
+	ID3D11BlendState*        m_pBlendStates[(int)RdrBlendMode::kCount];
 	ID3D11RasterizerState*   m_pRasterStates[RASTER_STATES_COUNT];
 	ID3D11DepthStencilState* m_pDepthStencilStates[(int)RdrDepthTestMode::Count * 2];
 

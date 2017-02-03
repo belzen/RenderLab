@@ -52,6 +52,7 @@ namespace
 			DXGI_FORMAT_B8G8R8A8_UNORM,			// ResourceFormat::B8G8R8A8_UNORM
 			DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,	// ResourceFormat::B8G8R8A8_UNORM_sRGB
 			DXGI_FORMAT_R8G8B8A8_UNORM,			// ResourceFormat::R8G8B8A8_UNORM
+			DXGI_FORMAT_R8G8_UNORM,				// ResourceFormat::R8G8_UNORM
 			DXGI_FORMAT_R16G16B16A16_FLOAT,		// ResourceFormat::R16G16B16A16_FLOAT
 		};
 		static_assert(ARRAY_SIZE(s_d3dFormats) == (int)RdrResourceFormat::Count, "Missing D3D formats!");
@@ -77,6 +78,7 @@ namespace
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::B8G8R8A8_UNORM
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::B8G8R8A8_UNORM_sRGB
 			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R8G8B8A8_UNORM
+			DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R8G8B8_UNORM
 			DXGI_FORMAT_UNKNOWN,	        // ResourceFormat::R16G16B16A16_FLOAT
 		};
 		static_assert(ARRAY_SIZE(s_d3dDepthFormats) == (int)RdrResourceFormat::Count, "Missing D3D depth formats!");
@@ -103,6 +105,7 @@ namespace
 			DXGI_FORMAT_B8G8R8A8_TYPELESS,	   // ResourceFormat::B8G8R8A8_UNORM
 			DXGI_FORMAT_B8G8R8A8_TYPELESS,     // ResourceFormat::B8G8R8A8_UNORM_sRGB
 			DXGI_FORMAT_R8G8B8A8_TYPELESS,	   // ResourceFormat::R8G8B8A8_UNORM
+			DXGI_FORMAT_R8G8_TYPELESS,	       // ResourceFormat::R8G8_UNORM
 			DXGI_FORMAT_R16G16B16A16_TYPELESS, // ResourceFormat::R16G16B16A16_FLOAT
 		};
 		static_assert(ARRAY_SIZE(s_d3dTypelessFormats) == (int)RdrResourceFormat::Count, "Missing typeless formats!");
@@ -595,12 +598,11 @@ namespace
 		return true;
 	}
 
-	bool createTexture2D(ID3D11Device* pDevice, D3D11_SUBRESOURCE_DATA* pData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource)
+	bool createTexture2D(ID3D11Device* pDevice, D3D11_SUBRESOURCE_DATA* pData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResourceBindings eBindings, RdrResource& rResource)
 	{
 		bool bIsMultisampled = (rTexInfo.sampleCount > 1);
 		bool bIsArray = (rTexInfo.depth > 1);
-		bool bCanBindAccessView = !bIsMultisampled && !resourceFormatIsCompressed(rTexInfo.format) && eUsage != RdrResourceUsage::Immutable;
-
+		
 		D3D11_TEXTURE2D_DESC desc = { 0 };
 
 		desc.Usage = getD3DUsage(eUsage);
@@ -616,6 +618,7 @@ namespace
 			{
 				desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 			}
+
 			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 			if (resourceFormatIsDepth(rTexInfo.format))
 			{
@@ -623,11 +626,14 @@ namespace
 			}
 			else
 			{
-				// todo: find out if having all these bindings cause any inefficiencies in D3D
-				if (bCanBindAccessView)
+				if (eBindings == RdrResourceBindings::kUnorderedAccessView)
+				{
 					desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-				if (eUsage != RdrResourceUsage::Immutable)
+				}
+				else if (eBindings == RdrResourceBindings::kRenderTarget)
+				{
 					desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+				}
 			}
 		}
 
@@ -748,7 +754,7 @@ namespace
 	}
 }
 
-bool RdrContextD3D11::CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource)
+bool RdrContextD3D11::CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResourceBindings eBindings, RdrResource& rResource)
 {
 	uint sliceCount = (rTexInfo.texType == RdrTextureType::kCube) ? rTexInfo.depth * 6 : rTexInfo.depth;
 	D3D11_SUBRESOURCE_DATA* pData = nullptr;  
@@ -767,8 +773,11 @@ bool RdrContextD3D11::CreateTexture(const void* pSrcData, const RdrTextureInfo& 
 			{
 				pData[resIndex].pSysMem = pPos;
 				pData[resIndex].SysMemPitch = rdrGetTexturePitch(mipWidth, rTexInfo.format);
-				pData[resIndex].SysMemSlicePitch = pData[resIndex].SysMemPitch * mipHeight;
-				pPos += pData[resIndex].SysMemPitch * rdrGetTextureRows(mipHeight, rTexInfo.format);
+
+				int rows = rdrGetTextureRows(mipHeight, rTexInfo.format);
+				pData[resIndex].SysMemSlicePitch = pData[resIndex].SysMemPitch * rows;
+				pPos += pData[resIndex].SysMemPitch * rows;
+
 				if (mipWidth > 1)
 					mipWidth >>= 1;
 				if (mipHeight > 1)
@@ -782,7 +791,7 @@ bool RdrContextD3D11::CreateTexture(const void* pSrcData, const RdrTextureInfo& 
 	switch (rTexInfo.texType)
 	{
 	case RdrTextureType::k2D:
-		res = createTexture2D(m_pDevice, pData, rTexInfo, eUsage, rResource);
+		res = createTexture2D(m_pDevice, pData, rTexInfo, eUsage, eBindings, rResource);
 		break;
 	case RdrTextureType::kCube:
 		res = createTextureCube(m_pDevice, pData, rTexInfo, eUsage, rResource);
@@ -1021,45 +1030,66 @@ void RdrContextD3D11::SetDepthStencilState(RdrDepthTestMode eDepthTest, bool bWr
 	m_pDevContext->OMSetDepthStencilState(m_pDepthStencilStates[(int)eDepthTest], 1);
 }
 
-void RdrContextD3D11::SetBlendState(const bool bAlphaBlend)
+void RdrContextD3D11::SetBlendState(RdrBlendMode blendMode)
 {
-	if (!m_pBlendStates[bAlphaBlend])
+	if (!m_pBlendStates[(int)blendMode])
 	{
-		D3D11_BLEND_DESC blend_desc = { 0 };
-		blend_desc.AlphaToCoverageEnable = false;
-		blend_desc.IndependentBlendEnable = false;
+		D3D11_BLEND_DESC desc = { 0 };
+		desc.AlphaToCoverageEnable = false;
+		desc.IndependentBlendEnable = false;
 
-		if (bAlphaBlend)
+		switch (blendMode)
 		{
-			blend_desc.RenderTarget[0].BlendEnable = true;
-			blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-			blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-			blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-			blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-			blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-			blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-			blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		}
-		else
-		{
-			blend_desc.RenderTarget[0].BlendEnable = false;
-			blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-			blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
-			blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-			blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-			blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-			blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-			blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		case RdrBlendMode::kOpaque:
+			desc.RenderTarget[0].BlendEnable = false;
+			desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
+			desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+			desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+			desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+			break;
+		case RdrBlendMode::kAlpha:
+			desc.RenderTarget[0].BlendEnable = true;
+			desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+			desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+			desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+			desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+			break;
+		case RdrBlendMode::kAdditive:
+			desc.RenderTarget[0].BlendEnable = true;
+			desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+			desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+			break;
+		case RdrBlendMode::kSubtractive:
+			desc.RenderTarget[0].BlendEnable = true;
+			desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_REV_SUBTRACT;
+			desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+			desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_REV_SUBTRACT;
+			desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+			break;
 		}
 
 		ID3D11BlendState* pBlendState = nullptr;
-		HRESULT hr = m_pDevice->CreateBlendState(&blend_desc, &pBlendState);
+		HRESULT hr = m_pDevice->CreateBlendState(&desc, &pBlendState);
 		assert(hr == S_OK);
 
-		m_pBlendStates[bAlphaBlend] = pBlendState;
+		m_pBlendStates[(int)blendMode] = pBlendState;
 	}
 
-	m_pDevContext->OMSetBlendState(m_pBlendStates[bAlphaBlend], nullptr, 0xffffffff);
+	m_pDevContext->OMSetBlendState(m_pBlendStates[(int)blendMode], nullptr, 0xffffffff);
 }
 
 void RdrContextD3D11::SetRasterState(const RdrRasterState& rasterState)

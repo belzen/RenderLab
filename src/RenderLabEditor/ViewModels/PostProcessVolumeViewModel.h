@@ -25,11 +25,20 @@ private:
 	static float GetMaxExposure(void* pSource);
 	static bool SetMaxExposure(const float maxExposure, void* pSource);
 
+	static float GetAdaptationSpeed(void* pSource);
+	static bool SetAdaptationSpeed(const float adaptationSpeed, void* pSource);
+
 	static float GetBloomThreshold(void* pSource);
 	static bool SetBloomThreshold(const float bloomThreshold, void* pSource);
 
 	static bool GetBloomEnabled(void* pSource);
 	static bool SetBloomEnabled(const bool enabled, void* pSource);
+
+	static bool GetSsaoEnabled(void* pSource);
+	static bool SetSsaoEnabled(const bool enabled, void* pSource);
+
+	static float GetSsaoSampleRadius(void* pSource);
+	static bool SetSsaoSampleRadius(const float radius, void* pSource);
 
 private:
 	PostProcessVolume* m_pTarget;

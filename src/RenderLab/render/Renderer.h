@@ -59,8 +59,17 @@ public:
 	RdrLightingMethod GetLightingMethod() const;
 
 	RdrRenderTargetViewHandle GetColorBufferRenderTarget() const;
+
+	RdrResourceHandle GetAlbedoBuffer() const;
+	RdrRenderTargetViewHandle GetAlbedoBufferRenderTarget() const;
+
+	RdrResourceHandle GetNormalBuffer() const;
+	RdrRenderTargetViewHandle GetNormalBufferRenderTarget() const;
+
 	RdrResourceHandle GetPrimaryDepthBuffer() const;
 	RdrDepthStencilViewHandle GetPrimaryDepthStencilView() const;
+
+	const RdrPostProcess& GetPostProcess() const;
 
 private:
 	void DrawPass(const RdrAction& rAction, RdrPass ePass);
@@ -89,6 +98,14 @@ private:
 	RdrResourceHandle         m_hColorBuffer;
 	RdrResourceHandle         m_hColorBufferMultisampled;
 	RdrRenderTargetViewHandle m_hColorBufferRenderTarget;
+
+	RdrResourceHandle         m_hAlbedoBuffer;
+	RdrResourceHandle         m_hAlbedoBufferMultisampled;
+	RdrRenderTargetViewHandle m_hAlbedoBufferRenderTarget;
+
+	RdrResourceHandle         m_hNormalBuffer;
+	RdrResourceHandle         m_hNormalBufferMultisampled;
+	RdrRenderTargetViewHandle m_hNormalBufferRenderTarget;
 
 	RdrDrawState m_drawState;
 
@@ -154,6 +171,26 @@ inline RdrRenderTargetViewHandle Renderer::GetColorBufferRenderTarget() const
 	return m_hColorBufferRenderTarget;
 }
 
+inline RdrResourceHandle Renderer::GetAlbedoBuffer() const
+{
+	return m_hAlbedoBuffer;
+}
+
+inline RdrRenderTargetViewHandle Renderer::GetAlbedoBufferRenderTarget() const
+{
+	return m_hAlbedoBufferRenderTarget;
+}
+
+inline RdrResourceHandle Renderer::GetNormalBuffer() const
+{
+	return m_hNormalBuffer;
+}
+
+inline RdrRenderTargetViewHandle Renderer::GetNormalBufferRenderTarget() const
+{
+	return m_hNormalBufferRenderTarget;
+}
+
 inline RdrResourceHandle Renderer::GetPrimaryDepthBuffer() const
 {
 	return m_hPrimaryDepthBuffer;
@@ -167,4 +204,9 @@ inline RdrDepthStencilViewHandle Renderer::GetPrimaryDepthStencilView() const
 inline RdrLightingMethod Renderer::GetLightingMethod() const
 {
 	return m_eLightingMethod;
+}
+
+inline const RdrPostProcess& Renderer::GetPostProcess() const
+{
+	return m_postProcess;
 }

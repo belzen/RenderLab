@@ -30,7 +30,7 @@ public:
 
 	/////////////////////////////////////////////////////////////
 	// Resources
-	virtual bool CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResource& rResource) = 0;
+	virtual bool CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceUsage eUsage, RdrResourceBindings eBindings, RdrResource& rResource) = 0;
 
 	virtual bool CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResource& rResource) = 0;
 	virtual bool CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage, RdrResource& rResource) = 0;
@@ -82,7 +82,7 @@ public:
 	// Pipeline state
 	virtual void SetRenderTargets(uint numTargets, const RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget) = 0;
 	virtual void SetDepthStencilState(RdrDepthTestMode eDepthTest, bool bWriteEnabled) = 0;
-	virtual void SetBlendState(const bool bAlphaBlend) = 0;
+	virtual void SetBlendState(RdrBlendMode blendMode) = 0;
 	virtual void SetRasterState(const RdrRasterState& rasterState) = 0;
 	virtual void SetViewport(const Rect& viewport) = 0;
 

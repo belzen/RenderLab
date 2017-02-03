@@ -53,4 +53,5 @@ private:
 	Menu m_addMenu;
 	Menu m_gameMenu;
 	Menu m_debugMenu;
+	Menu m_debugVisMenu;
 };

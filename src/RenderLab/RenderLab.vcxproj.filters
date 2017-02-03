@@ -121,6 +121,18 @@
     <FxCompile Include="..\..\data\shaders\p_editor_gizmo.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_ssao_gen.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_ssao_apply.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_ssao_blur.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_copy.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Precompiled.cpp" />

@@ -66,31 +66,31 @@ void RdrSky::LazyInit()
 
 	// Transmittance LUTs
 	m_hTransmittanceLut = rResCommandList.CreateTexture2D(TRANSMITTANCE_LUT_WIDTH, TRANSMITTANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 
 	// Scattering LUTs
 	m_hScatteringRayleighDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 	m_hScatteringMieDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 	m_hScatteringCombinedDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 	m_hScatteringSumLuts[0] = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 	m_hScatteringSumLuts[1] = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 
 	// Irradiance LUTs
 	m_hIrradianceDeltaLut = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 	m_hIrradianceSumLuts[0] = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 	m_hIrradianceSumLuts[1] = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 
 	// Radiance LUTs
 	m_hRadianceDeltaLut = rResCommandList.CreateTexture3D(RADIANCE_LUT_WIDTH, RADIANCE_LUT_HEIGHT, RADIANCE_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
 
 	// Create the material
 	m_material.bNeedsLighting = false;

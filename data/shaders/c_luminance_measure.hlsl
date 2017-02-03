@@ -79,9 +79,11 @@ void main( uint3 globalId : SV_DispatchThreadID, uint3 groupId : SV_GroupId, uin
 		avgLum = exp2(avgLum);
 
 		// Decay luminance
-		// todo: exp decay should be based on time, right now it's fixed per frame
+		// TODO: Eye adaptation rate based on scene brightness.  Light -> dark is slow while dark -> light is fast.
+		//	  lerp(tRods, tCones, p) where p = 0-1 value of "brightness", tRods = ~0.2, tCones = ~0.4
+		float adaptationRate = 0.4f;
 		float prevLum = bufToneMapOutput[0].adaptedLum;
-		float adaptedLum = prevLum + (avgLum - bufToneMapOutput[0].adaptedLum) * (1.f - exp(0.01f * -0.2f));
+		float adaptedLum = prevLum + (avgLum - prevLum) * (1.f - exp(-cbTonemapInput.frameTime * adaptationRate));
 		if (isnan(adaptedLum))
 		{
 			adaptedLum = prevLum;

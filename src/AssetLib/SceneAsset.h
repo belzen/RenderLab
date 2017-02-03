@@ -40,6 +40,7 @@ namespace AssetLib
 			float middleGrey;
 			float minExposure;
 			float maxExposure;
+			float adaptationSpeed;
 		} eyeAdaptation;
 
 		struct
@@ -47,6 +48,12 @@ namespace AssetLib
 			float threshold;
 			bool enabled;
 		} bloom;
+
+		struct 
+		{
+			float sampleRadius;
+			bool enabled;
+		} ssao;
 	};
 
 	enum class VolumeType
