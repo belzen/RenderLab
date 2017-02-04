@@ -220,13 +220,15 @@ void RdrPostProcess::HandleResize(uint width, uint height)
 }
 
 void RdrPostProcess::DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, 
-	const RdrResource* pColorBuffer, const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants)
+	const RdrActionSurfaces& rBuffers, const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants)
 {
+	const RdrResource* pColorBuffer = RdrResourceSystem::GetResource(rBuffers.colorBuffer.hTexture);
+
 	pRdrContext->BeginEvent(L"Post-Process");
 
 	if (rEffects.ssao.enabled)
 	{
-		DoSsao(pRdrContext, rDrawState, rEffects, rGlobalConstants);
+		DoSsao(pRdrContext, rDrawState, rBuffers, rEffects, rGlobalConstants);
 	}
 
 	m_dbgFrame = (m_dbgFrame + 1) % 3;
@@ -519,14 +521,8 @@ void RdrPostProcess::ResizeSsaoResources(uint width, uint height)
 	RdrResourceCommandList& rResCommands = g_pRenderer->GetPreFrameCommandList();
 	const UVec2 ssaoBufferSize = UVec2(width / 2, height / 2);
 
-	if (m_hSsaoBuffer)
-	{
-		rResCommands.ReleaseRenderTargetView(m_hSsaoBufferTarget);
-		rResCommands.ReleaseResource(m_hSsaoBlurredBufferTarget);
-		rResCommands.ReleaseResource(m_hSsaoBuffer);
-		rResCommands.ReleaseResource(m_hSsaoBlurredBuffer);
+	if (m_hSsaoNoiseTexture)
 		rResCommands.ReleaseResource(m_hSsaoNoiseTexture);
-	}
 
 	// Noise texture
 	const int kNoiseTexSize = 4;
@@ -572,24 +568,22 @@ void RdrPostProcess::ResizeSsaoResources(uint width, uint height)
 		m_ssaoParams.sampleKernel[i].w = 0.f;
 	}
 
-	// Buffer
-	m_hSsaoBuffer = rResCommands.CreateTexture2D(ssaoBufferSize.x, ssaoBufferSize.y, RdrResourceFormat::R8_UNORM,
-		RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget, nullptr);
-	m_hSsaoBufferTarget = rResCommands.CreateRenderTargetView(m_hSsaoBuffer);
+	// Buffers
+	rResCommands.ReleaseRenderTarget2d(m_ssaoBuffer);
+	m_ssaoBuffer = rResCommands.InitRenderTarget2d(ssaoBufferSize.x, ssaoBufferSize.y, RdrResourceFormat::R8_UNORM, 1);
 
-	m_hSsaoBlurredBuffer = rResCommands.CreateTexture2D(ssaoBufferSize.x, ssaoBufferSize.y, RdrResourceFormat::R8_UNORM,
-		RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget, nullptr);
-	m_hSsaoBlurredBufferTarget = rResCommands.CreateRenderTargetView(m_hSsaoBlurredBuffer);
+	rResCommands.ReleaseRenderTarget2d(m_ssaoBlurredBuffer);
+	m_ssaoBlurredBuffer = rResCommands.InitRenderTarget2d(ssaoBufferSize.x, ssaoBufferSize.y, RdrResourceFormat::R8_UNORM, 1);
 }
 
-void RdrPostProcess::DoSsao(RdrContext* pRdrContext, RdrDrawState& rDrawState, 
+void RdrPostProcess::DoSsao(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrActionSurfaces& rBuffers, 
 	const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants)
 {
-	const RdrResource* pSsaoBuffer = RdrResourceSystem::GetResource(m_hSsaoBuffer);
-	const RdrResource* pSsaoBlurredBuffer = RdrResourceSystem::GetResource(m_hSsaoBlurredBuffer);
-	const RdrResource* pDepthBuffer = RdrResourceSystem::GetResource(g_pRenderer->GetPrimaryDepthBuffer());
-	const RdrResource* pAlbedoBuffer = RdrResourceSystem::GetResource(g_pRenderer->GetAlbedoBuffer());
-	const RdrResource* pNormalBuffer = RdrResourceSystem::GetResource(g_pRenderer->GetNormalBuffer());
+	const RdrResource* pSsaoBuffer = RdrResourceSystem::GetResource(m_ssaoBuffer.hTexture);
+	const RdrResource* pSsaoBlurredBuffer = RdrResourceSystem::GetResource(m_ssaoBlurredBuffer.hTexture);
+	const RdrResource* pDepthBuffer = RdrResourceSystem::GetResource(rBuffers.hDepthBuffer);
+	const RdrResource* pAlbedoBuffer = RdrResourceSystem::GetResource(rBuffers.albedoBuffer.hTexture);
+	const RdrResource* pNormalBuffer = RdrResourceSystem::GetResource(rBuffers.normalBuffer.hTexture);
 	const RdrResource* pNoiseBuffer = RdrResourceSystem::GetResource(m_hSsaoNoiseTexture);
 
 	pRdrContext->BeginEvent(L"SSAO");
@@ -599,7 +593,7 @@ void RdrPostProcess::DoSsao(RdrContext* pRdrContext, RdrDrawState& rDrawState,
 
 	// Generate SSAO buffer
 	{
-		RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(m_hSsaoBufferTarget);
+		RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(m_ssaoBuffer.hRenderTarget);
 		RdrDepthStencilView depthView = { 0 };
 		pRdrContext->SetRenderTargets(1, &renderTarget, depthView);
 		pRdrContext->SetViewport(Rect(0.f, 0.f, (float)pSsaoBuffer->texInfo.width, (float)pSsaoBuffer->texInfo.height));
@@ -626,7 +620,7 @@ void RdrPostProcess::DoSsao(RdrContext* pRdrContext, RdrDrawState& rDrawState,
 
 	// Blur
 	{
-		RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(m_hSsaoBlurredBufferTarget);
+		RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(m_ssaoBlurredBuffer.hRenderTarget);
 		RdrDepthStencilView depthView = { 0 };
 		Vec2 viewportSize = g_pRenderer->GetViewportSize();
 		pRdrContext->SetRenderTargets(1, &renderTarget, depthView);
@@ -650,7 +644,7 @@ void RdrPostProcess::DoSsao(RdrContext* pRdrContext, RdrDrawState& rDrawState,
 
 	// Apply ambient occlusion
 	{
-		RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(g_pRenderer->GetColorBufferRenderTarget());
+		RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(rBuffers.colorBuffer.hRenderTarget);
 		RdrDepthStencilView depthView = { 0 };
 		Vec2 viewportSize = g_pRenderer->GetViewportSize();
 		pRdrContext->SetRenderTargets(1, &renderTarget, depthView);

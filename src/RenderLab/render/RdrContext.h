@@ -41,7 +41,7 @@ public:
 
 	virtual void ReleaseResource(RdrResource& rResource) = 0;
 
-	virtual void ResolveSurface(const RdrResource& rSrc, const RdrResource& rDst) = 0;
+	virtual void ResolveResource(const RdrResource& rSrc, const RdrResource& rDst) = 0;
 
 	virtual RdrShaderResourceView CreateShaderResourceViewTexture(const RdrResource& rResource) = 0;
 	virtual RdrShaderResourceView CreateShaderResourceViewBuffer(const RdrResource& rResource, uint firstElement) = 0;

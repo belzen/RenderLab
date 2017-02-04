@@ -79,10 +79,14 @@ struct RdrShadowPass
 	RdrDepthStencilViewHandle hDepthView;
 };
 
-struct RdrSurface
+struct RdrActionSurfaces
 {
-	RdrRenderTargetViewHandle hRenderTarget;
-	RdrDepthStencilViewHandle hDepthTarget;
+	Vec2 viewportSize;
+	RdrRenderTarget2d colorBuffer;
+	RdrRenderTarget2d albedoBuffer;
+	RdrRenderTarget2d normalBuffer;
+	RdrResourceHandle hDepthBuffer;
+	RdrDepthStencilViewHandle hDepthStencilView;
 };
 
 class RdrAction
@@ -90,7 +94,7 @@ class RdrAction
 public:
 	static RdrAction* CreatePrimary(Camera& rCamera);
 	static RdrAction* CreateOffscreen(const wchar_t* actionName, Camera& rCamera,
-		bool enablePostprocessing, const Rect& viewport, const RdrSurface& outputSurface);
+		bool enablePostprocessing, const Rect& viewport, RdrRenderTargetViewHandle hOutputTarget);
 
 public:
 	void Release();
@@ -121,18 +125,21 @@ public:
 	const RdrLightResources& GetLightResources() const;
 	const RdrGlobalConstants& GetGlobalConstants() const;
 
+	RdrDepthStencilViewHandle GetPrimaryDepthBuffer() const;
+
 private:
 	friend Renderer;
 	void InitAsPrimary(Camera& rCamera);
 	void InitAsOffscreen(const wchar_t* actionName, Camera& rCamera,
-		bool enablePostprocessing, const Rect& viewport, const RdrSurface& outputSurface);
-	void InitCommon(const wchar_t* actionName, const Rect& viewport, bool enablePostProcessing, const RdrSurface& outputSurface);
+		bool enablePostprocessing, const Rect& viewport, RdrRenderTargetViewHandle hOutputTarget);
+	void InitCommon(const wchar_t* actionName, bool isPrimaryAction, const Rect& viewport, bool enablePostProcessing, RdrRenderTargetViewHandle hOutputTarget);
 
 	///
 	LPCWSTR m_name;
 
 	RdrResourceCommandList m_resourceCommands;
-	RdrSurface m_outputSurface;
+	RdrRenderTargetViewHandle m_hOutputTarget;
+	RdrActionSurfaces m_surfaces;
 
 	RdrPassData m_passes[(int)RdrPass::Count];
 	RdrDrawOpBucket m_drawOpBuckets[(int)RdrBucketType::Count];
@@ -208,6 +215,11 @@ inline const RdrLightResources& RdrAction::GetLightResources() const
 inline const RdrGlobalConstants& RdrAction::GetGlobalConstants() const
 {
 	return m_constants;
+}
+
+inline RdrDepthStencilViewHandle RdrAction::GetPrimaryDepthBuffer() const
+{
+	return m_surfaces.hDepthBuffer;
 }
 
 inline int RdrAction::GetShadowPassCount() const

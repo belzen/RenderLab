@@ -446,6 +446,21 @@ bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height)
 	// Annotator
 	m_pDevContext->QueryInterface(__uuidof(m_pAnnotator), (void**)&m_pAnnotator);
 
+	// Debug settings
+	if (g_userConfig.debugDevice)
+	{
+		ID3D11Debug* pDebug = nullptr;
+		if (SUCCEEDED(m_pDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)&pDebug)))
+		{
+			ID3D11InfoQueue* pInfoQueue = nullptr;
+			if (SUCCEEDED(pDebug->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&pInfoQueue)))
+			{
+				pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+				pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
+			}
+		}
+	}
+
 	Resize(width, height);
 	ResetDrawState();
 	return true;
@@ -825,7 +840,7 @@ void RdrContextD3D11::ReleaseResource(RdrResource& rResource)
 	}
 }
 
-void RdrContextD3D11::ResolveSurface(const RdrResource& rSrc, const RdrResource& rDst)
+void RdrContextD3D11::ResolveResource(const RdrResource& rSrc, const RdrResource& rDst)
 {
 	m_pDevContext->ResolveSubresource(rDst.pResource, 0, rSrc.pResource, 0, getD3DFormat(rSrc.texInfo.format));
 }

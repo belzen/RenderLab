@@ -58,7 +58,7 @@ public:
 	
 	void ReleaseResource(RdrResource& rResource);
 
-	void ResolveSurface(const RdrResource& rSrc, const RdrResource& rDst);
+	void ResolveResource(const RdrResource& rSrc, const RdrResource& rDst);
 
 	RdrShaderResourceView CreateShaderResourceViewTexture(const RdrResource& rResource);
 	RdrShaderResourceView CreateShaderResourceViewBuffer(const RdrResource& rResource, uint firstElement);

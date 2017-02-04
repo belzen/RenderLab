@@ -16,6 +16,13 @@ enum class RdrDefaultResource
 	kNumResources
 };
 
+struct RdrRenderTarget2d
+{
+	RdrResourceHandle hTexture;
+	RdrResourceHandle hTextureMultisampled;
+	RdrRenderTargetViewHandle hRenderTarget;
+};
+
 namespace RdrResourceSystem
 {
 	static const uint kPrimaryRenderTargetHandle = 1;
@@ -77,6 +84,10 @@ public:
 	RdrRenderTargetViewHandle CreateRenderTargetView(RdrResourceHandle hResource);
 	RdrRenderTargetViewHandle CreateRenderTargetView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize);
 	void ReleaseRenderTargetView(const RdrRenderTargetViewHandle hView);
+
+	// Utility functions to create resource batches
+	RdrRenderTarget2d InitRenderTarget2d(uint width, uint height, RdrResourceFormat eFormat, int multisampleLevel);
+	void ReleaseRenderTarget2d(const RdrRenderTarget2d& rRenderTarget);
 
 private:
 	RdrResourceHandle CreateTextureCommon(RdrTextureType texType, uint width, uint height, uint depth,

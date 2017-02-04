@@ -512,7 +512,7 @@ void RdrLighting::QueueTiledLightCulling(RdrAction* pAction, const Camera& rCame
 	pDepthOp->threads[1] = tileCountY;
 	pDepthOp->threads[2] = 1;
 	pDepthOp->ahWritableResources.assign(0, m_tiledLightData.hDepthMinMaxTex);
-	pDepthOp->ahResources.assign(0, g_pRenderer->GetPrimaryDepthBuffer());
+	pDepthOp->ahResources.assign(0, pAction->GetPrimaryDepthBuffer());
 	pDepthOp->ahConstantBuffers.assign(0, m_tiledLightData.hDepthMinMaxConstants);
 
 	pAction->AddComputeOp(pDepthOp, RdrPass::LightCulling);

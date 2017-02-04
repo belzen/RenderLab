@@ -22,8 +22,6 @@ namespace
 
 		Light* m_apActiveEnvironmentLights[MAX_ENVIRONMENT_MAPS];
 		RdrResourceHandle m_hEnvironmentMapTexArray;
-		RdrResourceHandle m_hEnvironmentMapDepthBuffer;
-		RdrDepthStencilViewHandle m_hEnvironmentMapDepthView;
 		uint m_environmentMapSize;
 
 		CachedString m_name;
@@ -54,7 +52,7 @@ namespace
 		assert(s_scene.m_apActiveEnvironmentLights[index] == pLight);
 		Rect viewport(0.f, 0.f, (float)s_scene.m_environmentMapSize, (float)s_scene.m_environmentMapSize);
 		RdrOffscreenTasks::QueueSpecularProbeCapture(pLight->GetEntity()->GetPosition(), viewport,
-			s_scene.m_hEnvironmentMapTexArray, index, s_scene.m_hEnvironmentMapDepthView);
+			s_scene.m_hEnvironmentMapTexArray, index);
 	}
 }
 
@@ -109,9 +107,6 @@ void Scene::Load(const char* sceneName)
 		s_scene.m_environmentMapSize = pSceneData->environmentMapTexSize;
 		s_scene.m_hEnvironmentMapTexArray = rResCommands.CreateTextureCubeArray(s_scene.m_environmentMapSize, s_scene.m_environmentMapSize, MAX_ENVIRONMENT_MAPS, 
 			RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget);
-		s_scene.m_hEnvironmentMapDepthBuffer = rResCommands.CreateTexture2D(s_scene.m_environmentMapSize, s_scene.m_environmentMapSize, 
-			RdrResourceFormat::D24_UNORM_S8_UINT, RdrResourceUsage::Default, RdrResourceBindings::kNone, nullptr);
-		s_scene.m_hEnvironmentMapDepthView = rResCommands.CreateDepthStencilView(s_scene.m_hEnvironmentMapDepthBuffer);
 	}
 
 	// Camera

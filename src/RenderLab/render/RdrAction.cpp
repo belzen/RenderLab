@@ -12,7 +12,67 @@ namespace
 		FreeList<RdrAction, MAX_ACTIONS_PER_FRAME * 2> actions;
 		RdrLighting lighting;
 		RdrSky sky;
+
+		RdrActionSurfaces primarySurfaces;
+		std::vector<RdrActionSurfaces> offscreenSurfaces;
 	} s_actionSharedData;
+
+	RdrActionSurfaces* createActionSurfaces(RdrResourceCommandList& rResCommands, bool isPrimaryAction, uint width, uint height, int msaaLevel)
+	{
+		Vec2 viewportSize = Vec2((float)width, (float)height);
+		RdrActionSurfaces* pSurfaces = nullptr;
+
+		if (isPrimaryAction)
+		{
+			pSurfaces = &s_actionSharedData.primarySurfaces;
+		}
+		else
+		{
+			for (RdrActionSurfaces& rOffscreenSurfaces : s_actionSharedData.offscreenSurfaces)
+			{
+				if (rOffscreenSurfaces.viewportSize.x >= viewportSize.x && rOffscreenSurfaces.viewportSize.y >= viewportSize.y)
+				{
+					// The surface is usable if it is >= than the desired viewport size.  Larger surfaces can be scaled down using viewports.
+					pSurfaces = &rOffscreenSurfaces;
+					break;
+				}
+			}
+
+			if (!pSurfaces)
+			{
+				// Couldn't find any usable offscreen buffers.  Create a new set.
+				s_actionSharedData.offscreenSurfaces.emplace_back(RdrActionSurfaces());
+				pSurfaces = &s_actionSharedData.offscreenSurfaces.back();
+			}
+		}
+
+		if (pSurfaces->viewportSize.x != viewportSize.x || pSurfaces->viewportSize.y != viewportSize.y)
+		{
+			pSurfaces->viewportSize = viewportSize;
+
+			// Release existing resources
+			if (pSurfaces->hDepthStencilView)
+				rResCommands.ReleaseDepthStencilView(pSurfaces->hDepthStencilView);
+			if (pSurfaces->hDepthBuffer)
+				rResCommands.ReleaseResource(pSurfaces->hDepthBuffer);
+
+			rResCommands.ReleaseRenderTarget2d(pSurfaces->colorBuffer);
+			rResCommands.ReleaseRenderTarget2d(pSurfaces->albedoBuffer);
+			rResCommands.ReleaseRenderTarget2d(pSurfaces->normalBuffer);
+
+			// Create resized buffers
+			pSurfaces->colorBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::R16G16B16A16_FLOAT, msaaLevel);
+			pSurfaces->albedoBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::B8G8R8A8_UNORM, msaaLevel);
+			pSurfaces->normalBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::B8G8R8A8_UNORM, msaaLevel);
+			// Depth Buffer
+			pSurfaces->hDepthBuffer = rResCommands.CreateTexture2DMS(width, height, RdrResourceFormat::D24_UNORM_S8_UINT,
+				g_debugState.msaaLevel, RdrResourceUsage::Default, RdrResourceBindings::kNone);
+			pSurfaces->hDepthStencilView = rResCommands.CreateDepthStencilView(pSurfaces->hDepthBuffer);
+		}
+
+		return pSurfaces;
+	}
+
 
 	void createPerActionConstants(RdrResourceCommandList& rResCommandList, const Camera& rCamera, const Rect& rViewport, RdrGlobalConstants& rConstants)
 	{
@@ -113,22 +173,17 @@ RdrAction* RdrAction::CreatePrimary(Camera& rCamera)
 }
 
 RdrAction* RdrAction::CreateOffscreen(const wchar_t* actionName, Camera& rCamera,
-	bool enablePostprocessing, const Rect& viewport, const RdrSurface& outputSurface)
+	bool enablePostprocessing, const Rect& viewport, RdrRenderTargetViewHandle hOutputTarget)
 {
 	RdrAction* pAction = s_actionSharedData.actions.allocSafe();
-	pAction->InitAsOffscreen(actionName, rCamera, enablePostprocessing, viewport, outputSurface);
+	pAction->InitAsOffscreen(actionName, rCamera, enablePostprocessing, viewport, hOutputTarget);
 	return pAction;
 }
 
 void RdrAction::InitAsPrimary(Camera& rCamera)
 {
 	Rect viewport = Rect(0.f, 0.f, (float)g_pRenderer->GetViewportWidth(), (float)g_pRenderer->GetViewportHeight());
-
-	RdrSurface surface;
-	surface.hRenderTarget = RdrResourceSystem::kPrimaryRenderTargetHandle;
-	surface.hDepthTarget = g_pRenderer->GetPrimaryDepthStencilView();
-
-	InitCommon(L"Primary Action", viewport, true, surface);
+	InitCommon(L"Primary Action", true, viewport, true, RdrResourceSystem::kPrimaryRenderTargetHandle);
 
 	rCamera.SetAspectRatio(viewport.width / viewport.height);
 	rCamera.UpdateFrustum();
@@ -158,9 +213,9 @@ void RdrAction::InitAsPrimary(Camera& rCamera)
 }
 
 void RdrAction::InitAsOffscreen(const wchar_t* actionName, Camera& rCamera,
-	bool enablePostprocessing, const Rect& viewport, const RdrSurface& outputSurface)
+	bool enablePostprocessing, const Rect& viewport, RdrRenderTargetViewHandle hOutputTarget)
 {
-	InitCommon(actionName, viewport, enablePostprocessing, outputSurface);
+	InitCommon(actionName, false, viewport, enablePostprocessing, hOutputTarget);
 
 	rCamera.SetAspectRatio(viewport.width / viewport.height);
 	rCamera.UpdateFrustum();
@@ -175,15 +230,18 @@ void RdrAction::InitAsOffscreen(const wchar_t* actionName, Camera& rCamera,
 	createPerActionConstants(m_resourceCommands, m_camera, m_primaryViewport, m_constants);
 }
 
-void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool enablePostProcessing, const RdrSurface& outputSurface)
+void RdrAction::InitCommon(const wchar_t* actionName, bool isPrimaryAction, const Rect& viewport, bool enablePostProcessing, RdrRenderTargetViewHandle hOutputTarget)
 {
-	RdrRenderTargetViewHandle hColorTarget = enablePostProcessing ? g_pRenderer->GetColorBufferRenderTarget() : outputSurface.hRenderTarget;
-	RdrRenderTargetViewHandle hAlbedoTarget = g_pRenderer->GetAlbedoBufferRenderTarget();
-	RdrRenderTargetViewHandle hNormalTarget = g_pRenderer->GetNormalBufferRenderTarget();
-	RdrDepthStencilViewHandle hDepthTarget = outputSurface.hDepthTarget;
+	// Setup surfaces/render targets
+	m_surfaces = *createActionSurfaces(m_resourceCommands, isPrimaryAction, (uint)viewport.width, (uint)viewport.height, g_debugState.msaaLevel);
+
+	RdrRenderTargetViewHandle hColorTarget = enablePostProcessing ? m_surfaces.colorBuffer.hRenderTarget : hOutputTarget;
+	RdrRenderTargetViewHandle hAlbedoTarget = m_surfaces.albedoBuffer.hRenderTarget;
+	RdrRenderTargetViewHandle hNormalTarget = m_surfaces.normalBuffer.hRenderTarget;
+	RdrDepthStencilViewHandle hDepthTarget = m_surfaces.hDepthStencilView;
 
 	// Setup default action and pass states
-	m_outputSurface = outputSurface;
+	m_hOutputTarget = hOutputTarget;
 	m_name = actionName;
 	m_primaryViewport = viewport;
 	m_bEnablePostProcessing = enablePostProcessing;
@@ -252,7 +310,7 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 	pPass = &m_passes[(int)RdrPass::Editor];
 	{
 		pPass->viewport = viewport;
-		pPass->ahRenderTargets[0] = outputSurface.hRenderTarget;
+		pPass->ahRenderTargets[0] = hOutputTarget;
 		pPass->hDepthTarget = hDepthTarget;
 		pPass->blendMode = RdrBlendMode::kAlpha;
 		pPass->depthTestMode = RdrDepthTestMode::Less;
@@ -265,7 +323,7 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 	pPass = &m_passes[(int)RdrPass::Wireframe];
 	{
 		pPass->viewport = viewport;
-		pPass->ahRenderTargets[0] = outputSurface.hRenderTarget;
+		pPass->ahRenderTargets[0] = hOutputTarget;
 		pPass->hDepthTarget = hDepthTarget;
 		pPass->blendMode = RdrBlendMode::kOpaque;
 		pPass->depthTestMode = RdrDepthTestMode::Less;
@@ -278,7 +336,7 @@ void RdrAction::InitCommon(const wchar_t* actionName, const Rect& viewport, bool
 	pPass = &m_passes[(int)RdrPass::UI];
 	{
 		pPass->viewport = viewport;
-		pPass->ahRenderTargets[0] = outputSurface.hRenderTarget;
+		pPass->ahRenderTargets[0] = hOutputTarget;
 		pPass->blendMode = RdrBlendMode::kAlpha;
 		pPass->depthTestMode = RdrDepthTestMode::None;
 		pPass->bDepthWriteEnabled = false;

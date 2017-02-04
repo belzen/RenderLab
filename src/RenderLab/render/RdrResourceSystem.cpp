@@ -459,6 +459,37 @@ RdrDepthStencilViewHandle RdrResourceCommandList::CreateDepthStencilView(RdrReso
 	return cmd.hView;
 }
 
+RdrRenderTarget2d RdrResourceCommandList::InitRenderTarget2d(uint width, uint height, RdrResourceFormat eFormat, int multisampleLevel)
+{
+	RdrRenderTarget2d renderTarget;
+
+	renderTarget.hTexture = CreateTexture2D(width, height, eFormat, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget, nullptr);
+
+	if (multisampleLevel > 1)
+	{
+		renderTarget.hTextureMultisampled = CreateTexture2DMS(width, height, eFormat,
+			multisampleLevel, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget);
+		renderTarget.hRenderTarget = CreateRenderTargetView(renderTarget.hTextureMultisampled);
+	}
+	else
+	{
+		renderTarget.hTextureMultisampled = 0;
+		renderTarget.hRenderTarget = CreateRenderTargetView(renderTarget.hTexture);
+	}
+
+	return renderTarget;
+}
+
+void RdrResourceCommandList::ReleaseRenderTarget2d(const RdrRenderTarget2d& rRenderTarget)
+{
+	if (rRenderTarget.hTexture)
+		ReleaseResource(rRenderTarget.hTexture);
+	if (rRenderTarget.hTextureMultisampled)
+		ReleaseResource(rRenderTarget.hTextureMultisampled);
+	if (rRenderTarget.hRenderTarget)
+		ReleaseRenderTargetView(rRenderTarget.hRenderTarget);
+}
+
 void RdrResourceCommandList::ReleaseGeo(const RdrGeoHandle hGeo)
 {
 	CmdReleaseGeo& cmd = m_geoReleases.pushSafe();

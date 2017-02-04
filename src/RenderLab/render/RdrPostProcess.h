@@ -26,7 +26,7 @@ public:
 
 	void HandleResize(uint width, uint height);
 	void DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, 
-		const RdrResource* pColorBuffer, const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants);
+		const RdrActionSurfaces& rBuffers, const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants);
 
 	const RdrPostProcessDbgData& GetDebugData() const;
 
@@ -41,7 +41,8 @@ private:
 	void DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrResource* pBloomBuffer);
 
 	void ResizeSsaoResources(uint width, uint height);
-	void DoSsao(RdrContext* pRdrContext, RdrDrawState& rDrawState, const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants);
+	void DoSsao(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrActionSurfaces& rBuffers,
+		const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants);
 
 	RdrConstantBufferDeviceObj m_toneMapInputConstants;
 
@@ -68,10 +69,8 @@ private:
 	SsaoParams m_ssaoParams;
 	RdrConstantBufferDeviceObj m_ssaoConstants;
 	RdrResourceHandle m_hSsaoNoiseTexture;
-	RdrResourceHandle m_hSsaoBuffer;
-	RdrRenderTargetViewHandle m_hSsaoBufferTarget;
-	RdrResourceHandle m_hSsaoBlurredBuffer;
-	RdrRenderTargetViewHandle m_hSsaoBlurredBufferTarget;
+	RdrRenderTarget2d m_ssaoBuffer;
+	RdrRenderTarget2d m_ssaoBlurredBuffer;
 	RdrShaderHandle m_hSsaoGenPixelShader;
 	RdrShaderHandle m_hSsaoBlurPixelShader;
 	RdrShaderHandle m_hSsaoApplyPixelShader;
@@ -95,5 +94,5 @@ inline const RdrPostProcessDbgData& RdrPostProcess::GetDebugData() const
 
 inline RdrResourceHandle RdrPostProcess::GetSsaoBlurredBuffer() const
 {
-	return m_hSsaoBlurredBuffer;
+	return m_ssaoBlurredBuffer.hTexture;
 }

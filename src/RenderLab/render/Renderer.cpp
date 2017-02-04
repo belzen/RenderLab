@@ -168,78 +168,6 @@ void Renderer::ApplyDeviceChanges()
 		RdrResourceCommandList& rResCommandList = GetPreFrameCommandList();
 		m_pContext->Resize(m_pendingViewWidth, m_pendingViewHeight);
 
-		// Release existing resources
-		if (m_hPrimaryDepthStencilView)
-			rResCommandList.ReleaseDepthStencilView(m_hPrimaryDepthStencilView);
-		if (m_hPrimaryDepthBuffer)
-			rResCommandList.ReleaseResource(m_hPrimaryDepthBuffer);
-		if (m_hColorBuffer)
-			rResCommandList.ReleaseResource(m_hColorBuffer);
-		if (m_hColorBufferMultisampled)
-			rResCommandList.ReleaseResource(m_hColorBufferMultisampled);
-		if (m_hColorBufferRenderTarget)
-			rResCommandList.ReleaseRenderTargetView(m_hColorBufferRenderTarget);
-		if (m_hNormalBuffer)
-			rResCommandList.ReleaseResource(m_hNormalBuffer);
-		if (m_hNormalBufferMultisampled)
-			rResCommandList.ReleaseResource(m_hNormalBufferMultisampled);
-		if (m_hAlbedoBuffer)
-			rResCommandList.ReleaseResource(m_hAlbedoBuffer);
-		if (m_hAlbedoBufferMultisampled)
-			rResCommandList.ReleaseResource(m_hAlbedoBufferMultisampled);
-		if (m_hNormalBufferRenderTarget)
-			rResCommandList.ReleaseRenderTargetView(m_hNormalBufferRenderTarget);
-
-		// FP16 color
-		m_hColorBuffer = rResCommandList.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, 
-			RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget, nullptr);
-		if (g_debugState.msaaLevel > 1)
-		{
-			m_hColorBufferMultisampled = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::R16G16B16A16_FLOAT, 
-				g_debugState.msaaLevel, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget);
-			m_hColorBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hColorBufferMultisampled);
-		}
-		else
-		{
-			m_hColorBufferMultisampled = 0;
-			m_hColorBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hColorBuffer);
-		}
-
-		// Albedo buffer
-		m_hAlbedoBuffer = rResCommandList.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::B8G8R8A8_UNORM,
-			RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget, nullptr);
-		if (g_debugState.msaaLevel > 1)
-		{
-			m_hAlbedoBufferMultisampled = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::B8G8R8A8_UNORM,
-				g_debugState.msaaLevel, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget);
-			m_hAlbedoBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hAlbedoBufferMultisampled);
-		}
-		else
-		{
-			m_hAlbedoBufferMultisampled = 0;
-			m_hAlbedoBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hAlbedoBuffer);
-		}
-
-		// Normals buffer
-		m_hNormalBuffer = rResCommandList.CreateTexture2D(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::B8G8R8A8_UNORM,
-			RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget, nullptr);
-		if (g_debugState.msaaLevel > 1)
-		{
-			m_hNormalBufferMultisampled = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::B8G8R8A8_UNORM, 
-				g_debugState.msaaLevel, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget);
-			m_hNormalBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hNormalBufferMultisampled);
-		}
-		else
-		{
-			m_hNormalBufferMultisampled = 0;
-			m_hNormalBufferRenderTarget = rResCommandList.CreateRenderTargetView(m_hNormalBuffer);
-		}
-
-		// Depth Buffer
-		m_hPrimaryDepthBuffer = rResCommandList.CreateTexture2DMS(m_pendingViewWidth, m_pendingViewHeight, RdrResourceFormat::D24_UNORM_S8_UINT, 
-			g_debugState.msaaLevel, RdrResourceUsage::Default, RdrResourceBindings::kNone);
-		m_hPrimaryDepthStencilView = rResCommandList.CreateDepthStencilView(m_hPrimaryDepthBuffer);
-
 		m_viewWidth = m_pendingViewWidth;
 		m_viewHeight = m_pendingViewHeight;
 
@@ -534,11 +462,11 @@ void Renderer::DrawFrame()
 			}
 
 			// Resolve multi-sampled color buffer.
-			const RdrResource* pColorBuffer = RdrResourceSystem::GetResource(m_hColorBuffer);
 			if (g_debugState.msaaLevel > 1)
 			{
-				const RdrResource* pColorBufferMultisampled = RdrResourceSystem::GetResource(m_hColorBufferMultisampled);
-				m_pContext->ResolveSurface(*pColorBufferMultisampled, *pColorBuffer);
+				const RdrResource* pColorBufferMultisampled = RdrResourceSystem::GetResource(pAction->m_surfaces.colorBuffer.hTextureMultisampled);
+				const RdrResource* pColorBuffer = RdrResourceSystem::GetResource(pAction->m_surfaces.colorBuffer.hTexture);
+				m_pContext->ResolveResource(*pColorBufferMultisampled, *pColorBuffer);
 
 				rasterState.bEnableMSAA = false;
 				m_pContext->SetRasterState(rasterState);
@@ -547,7 +475,7 @@ void Renderer::DrawFrame()
 			if (pAction->m_bEnablePostProcessing)
 			{
 				m_profiler.BeginSection(RdrProfileSection::PostProcessing);
-				m_postProcess.DoPostProcessing(*m_pInputManager, m_pContext, m_drawState, pColorBuffer, pAction->m_postProcessEffects, pAction->GetGlobalConstants());
+				m_postProcess.DoPostProcessing(*m_pInputManager, m_pContext, m_drawState, pAction->m_surfaces, pAction->m_postProcessEffects, pAction->GetGlobalConstants());
 				m_profiler.EndSection();
 			}
 
@@ -567,7 +495,7 @@ void Renderer::DrawFrame()
 
 			if (pAction->m_hDebugCopyTexture)
 			{
-				m_postProcess.CopyToTarget(m_pContext, m_drawState, pAction->m_hDebugCopyTexture, pAction->m_outputSurface.hRenderTarget);
+				m_postProcess.CopyToTarget(m_pContext, m_drawState, pAction->m_hDebugCopyTexture, pAction->m_hOutputTarget);
 			}
 
 			m_pContext->EndEvent();
