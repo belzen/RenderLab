@@ -225,6 +225,8 @@ void RdrPostProcess::DoPostProcessing(const InputManager& rInputManager, RdrCont
 	const RdrResource* pColorBuffer = RdrResourceSystem::GetResource(rBuffers.colorBuffer.hTexture);
 
 	pRdrContext->BeginEvent(L"Post-Process");
+	pRdrContext->SetBlendState(RdrBlendMode::kOpaque);
+	pRdrContext->SetDepthStencilState(RdrDepthTestMode::None, false);
 
 	if (rEffects.ssao.enabled)
 	{
