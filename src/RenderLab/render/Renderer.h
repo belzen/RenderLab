@@ -29,7 +29,7 @@ extern Renderer* g_pRenderer;
 class Renderer
 {
 public:
-	bool Init(HWND hWnd, int width, int height, InputManager* pInputManager);
+	bool Init(HWND hWnd, int width, int height, const InputManager* pInputManager);
 	void Cleanup();
 
 	void Resize(int width, int height);
@@ -58,19 +58,9 @@ public:
 
 	RdrLightingMethod GetLightingMethod() const;
 
-	const RdrPostProcess& GetPostProcess() const;
-
 private:
-	void DrawPass(const RdrAction& rAction, RdrPass ePass);
-	void DrawShadowPass(const RdrAction& rAction, int shadowPassIndex);
-
 	RdrFrameState& GetQueueState();
 	RdrFrameState& GetActiveState();
-
-	void DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants, const RdrLightResources& rLightParams);
-	void DrawGeo(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants,
-		const RdrDrawOp* pDrawOp, const RdrLightResources& rLightParams, uint instanceCount);
-	void DispatchCompute(const RdrComputeOp* pComputeOp);
 
 	void ProcessReadbackRequests();
 
@@ -79,7 +69,6 @@ private:
 	RdrContext* m_pContext;
 
 	RdrProfiler m_profiler;
-	InputManager* m_pInputManager;
 
 	RdrDrawState m_drawState;
 
@@ -94,20 +83,9 @@ private:
 	RdrLightingMethod m_ePendingLightingMethod;
 	RdrLightingMethod m_eLightingMethod;
 
-	RdrPostProcess m_postProcess;
-
 	RdrResourceReadbackRequestList m_readbackRequests; // Average out to a max of 32 requests per frame
 	std::vector<RdrResourceReadbackRequestHandle> m_pendingReadbackRequests;
 	ThreadMutex m_readbackMutex;
-
-	// Instance object ID data.
-	struct
-	{
-		RdrConstantBuffer buffer;
-		char* pData; // Original non-aligned pointer.
-		uint* ids;
-	} m_instanceIds[8];
-	uint m_currentInstanceIds;
 };
 
 inline int Renderer::GetViewportWidth() const 
@@ -143,9 +121,4 @@ inline const RdrProfiler& Renderer::GetProfiler() const
 inline RdrLightingMethod Renderer::GetLightingMethod() const
 {
 	return m_eLightingMethod;
-}
-
-inline const RdrPostProcess& Renderer::GetPostProcess() const
-{
-	return m_postProcess;
 }

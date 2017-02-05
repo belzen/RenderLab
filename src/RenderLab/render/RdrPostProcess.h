@@ -22,26 +22,26 @@ struct RdrPostProcessDbgData
 class RdrPostProcess
 {
 public:
-	void Init(RdrContext* pRdrContext);
+	void Init(RdrContext* pRdrContext, const InputManager* pInputManager);
 
-	void HandleResize(uint width, uint height);
-	void DoPostProcessing(const InputManager& rInputManager, RdrContext* pRdrContext, RdrDrawState& rDrawState, 
+	void ResizeResources(uint width, uint height);
+	void DoPostProcessing(RdrContext* pRdrContext, RdrDrawState* pDrawState,
 		const RdrActionSurfaces& rBuffers, const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants);
 
 	const RdrPostProcessDbgData& GetDebugData() const;
 
 	RdrResourceHandle GetSsaoBlurredBuffer() const;
 
-	void CopyToTarget(RdrContext* pRdrContext, RdrDrawState& rDrawState, RdrResourceHandle hTextureInput, RdrRenderTargetViewHandle hTarget);
+	void CopyToTarget(RdrContext* pRdrContext, RdrDrawState* pDrawState, RdrResourceHandle hTextureInput, RdrRenderTargetViewHandle hTarget);
 
 private:
-	void DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
-	void DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
-	void DoBloom(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer);
-	void DoTonemap(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrResource* pColorBuffer, const RdrResource* pBloomBuffer);
+	void DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawState* pDrawState, const RdrResource* pColorBuffer);
+	void DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState* pDrawState, const RdrResource* pColorBuffer);
+	void DoBloom(RdrContext* pRdrContext, RdrDrawState* pDrawState, const RdrResource* pColorBuffer);
+	void DoTonemap(RdrContext* pRdrContext, RdrDrawState* pDrawState, const RdrResource* pColorBuffer, const RdrResource* pBloomBuffer);
 
 	void ResizeSsaoResources(uint width, uint height);
-	void DoSsao(RdrContext* pRdrContext, RdrDrawState& rDrawState, const RdrActionSurfaces& rBuffers,
+	void DoSsao(RdrContext* pRdrContext, RdrDrawState* pDrawState, const RdrActionSurfaces& rBuffers,
 		const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants);
 
 	RdrConstantBufferDeviceObj m_toneMapInputConstants;
@@ -77,8 +77,8 @@ private:
 
 	//////////////////////////////////////////////////////////////////////////
 	// Debug
+	const InputManager* m_pInputManager;
 	RdrShaderHandle m_hCopyPixelShader;
-
 	PostProcessDebugger m_debugger;
 	RdrPostProcessDbgData m_debugData;
 	RdrResource m_lumDebugRes[3];

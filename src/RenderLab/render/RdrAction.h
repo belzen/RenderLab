@@ -13,6 +13,9 @@
 
 struct RdrDrawOp;
 struct RdrComputeOp;
+class RdrContext;
+class RdrProfiler;
+class RdrDrawState;
 class LightList;
 class InputManager;
 
@@ -92,6 +95,7 @@ struct RdrActionSurfaces
 class RdrAction
 {
 public:
+	static void InitSharedData(RdrContext* pContext, const InputManager* pInputManager);
 	static RdrAction* CreatePrimary(Camera& rCamera);
 	static RdrAction* CreateOffscreen(const wchar_t* actionName, Camera& rCamera,
 		bool enablePostprocessing, const Rect& viewport, RdrRenderTargetViewHandle hOutputTarget);
@@ -127,12 +131,25 @@ public:
 
 	RdrDepthStencilViewHandle GetPrimaryDepthBuffer() const;
 
+	// Issue action's draw commands to the render device.
+	void Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler* pProfiler);
+
+	// Idle draw.  The window isn't visible and there's no point issuing draw calls.
+	// Only issues non-transient commands which would cause breakages if they were skipped (like resource updates).
+	void DrawIdle(RdrContext* pContext);
+
 private:
-	friend Renderer;
 	void InitAsPrimary(Camera& rCamera);
 	void InitAsOffscreen(const wchar_t* actionName, Camera& rCamera,
 		bool enablePostprocessing, const Rect& viewport, RdrRenderTargetViewHandle hOutputTarget);
 	void InitCommon(const wchar_t* actionName, bool isPrimaryAction, const Rect& viewport, bool enablePostProcessing, RdrRenderTargetViewHandle hOutputTarget);
+
+	//
+	void DrawPass(RdrPass ePass);
+	void DrawShadowPass(int shadowPassIndex);
+	void DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants, const RdrLightResources& rLightParams);
+	void DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlobalConstants, const RdrDrawOp* pDrawOp, const RdrLightResources& rLightParams, uint instanceCount);
+	void DispatchCompute(const RdrComputeOp* pComputeOp);
 
 	///
 	LPCWSTR m_name;
@@ -166,6 +183,12 @@ private:
 
 	bool m_bIsCubemapCapture;
 	bool m_bEnablePostProcessing;
+
+	// Active render state data. Filled in during Draw() and cleared before returning.  
+	// Stored here just to simplify argument passing to child draw functions.
+	RdrContext* m_pContext;
+	RdrDrawState* m_pDrawState;
+	RdrProfiler* m_pProfiler;
 };
 
 //////////////////////////////////////////////////////////////////////////
