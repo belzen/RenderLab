@@ -306,6 +306,18 @@ void RdrAction::InitCommon(const wchar_t* actionName, bool isPrimaryAction, cons
 		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
+	// Alpha
+	pPass = &m_passes[(int)RdrPass::Alpha];
+	{
+		pPass->viewport = viewport;
+		pPass->ahRenderTargets[0] = hColorTarget;
+		pPass->blendMode = RdrBlendMode::kAlpha;
+		pPass->hDepthTarget = hDepthTarget;
+		pPass->depthTestMode = RdrDepthTestMode::Less;
+		pPass->bDepthWriteEnabled = false;
+		pPass->shaderMode = RdrShaderMode::Normal;
+	}
+
 	// Editor
 	pPass = &m_passes[(int)RdrPass::Editor];
 	{

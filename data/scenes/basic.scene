@@ -86,7 +86,7 @@
 			}
 		},
 		{
-			"name" : "sphere1",
+			"name" : "sphere_metal",
 			"position" : [ -3.0, 1.5, 0.0 ],
 			"rotation" : [ 0.0, 0.0, 0.0 ],
 			"scale" : [ 1.5, 1.5, 1.5 ],
@@ -98,6 +98,16 @@
 				"shape" : "sphere",
 				"radius" : 1.5,
 				"density" : 2.0
+			}
+		},
+		{
+			"name" : "sphere_stippled",
+			"position" : [ 0.0, 1.5, 3.0 ],
+			"rotation" : [ 0.0, 0.0, 0.0 ],
+			"scale" : [ 1.5, 1.5, 1.5 ],
+			"model" : "sphere",
+			"materialSwaps" : {
+				"white" : "stippled_test"
 			}
 		},
 		{

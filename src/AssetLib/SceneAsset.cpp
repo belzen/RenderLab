@@ -75,6 +75,7 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 			jsonReadCachedString(jObj.get("model", Json::Value::null), &rObj.modelName);
 			jsonReadString(jObj.get("name", Json::Value::null), rObj.name, ARRAY_SIZE(rObj.name));
 
+			// Material swaps
 			Json::Value jMaterialSwaps = jObj.get("materialSwaps", Json::Value::null);
 			if (jMaterialSwaps.isObject())
 			{

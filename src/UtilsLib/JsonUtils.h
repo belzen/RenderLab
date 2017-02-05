@@ -2,6 +2,7 @@
 #include "../Types.h"
 #include "Json/json.h"
 #include "MathLib/Maths.h"
+#include "Color.h"
 #include "StringCache.h"
 
 inline void jsonReadString(const Json::Value& val, char* pOutStr, uint maxLen)
@@ -39,6 +40,26 @@ inline Vec3 jsonReadVec3(const Json::Value& val)
 	vec.y = val.get((uint)1, Json::Value(0.f)).asFloat();
 	vec.z = val.get((uint)2, Json::Value(0.f)).asFloat();
 	return vec;
+}
+
+inline Vec4 jsonReadVec4(const Json::Value& val)
+{
+	Vec4 vec;
+	vec.x = val.get((uint)0, Json::Value(0.f)).asFloat();
+	vec.y = val.get((uint)1, Json::Value(0.f)).asFloat();
+	vec.z = val.get((uint)2, Json::Value(0.f)).asFloat();
+	vec.w = val.get((uint)3, Json::Value(0.f)).asFloat();
+	return vec;
+}
+
+inline Color jsonReadColor(const Json::Value& val)
+{
+	Color c;
+	c.r = val.get((uint)0, Json::Value(0.f)).asFloat();
+	c.g = val.get((uint)1, Json::Value(0.f)).asFloat();
+	c.b = val.get((uint)2, Json::Value(0.f)).asFloat();
+	c.a = val.get((uint)3, Json::Value(1.f)).asFloat();
+	return c;
 }
 
 inline Vec3 jsonReadScale(const Json::Value& val)

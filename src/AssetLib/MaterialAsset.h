@@ -1,6 +1,7 @@
 #pragma once
 #include "AssetDef.h"
 #include "MathLib/Vec3.h"
+#include "UtilsLib/Color.h"
 
 namespace AssetLib
 {
@@ -10,12 +11,17 @@ namespace AssetLib
 		static Material* Load(const CachedString& assetName, Material* pMaterial);
 
 		char pixelShader[AssetLib::AssetDef::kMaxNameLen];
-		char textures[16][AssetLib::AssetDef::kMaxNameLen];
-		uint texCount;
+
+		char** pShaderDefs;
+		int shaderDefsCount;
+
+		char** pTextureNames;
+		int texCount;
+
 		bool bNeedsLighting;
 		bool bAlphaCutout;
 
-		Vec3 color;
+		Color color;
 		float roughness;
 		float metalness;
 

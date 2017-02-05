@@ -92,8 +92,9 @@ bool RenderWindow::OnMouseDown(int button, int mx, int my)
 
 	if (button == 0)
 	{
+		Entity* pCurrentSelection = m_pSceneViewModel->GetSelected();
 		Vec3 rayDir = m_mainCamera.CalcRayDirection(mx / (float)GetWidth(), my / (float)GetHeight());
-		if (!m_manipulator.Begin(m_mainCamera, rayDir, m_pSceneViewModel->GetSelected()))
+		if (!pCurrentSelection || !m_manipulator.Begin(m_mainCamera, rayDir, pCurrentSelection))
 		{
 			Entity* pEntity = raycastScene(m_mainCamera.GetPosition(), rayDir);
 			if (pEntity)

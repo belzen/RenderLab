@@ -186,7 +186,7 @@ float3 applyVolumetricFog(in float3 litColor, in float viewDepth,
 	return litColor * fog.a + fog.rgb;
 }
 
-void doLighting(in float3 pos_ws, in float3 baseColor, 
+void doLighting(in float3 pos_ws, in float3 baseColor, in float alpha,
 	in float roughness, in float metalness,
 	in float3 normal, in float3 viewDir, 
 	in float2 screenPos, 
@@ -284,11 +284,16 @@ void doLighting(in float3 pos_ws, in float3 baseColor,
 			diffuse, specular);
 	}
 
-	// Reflection
+	// Diffuse lighting
+	litColor = diffuse * albedo;
+
+	// Specular/reflection
 	float3 reflectionVec = reflect(-viewDir, normal);
 	float3 reflection = texEnvironmentMaps.Sample(g_samClamp, float4(reflectionVec, cbGlobalLights.globalEnvironmentLight.environmentMapIndex)).rgb;
-
-	litColor = diffuse * albedo + specular + reflection * specColor;
+	// Specular response is not affected by transparency, so scale specular lighting by the inverse of the alpha. 
+	litColor += rcp(alpha) * (specular + reflection * specColor);
+	
+	// Apply fog
 	litColor = applyVolumetricFog(litColor, viewDepth, screenPos, texVolumetricFogLut);
 
 #if VISUALIZE_LIGHT_LIST

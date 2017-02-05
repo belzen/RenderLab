@@ -27,21 +27,32 @@ namespace
 		}
 
 		// Create default pixel shader
-		const char* defines[2] = { 0 };
+		const char* defines[32] = { 0 };
 		uint numDefines = 0;
 		if (pMaterial->bAlphaCutout)
 		{
-			defines[0] = "ALPHA_CUTOUT";
-			++numDefines;
+			defines[numDefines++] = "ALPHA_CUTOUT";
 		}
 
+		if (pMaterial->color.a < 1.f)
+		{
+			pOutMaterial->bHasAlpha = true;
+			defines[numDefines++] = "HAS_ALPHA";
+		}
+
+		for (int i = 0; i < pMaterial->shaderDefsCount; ++i)
+		{
+			defines[numDefines++] = pMaterial->pShaderDefs[i];
+		}
+
+		assert(numDefines <= ARRAY_SIZE(defines));
 		pOutMaterial->hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
 
 		// Alpha cutout requires a depth-only pixel shader.
 		if (pMaterial->bAlphaCutout)
 		{
-			defines[numDefines] = "DEPTH_ONLY";
-			++numDefines;
+			defines[numDefines++] = "DEPTH_ONLY";
+			assert(numDefines <= ARRAY_SIZE(defines));
 			pOutMaterial->hPixelShaders[(int)RdrShaderMode::DepthOnly] = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
 		}
 
@@ -49,9 +60,9 @@ namespace
 		pOutMaterial->bAlphaCutout = pMaterial->bAlphaCutout;
 
 		RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
-		for (uint n = 0; n < pMaterial->texCount; ++n)
+		for (int n = 0; n < pMaterial->texCount; ++n)
 		{
-			pOutMaterial->ahTextures.assign(n, rResCommandList.CreateTextureFromFile(pMaterial->textures[n], nullptr));
+			pOutMaterial->ahTextures.assign(n, rResCommandList.CreateTextureFromFile(pMaterial->pTextureNames[n], nullptr));
 			pOutMaterial->aSamplers.assign(n, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 		}
 
@@ -59,7 +70,7 @@ namespace
 		MaterialParams* pConstants = (MaterialParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pConstants->metalness = pMaterial->metalness;
 		pConstants->roughness = pMaterial->roughness;
-		pConstants->color = pMaterial->color;
+		pConstants->color = pMaterial->color.asFloat4();
 		pOutMaterial->hConstants = rResCommandList.CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Immutable);
 
 		pOutMaterial->name = materialName;

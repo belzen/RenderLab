@@ -137,7 +137,7 @@ RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 		}
 
 		rDrawOp.hGeo = rSubObject.hGeo;
-		rDrawOp.bHasAlpha = false;
+		rDrawOp.bHasAlpha = rDrawOp.pMaterial->bHasAlpha;
 	}
 
 	return RdrDrawOpSet(aDrawOps, numSubObjects);

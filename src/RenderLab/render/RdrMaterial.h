@@ -21,4 +21,5 @@ struct RdrMaterial
 	RdrConstantBufferHandle hConstants;
 	bool bNeedsLighting;
 	bool bAlphaCutout;
+	bool bHasAlpha;
 };

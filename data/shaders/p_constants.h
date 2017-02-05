@@ -39,8 +39,7 @@ struct MaterialParams
 	float metalness;
 	float2 unused;
 
-	float3 color; // Optional color tint.
-	float unused2;
+	float4 color; // Optional color tint and alpha.
 };
 
 #define SSAO_KERNEL_SIZE 4

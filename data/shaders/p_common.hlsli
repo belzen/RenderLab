@@ -25,12 +25,17 @@ cbuffer AtmosphereParamsBuffer : register(b3)
 
 
 #if DEPTH_ONLY
-#define PsOutput void
+	#define PsOutput void
 #else
-struct PsOutput
-{
-	float4 color : SV_TARGET0;
-	float3 albedo : SV_TARGET1;
-	float3 normal : SV_TARGET2;
-};
+	#define WRITE_GBUFFERS !HAS_ALPHA
+	struct PsOutput
+	{
+		float4 color : SV_TARGET0;
+
+		// Alpha doesn't write to the extra g-buffers
+		#if WRITE_GBUFFERS
+			float3 albedo : SV_TARGET1;
+			float3 normal : SV_TARGET2;
+		#endif
+	};
 #endif

@@ -1590,6 +1590,8 @@ void RdrContextD3D11::DispatchCompute(const RdrDrawState& rDrawState, uint threa
 
 void RdrContextD3D11::PSClearResources()
 {
+	memset(m_drawState.psResources, 0, sizeof(m_drawState.psResources));
+
 	ID3D11ShaderResourceView* resourceViews[ARRAY_SIZE(RdrDrawState::psResources)] = { 0 };
 	m_pDevContext->PSSetShaderResources(0, 20, resourceViews);
 }

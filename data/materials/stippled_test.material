@@ -1,0 +1,9 @@
+{
+	"pixelShader" : "p_model.hlsl",
+	"textures" : [ "white", "flat_ddn" ],
+	"shaderDefs" : [ "ALPHA_STIPPLED" ],
+	"color" : [1.0, 1.0, 1.0, 0.5],
+	"needsLighting" : true,
+	"roughness" : 0.1,
+	"metalness" : 1.0
+}

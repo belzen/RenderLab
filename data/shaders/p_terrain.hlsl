@@ -17,7 +17,7 @@ PsOutput main(DsOutputTerrain input)
 
 	PsOutput output;
 	doLighting(input.position_ws.xyz, 
-		color.rgb, cbMaterial.roughness, cbMaterial.metalness,
+		color.rgb, 1.f, cbMaterial.roughness, cbMaterial.metalness,
 		input.normal, cameraViewDir, input.position.xy, 
 		g_texEnvironmentMaps, g_texVolumetricFogLut,
 		// outputs
