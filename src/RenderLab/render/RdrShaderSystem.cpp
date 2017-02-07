@@ -21,6 +21,7 @@ namespace
 
 	const RdrShaderDef kVertexShaderDefs[] = {
 		{ "v_model.hlsl", 0 },  // RdrVertexShaderType::Model
+		{ "v_decal.hlsl", 0 },  // RdrVertexShaderType::Decal
 		{ "v_text.hlsl", 0},    // RdrVertexShaderType::Text
 		{ "v_sprite.hlsl", 0 }, // RdrVertexShaderType::Sprite
 		{ "v_sky.hlsl", 0 },    // RdrVertexShaderType::Sky
@@ -196,7 +197,10 @@ namespace
 
 		char* pFileData;
 		uint fileSize;
-		FileLoader::Load(fullFilename, &pFileData, &fileSize);
+		if (!FileLoader::Load(fullFilename, &pFileData, &fileSize))
+		{
+			return nullptr;
+		}
 
 		assert(numDefines < kMaxDefines);
 

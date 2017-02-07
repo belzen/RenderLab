@@ -15,6 +15,13 @@ struct VsOutputModel
 #endif
 };
 
+struct VsOutputDecal
+{
+	float4 position : SV_POSITION;
+	float4 position_vs : POSITION_VIEW;
+	float4 position_cs : POSITION_CLIP;
+};
+
 struct VsOutputSky
 {
 	float4 position : SV_POSITION;

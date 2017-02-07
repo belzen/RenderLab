@@ -136,6 +136,9 @@
     <FxCompile Include="..\..\data\shaders\p_decal.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\data\shaders\v_decal.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Precompiled.cpp" />
@@ -244,6 +247,9 @@
       <Filter>components</Filter>
     </ClCompile>
     <ClCompile Include="Raycast.cpp" />
+    <ClCompile Include="components\Decal.cpp">
+      <Filter>components</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -425,6 +431,9 @@
     <ClInclude Include="Raycast.h" />
     <ClInclude Include="shapes\OBB.h">
       <Filter>shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="components\Decal.h">
+      <Filter>components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

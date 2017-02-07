@@ -63,7 +63,7 @@ float calcPhase(float cosViewAngle, float phaseG)
 {
 	float g2 = phaseG * phaseG;
 	float num = 3.f * (1 - g2) * (1 + cosViewAngle * cosViewAngle);
-	float div = (8.f * kPi) * (2 + g2) * pow(1 + g2 - 2 * phaseG * cosViewAngle, 1.5f);
+	float div = (8.f * kPi) * (2 + g2) * pow(abs(1 + g2 - 2 * phaseG * cosViewAngle), 1.5f);
 	return num / div;
 }
 

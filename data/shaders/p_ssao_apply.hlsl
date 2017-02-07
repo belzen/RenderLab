@@ -14,8 +14,8 @@ SamplerState g_samClamp : register(s0);
 
 float4 main(VsOutputSprite input) : SV_TARGET
 {
-	float4 albedo = g_texAlbedo.Sample(g_samClamp, input.texcoords);
-	float occlusion = g_texOcclusion.Sample(g_samClamp, input.texcoords);
+	float4 albedo = g_texAlbedo.SampleLevel(g_samClamp, input.texcoords, 0);
+	float occlusion = g_texOcclusion.SampleLevel(g_samClamp, input.texcoords, 0);
 
 	// Shader should be setup with subtractive blend mode, 
 	// so return the amount of ambient to remove.

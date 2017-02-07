@@ -82,6 +82,9 @@
       <Filter>ViewModels</Filter>
     </ClCompile>
     <ClCompile Include="Manipulator.cpp" />
+    <ClCompile Include="ViewModels\DecalViewModel.cpp">
+      <Filter>ViewModels</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainWindow.h" />
@@ -168,6 +171,9 @@
       <Filter>ViewModels</Filter>
     </ClInclude>
     <ClInclude Include="Manipulator.h" />
+    <ClInclude Include="ViewModels\DecalViewModel.h">
+      <Filter>ViewModels</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="ViewModels">

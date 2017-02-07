@@ -92,12 +92,11 @@ RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 		Matrix44 mtxWorld = m_pEntity->GetTransform();
 
 		uint constantsSize = sizeof(VsPerObject);
-		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
-		memset(pConstants, 0, constantsSize);
-		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
+		VsPerObject* pVsPerObject = (VsPerObject*)RdrFrameMem::AllocAligned(constantsSize, 16);
+		pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
 		m_hVsPerObjectConstantBuffer = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer, 
-			pConstants, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+			pVsPerObject, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 	
 		if (CanInstance())
 		{
@@ -105,9 +104,6 @@ RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 			{
 				m_instancedDataId = RdrInstancedObjectDataBuffer::AllocEntry();
 			}
-
-			VsPerObject* pObjectData = RdrInstancedObjectDataBuffer::GetEntry(m_instancedDataId);
-			pObjectData->mtxWorld = Matrix44Transpose(mtxWorld);
 		}
 		else
 		{

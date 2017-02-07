@@ -54,6 +54,7 @@ enum class RdrPass
 	LightCulling,
 	VolumetricFog,
 	Opaque,
+	Decal,
 	Sky,
 	Alpha,
 	Editor,
@@ -68,6 +69,7 @@ enum class RdrBucketType
 	LightCulling,
 	VolumetricFog,
 	Opaque,
+	Decal,
 	Sky,
 	Alpha,
 	Editor,
@@ -172,6 +174,7 @@ struct RdrRasterState
 	uint bEnableScissor : 1;
 	uint bWireframe : 1;
 	uint bUseSlopeScaledDepthBias : 1; // Uses global slope scaled depth bias
+	uint bDoubleSided : 1;
 };
 
 struct RdrSamplerState

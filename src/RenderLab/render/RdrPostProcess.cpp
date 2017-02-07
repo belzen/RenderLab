@@ -254,7 +254,7 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState* pDr
 	pRdrContext->UpdateConstantBuffer(m_toneMapInputConstants, &tonemapSettings, sizeof(ToneMapInputParams));
 
 	//////////////////////////////////////////////////////////////////////////
-	RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(RdrResourceSystem::kPrimaryRenderTargetHandle);
+	RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(RdrGlobalRenderTargetHandles::kPrimary);
 	RdrDepthStencilView depthView = { 0 };
 	pRdrContext->SetRenderTargets(1, &renderTarget, depthView);
 	pRdrContext->SetViewport(Rect(0.f, 0.f, (float)pColorBuffer->texInfo.width, (float)pColorBuffer->texInfo.height));

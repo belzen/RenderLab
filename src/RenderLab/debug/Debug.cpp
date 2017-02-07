@@ -123,6 +123,10 @@ void Debug::QueueDraw(RdrAction* pAction)
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
+		sprintf_s(line, "  Decal: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Decal));
+		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
+
+		uiPos.y.val += 20.f;
 		sprintf_s(line, "  Alpha: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Alpha));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 

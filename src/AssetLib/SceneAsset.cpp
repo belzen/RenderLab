@@ -72,21 +72,40 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 			rObj.position = jsonReadVec3(jObj.get("position", Json::Value::null));
 			rObj.rotation = jsonReadRotation(jObj.get("rotation", Json::Value::null));
 			rObj.scale = jsonReadScale(jObj.get("scale", Json::Value::null));
-			jsonReadCachedString(jObj.get("model", Json::Value::null), &rObj.modelName);
 			jsonReadString(jObj.get("name", Json::Value::null), rObj.name, ARRAY_SIZE(rObj.name));
 
-			// Material swaps
-			Json::Value jMaterialSwaps = jObj.get("materialSwaps", Json::Value::null);
-			if (jMaterialSwaps.isObject())
+			//////////////////////////////////////////////////////////////////////////
+			// Model component
+			Json::Value jModel = jObj.get("model", Json::Value::null);
+			if (jModel.isString())
 			{
-				int numSwaps = jMaterialSwaps.size();
-				assert(numSwaps < ARRAY_SIZE(rObj.materialSwaps));
-				for (auto iter = jMaterialSwaps.begin(); iter != jMaterialSwaps.end(); ++iter)
+				jsonReadCachedString(jModel, &rObj.model.name);
+			}
+			else if (jModel.isObject())
+			{
+				jsonReadCachedString(jModel.get("name", Json::Value::null), &rObj.model.name);
+
+				// Material swaps
+				Json::Value jMaterialSwaps = jModel.get("materialSwaps", Json::Value::null);
+				if (jMaterialSwaps.isObject())
 				{
-					rObj.materialSwaps[rObj.numMaterialSwaps].from = iter.name().c_str();
-					jsonReadCachedString(*iter, &rObj.materialSwaps[rObj.numMaterialSwaps].to);
-					++rObj.numMaterialSwaps;
+					int numSwaps = jMaterialSwaps.size();
+					assert(numSwaps < ARRAY_SIZE(rObj.model.materialSwaps));
+					for (auto iter = jMaterialSwaps.begin(); iter != jMaterialSwaps.end(); ++iter)
+					{
+						rObj.model.materialSwaps[rObj.model.numMaterialSwaps].from = iter.name().c_str();
+						jsonReadCachedString(*iter, &rObj.model.materialSwaps[rObj.model.numMaterialSwaps].to);
+						++rObj.model.numMaterialSwaps;
+					}
 				}
+			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// Decal
+			Json::Value jDecal = jObj.get("decal", Json::Value::null);
+			if (jDecal.isObject())
+			{
+				jsonReadCachedString(jDecal.get("texture", Json::Value::null), &rObj.decal.textureName);
 			}
 
 			//////////////////////////////////////////////////////////////////////////

@@ -77,7 +77,9 @@
 			"position" : [ 0.0, 0.0, 0.0 ],
 			"rotation" : [ 0.0, 0.0, 0.0 ],
 			"scale" : [ 150.0, 150.0, 150.0 ],
-			"model" : "plane",
+			"model" : {
+				"name" : "plane"
+			},
 			"physics" : {
 				"shape" : "box",
 				"halfSize" : [ 150.0, 1.0, 150.0 ],
@@ -90,9 +92,11 @@
 			"position" : [ -3.0, 1.5, 0.0 ],
 			"rotation" : [ 0.0, 0.0, 0.0 ],
 			"scale" : [ 1.5, 1.5, 1.5 ],
-			"model" : "sphere",
-			"materialSwaps" : {
-				"white" : "white_metal"
+			"model" : {
+				"name" : "sphere",
+				"materialSwaps" : {
+					"white" : "white_metal"
+				}
 			},
 			"physics" : {
 				"shape" : "sphere",
@@ -105,20 +109,33 @@
 			"position" : [ 0.0, 1.5, 3.0 ],
 			"rotation" : [ 0.0, 0.0, 0.0 ],
 			"scale" : [ 1.5, 1.5, 1.5 ],
-			"model" : "sphere",
-			"materialSwaps" : {
-				"white" : "stippled_test"
+			"model" : {
+				"name" : "sphere",
+				"materialSwaps" : {
+					"white" : "stippled_test"
+				}
 			}
 		},
 		{
 			"name" : "box1",
 			"position" : [ 10.0, 1.5, -5.0 ],
 			"rotation" : [ 0.0, 0.0, 0.0 ],
-			"model" : "box",
+			"model" : {
+				"name" : "box"
+			},
 			"physics" : {
 				"shape" : "box",
 				"halfSize" : [ 1.0, 1.0, 1.0 ],
 				"density" : 2.0
+			}
+		},
+		{
+			"name" : "decal",
+			"position" : [ 26.0, 1.0, -10.0 ],
+			"rotation" : [ 0.0, 180.0, 0.0 ],
+			"scale" : [ 1.5, 1.5, 1.5 ],
+			"decal" : {
+				"texture" : "sponza/lion"
 			}
 		}
 	]

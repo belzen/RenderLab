@@ -4,6 +4,7 @@
 #include "SkyVolumeViewModel.h"
 #include "LightViewModel.h"
 #include "ModelComponentViewModel.h"
+#include "DecalViewModel.h"
 #include "EntityViewModel.h"
 
 IViewModel* IViewModel::Create(const std::type_info& typeId, void* pTypeData)
@@ -30,6 +31,12 @@ IViewModel* IViewModel::Create(const std::type_info& typeId, void* pTypeData)
 	{
 		ModelComponentViewModel* pViewModel = new ModelComponentViewModel();
 		pViewModel->SetTarget(static_cast<ModelComponent*>(pTypeData));
+		return pViewModel;
+	}
+	else if (typeId == typeid(Decal))
+	{
+		DecalViewModel* pViewModel = new DecalViewModel();
+		pViewModel->SetTarget(static_cast<Decal*>(pTypeData));
 		return pViewModel;
 	}
 	else if (typeId == typeid(Entity))

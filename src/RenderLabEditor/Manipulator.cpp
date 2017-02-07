@@ -21,19 +21,24 @@ namespace
 			return m_models.allocSafe();
 		}
 
+		Decal* AllocDecal()
+		{
+			return nullptr;
+		}
+
 		RigidBody* AllocRigidBody()
 		{
-			return m_rigidBodies.allocSafe();
+			return nullptr;
 		}
 
 		SkyVolume* AllocSkyVolume()
 		{
-			return m_skyVolumes.allocSafe();
+			return nullptr;
 		}
 
 		PostProcessVolume* AllocPostProcessVolume()
 		{
-			return m_postProcVolumes.allocSafe();
+			return nullptr;
 		}
 
 		void ReleaseComponent(const Light* pComponent)
@@ -46,27 +51,25 @@ namespace
 			m_models.releaseSafe(pComponent);
 		}
 
+		void ReleaseComponent(const Decal* pComponent)
+		{
+		}
+
 		void ReleaseComponent(const RigidBody* pComponent)
 		{
-			m_rigidBodies.releaseSafe(pComponent);
 		}
 
 		void ReleaseComponent(const SkyVolume* pComponent)
 		{
-			m_skyVolumes.releaseSafe(pComponent);
 		}
 
 		void ReleaseComponent(const PostProcessVolume* pComponent)
 		{
-			m_postProcVolumes.releaseSafe(pComponent);
 		}
 
 	private:
 		FreeList<ModelComponent, 16> m_models;
-		FreeList<RigidBody, 16> m_rigidBodies;
 		FreeList<Light, 4> m_lights;
-		FreeList<PostProcessVolume, 4> m_postProcVolumes;
-		FreeList<SkyVolume, 4> m_skyVolumes;
 	};
 
 	EditorComponentAllocator s_editorComponentAllocator;

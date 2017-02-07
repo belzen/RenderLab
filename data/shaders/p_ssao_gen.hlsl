@@ -1,5 +1,6 @@
 #include "p_constants.h"
 #include "v_output.hlsli"
+#include "p_util.hlsli"
 
 cbuffer PerAction : register(b0)
 {
@@ -31,11 +32,8 @@ float3 extractViewPosFromDepth(float2 uvDepth)
 	viewRay = normalize(viewRay);
 
 	// Convert depth buffer to linear depth
-	float depth = g_texDepth.Sample(g_samClamp, uvDepth);
-
-	float a = cbPerAction.cameraFarDist / (cbPerAction.cameraFarDist - cbPerAction.cameraNearDist);
-	float b = (-cbPerAction.cameraFarDist * cbPerAction.cameraNearDist) / (cbPerAction.cameraFarDist - cbPerAction.cameraNearDist);
-	float linearDepth = b / (depth - a);
+	float depth = g_texDepth.SampleLevel(g_samClamp, uvDepth, 0);
+	float linearDepth = reconstructViewDepth(depth, cbPerAction.cameraNearDist, cbPerAction.cameraFarDist);
 
 	// Calculate view-space position
 	float3 positionView = viewRay * (linearDepth / viewRay.z);
@@ -48,13 +46,13 @@ float main(VsOutputSprite input) : SV_TARGET
 	float3 viewPosition = extractViewPosFromDepth(input.texcoords);
 
 	// Get pixel normal and transform into view space.
-	float3 viewNormal = g_texNormals.Sample(g_samClamp, input.texcoords) * 2.f - 1.f;
+	float3 viewNormal = g_texNormals.SampleLevel(g_samClamp, input.texcoords, 0) * 2.f - 1.f;
 	viewNormal = normalize(viewNormal);
 	viewNormal = mul(float4(viewNormal, 0), cbPerAction.mtxView).xyz;
 
 	// Sample and decompress tiled noise
 	float3 noise;
-	noise.xy = g_texNoise.Sample(g_samWrap, input.texcoords * cbSsaoParams.noiseUvScale) * 2.f - 1.f;
+	noise.xy = g_texNoise.SampleLevel(g_samWrap, input.texcoords * cbSsaoParams.noiseUvScale, 0) * 2.f - 1.f;
 	noise.z = 0.f;
 
 	// Build sample kernel rotation matrix.

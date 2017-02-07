@@ -39,11 +39,11 @@ float3 applyFilmicTonemap(float3 color)
 
 float4 main(VsOutputSprite input) : SV_TARGET
 {
-	float4 color = texColor.Sample(samClamp, input.texcoords);
+	float4 color = texColor.SampleLevel(samClamp, input.texcoords, 0);
 
 	ToneMapOutputParams tonemap = bufToneMapParams[0];
 
-	color.rgb += texBloom.Sample(samClamp, input.texcoords).rgb;
+	color.rgb += texBloom.SampleLevel(samClamp, input.texcoords, 0).rgb;
 
 #if TONEMAP_HISTOGRAM
 	float logLum = log(getLuminance(color));
@@ -74,6 +74,6 @@ float4 main(VsOutputSprite input) : SV_TARGET
 	#endif
 #endif
 
-	color.rgb = pow(color.rgb, 1 / 2.2f);
+	color.rgb = pow(abs(color.rgb), 1 / 2.2f);
 	return color;
 }

@@ -119,9 +119,13 @@ void Scene::Load(const char* sceneName)
 		Entity* pEntity = Entity::Create(rObjectData.name, rObjectData.position, rObjectData.rotation, rObjectData.scale);
 
 		// Model
-		if (rObjectData.modelName)
+		if (rObjectData.model.name)
 		{
-			pEntity->AttachRenderable(ModelComponent::Create(&s_scene.m_componentAllocator, rObjectData.modelName, rObjectData.materialSwaps, rObjectData.numMaterialSwaps));
+			pEntity->AttachRenderable(ModelComponent::Create(&s_scene.m_componentAllocator, rObjectData.model.name, rObjectData.model.materialSwaps, rObjectData.model.numMaterialSwaps));
+		}
+		else if (rObjectData.decal.textureName)
+		{
+			pEntity->AttachRenderable(Decal::Create(&s_scene.m_componentAllocator, rObjectData.decal.textureName));
 		}
 
 		// Physics
@@ -252,6 +256,26 @@ void Scene::QueueDraw(RdrAction* pAction)
 
 		if (dist + radius > depthMax)
 			depthMax = dist + radius;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Decals
+	for (Decal& rDecal : s_scene.m_componentAllocator.GetDecalFreeList())
+	{
+		Entity* pEntity = rDecal.GetEntity();
+		float radius = rDecal.GetRadius();
+		if (!rCamera.CanSee(pEntity->GetPosition(), radius))
+		{
+			// Can't see the decal.
+			continue;
+		}
+
+		opSet = rDecal.BuildDrawOps(pAction);
+		for (uint16 i = 0; i < opSet.numDrawOps; ++i)
+		{
+			RdrDrawOp* pDrawOp = &opSet.aDrawOps[i];
+			pAction->AddDrawOp(pDrawOp, RdrBucketType::Decal);
+		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////

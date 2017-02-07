@@ -39,7 +39,6 @@ namespace
 		RdrRenderTargetViewList		renderTargetViews;
 		RdrDepthStencilViewList		depthStencilViews;
 		RdrShaderResourceViewList	shaderResourceViews;
-		RdrRenderTargetView			primaryRenderTarget;
 	} s_resourceSystem;
 
 	RdrResourceFormat getFormatFromDXGI(DXGI_FORMAT format)
@@ -81,8 +80,16 @@ namespace
 
 void RdrResourceSystem::Init(Renderer& rRenderer)
 {
-	// Reserve id 1 for the primary render target.
-	s_resourceSystem.renderTargetViews.allocSafe();
+	// Reserve ids for global resources
+	for (int i = 0; i < (int)RdrGlobalRenderTargetHandles::kCount; ++i)
+	{
+		s_resourceSystem.renderTargetViews.allocSafe();
+	}
+
+	for (int i = 0; i < (int)RdrGlobalResourceHandles::kCount; ++i)
+	{
+		s_resourceSystem.resources.allocSafe();
+	}
 
 	// Create default resources.
 	static uchar blackTexData[4] = { 0, 0, 0, 255 };
@@ -92,6 +99,22 @@ void RdrResourceSystem::Init(Renderer& rRenderer)
 	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex3d] =
 		rRenderer.GetPreFrameCommandList().CreateTexture3D(1, 1, 1, RdrResourceFormat::B8G8R8A8_UNORM, 
 			RdrResourceUsage::Immutable, RdrResourceBindings::kNone, (char*)blackTexData);
+}
+
+void RdrResourceSystem::SetActiveGlobalResources(const RdrGlobalResources& rResources)
+{
+	for (int i = 1; i <= (int)RdrGlobalRenderTargetHandles::kCount; ++i)
+	{
+		RdrRenderTargetView* pTarget = s_resourceSystem.renderTargetViews.get(i);
+		*pTarget = rResources.renderTargets[i];
+	}
+
+	for (int i = 1; i <= (int)RdrGlobalResourceHandles::kCount; ++i)
+	{
+		RdrResource* pSrc = s_resourceSystem.resources.get(rResources.hResources[i]);
+		RdrResource* pTarget = s_resourceSystem.resources.get(i);
+		*pTarget = *pSrc;
+	}
 }
 
 const RdrResource* RdrResourceSystem::GetDefaultResource(const RdrDefaultResource resType)
@@ -116,7 +139,7 @@ const RdrConstantBuffer* RdrResourceSystem::GetConstantBuffer(const RdrConstantB
 
 RdrRenderTargetView RdrResourceSystem::GetRenderTargetView(const RdrRenderTargetViewHandle hView)
 {
-	return (hView == kPrimaryRenderTargetHandle) ? s_resourceSystem.primaryRenderTarget : *s_resourceSystem.renderTargetViews.get(hView);
+	return *s_resourceSystem.renderTargetViews.get(hView);
 }
 
 RdrDepthStencilView RdrResourceSystem::GetDepthStencilView(const RdrDepthStencilViewHandle hView)
@@ -518,9 +541,6 @@ RdrGeoHandle RdrResourceCommandList::CreateGeo(const void* pVertData, int vertSt
 void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 {
 	uint numCmds;
-
-	// Update primary render target for this frame in case it changed.
-	s_resourceSystem.primaryRenderTarget = pRdrContext->GetPrimaryRenderTarget();
 
 	// Free resources
 	s_resourceSystem.resources.AcquireLock();

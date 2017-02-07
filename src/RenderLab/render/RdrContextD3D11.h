@@ -4,6 +4,8 @@
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
+struct ID3D11Debug;
+struct ID3D11InfoQueue;
 struct ID3D11Buffer;
 struct ID3D11Texture2D;
 struct ID3D11ShaderResourceView;
@@ -133,6 +135,8 @@ private:
 
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pDevContext;
+	ID3D11Debug* m_pDebug;
+	ID3D11InfoQueue* m_pInfoQueue;
 
 	ID3DUserDefinedAnnotation* m_pAnnotator;
 

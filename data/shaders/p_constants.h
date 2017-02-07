@@ -5,6 +5,7 @@ struct PsPerAction
 {
 	float4x4 mtxView;
 	float4x4 mtxProj;
+	float4x4 mtxInvView;
 	float4x4 mtxInvProj;
 
 	float3 cameraPos;
@@ -40,6 +41,11 @@ struct MaterialParams
 	float2 unused;
 
 	float4 color; // Optional color tint and alpha.
+};
+
+struct DecalMaterialParams
+{
+	float4x4 mtxInvWorld;
 };
 
 #define SSAO_KERNEL_SIZE 4

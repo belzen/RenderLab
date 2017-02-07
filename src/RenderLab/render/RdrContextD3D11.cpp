@@ -449,14 +449,12 @@ bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height)
 	// Debug settings
 	if (g_userConfig.debugDevice)
 	{
-		ID3D11Debug* pDebug = nullptr;
-		if (SUCCEEDED(m_pDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)&pDebug)))
+		if (SUCCEEDED(m_pDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)&m_pDebug)))
 		{
-			ID3D11InfoQueue* pInfoQueue = nullptr;
-			if (SUCCEEDED(pDebug->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&pInfoQueue)))
+			if (SUCCEEDED(m_pDebug->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&m_pInfoQueue)))
 			{
-				pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
-				pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
+				m_pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+				m_pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
 			}
 		}
 	}
@@ -1110,17 +1108,18 @@ void RdrContextD3D11::SetBlendState(RdrBlendMode blendMode)
 void RdrContextD3D11::SetRasterState(const RdrRasterState& rasterState)
 {
 	uint rasterIndex =
-		rasterState.bEnableMSAA * 2 * 2 * 2
-		+ rasterState.bEnableScissor * 2 * 2
-		+ rasterState.bWireframe * 2
-		+ rasterState.bUseSlopeScaledDepthBias;
+		rasterState.bEnableMSAA * 2 * 2 * 2 * 2
+		+ rasterState.bEnableScissor * 2 * 2 * 2
+		+ rasterState.bWireframe * 2 * 2
+		+ rasterState.bUseSlopeScaledDepthBias * 2
+		+ rasterState.bDoubleSided;
 
 	if (!m_pRasterStates[rasterIndex])
 	{
 		D3D11_RASTERIZER_DESC desc;
 		desc.AntialiasedLineEnable = !rasterState.bEnableMSAA;
 		desc.MultisampleEnable = rasterState.bEnableMSAA;
-		desc.CullMode = D3D11_CULL_BACK;
+		desc.CullMode = rasterState.bDoubleSided ? D3D11_CULL_NONE : D3D11_CULL_BACK;
 		desc.SlopeScaledDepthBias = rasterState.bUseSlopeScaledDepthBias ? m_slopeScaledDepthBias : 0.f;
 		desc.DepthBiasClamp = 0.f;
 		desc.DepthClipEnable = true;

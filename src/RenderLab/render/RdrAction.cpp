@@ -56,6 +56,7 @@ namespace
 		RdrBucketType::LightCulling,  // RdrPass::LightCulling
 		RdrBucketType::VolumetricFog, // RdrPass::VolumetricFog
 		RdrBucketType::Opaque,	      // RdrPass::Opaque
+		RdrBucketType::Decal,	      // RdrPass::Decal
 		RdrBucketType::Sky,	          // RdrPass::Sky
 		RdrBucketType::Alpha,		  // RdrPass::Alpha
 		RdrBucketType::Editor,		  // RdrPass::Editor
@@ -71,6 +72,7 @@ namespace
 		L"Light Culling",	// RdrPass::LightCulling
 		L"Volumetric Fog",	// RdrPass::VolumetricFog
 		L"Opaque",			// RdrPass::Opaque
+		L"Decal",			// RdrPass::Decal
 		L"Sky",				// RdrPass::Sky
 		L"Alpha",			// RdrPass::Alpha
 		L"Editor",			// RdrPass::Editor
@@ -86,6 +88,7 @@ namespace
 		RdrProfileSection::LightCulling,	// RdrPass::LightCulling
 		RdrProfileSection::VolumetricFog,	// RdrPass::VolumetricFog
 		RdrProfileSection::Opaque,			// RdrPass::Opaque
+		RdrProfileSection::Decal,			// RdrPass::Decal
 		RdrProfileSection::Sky,				// RdrPass::Sky
 		RdrProfileSection::Alpha,			// RdrPass::Alpha
 		RdrProfileSection::Editor,			// RdrPass::Editor
@@ -171,6 +174,8 @@ namespace
 		uint constantsSize = sizeof(VsPerAction);
 		VsPerAction* pVsPerAction = (VsPerAction*)RdrFrameMem::AllocAligned(constantsSize, 16);
 
+		pVsPerAction->mtxView = mtxView;
+		pVsPerAction->mtxView = Matrix44Transpose(pVsPerAction->mtxView);
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = rCamera.GetPosition();
@@ -185,6 +190,8 @@ namespace
 		pPsPerAction->cameraDir = rCamera.GetDirection();
 		pPsPerAction->mtxView = mtxView;
 		pPsPerAction->mtxView = Matrix44Transpose(pPsPerAction->mtxView);
+		pPsPerAction->mtxInvView = Matrix44Inverse(mtxView);
+		pPsPerAction->mtxInvView = Matrix44Transpose(pPsPerAction->mtxInvView);
 		pPsPerAction->mtxProj = mtxProj;
 		pPsPerAction->mtxProj = Matrix44Transpose(pPsPerAction->mtxProj);
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
@@ -208,6 +215,8 @@ namespace
 		uint constantsSize = sizeof(VsPerAction);
 		VsPerAction* pVsPerAction = (VsPerAction*)RdrFrameMem::AllocAligned(constantsSize, 16);
 
+		pVsPerAction->mtxView = mtxView;
+		pVsPerAction->mtxView = Matrix44Transpose(pVsPerAction->mtxView);
 		pVsPerAction->mtxViewProj = Matrix44Multiply(mtxView, mtxProj);
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = Vec3::kZero;
@@ -222,6 +231,8 @@ namespace
 		pPsPerAction->cameraDir = Vec3::kUnitZ;
 		pPsPerAction->mtxView = mtxView;
 		pPsPerAction->mtxView = Matrix44Transpose(pPsPerAction->mtxView);
+		pPsPerAction->mtxInvView = Matrix44Inverse(mtxView);
+		pPsPerAction->mtxInvView = Matrix44Transpose(pPsPerAction->mtxInvView);
 		pPsPerAction->mtxProj = mtxProj;
 		pPsPerAction->mtxProj = Matrix44Transpose(pPsPerAction->mtxProj);
 		pPsPerAction->mtxInvProj = Matrix44Inverse(mtxProj);
@@ -291,7 +302,7 @@ RdrAction* RdrAction::CreateOffscreen(const wchar_t* actionName, Camera& rCamera
 void RdrAction::InitAsPrimary(Camera& rCamera)
 {
 	Rect viewport = Rect(0.f, 0.f, (float)g_pRenderer->GetViewportWidth(), (float)g_pRenderer->GetViewportHeight());
-	InitCommon(L"Primary Action", true, viewport, true, RdrResourceSystem::kPrimaryRenderTargetHandle);
+	InitCommon(L"Primary Action", true, viewport, true, RdrGlobalRenderTargetHandles::kPrimary);
 
 	rCamera.SetAspectRatio(viewport.width / viewport.height);
 	rCamera.UpdateFrustum();
@@ -300,6 +311,7 @@ void RdrAction::InitAsPrimary(Camera& rCamera)
 	m_passes[(int)RdrPass::ZPrepass].bEnabled = true;
 	m_passes[(int)RdrPass::LightCulling].bEnabled = true;
 	m_passes[(int)RdrPass::Opaque].bEnabled = true;
+	m_passes[(int)RdrPass::Decal].bEnabled = true;
 	m_passes[(int)RdrPass::Sky].bEnabled = true;
 	m_passes[(int)RdrPass::Alpha].bEnabled = true;
 	m_passes[(int)RdrPass::UI].bEnabled = true;
@@ -332,6 +344,7 @@ void RdrAction::InitAsOffscreen(const wchar_t* actionName, Camera& rCamera,
 	m_passes[(int)RdrPass::ZPrepass].bEnabled = true;
 	m_passes[(int)RdrPass::LightCulling].bEnabled = true;
 	m_passes[(int)RdrPass::Opaque].bEnabled = true;
+	m_passes[(int)RdrPass::Decal].bEnabled = true;
 	m_passes[(int)RdrPass::Sky].bEnabled = true;
 	m_passes[(int)RdrPass::Alpha].bEnabled = true;
 
@@ -399,6 +412,18 @@ void RdrAction::InitCommon(const wchar_t* actionName, bool isPrimaryAction, cons
 		pPass->blendMode = RdrBlendMode::kOpaque;
 		pPass->hDepthTarget = hDepthTarget;
 		pPass->depthTestMode = RdrDepthTestMode::Equal;
+		pPass->bDepthWriteEnabled = false;
+		pPass->shaderMode = RdrShaderMode::Normal;
+	}
+
+	// Decal
+	pPass = &m_passes[(int)RdrPass::Decal];
+	{
+		pPass->viewport = viewport;
+		pPass->ahRenderTargets[0] = hColorTarget;
+		pPass->bClearRenderTargets = false;
+		pPass->blendMode = RdrBlendMode::kAlpha;
+		pPass->depthTestMode = RdrDepthTestMode::None;
 		pPass->bDepthWriteEnabled = false;
 		pPass->shaderMode = RdrShaderMode::Normal;
 	}
@@ -607,6 +632,12 @@ void RdrAction::DrawIdle(RdrContext* pContext)
 
 void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler* pProfiler)
 {
+	// Update global resources
+	RdrGlobalResources globalResources;
+	globalResources.renderTargets[(int)RdrGlobalRenderTargetHandles::kPrimary] = pContext->GetPrimaryRenderTarget();
+	globalResources.hResources[(int)RdrGlobalResourceHandles::kDepthBuffer] = m_surfaces.hDepthBuffer;
+	RdrResourceSystem::SetActiveGlobalResources(globalResources);
+
 	// Cache render objects
 	m_pContext = pContext;
 	m_pDrawState = pDrawState;
@@ -647,12 +678,25 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 	DrawPass(RdrPass::LightCulling);
 	DrawPass(RdrPass::VolumetricFog);
 	DrawPass(RdrPass::Opaque);
+
+	// Decal pass
+	// This needs double-sided triangles (no culling) to ensure the decals 
+	// aren't culled when the camera is inside the decal's model volume.
+	{
+		rasterState.bDoubleSided = 1;
+		m_pContext->SetRasterState(rasterState);
+		DrawPass(RdrPass::Decal);
+		rasterState.bDoubleSided = 0;
+		m_pContext->SetRasterState(rasterState);
+	}
+
 	DrawPass(RdrPass::Sky);
 	DrawPass(RdrPass::Alpha);
 
 	if (g_debugState.wireframe)
 	{
 		rasterState.bWireframe = false;
+		rasterState.bDoubleSided = true;
 		m_pContext->SetRasterState(rasterState);
 	}
 
@@ -677,11 +721,13 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 	// Wireframe
 	{
 		rasterState.bWireframe = true;
+		rasterState.bDoubleSided = true;
 		m_pContext->SetRasterState(rasterState);
 
 		DrawPass(RdrPass::Wireframe);
 
 		rasterState.bWireframe = false;
+		rasterState.bDoubleSided = false;
 		m_pContext->SetRasterState(rasterState);
 	}
 

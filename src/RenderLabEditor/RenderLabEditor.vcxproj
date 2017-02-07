@@ -197,6 +197,7 @@
     </ClCompile>
     <ClCompile Include="PropertyTables.cpp" />
     <ClCompile Include="RenderWindow.cpp" />
+    <ClCompile Include="ViewModels\DecalViewModel.cpp" />
     <ClCompile Include="ViewModels\LightViewModel.cpp" />
     <ClCompile Include="ViewModels\ModelComponentViewModel.cpp" />
     <ClCompile Include="ViewModels\PostProcessVolumeViewModel.cpp" />
@@ -231,6 +232,7 @@
     <ClInclude Include="Precompiled.h" />
     <ClInclude Include="PropertyTables.h" />
     <ClInclude Include="RenderWindow.h" />
+    <ClInclude Include="ViewModels\DecalViewModel.h" />
     <ClInclude Include="ViewModels\LightViewModel.h" />
     <ClInclude Include="ViewModels\ModelComponentViewModel.h" />
     <ClInclude Include="ViewModels\IViewModel.h" />

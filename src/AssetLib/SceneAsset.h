@@ -113,6 +113,18 @@ namespace AssetLib
 		Vec3 halfSize;
 	};
 
+	struct ObjectModel
+	{
+		CachedString name;
+		MaterialSwap materialSwaps[4];
+		uint numMaterialSwaps;
+	};
+
+	struct ObjectDecal
+	{
+		CachedString textureName;
+	};
+
 	struct Object
 	{
 		Vec3 position;
@@ -120,10 +132,9 @@ namespace AssetLib
 		Vec3 scale;
 		ObjectPhysics physics;
 		Light light;
-		MaterialSwap materialSwaps[4];
-		uint numMaterialSwaps;
-		CachedString modelName;
 		Volume volume;
+		ObjectDecal decal;
+		ObjectModel model;
 		char name[64];
 	};
 

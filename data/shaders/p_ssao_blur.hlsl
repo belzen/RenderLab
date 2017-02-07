@@ -20,7 +20,7 @@ float main(VsOutputSprite input) : SV_TARGET
 	{
 		for (int y = 0; y < cbSsaoParams.blurSize; ++y)
 		{
-			occlusion += g_texOcclusion.Sample(g_samClamp, input.texcoords + offset + cbSsaoParams.texelSize * float2(x, y));
+			occlusion += g_texOcclusion.SampleLevel(g_samClamp, input.texcoords + offset + cbSsaoParams.texelSize * float2(x, y), 0);
 		}
 	}
 

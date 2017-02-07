@@ -21,6 +21,13 @@ ModelComponent* DefaultComponentAllocator::AllocModelComponent()
 	return pComponent;
 }
 
+Decal* DefaultComponentAllocator::AllocDecal()
+{
+	Decal* pComponent = m_decals.allocSafe();
+	InitComponent(pComponent);
+	return pComponent;
+}
+
 RigidBody* DefaultComponentAllocator::AllocRigidBody()
 {
 	RigidBody* pComponent = m_rigidBodies.allocSafe();
@@ -52,6 +59,11 @@ void DefaultComponentAllocator::ReleaseComponent(const ModelComponent* pComponen
 	return m_models.release(pComponent);
 }
 
+void DefaultComponentAllocator::ReleaseComponent(const Decal* pComponent)
+{
+	return m_decals.release(pComponent);
+}
+
 void DefaultComponentAllocator::ReleaseComponent(const RigidBody* pComponent)
 {
 	return m_rigidBodies.release(pComponent);
@@ -70,6 +82,11 @@ void DefaultComponentAllocator::ReleaseComponent(const PostProcessVolume* pCompo
 ModelComponentFreeList& DefaultComponentAllocator::GetModelComponentFreeList()
 {
 	return m_models;
+}
+
+DecalFreeList& DefaultComponentAllocator::GetDecalFreeList()
+{
+	return m_decals;
 }
 
 LightFreeList& DefaultComponentAllocator::GetLightFreeList()

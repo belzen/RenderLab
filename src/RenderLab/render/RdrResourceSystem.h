@@ -23,12 +23,33 @@ struct RdrRenderTarget2d
 	RdrRenderTargetViewHandle hRenderTarget;
 };
 
+struct RdrGlobalRenderTargetHandles
+{
+	static const RdrRenderTargetViewHandle kPrimary = 1;
+	static const int kCount = 1;
+};
+
+struct RdrGlobalResourceHandles
+{
+	static const RdrResourceHandle kDepthBuffer = 1;
+	static const int kCount = 1;
+};
+
+struct RdrGlobalResources
+{
+	RdrRenderTargetView renderTargets[(int)RdrGlobalRenderTargetHandles::kCount + 1];
+	RdrResourceHandle hResources[(int)RdrGlobalResourceHandles::kCount + 1];
+};
+
 namespace RdrResourceSystem
 {
-	static const uint kPrimaryRenderTargetHandle = 1;
-
 	void Init(Renderer& rRenderer);
 
+	// Update the active global resources.  
+	// These should only be updated on the render thread at the start of each action. 
+	void SetActiveGlobalResources(const RdrGlobalResources& rResources);
+
+	//
 	const RdrGeometry* GetGeo(const RdrGeoHandle hGeo);
 	RdrDepthStencilView GetDepthStencilView(const RdrDepthStencilViewHandle hView);
 	RdrRenderTargetView GetRenderTargetView(const RdrRenderTargetViewHandle hView);

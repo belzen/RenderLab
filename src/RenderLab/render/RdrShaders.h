@@ -64,6 +64,7 @@ ENUM_FLAGS(RdrShaderFlags);
 enum class RdrVertexShaderType
 {
 	Model,
+	Decal,
 	Text,
 	Sprite,
 	Sky,

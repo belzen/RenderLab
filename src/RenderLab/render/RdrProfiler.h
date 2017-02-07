@@ -13,6 +13,7 @@ enum class RdrProfileSection
 	LightCulling,
 	VolumetricFog,
 	Opaque,
+	Decal,
 	Alpha,
 	Sky,
 	PostProcessing,
