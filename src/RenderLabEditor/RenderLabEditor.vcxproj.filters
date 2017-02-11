@@ -90,7 +90,6 @@
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="RenderWindow.h" />
     <ClInclude Include="WindowBase.h" />
-    <ClInclude Include="WindowLayout.h" />
     <ClInclude Include="PropertyTables.h" />
     <ClInclude Include="Widgets\Button.h">
       <Filter>Widgets</Filter>

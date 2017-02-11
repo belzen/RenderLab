@@ -467,6 +467,10 @@ LRESULT CALLBACK Widget::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 			break;
 		case WM_SIZE:
 			pWidget->m_width = LOWORD(lParam) + (pWidget->m_borderSize * 2);
+			if (pWidget->m_windowStyle & WS_VSCROLL)
+			{
+				pWidget->m_width += GetSystemMetrics(SM_CXVSCROLL);
+			}
 			pWidget->m_height = HIWORD(lParam) + (pWidget->m_borderSize * 2);
 			bHandled = pWidget->HandleResize(pWidget->GetWidth(), pWidget->GetHeight());
 			break;

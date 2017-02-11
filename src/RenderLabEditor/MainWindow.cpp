@@ -21,6 +21,9 @@
 
 namespace
 {
+	static const int kDefaultPanelWidth = 300;
+	static const int kDefaultBrowserHeight = 200;
+
 	void sceneTreeViewSelectionChanged(const TreeView* pTree, TreeViewItemHandle hSelectedItem, void* pUserData)
 	{
 		const TreeViewItem* pItem = pTree->GetItem(hSelectedItem);
@@ -152,10 +155,21 @@ void MainWindow::LoadScene(const char* sceneName)
 
 bool MainWindow::OnResize(int newWidth, int newHeight)
 {
-	int panelWidth = m_pPropertyPanel ? m_pPropertyPanel->GetWidth() : 0;
+	int panelWidth = kDefaultPanelWidth;
+	int browserHeight = kDefaultBrowserHeight;
+
 	if (m_pRenderWindow)
 	{
-		m_pRenderWindow->SetSize(newWidth - panelWidth, newHeight);
+		m_pRenderWindow->SetSize(newWidth - panelWidth, newHeight - browserHeight);
+
+		m_pAssetBrowser->SetSize(newWidth - panelWidth, browserHeight);
+		m_pAssetBrowser->SetPosition(0, newHeight - browserHeight);
+
+		m_pPropertyPanel->SetSize(panelWidth, newHeight / 2);
+		m_pPropertyPanel->SetPosition(newWidth - panelWidth, newHeight / 2);
+
+		m_pSceneTreeView->SetSize(panelWidth, newHeight / 2);
+		m_pSceneTreeView->SetPosition(newWidth - panelWidth, 0);
 	}
 	return true;
 }
@@ -200,9 +214,6 @@ int MainWindow::Run()
 
 	// Initialize renderer first.
 	HWND hWnd = GetWindowHandle();
-
-	const int kDefaultPanelWidth = 300;
-	const int kDefaultBrowserHeight = 200;
 
 	int renderWindowWidth = GetWidth() - kDefaultPanelWidth;
 	int renderWindowHeight = GetHeight() - kDefaultBrowserHeight;
