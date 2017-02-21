@@ -79,6 +79,7 @@ public:
 
 	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
 		RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax);
+	RdrGeoHandle UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVertData);
 	void ReleaseGeo(const RdrGeoHandle hGeo);
 
 	RdrResourceHandle CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceUsage eUsage);

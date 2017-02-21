@@ -538,6 +538,14 @@ RdrGeoHandle RdrResourceCommandList::CreateGeo(const void* pVertData, int vertSt
 	return cmd.hGeo;
 }
 
+RdrGeoHandle RdrResourceCommandList::UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVertData)
+{
+	CmdUpdateGeo& cmd = m_geoUpdates.pushSafe();
+	cmd.hGeo = hGeo;
+	cmd.pVertData = pVertData;
+	return cmd.hGeo;
+}
+
 void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 {
 	uint numCmds;
@@ -788,7 +796,19 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 		else
 		{
 			// Updating
-			assert(false); //todo
+			// This destroys and re-creates the buffers that have changed.
+			// TODO: May want to add support for dynamic buffers geo buffers.
+			if (cmd.pVertData)
+			{
+				pRdrContext->ReleaseBuffer(pGeo->vertexBuffer);
+				pGeo->vertexBuffer = pRdrContext->CreateVertexBuffer(cmd.pVertData, pGeo->geoInfo.vertStride * pGeo->geoInfo.numVerts, RdrResourceUsage::Default);
+			}
+
+			if (cmd.pIndexData)
+			{
+				//pRdrContext->ReleaseBuffer(pGeo->indexBuffer);
+				//pGeo->indexBuffer = pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices, RdrResourceUsage::Default);
+			}
 		}
 	}
 	s_resourceSystem.geos.ReleaseLock();

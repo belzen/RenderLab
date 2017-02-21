@@ -61,6 +61,7 @@ namespace
 	DXGI_FORMAT getD3DVertexInputFormat(RdrVertexInputFormat eFormat)
 	{
 		static const DXGI_FORMAT s_d3dFormats[] = {
+			DXGI_FORMAT_R32_FLOAT,			// RdrVertexInputFormat::R_F32
 			DXGI_FORMAT_R32G32_FLOAT,      // RdrVertexInputFormat::RG_F32
 			DXGI_FORMAT_R32G32B32_FLOAT,   // RdrVertexInputFormat::RGB_F32
 			DXGI_FORMAT_R32G32B32A32_FLOAT // RdrVertexInputFormat::RGBA_F32

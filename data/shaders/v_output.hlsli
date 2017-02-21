@@ -42,6 +42,13 @@ struct VsOutputTerrain
 	float lod : TEXCOORD0;
 };
 
+struct VsOutputOcean
+{
+	float4 position : SV_POSITION;
+	float4 position_ws : POSITION;
+	float3 normal : NORMAL;
+	float color_mod : color_mod;
+};
 
 // Hull/Domain outputs
 struct HsOutputTerrain
@@ -66,3 +73,4 @@ struct DsOutputTerrain
 	float2 texcoords : TEXCOORD0;
 #endif
 };
+

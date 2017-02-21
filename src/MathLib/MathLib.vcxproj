@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FourierTransform.h" />
     <ClInclude Include="IVec3.h" />
     <ClInclude Include="Maths.h" />
     <ClInclude Include="Matrix33.h" />
@@ -28,11 +29,13 @@
     <ClInclude Include="UVec2.h" />
     <ClInclude Include="UVec3.h" />
     <ClInclude Include="Vec2.h" />
+    <ClInclude Include="Vec2Math.h" />
     <ClInclude Include="Vec3.h" />
     <ClInclude Include="Vec3Math.h" />
     <ClInclude Include="Vec4.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FourierTransform.cpp" />
     <ClCompile Include="MathConstants.cpp" />
     <ClCompile Include="Maths.cpp" />
   </ItemGroup>

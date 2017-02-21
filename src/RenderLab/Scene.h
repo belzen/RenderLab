@@ -1,7 +1,6 @@
 #pragma once
 
 #include "render/RdrContext.h"
-#include "render/Terrain.h"
 #include "render/RdrLighting.h"
 #include "AssetLib/SceneAsset.h"
 #include "AssetLib/AssetLibrary.h"
@@ -23,8 +22,6 @@ namespace Scene
 
 	void Update();
 	void QueueDraw(RdrAction* pAction);
-
-	Terrain& GetTerrain();
 
 	EntityList& GetEntities();
 

@@ -50,7 +50,7 @@ void Menu::SetItemChecked(int itemIndex, bool check)
 
 void Menu::SetRadioItemChecked(int itemIndex)
 {
-	CheckMenuRadioItem(m_hMenu, 0, m_items.size() - 1, itemIndex, MF_BYPOSITION);
+	CheckMenuRadioItem(m_hMenu, 0, (int)m_items.size() - 1, itemIndex, MF_BYPOSITION);
 }
 
 bool Menu::HandleMenuCommand(int commandId)

@@ -1,6 +1,7 @@
 #pragma once
 #include "AssetDef.h"
 #include "BinFile.h"
+#include "MathLib/UVec2.h"
 #include "MathLib/Vec2.h"
 #include "MathLib/Vec3.h"
 #include "MathLib/Quaternion.h"
@@ -147,6 +148,16 @@ namespace AssetLib
 		bool enabled;
 	};
 
+	struct Ocean
+	{
+		int fourierGridSize;
+		float tileWorldSize;
+		UVec2 tileCounts;
+		float waveHeightScalar;
+		Vec2 wind;
+		bool enabled;
+	};
+
 	struct Scene
 	{
 		static AssetDef& GetAssetDef();
@@ -157,6 +168,7 @@ namespace AssetLib
 
 		std::vector<Object> objects;
 		Terrain terrain;
+		Ocean ocean;
 		
 		Vec3 globalEnvironmentLightPosition;
 		uint environmentMapTexSize;

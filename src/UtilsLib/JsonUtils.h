@@ -25,6 +25,14 @@ inline void jsonReadCachedString(const Json::Value& val, CachedString* pOutStr)
 	}
 }
 
+inline UVec2 jsonReadUVec2(const Json::Value& val)
+{
+	UVec2 vec;
+	vec.x = val.get((uint)0, Json::Value(0.f)).asInt();
+	vec.y = val.get((uint)1, Json::Value(0.f)).asInt();
+	return vec;
+}
+
 inline Vec2 jsonReadVec2(const Json::Value& val)
 {
 	Vec2 vec;

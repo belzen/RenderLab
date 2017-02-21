@@ -57,6 +57,27 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 		}
 	}
 
+	// Ocean
+	{
+		Json::Value jOcean = jRoot.get("ocean", Json::Value::null);
+		AssetLib::Ocean& rOcean = pScene->ocean;
+
+		if (jOcean.isNull())
+		{
+			rOcean.enabled = false;
+		}
+		else
+		{
+			rOcean.enabled = true;
+
+			rOcean.fourierGridSize = jOcean.get("fourierGridSize", 64).asInt();
+			rOcean.tileWorldSize = jOcean.get("tileWorldSize", 64.f).asFloat();
+			rOcean.tileCounts = jsonReadUVec2(jOcean.get("tileCounts", Json::Value::null));
+			rOcean.waveHeightScalar = jOcean.get("waveHeightScalar", 0.000015f).asFloat();
+			rOcean.wind = jsonReadVec2(jOcean.get("wind", Json::Value::null));
+		}
+	}
+
 	// Objects
 	{
 		Json::Value jObjects = jRoot.get("objects", Json::Value::null);

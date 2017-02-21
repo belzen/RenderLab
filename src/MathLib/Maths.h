@@ -13,6 +13,7 @@
 #include "Matrix44.h"
 #include "Matrix33.h"
 
+#include "Vec2Math.h"
 #include "Vec3Math.h"
 #include "../Types.h"
 

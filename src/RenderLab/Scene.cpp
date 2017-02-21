@@ -7,6 +7,8 @@
 #include "Entity.h"
 #include "AssetLib/SceneAsset.h"
 #include "AssetLib/AssetLibrary.h"
+#include "render/Terrain.h"
+#include "render/Ocean.h"
 #include "Game.h"
 
 namespace
@@ -16,6 +18,7 @@ namespace
 		DefaultComponentAllocator m_componentAllocator;
 		EntityList m_entities;
 		Terrain m_terrain;
+		Ocean m_ocean;
 
 		Vec3 m_cameraSpawnPosition;
 		Rotation m_cameraSpawnRotation;
@@ -181,6 +184,12 @@ void Scene::Load(const char* sceneName)
 		s_scene.m_terrain.Init(pSceneData->terrain);
 	}
 
+	if (pSceneData->ocean.enabled)
+	{
+		const AssetLib::Ocean& rOcean = pSceneData->ocean;
+		s_scene.m_ocean.Init(rOcean.tileWorldSize, rOcean.tileCounts, rOcean.fourierGridSize, rOcean.waveHeightScalar, rOcean.wind);
+	}
+
 	// TODO: quad/oct tree for scene
 }
 
@@ -202,6 +211,8 @@ void Scene::Update()
 			rRigidBody.UpdateNoSimulation();
 		}
 	}
+
+	s_scene.m_ocean.Update();
 }
 
 void Scene::AddEntity(Entity* pEntity)
@@ -280,7 +291,15 @@ void Scene::QueueDraw(RdrAction* pAction)
 
 	//////////////////////////////////////////////////////////////////////////
 	// Terrain
-	opSet = Scene::GetTerrain().BuildDrawOps(pAction);
+	opSet = s_scene.m_terrain.BuildDrawOps(pAction);
+	for (uint16 i = 0; i < opSet.numDrawOps; ++i)
+	{
+		pAction->AddDrawOp(&opSet.aDrawOps[i], RdrBucketType::Opaque);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Ocean
+	opSet = s_scene.m_ocean.BuildDrawOps(pAction);
 	for (uint16 i = 0; i < opSet.numDrawOps; ++i)
 	{
 		pAction->AddDrawOp(&opSet.aDrawOps[i], RdrBucketType::Opaque);
@@ -373,11 +392,6 @@ const Rotation& Scene::GetCameraSpawnRotation()
 DefaultComponentAllocator* Scene::GetComponentAllocator()
 {
 	return &s_scene.m_componentAllocator;
-}
-
-Terrain& Scene::GetTerrain()
-{
-	return s_scene.m_terrain;
 }
 
 EntityList& Scene::GetEntities()

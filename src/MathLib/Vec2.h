@@ -57,6 +57,18 @@ inline Vec2 operator * (const Vec2& lhs, float scalar)
 	return Vec2(lhs.x * scalar, lhs.y * scalar);
 }
 
+inline Vec2 operator * (float scalar, const Vec2& rhs)
+{
+	return Vec2(rhs.x * scalar, rhs.y * scalar);
+}
+
+inline Vec2& operator *= (Vec2& lhs, float scalar)
+{
+	lhs.x *= scalar;
+	lhs.y *= scalar;
+	return lhs;
+}
+
 inline Vec2 operator / (const Vec2& lhs, const Vec2& rhs)
 {
 	return Vec2(lhs.x / rhs.x, lhs.y / rhs.y);

@@ -13,9 +13,12 @@
     <ClInclude Include="UVec2.h" />
     <ClInclude Include="UVec3.h" />
     <ClInclude Include="Rotation.h" />
+    <ClInclude Include="Vec2Math.h" />
+    <ClInclude Include="FourierTransform.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MathConstants.cpp" />
     <ClCompile Include="Maths.cpp" />
+    <ClCompile Include="FourierTransform.cpp" />
   </ItemGroup>
 </Project>

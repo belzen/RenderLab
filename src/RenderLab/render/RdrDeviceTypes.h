@@ -22,6 +22,7 @@ enum class RdrShaderSemantic
 
 enum class RdrVertexInputFormat
 {
+	R_F32,
 	RG_F32,
 	RGB_F32,
 	RGBA_F32,
