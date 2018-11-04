@@ -67,6 +67,7 @@ struct GlobalLightData
 struct ClusteredLightCullingParams
 {
 	float4x4 mtxView;
+	float4x4 mtxProj;
 
 	float proj_11;
 	float proj_22;

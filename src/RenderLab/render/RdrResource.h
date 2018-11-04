@@ -11,6 +11,8 @@ struct ID3D11Resource;
 struct ID3D11ShaderResourceView;
 struct ID3D11UnorderedAccessView;
 
+interface ID3D12Resource;
+
 enum class RdrTextureType
 {
 	k2D,
@@ -51,6 +53,7 @@ struct RdrShaderResourceView
 	union
 	{
 		ID3D11ShaderResourceView* pViewD3D11;
+		D3D12DescriptorHandle hViewD3D12;
 		void* pTypeless;
 	};
 };
@@ -60,6 +63,7 @@ struct RdrUnorderedAccessView
 	union
 	{
 		ID3D11UnorderedAccessView* pViewD3D11;
+		D3D12DescriptorHandle hViewD3D12;
 		void* pTypeless;
 	};
 };
@@ -72,6 +76,7 @@ struct RdrResource
 		ID3D11Texture3D* pTexture3d;
 		ID3D11Buffer*    pBuffer;
 		ID3D11Resource*  pResource;
+		ID3D12Resource*  pResource12;
 	};
 
 	RdrShaderResourceView resourceView;
@@ -90,6 +95,7 @@ struct RdrResource
 union RdrConstantBufferDeviceObj
 {
 	ID3D11Buffer* pBufferD3D11;
+	ID3D12Resource* pBufferD3D12;
 	void* pTypeless;
 };
 

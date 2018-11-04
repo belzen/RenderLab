@@ -7,6 +7,13 @@ struct ID3D11RenderTargetView;
 struct ID3D11SamplerState;
 struct ID3D11Buffer;
 struct ID3D11Query;
+typedef uint64 D3D12DescriptorHandle;
+
+struct D3D12QueryHandle
+{
+	uint nType;
+	uint nId;
+};
 
 enum class RdrShaderSemantic
 {
@@ -201,12 +208,20 @@ struct RdrSamplerState
 
 struct RdrDepthStencilView
 {
-	ID3D11DepthStencilView* pView;
+	union
+	{
+		ID3D11DepthStencilView* pView;
+		D3D12DescriptorHandle hViewD3D12;
+	};
 };
 
 struct RdrRenderTargetView
 {
-	ID3D11RenderTargetView* pView;
+	union
+	{
+		ID3D11RenderTargetView* pView;
+		D3D12DescriptorHandle hViewD3D12;
+	};
 };
 
 enum class RdrResourceMapMode
@@ -278,6 +293,7 @@ struct RdrQuery
 	{
 		ID3D11Query* pQueryD3D11;
 		void* pTypeless;
+		D3D12QueryHandle hQueryD3D12;
 	};
 };
 

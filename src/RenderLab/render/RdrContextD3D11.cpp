@@ -134,7 +134,7 @@ namespace
 		return s_d3dUsage[(int)eUsage];
 	}
 
-	static void createBufferSrv(ID3D11Device* pDevice, const RdrResource& rResource, uint numElements, RdrResourceFormat eFormat, int firstElement, ID3D11ShaderResourceView** pOutView)
+	static void createBufferSrv(ID3D11Device* pDevice, const RdrResource& rResource, uint numElements, RdrResourceFormat eFormat, int firstElement, ID3D11ShaderResourceView** ppOutView)
 	{
 		D3D11_SHADER_RESOURCE_VIEW_DESC desc;
 		desc.Buffer.FirstElement = firstElement;
@@ -142,7 +142,7 @@ namespace
 		desc.Format = getD3DFormat(eFormat);
 		desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 
-		HRESULT hr = pDevice->CreateShaderResourceView(rResource.pResource, &desc, pOutView);
+		HRESULT hr = pDevice->CreateShaderResourceView(rResource.pResource, &desc, ppOutView);
 		assert(hr == S_OK);
 	}
 

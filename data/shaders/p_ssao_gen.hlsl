@@ -7,7 +7,7 @@ cbuffer PerAction : register(b0)
 	PsPerAction cbPerAction;
 };
 
-cbuffer SsaoParamsBuffer : register(c1)
+cbuffer SsaoParamsBuffer : register(b1)
 {
 	SsaoParams cbSsaoParams;
 };

@@ -482,9 +482,9 @@ RdrDepthStencilViewHandle RdrResourceCommandList::CreateDepthStencilView(RdrReso
 	return cmd.hView;
 }
 
-RdrRenderTarget2d RdrResourceCommandList::InitRenderTarget2d(uint width, uint height, RdrResourceFormat eFormat, int multisampleLevel)
+RdrRenderTarget RdrResourceCommandList::InitRenderTarget2d(uint width, uint height, RdrResourceFormat eFormat, int multisampleLevel)
 {
-	RdrRenderTarget2d renderTarget;
+	RdrRenderTarget renderTarget;
 
 	renderTarget.hTexture = CreateTexture2D(width, height, eFormat, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget, nullptr);
 
@@ -503,7 +503,7 @@ RdrRenderTarget2d RdrResourceCommandList::InitRenderTarget2d(uint width, uint he
 	return renderTarget;
 }
 
-void RdrResourceCommandList::ReleaseRenderTarget2d(const RdrRenderTarget2d& rRenderTarget)
+void RdrResourceCommandList::ReleaseRenderTarget2d(const RdrRenderTarget& rRenderTarget)
 {
 	if (rRenderTarget.hTexture)
 		ReleaseResource(rRenderTarget.hTexture);

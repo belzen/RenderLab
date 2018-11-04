@@ -1,4 +1,7 @@
 /.vs/
+/src/.vs/
+/src/packages/
+sh.exe.stackdump
 *.opensdf
 *.sdf
 *.vcxproj.user

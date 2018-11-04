@@ -35,7 +35,11 @@ struct RdrGeoInfo
 
 struct RdrBuffer
 {
-	ID3D11Buffer* pBuffer;
+	union
+	{
+		ID3D11Buffer* pBuffer;
+		ID3D12Resource* pBuffer12;
+	};
 };
 
 struct RdrGeometry

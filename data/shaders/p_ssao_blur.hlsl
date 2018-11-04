@@ -2,7 +2,7 @@
 #include "v_output.hlsli"
 #include "light_types.h"
 
-cbuffer SsaoParamsBuffer : register(c0)
+cbuffer SsaoParamsBuffer : register(b0)
 {
 	SsaoParams cbSsaoParams;
 };

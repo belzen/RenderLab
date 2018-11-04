@@ -69,8 +69,8 @@ private:
 	SsaoParams m_ssaoParams;
 	RdrConstantBufferDeviceObj m_ssaoConstants;
 	RdrResourceHandle m_hSsaoNoiseTexture;
-	RdrRenderTarget2d m_ssaoBuffer;
-	RdrRenderTarget2d m_ssaoBlurredBuffer;
+	RdrRenderTarget m_ssaoBuffer;
+	RdrRenderTarget m_ssaoBlurredBuffer;
 	RdrShaderHandle m_hSsaoGenPixelShader;
 	RdrShaderHandle m_hSsaoBlurPixelShader;
 	RdrShaderHandle m_hSsaoApplyPixelShader;

@@ -85,9 +85,9 @@ struct RdrShadowPass
 struct RdrActionSurfaces
 {
 	Vec2 viewportSize;
-	RdrRenderTarget2d colorBuffer;
-	RdrRenderTarget2d albedoBuffer;
-	RdrRenderTarget2d normalBuffer;
+	RdrRenderTarget colorBuffer;
+	RdrRenderTarget albedoBuffer;
+	RdrRenderTarget normalBuffer;
 	RdrResourceHandle hDepthBuffer;
 	RdrDepthStencilViewHandle hDepthStencilView;
 };

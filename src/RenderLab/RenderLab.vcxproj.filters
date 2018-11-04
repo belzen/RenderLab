@@ -145,6 +145,12 @@
     <FxCompile Include="..\..\data\shaders\p_ocean.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_sh_project_cubemap.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_clustered_light_cull2.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Precompiled.cpp" />
@@ -257,6 +263,12 @@
       <Filter>components</Filter>
     </ClCompile>
     <ClCompile Include="render\Ocean.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrContextD3D12.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\RdrContextD3D12_Shaders.cpp">
       <Filter>render</Filter>
     </ClCompile>
   </ItemGroup>
@@ -447,6 +459,9 @@
     <ClInclude Include="render\Ocean.h">
       <Filter>render</Filter>
     </ClInclude>
+    <ClInclude Include="render\RdrContextD3D12.h">
+      <Filter>render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\shaders\p_common.hlsli">
@@ -473,6 +488,7 @@
     <None Include="..\..\data\shaders\global_resources.hlsli">
       <Filter>shaders</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="RenderDoc">

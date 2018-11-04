@@ -13,6 +13,11 @@ public:
 		memset(this, 0, sizeof(RdrDrawState));
 	}
 
+#if defined(RENDERER_DX12)
+	//donotcheckin
+	// root signature
+	// pso
+#else
 	const RdrShader* pVertexShader;
 	const RdrShader* pGeometryShader;
 	const RdrShader* pHullShader;
@@ -22,6 +27,7 @@ public:
 
 	RdrTopology eTopology;
 	RdrInputLayout inputLayout;
+#endif
 
 	RdrBuffer indexBuffer;
 	RdrBuffer vertexBuffers[kMaxVertexBuffers];

@@ -8,8 +8,13 @@
 
 namespace
 {
-	const char* kShaderFolder = "shaders/";
-	const char* kShaderFilePattern = "shaders/*.*";
+#if defined(RENDERER_DX12)
+	const char* kShaderFolder = "shaders/DX12/";
+	const char* kShaderFilePattern = "shaders/DX12/*.*";
+#else
+	const char* kShaderFolder = "shaders/DX11/";
+	const char* kShaderFilePattern = "shaders/DX11/*.*";
+#endif
 
 	const uint kMaxDefines = 16;
 
