@@ -44,12 +44,12 @@ private:
 	void DoSsao(RdrContext* pRdrContext, RdrDrawState* pDrawState, const RdrActionSurfaces& rBuffers,
 		const AssetLib::PostProcessEffects& rEffects, const RdrGlobalConstants& rGlobalConstants);
 
-	RdrConstantBufferDeviceObj m_toneMapInputConstants;
+	RdrResource m_toneMapInputConstants;
 
-	RdrShaderHandle m_hToneMapPs;
+	RdrPipelineState m_toneMapPipelineState;
 	RdrResourceHandle m_hToneMapOutputConstants;
 
-	RdrShaderHandle m_hToneMapHistogramPs;
+	RdrPipelineState m_toneMapHistogramPipelineState;
 	RdrResourceHandle m_hToneMapTileHistograms;
 	RdrResourceHandle m_hToneMapMergedHistogram;
 	RdrResourceHandle m_hToneMapHistogramResponseCurve;
@@ -67,18 +67,18 @@ private:
 	//////////////////////////////////////////////////////////////////////////
 	// SSAO
 	SsaoParams m_ssaoParams;
-	RdrConstantBufferDeviceObj m_ssaoConstants;
+	RdrResource m_ssaoConstants;
 	RdrResourceHandle m_hSsaoNoiseTexture;
 	RdrRenderTarget m_ssaoBuffer;
 	RdrRenderTarget m_ssaoBlurredBuffer;
-	RdrShaderHandle m_hSsaoGenPixelShader;
-	RdrShaderHandle m_hSsaoBlurPixelShader;
-	RdrShaderHandle m_hSsaoApplyPixelShader;
+	RdrPipelineState m_ssaoGenPipelineState;
+	RdrPipelineState m_ssaoBlurPipelineState;
+	RdrPipelineState m_ssaoApplyPipelineState;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Debug
 	const InputManager* m_pInputManager;
-	RdrShaderHandle m_hCopyPixelShader;
+	RdrPipelineState m_copyPipelineState;
 	PostProcessDebugger m_debugger;
 	RdrPostProcessDbgData m_debugData;
 	RdrResource m_lumDebugRes[3];

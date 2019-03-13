@@ -30,10 +30,8 @@ struct RdrDrawBucketEntry
 
 	static bool SortCompare(const RdrDrawBucketEntry& rLeft, const RdrDrawBucketEntry& rRight)
 	{
-		if (rLeft.sortKey.compare.val1 != rRight.sortKey.compare.val1)
-			return rLeft.sortKey.compare.val1 < rRight.sortKey.compare.val1;
-		else if (rLeft.sortKey.compare.val2 != rRight.sortKey.compare.val2)
-			return rLeft.sortKey.compare.val2 < rRight.sortKey.compare.val2;
+		if (rLeft.sortKey.compare.val != rRight.sortKey.compare.val)
+			return rLeft.sortKey.compare.val < rRight.sortKey.compare.val;
 		return rLeft.pDrawOp < rRight.pDrawOp;
 	}
 
@@ -63,10 +61,6 @@ struct RdrPassData
 	Rect viewport;
 
 	RdrShaderMode shaderMode;
-	RdrDepthTestMode depthTestMode;
-	RdrBlendMode blendMode;
-	const RdrShader* pOverridePixelShader;
-	bool bDepthWriteEnabled;
 
 	bool bEnabled;
 	bool bClearRenderTargets;

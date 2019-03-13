@@ -34,7 +34,7 @@ SHA1HashState* SHA1::Begin()
 	return hHash;
 }
 
-SHA1HashState* SHA1::Begin(char* pData, uint dataSize)
+SHA1HashState* SHA1::Begin(const void* pData, uint dataSize)
 {
 	if (!s_algorithmSHA1)
 		initSHA1();
@@ -47,7 +47,7 @@ SHA1HashState* SHA1::Begin(char* pData, uint dataSize)
 	return hHash;
 }
 
-void SHA1::Update(SHA1HashState* pState, char* pData, uint dataSize)
+void SHA1::Update(SHA1HashState* pState, const void* pData, uint dataSize)
 {
 	if (!NT_SUCCESS(BCryptHashData(pState, (unsigned char*)pData, dataSize, 0)))
 		Error("Failed to hash data for SHA1");
@@ -58,15 +58,6 @@ void SHA1::Finish(SHA1HashState* pState, SHA1& rOutHash)
 	if (!NT_SUCCESS(BCryptFinishHash(pState, rOutHash.data, sizeof(rOutHash.data), 0)))
 		Error("Failed to finalize SHA1 hash");
 	BCryptDestroyHash(pState);
-}
-
-void SHA1::Calculate(char* pData, uint dataSize, SHA1& rOutHash)
-{
-	if (!s_algorithmSHA1)
-		initSHA1();
-
-	SHA1HashState* pState = Begin(pData, dataSize);
-	Finish(pState, rOutHash);
 }
 
 StringHash Hashing::HashString(const char* str)

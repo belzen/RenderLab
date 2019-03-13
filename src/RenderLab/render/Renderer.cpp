@@ -5,7 +5,6 @@
 #include "Font.h"
 #include <DXGIFormat.h>
 #include "debug\DebugConsole.h"
-#include "RdrContextD3D11.h"
 #include "RdrShaderConstants.h"
 #include "RdrFrameMem.h"
 #include "RdrDrawOp.h"
@@ -38,7 +37,7 @@ bool Renderer::Init(HWND hWnd, int width, int height, const InputManager* pInput
 
 	DebugConsole::RegisterCommand("lightingMethod", cmdSetLightingMethod, DebugCommandArgType::Integer);
 
-	m_pContext = new RdrContextD3D11(m_profiler);
+	m_pContext = new RdrContext(m_profiler);
 	if (!m_pContext->Init(hWnd, width, height))
 		return false;
 
@@ -188,6 +187,8 @@ void Renderer::DrawFrame()
 {
 	RdrFrameState& rFrameState = GetActiveState();
 
+	m_pContext->BeginFrame();
+
 	// Process threaded render commands.
 	RdrShaderSystem::ProcessCommands(m_pContext);
 	rFrameState.preFrameResourceCommands.ProcessCommands(m_pContext);
@@ -213,8 +214,8 @@ void Renderer::DrawFrame()
 		}
 	}
 
+	m_profiler.EndFrame(); //donotcheckin - this should be involved with present somehow...
 	m_pContext->Present();
-	m_profiler.EndFrame();
 
 	// Process post-frame commands.
 	rFrameState.postFrameResourceCommands.ProcessCommands(m_pContext);
@@ -229,7 +230,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueTextureReadbackRequest(RdrResour
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(pixelCoord.x, pixelCoord.y, 0, 1, 1, 1);
 	pReq->hDstResource = GetPreFrameCommandList().CreateTexture2D(1, 1, pSrcResource->texInfo.format, 
-		RdrResourceUsage::Staging, RdrResourceBindings::kNone, nullptr);
+		RdrResourceAccessFlags::CpuRO_GpuRW, nullptr);
 	pReq->dataSize = rdrGetTexturePitch(1, pSrcResource->texInfo.format);
 	pReq->pData = new char[pReq->dataSize]; // todo: custom heap
 
@@ -246,7 +247,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueStructuredBufferReadbackRequest(
 	pReq->frameCount = 0;
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(startByteOffset, 0, 0, numBytesToRead, 1, 1);
-	pReq->hDstResource = GetPreFrameCommandList().CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceUsage::Staging);
+	pReq->hDstResource = GetPreFrameCommandList().CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceAccessFlags::CpuRO_GpuRW);
 	pReq->dataSize = numBytesToRead;
 	pReq->pData = new char[numBytesToRead]; // todo: custom heap
 
@@ -284,4 +285,57 @@ void Renderer::ReleaseResourceReadbackRequest(RdrResourceReadbackRequestHandle h
 	SAFE_DELETE(pReq->pData);
 
 	m_readbackRequests.releaseId(hRequest);
+}
+
+namespace
+{
+	static constexpr RdrResourceFormat kSceneGBufferRtvFormats[] = { RdrResourceFormat::R16G16B16A16_FLOAT,  RdrResourceFormat::B8G8R8A8_UNORM,  RdrResourceFormat::B8G8R8A8_UNORM };
+	static constexpr RdrResourceFormat kSceneRtvFormats[] = { RdrResourceFormat::R16G16B16A16_FLOAT };
+	static constexpr RdrResourceFormat kUIRtvFormats[] = { RdrResourceFormat::R8G8B8A8_UNORM };
+	static constexpr RdrResourceFormat kPrimaryRtvFormats[] = { RdrResourceFormat::R8G8B8A8_UNORM };
+	static constexpr RdrResourceFormat kShadowMapRtvFormats[] = { kDefaultDepthFormat };
+}
+
+const RdrResourceFormat* Renderer::GetStageRTVFormats(RdrRenderStage eDrawStage)
+{
+	switch (eDrawStage)
+	{
+	case RdrRenderStage::kScene_ZPrepass:
+		return nullptr;
+	case RdrRenderStage::kScene_GBuffer:
+		return kSceneGBufferRtvFormats;
+	case RdrRenderStage::kScene:
+		return kSceneRtvFormats;
+	case RdrRenderStage::kUI:
+		return kUIRtvFormats;
+	case RdrRenderStage::kPrimary:
+		return kPrimaryRtvFormats;
+	case RdrRenderStage::kShadowMap:
+		return kShadowMapRtvFormats;
+	}
+
+	assert(false);
+	return nullptr;
+}
+
+uint Renderer::GetNumStageRTVFormats(RdrRenderStage eDrawStage)
+{
+	switch (eDrawStage)
+	{
+	case RdrRenderStage::kScene_ZPrepass:
+		return 0;
+	case RdrRenderStage::kScene_GBuffer:
+		return ARRAY_SIZE(kSceneGBufferRtvFormats);
+	case RdrRenderStage::kScene:
+		return ARRAY_SIZE(kSceneRtvFormats);
+	case RdrRenderStage::kUI:
+		return ARRAY_SIZE(kUIRtvFormats);
+	case RdrRenderStage::kPrimary:
+		return ARRAY_SIZE(kPrimaryRtvFormats);
+	case RdrRenderStage::kShadowMap:
+		return ARRAY_SIZE(kShadowMapRtvFormats);
+	}
+
+	assert(false);
+	return 0;
 }

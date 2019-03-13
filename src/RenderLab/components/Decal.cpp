@@ -64,12 +64,28 @@ Decal* Decal::Create(IComponentAllocator* pAllocator, const CachedString& textur
 	}
 
 	Decal* pDecal = pAllocator->AllocDecal();
-	pDecal->m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_decalVertexDesc, ARRAY_SIZE(s_decalVertexDesc));
+
+	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene_GBuffer);
+	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene_GBuffer);
+	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_decal.hlsl", nullptr, 0);
+
+	RdrRasterState rasterState;
+	rasterState.bWireframe = false;
+	rasterState.bDoubleSided = true;
+	rasterState.bEnableMSAA = false;//donotcheckin - match g_debugState
+	rasterState.bUseSlopeScaledDepthBias = false;
+	rasterState.bEnableScissor = false;
 
 	// Setup material
 	pDecal->m_material.name = "Decal";
 	pDecal->m_material.bHasAlpha = true;
-	pDecal->m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_decal.hlsl", nullptr, 0);
+	pDecal->m_material.CreatePipelineState(RdrShaderMode::Normal,
+		kVertexShader, hPixelShader, 
+		s_decalVertexDesc, ARRAY_SIZE(s_decalVertexDesc), 
+		pRtvFormats, nNumRtvFormats,
+		RdrBlendMode::kAlpha,
+		rasterState,
+		RdrDepthStencilState(false, false, RdrComparisonFunc::Always));
 	pDecal->SetTexture(textureName);
 	pDecal->m_material.ahTextures.assign(1, RdrGlobalResourceHandles::kDepthBuffer);
 	pDecal->m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
@@ -115,7 +131,7 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 		pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
 		m_hVsPerObjectConstantBuffer = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
-			pVsPerObject, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+			pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
 
 		// Decal material
 		constantsSize = sizeof(DecalMaterialParams);
@@ -124,7 +140,7 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 		pPsMaterial->mtxInvWorld = Matrix44Transpose(pPsMaterial->mtxInvWorld);
 
 		m_hPsMaterialBuffer = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_hPsMaterialBuffer,
-			pPsMaterial, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+			pPsMaterial, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
 		m_material.hConstants = m_hPsMaterialBuffer;
 
 		///
@@ -136,9 +152,6 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 
 	pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
 	pDrawOp->pMaterial = &m_material;
-
-	pDrawOp->hInputLayout = m_hInputLayout;
-	pDrawOp->vertexShader = kVertexShader;
 
 	pDrawOp->hGeo = s_hDecalBoxGeo;
 	pDrawOp->bHasAlpha = true;

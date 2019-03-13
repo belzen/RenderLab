@@ -24,6 +24,12 @@
 		return lhs; \
 	}
 
+template<typename TFlagsType>
+bool IsFlagSet(TFlagsType setFlags, TFlagsType checkFlag)
+{
+	return (int)(setFlags & checkFlag) != 0;
+}
+
 struct StringInvariantCompare
 {
 	// Less than operator

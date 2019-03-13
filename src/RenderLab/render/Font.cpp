@@ -26,7 +26,6 @@ namespace
 		short glyphWidths[256];
 		int glyphPixelSize;
 
-		RdrInputLayoutHandle hInputLayout;
 		RdrMaterial material;
 	} s_text;
 
@@ -48,8 +47,6 @@ namespace
 
 		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
 		pDrawOp->hGeo = rText.hTextGeo;
-		pDrawOp->hInputLayout = s_text.hInputLayout;
-		pDrawOp->vertexShader = kVertexShader;
 		pDrawOp->pMaterial = &s_text.material;
 
 		uint constantsSize = sizeof(Vec4) * 2;
@@ -69,9 +66,27 @@ void Font::Init()
 	sprintf_s(filename, "%s/textures/fonts/verdana.dat", Paths::GetDataDir());
 	loadFontData(filename);
 
-	s_text.hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_vertexDesc, ARRAY_SIZE(s_vertexDesc));
+	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kUI);
+	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kUI);
 
-	s_text.material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_text.hlsl", nullptr, 0);
+	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_text.hlsl", nullptr, 0);
+
+	RdrRasterState rasterState;
+	rasterState.bWireframe = false;
+	rasterState.bDoubleSided = false;
+	rasterState.bEnableMSAA = false;
+	rasterState.bUseSlopeScaledDepthBias = false;
+	rasterState.bEnableScissor = false;
+
+	s_text.material.name = "Font";
+	s_text.material.CreatePipelineState(RdrShaderMode::Normal,
+		kVertexShader, hPixelShader,
+		s_vertexDesc, ARRAY_SIZE(s_vertexDesc),
+		pRtvFormats, nNumRtvFormats,
+		RdrBlendMode::kAlpha,
+		rasterState,
+		RdrDepthStencilState(false, false, RdrComparisonFunc::Never));
+
 	s_text.material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 
 	RdrTextureInfo texInfo;

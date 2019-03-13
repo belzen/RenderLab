@@ -22,7 +22,7 @@ namespace
 
 	struct ConstantBufferPool
 	{
-		RdrConstantBuffer aBuffers[kMaxConstantBuffersPerPool];
+		RdrResource aBuffers[kMaxConstantBuffersPerPool];
 		uint bufferCount;
 	};
 
@@ -95,10 +95,10 @@ void RdrResourceSystem::Init(Renderer& rRenderer)
 	static uchar blackTexData[4] = { 0, 0, 0, 255 };
 	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex2d] =
 		rRenderer.GetPreFrameCommandList().CreateTexture2D(1, 1, RdrResourceFormat::B8G8R8A8_UNORM,
-			RdrResourceUsage::Immutable, RdrResourceBindings::kNone, (char*)blackTexData);
+			RdrResourceAccessFlags::CpuRO_GpuRO, (char*)blackTexData);
 	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex3d] =
 		rRenderer.GetPreFrameCommandList().CreateTexture3D(1, 1, 1, RdrResourceFormat::B8G8R8A8_UNORM, 
-			RdrResourceUsage::Immutable, RdrResourceBindings::kNone, (char*)blackTexData);
+			RdrResourceAccessFlags::CpuRO_GpuRO, (char*)blackTexData);
 }
 
 void RdrResourceSystem::SetActiveGlobalResources(const RdrGlobalResources& rResources)
@@ -132,7 +132,7 @@ const RdrResource* RdrResourceSystem::GetResource(const RdrResourceHandle hRes)
 	return s_resourceSystem.resources.get(hRes);
 }
 
-const RdrConstantBuffer* RdrResourceSystem::GetConstantBuffer(const RdrConstantBufferHandle hBuffer)
+const RdrResource* RdrResourceSystem::GetConstantBuffer(const RdrConstantBufferHandle hBuffer)
 {
 	return s_resourceSystem.constantBuffers.get(hBuffer);
 }
@@ -182,7 +182,8 @@ RdrResourceHandle RdrResourceCommandList::CreateTextureFromFile(const CachedStri
 	cmd.dataSize = pTexture->ddsDataSize;
 	cmd.hResource = s_resourceSystem.resources.getId(pResource);
 
-	cmd.eUsage = RdrResourceUsage::Immutable;
+	cmd.accessFlags = RdrResourceAccessFlags::CpuRO_GpuRO;
+	cmd.texInfo.filename = texName.getString();
 	cmd.texInfo.format = getFormatFromDXGI(metadata.format);
 	cmd.texInfo.width = (uint)metadata.width;
 	cmd.texInfo.height = (uint)metadata.height;
@@ -218,7 +219,7 @@ RdrResourceHandle RdrResourceCommandList::CreateTextureFromFile(const CachedStri
 }
 
 RdrResourceHandle RdrResourceCommandList::CreateTextureCommon(RdrTextureType texType, uint width, uint height, uint depth,
-	uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTextureData)
+	uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceAccessFlags accessFlags, char* pTextureData)
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
@@ -226,8 +227,7 @@ RdrResourceHandle RdrResourceCommandList::CreateTextureCommon(RdrTextureType tex
 	memset(&cmd, 0, sizeof(cmd));
 
 	cmd.hResource = s_resourceSystem.resources.getId(pResource);
-	cmd.eUsage = eUsage;
-	cmd.eBindings = eBindings;
+	cmd.accessFlags = accessFlags;
 	cmd.pData = pTextureData;
 	cmd.texInfo.texType = texType;
 	cmd.texInfo.format = eFormat;
@@ -240,44 +240,44 @@ RdrResourceHandle RdrResourceCommandList::CreateTextureCommon(RdrTextureType tex
 	return cmd.hResource;
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTexData)
+RdrResourceHandle RdrResourceCommandList::CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData)
 {
-	return CreateTextureCommon(RdrTextureType::k2D, width, height, 1, 1, eFormat, 1, eUsage, eBindings, pTexData);
+	return CreateTextureCommon(RdrTextureType::k2D, width, height, 1, 1, eFormat, 1, accessFlags, pTexData);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture2DMS(uint width, uint height, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage, RdrResourceBindings eBindings)
+RdrResourceHandle RdrResourceCommandList::CreateTexture2DMS(uint width, uint height, RdrResourceFormat eFormat, uint sampleCount, RdrResourceAccessFlags accessFlags)
 {
-	return CreateTextureCommon(RdrTextureType::k2D, width, height, 1, 1, eFormat, sampleCount, eUsage, eBindings, nullptr);
+	return CreateTextureCommon(RdrTextureType::k2D, width, height, 1, 1, eFormat, sampleCount, accessFlags, nullptr);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings)
+RdrResourceHandle RdrResourceCommandList::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags)
 {
-	return CreateTextureCommon(RdrTextureType::k2D, width, height, arraySize, 1, eFormat, 1, eUsage, eBindings, nullptr);
+	return CreateTextureCommon(RdrTextureType::k2D, width, height, arraySize, 1, eFormat, 1, accessFlags, nullptr);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings)
+RdrResourceHandle RdrResourceCommandList::CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags)
 {
-	return CreateTextureCommon(RdrTextureType::kCube, width, height, 1, 1, eFormat, 1, eUsage, eBindings, nullptr);
+	return CreateTextureCommon(RdrTextureType::kCube, width, height, 1, 1, eFormat, 1, accessFlags, nullptr);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings)
+RdrResourceHandle RdrResourceCommandList::CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags)
 {
-	return CreateTextureCommon(RdrTextureType::kCube, width, height, arraySize, 1, eFormat, 1, eUsage, eBindings, nullptr);
+	return CreateTextureCommon(RdrTextureType::kCube, width, height, arraySize, 1, eFormat, 1, accessFlags, nullptr);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTexData)
+RdrResourceHandle RdrResourceCommandList::CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData)
 {
-	return CreateTextureCommon(RdrTextureType::k3D, width, height, depth, 1, eFormat, 1, eUsage, eBindings, pTexData);
+	return CreateTextureCommon(RdrTextureType::k3D, width, height, depth, 1, eFormat, 1, accessFlags, pTexData);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceUsage eUsage)
+RdrResourceHandle RdrResourceCommandList::CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceAccessFlags accessFlags)
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
 	CmdCreateBuffer& cmd = m_bufferCreates.pushSafe();
 	cmd.hResource = s_resourceSystem.resources.getId(pResource);
 	cmd.pData = pSrcData;
-	cmd.eUsage = eUsage;
+	cmd.accessFlags = accessFlags;
 	cmd.info.eType = RdrBufferType::Vertex;
 	cmd.info.elementSize = stride;
 	cmd.info.numElements = numVerts;
@@ -285,14 +285,14 @@ RdrResourceHandle RdrResourceCommandList::CreateVertexBuffer(const void* pSrcDat
 	return cmd.hResource;
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage)
+RdrResourceHandle RdrResourceCommandList::CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags)
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
 	CmdCreateBuffer& cmd = m_bufferCreates.pushSafe();
 	cmd.hResource = s_resourceSystem.resources.getId(pResource);
 	cmd.pData = pSrcData;
-	cmd.eUsage = eUsage;
+	cmd.accessFlags = accessFlags;
 	cmd.info.eType = RdrBufferType::Data;
 	cmd.info.eFormat = eFormat;
 	cmd.info.numElements = numElements;
@@ -300,14 +300,14 @@ RdrResourceHandle RdrResourceCommandList::CreateDataBuffer(const void* pSrcData,
 	return cmd.hResource;
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage)
+RdrResourceHandle RdrResourceCommandList::CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceAccessFlags accessFlags)
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
 	CmdCreateBuffer& cmd = m_bufferCreates.pushSafe();
 	cmd.hResource = s_resourceSystem.resources.getId(pResource);
 	cmd.pData = pSrcData;
-	cmd.eUsage = eUsage;
+	cmd.accessFlags = accessFlags;
 	cmd.info.eType = RdrBufferType::Structured;
 	cmd.info.elementSize = elementSize;
 	cmd.info.numElements = numElements;
@@ -345,22 +345,21 @@ void RdrResourceCommandList::ReleaseShaderResourceView(RdrShaderResourceViewHand
 	cmd.hView = hView;
 }
 
-RdrConstantBufferHandle RdrResourceCommandList::CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage)
+RdrConstantBufferHandle RdrResourceCommandList::CreateConstantBuffer(const void* pData, uint size, RdrResourceAccessFlags accessFlags)
 {
-	RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.allocSafe();
+	RdrResource* pBuffer = s_resourceSystem.constantBuffers.allocSafe();
 
 	CmdCreateConstantBuffer& cmd = m_constantBufferCreates.pushSafe();
 	cmd.hBuffer = s_resourceSystem.constantBuffers.getId(pBuffer);
 	cmd.pData = pData;
-	cmd.cpuAccessFlags = cpuAccessFlags;
-	cmd.eUsage = eUsage;
+	cmd.accessFlags = accessFlags;
 	cmd.size = size;
 
 	assert((size % sizeof(Vec4)) == 0);
 	return cmd.hBuffer;
 }
 
-RdrConstantBufferHandle RdrResourceCommandList::CreateUpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage)
+RdrConstantBufferHandle RdrResourceCommandList::CreateUpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint size, RdrResourceAccessFlags accessFlags)
 {
 	if (hBuffer)
 	{
@@ -369,7 +368,7 @@ RdrConstantBufferHandle RdrResourceCommandList::CreateUpdateConstantBuffer(RdrCo
 	}
 	else
 	{
-		return CreateConstantBuffer(pData, size, cpuAccessFlags, eUsage);
+		return CreateConstantBuffer(pData, size, accessFlags);
 	}
 }
 
@@ -377,13 +376,12 @@ RdrConstantBufferHandle RdrResourceCommandList::CreateTempConstantBuffer(const v
 {
 	assert(size % sizeof(Vec4) == 0);
 
-	RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.allocSafe();
+	RdrResource* pBuffer = s_resourceSystem.constantBuffers.allocSafe();
 
 	CmdCreateConstantBuffer& cmd = m_constantBufferCreates.pushSafe();
 	cmd.hBuffer = s_resourceSystem.constantBuffers.getId(pBuffer);
 	cmd.pData = pData;
-	cmd.cpuAccessFlags = RdrCpuAccessFlags::Write;
-	cmd.eUsage = RdrResourceUsage::Dynamic;
+	cmd.accessFlags = RdrResourceAccessFlags::CpuRW_GpuRO;
 	cmd.size = size;
 
 	// Queue post-frame destroy of the temporary buffer.
@@ -486,12 +484,12 @@ RdrRenderTarget RdrResourceCommandList::InitRenderTarget2d(uint width, uint heig
 {
 	RdrRenderTarget renderTarget;
 
-	renderTarget.hTexture = CreateTexture2D(width, height, eFormat, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget, nullptr);
+	renderTarget.hTexture = CreateTexture2D(width, height, eFormat, RdrResourceAccessFlags::CpuRO_GpuRO_RenderTarget, nullptr);
 
 	if (multisampleLevel > 1)
 	{
 		renderTarget.hTextureMultisampled = CreateTexture2DMS(width, height, eFormat,
-			multisampleLevel, RdrResourceUsage::Default, RdrResourceBindings::kRenderTarget);
+			multisampleLevel, RdrResourceAccessFlags::CpuRO_GpuRO_RenderTarget);
 		renderTarget.hRenderTarget = CreateRenderTargetView(renderTarget.hTextureMultisampled);
 	}
 	else
@@ -601,14 +599,14 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 		for (uint i = 0; i < numCmds; ++i)
 		{
 			CmdReleaseConstantBuffer& cmd = m_constantBufferReleases[i];
-			RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
+			RdrResource* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
 
 			// Return the buffer to a pool if there is room and the buffer is CPU writable.
 			// If it can't be written to from the CPU, then we can't ever update it.
 			uint poolIndex = pBuffer->size / sizeof(Vec4);
 			if (poolIndex < kNumConstantBufferPools 
 				&& s_resourceSystem.constantBufferPools[poolIndex].bufferCount < kMaxConstantBuffersPerPool
-				&& (int)(pBuffer->cpuAccessFlags & RdrCpuAccessFlags::Write) != 0)
+				&& IsFlagSet(pBuffer->accessFlags, RdrResourceAccessFlags::CpuWrite))
 			{
 				ConstantBufferPool& rPool = s_resourceSystem.constantBufferPools[poolIndex];
 				rPool.aBuffers[rPool.bufferCount] = *pBuffer;
@@ -616,7 +614,7 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 			}
 			else
 			{
-				pRdrContext->ReleaseConstantBuffer(pBuffer->bufferObj);
+				pRdrContext->ReleaseResource(*pBuffer);
 			}
 
 			s_resourceSystem.constantBuffers.releaseId(cmd.hBuffer);
@@ -632,11 +630,8 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 		CmdReleaseGeo& cmd = m_geoReleases[i];
 		RdrGeometry* pGeo = s_resourceSystem.geos.get(cmd.hGeo);
 
-		pRdrContext->ReleaseBuffer(pGeo->vertexBuffer);
-		pGeo->vertexBuffer.pBuffer = nullptr;
-
-		pRdrContext->ReleaseBuffer(pGeo->indexBuffer);
-		pGeo->indexBuffer.pBuffer = nullptr;
+		pRdrContext->ReleaseResource(pGeo->vertexBuffer);
+		pRdrContext->ReleaseResource(pGeo->indexBuffer);
 
 		s_resourceSystem.geos.releaseId(cmd.hGeo);
 	}
@@ -648,9 +643,9 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 	{
 		CmdCreateTexture& cmd = m_textureCreates[i];
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
-		pRdrContext->CreateTexture(cmd.pData, cmd.texInfo, cmd.eUsage, cmd.eBindings, *pResource);
+		pRdrContext->CreateTexture(cmd.pData, cmd.texInfo, cmd.accessFlags, *pResource);
 		pResource->texInfo = cmd.texInfo;
-		pResource->eUsage = cmd.eUsage;
+		pResource->accessFlags = cmd.accessFlags;
 		pResource->bIsTexture = true;
 
 		SAFE_DELETE(cmd.pFileData);
@@ -673,19 +668,19 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 
 		pResource->bufferInfo = cmd.info;
-		pResource->eUsage = cmd.eUsage;
+		pResource->accessFlags = cmd.accessFlags;
 		pResource->bIsTexture = false;
 
 		switch (cmd.info.eType)
 		{
 		case RdrBufferType::Data:
-			pRdrContext->CreateDataBuffer(cmd.pData, cmd.info.numElements, cmd.info.eFormat, cmd.eUsage, *pResource);
+			pRdrContext->CreateDataBuffer(cmd.pData, cmd.info.numElements, cmd.info.eFormat, cmd.accessFlags, *pResource);
 			break;
 		case RdrBufferType::Structured:
-			pRdrContext->CreateStructuredBuffer(cmd.pData, cmd.info.numElements, cmd.info.elementSize, cmd.eUsage, *pResource);
+			pRdrContext->CreateStructuredBuffer(cmd.pData, cmd.info.numElements, cmd.info.elementSize, cmd.accessFlags, *pResource);
 			break;
 		case RdrBufferType::Vertex:
-			pResource->pBuffer = pRdrContext->CreateVertexBuffer(cmd.pData, cmd.info.elementSize * cmd.info.numElements, cmd.eUsage).pBuffer;
+			pRdrContext->CreateVertexBuffer(cmd.pData, cmd.info.elementSize * cmd.info.numElements, cmd.accessFlags, *pResource);
 			break;
 		}
 	}
@@ -746,24 +741,22 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 	for (uint i = 0; i < numCmds; ++i)
 	{
 		CmdCreateConstantBuffer& cmd = m_constantBufferCreates[i];
-		RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
+		RdrResource* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
 
 		// Use a pooled constant buffer if there are some available and this buffer needs CPU write access
 		// Only CPU writable buffers are pooled because immutable/GPU buffers are rare and can benefit from not using the dynamic flags.
 		uint poolIndex = cmd.size / sizeof(Vec4);
 		if (poolIndex < kNumConstantBufferPools 
 			&& s_resourceSystem.constantBufferPools[poolIndex].bufferCount > 0
-			&& ((int)(cmd.cpuAccessFlags & RdrCpuAccessFlags::Write) != 0))
+			&& IsFlagSet(cmd.accessFlags, RdrResourceAccessFlags::CpuWrite))
 		{
 			ConstantBufferPool& rPool = s_resourceSystem.constantBufferPools[poolIndex];
 			*pBuffer = rPool.aBuffers[--rPool.bufferCount];
-			pRdrContext->UpdateConstantBuffer(pBuffer->bufferObj, cmd.pData, cmd.size);
+			pRdrContext->UpdateResource(*pBuffer, cmd.pData, cmd.size);
 		}
 		else
 		{
-			pBuffer->bufferObj = pRdrContext->CreateConstantBuffer(cmd.pData, cmd.size, cmd.cpuAccessFlags, cmd.eUsage);
-			pBuffer->size = cmd.size;
-			pBuffer->cpuAccessFlags = cmd.cpuAccessFlags;
+			pRdrContext->CreateConstantBuffer(cmd.pData, cmd.size, cmd.accessFlags, *pBuffer);
 		}
 	}
 
@@ -772,8 +765,8 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 	for (uint i = 0; i < numCmds; ++i)
 	{
 		const CmdUpdateConstantBuffer& cmd = m_constantBufferUpdates[i];
-		RdrConstantBuffer* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
-		pRdrContext->UpdateConstantBuffer(pBuffer->bufferObj, cmd.pData, pBuffer->size);
+		RdrResource* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
+		pRdrContext->UpdateResource(*pBuffer, cmd.pData, pBuffer->size);
 	}
 
 	// Create/Update geos
@@ -783,14 +776,14 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 	{
 		CmdUpdateGeo& cmd = m_geoUpdates[i];
 		RdrGeometry* pGeo = s_resourceSystem.geos.get(cmd.hGeo);
-		if (!pGeo->vertexBuffer.pBuffer)
+		if (!pGeo->vertexBuffer.pResource)
 		{
 			// Creating
 			pGeo->geoInfo = cmd.info;
-			pGeo->vertexBuffer = pRdrContext->CreateVertexBuffer(cmd.pVertData, cmd.info.vertStride * cmd.info.numVerts, RdrResourceUsage::Default);
+			pRdrContext->CreateVertexBuffer(cmd.pVertData, cmd.info.vertStride * cmd.info.numVerts, RdrResourceAccessFlags::CpuRO_GpuRO, pGeo->vertexBuffer);
 			if (cmd.pIndexData)
 			{
-				pGeo->indexBuffer = pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices, RdrResourceUsage::Default);
+				pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices, RdrResourceAccessFlags::CpuRO_GpuRO, pGeo->indexBuffer);
 			}
 		}
 		else
@@ -800,14 +793,14 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 			// TODO: May want to add support for dynamic buffers geo buffers.
 			if (cmd.pVertData)
 			{
-				pRdrContext->ReleaseBuffer(pGeo->vertexBuffer);
-				pGeo->vertexBuffer = pRdrContext->CreateVertexBuffer(cmd.pVertData, pGeo->geoInfo.vertStride * pGeo->geoInfo.numVerts, RdrResourceUsage::Default);
+				pRdrContext->ReleaseResource(pGeo->vertexBuffer);
+				pRdrContext->CreateVertexBuffer(cmd.pVertData, pGeo->geoInfo.vertStride * pGeo->geoInfo.numVerts, RdrResourceAccessFlags::CpuRO_GpuRO, pGeo->vertexBuffer);
 			}
 
 			if (cmd.pIndexData)
 			{
-				//pRdrContext->ReleaseBuffer(pGeo->indexBuffer);
-				//pGeo->indexBuffer = pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices, RdrResourceUsage::Default);
+				pRdrContext->ReleaseResource(pGeo->indexBuffer);
+				pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices, RdrResourceAccessFlags::CpuRO_GpuRO, pGeo->indexBuffer);
 			}
 		}
 	}

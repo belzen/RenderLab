@@ -10,6 +10,7 @@ namespace AssetLib
 		static AssetDef& GetAssetDef();
 		static Material* Load(const CachedString& assetName, Material* pMaterial);
 
+		char vertexShader[AssetLib::AssetDef::kMaxNameLen];
 		char pixelShader[AssetLib::AssetDef::kMaxNameLen];
 
 		char** pShaderDefs;

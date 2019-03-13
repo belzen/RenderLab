@@ -40,8 +40,6 @@ private:
 	RdrConstantBufferHandle m_hVsPerObjectConstantBuffer;
 	RdrConstantBufferHandle m_hPsMaterialBuffer;
 	int m_lastTransformId;
-
-	RdrInputLayoutHandle m_hInputLayout;
 };
 
 inline float Decal::GetRadius() const

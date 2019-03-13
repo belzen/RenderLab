@@ -4,10 +4,6 @@
 #include "RdrShaders.h"
 #include "RdrContext.h"
 
-struct ID3D11Texture2D;
-struct ID3D11Device;
-struct ID3D11ShaderResourceView;
-struct ID3D11InputLayout;
 class Renderer;
 
 namespace UI

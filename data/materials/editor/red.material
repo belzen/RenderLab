@@ -1,4 +1,5 @@
 {
+    "vertexShader" : "model",
 	"pixelShader" : "p_editor_gizmo.hlsl",
 	"color" : [1.0, 0.0, 0.0],
 	"needsLighting" : false

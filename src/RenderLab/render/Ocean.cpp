@@ -197,7 +197,6 @@ void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, flo
 		}
 	}
 
-	m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_oceanVertexDesc, ARRAY_SIZE(s_oceanVertexDesc));
 	m_hGeo = rResCommandList.CreateGeo(
 		aVertices, sizeof(aVertices[0]), numVerts,
 		aIndices, numTriangles * 3,
@@ -206,8 +205,26 @@ void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, flo
 	// Setup pixel material
 	memset(&m_material, 0, sizeof(m_material));
 	m_material.bNeedsLighting = true;
-	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
-	m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_ocean.hlsl", nullptr, 0);
+	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrResourceAccessFlags::CpuRW_GpuRO);
+
+	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene);
+	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene);
+
+	RdrRasterState rasterState;
+	rasterState.bWireframe = false;
+	rasterState.bDoubleSided = false;
+	rasterState.bEnableMSAA = false;//donotcheckin - match g_debugState
+	rasterState.bUseSlopeScaledDepthBias = false;
+	rasterState.bEnableScissor = false;
+
+	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_ocean.hlsl", nullptr, 0);
+	m_material.CreatePipelineState(RdrShaderMode::Normal,
+		kVertexShader, hPixelShader, 
+		s_oceanVertexDesc, ARRAY_SIZE(s_oceanVertexDesc), 
+		pRtvFormats, nNumRtvFormats,
+		RdrBlendMode::kOpaque,
+		rasterState,
+		RdrDepthStencilState(true, true, RdrComparisonFunc::Equal));
 
 	// Setup per-object constants
 	Matrix44 mtxWorld = Matrix44Translation(Vec3(0.f, 5.f, 0.f));
@@ -216,7 +233,7 @@ void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, flo
 	pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
 	m_hVsPerObjectConstantBuffer = g_pRenderer->GetPreFrameCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
-		pVsPerObject, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+		pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
 }
 
 Vec2 Ocean::GetDisplacement(int n, int m)
@@ -324,8 +341,6 @@ RdrDrawOpSet Ocean::BuildDrawOps(RdrAction* pAction)
 	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
 	pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
 	pDrawOp->hGeo = m_hGeo;
-	pDrawOp->hInputLayout = m_hInputLayout;
-	pDrawOp->vertexShader = kVertexShader;
 	pDrawOp->pMaterial = &m_material;
 
 	return RdrDrawOpSet(pDrawOp, 1);

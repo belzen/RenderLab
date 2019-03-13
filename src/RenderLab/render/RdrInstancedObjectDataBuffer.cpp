@@ -40,7 +40,11 @@ void RdrInstancedObjectDataBuffer::UpdateBuffer(Renderer& rRenderer)
 	uint lastObject = s_objectBuffer.data.getMaxUsedId();
 	if (!s_objectBuffer.hResource)
 	{
-		s_objectBuffer.hResource = rResCommandList.CreateStructuredBuffer(s_objectBuffer.data.data(), s_objectBuffer.data.kMaxEntries, sizeof(VsPerObject), RdrResourceUsage::Default);
+		s_objectBuffer.hResource = rResCommandList.CreateStructuredBuffer(
+			s_objectBuffer.data.data(), 
+			s_objectBuffer.data.kMaxEntries, 
+			sizeof(VsPerObject), 
+			RdrResourceAccessFlags::CpuRW_GpuRO);
 	}
 	else if (lastObject > 0)
 	{

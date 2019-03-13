@@ -27,8 +27,11 @@ Material* Material::Load(const CachedString& assetName, Material* pMaterial)
 		pMaterial = new Material();
 	}
 
-	Json::Value jShader = jRoot.get("pixelShader", Json::Value::null);
-	strcpy_s(pMaterial->pixelShader, jShader.asCString());
+	Json::Value jVertexShader = jRoot.get("vertexShader", Json::Value::null);
+	strcpy_s(pMaterial->vertexShader, jVertexShader.asCString());
+
+	Json::Value jPixelShader = jRoot.get("pixelShader", Json::Value::null);
+	strcpy_s(pMaterial->pixelShader, jPixelShader.asCString());
 
 	pMaterial->bNeedsLighting = jRoot.get("needsLighting", false).asBool();
 	pMaterial->bAlphaCutout = jRoot.get("alphaCutout", false).asBool();

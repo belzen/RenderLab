@@ -35,6 +35,9 @@ public:
 
 	const AssetLib::Model* GetSource() const;
 
+	const RdrVertexInputElement* GetVertexElements() const;
+	uint GetNumVertexElements() const;
+
 private:
 	friend ModelDataFreeList;
 	ModelData() {}

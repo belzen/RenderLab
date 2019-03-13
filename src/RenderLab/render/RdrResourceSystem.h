@@ -58,7 +58,7 @@ namespace RdrResourceSystem
 	RdrResourceHandle GetDefaultResourceHandle(const RdrDefaultResource resType);
 
 	const RdrResource* GetResource(const RdrResourceHandle hRes);
-	const RdrConstantBuffer* GetConstantBuffer(const RdrConstantBufferHandle hBuffer);
+	const RdrResource* GetConstantBuffer(const RdrConstantBufferHandle hBuffer);
 }
 
 class RdrResourceCommandList
@@ -68,32 +68,32 @@ public:
 
 	RdrResourceHandle CreateTextureFromFile(const CachedString& texName, RdrTextureInfo* pOutInfo);
 
-	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTexData);
-	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount, RdrResourceUsage eUsage, RdrResourceBindings eBindings);
-	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings);
+	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData);
+	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount, RdrResourceAccessFlags accessFlags);
+	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags);
 
-	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings);
-	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings);
+	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags);
+	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags);
 
-	RdrResourceHandle CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTexData);
+	RdrResourceHandle CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData);
 
 	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
 		RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax);
 	RdrGeoHandle UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVertData);
 	void ReleaseGeo(const RdrGeoHandle hGeo);
 
-	RdrResourceHandle CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceUsage eUsage);
+	RdrResourceHandle CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceAccessFlags accessFlags);
 
-	RdrResourceHandle CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceUsage eUsage);
-	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceUsage eUsage);
+	RdrResourceHandle CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags);
+	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceAccessFlags accessFlags);
 	RdrResourceHandle UpdateBuffer(const RdrResourceHandle hResource, const void* pSrcData, int numElements = -1);
 
 	RdrShaderResourceViewHandle CreateShaderResourceView(RdrResourceHandle hResource, uint firstElement);
 	void ReleaseShaderResourceView(RdrShaderResourceViewHandle hView);
 
-	RdrConstantBufferHandle CreateConstantBuffer(const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
+	RdrConstantBufferHandle CreateConstantBuffer(const void* pData, uint size, RdrResourceAccessFlags accessFlags);
 	RdrConstantBufferHandle CreateTempConstantBuffer(const void* pData, uint size);
-	RdrConstantBufferHandle CreateUpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint size, RdrCpuAccessFlags cpuAccessFlags, RdrResourceUsage eUsage);
+	RdrConstantBufferHandle CreateUpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint size, RdrResourceAccessFlags accessFlags);
 	void UpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData);
 	void ReleaseConstantBuffer(RdrConstantBufferHandle hBuffer);
 
@@ -113,7 +113,7 @@ public:
 
 private:
 	RdrResourceHandle CreateTextureCommon(RdrTextureType texType, uint width, uint height, uint depth,
-		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceUsage eUsage, RdrResourceBindings eBindings, char* pTextureData);
+		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceAccessFlags accessFlags, char* pTextureData);
 
 private:
 	// Command definitions
@@ -121,8 +121,7 @@ private:
 	{
 		RdrResourceHandle hResource;
 		RdrTextureInfo texInfo;
-		RdrResourceUsage eUsage;
-		RdrResourceBindings eBindings;
+		RdrResourceAccessFlags accessFlags;
 
 		char* pFileData; // Pointer to start of texture data when loaded from a file.
 		char* pData; // Pointer to start of raw data.
@@ -134,7 +133,7 @@ private:
 		RdrResourceHandle hResource;
 		const void* pData;
 		RdrBufferInfo info;
-		RdrResourceUsage eUsage;
+		RdrResourceAccessFlags accessFlags;
 	};
 
 	struct CmdUpdateBuffer
@@ -152,8 +151,7 @@ private:
 	struct CmdCreateConstantBuffer
 	{
 		RdrConstantBufferHandle hBuffer;
-		RdrCpuAccessFlags cpuAccessFlags;
-		RdrResourceUsage eUsage;
+		RdrResourceAccessFlags accessFlags;
 		const void* pData;
 		uint size;
 	};

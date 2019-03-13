@@ -16,6 +16,26 @@ namespace
 
 	typedef std::map<Hashing::StringHash, ModelData*> ModelDataMap;
 	ModelDataMap s_modelCache;
+
+	//donotcheckin - Get layout desc from ModelData instead of hardcoding here
+	static const RdrVertexInputElement s_modelVertexDesc[] = {
+		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Normal, 0, RdrVertexInputFormat::RGB_F32, 0, 12, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Color, 0, RdrVertexInputFormat::RGBA_F32, 0, 24, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Texcoord, 0, RdrVertexInputFormat::RG_F32, 0, 40, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Tangent, 0, RdrVertexInputFormat::RGB_F32, 0, 48, RdrVertexInputClass::PerVertex, 0 },
+		{ RdrShaderSemantic::Binormal, 0, RdrVertexInputFormat::RGB_F32, 0, 60, RdrVertexInputClass::PerVertex, 0 }
+	};
+}
+
+const RdrVertexInputElement* ModelData::GetVertexElements() const
+{
+	return s_modelVertexDesc;
+}
+
+uint ModelData::GetNumVertexElements() const
+{
+	return ARRAYSIZE(s_modelVertexDesc);
 }
 
 ModelData* ModelData::LoadFromFile(const CachedString& modelName)
@@ -67,7 +87,8 @@ ModelData* ModelData::LoadFromFile(const CachedString& modelName)
 
 		pModel->m_subObjects[i].hGeo = g_pRenderer->GetPreFrameCommandList().CreateGeo(pVerts, sizeof(Vertex), rBinSubobject.vertCount,
 			pIndices, rBinSubobject.indexCount, RdrTopology::TriangleList, rBinSubobject.boundsMin, rBinSubobject.boundsMax);
-		pModel->m_subObjects[i].pMaterial = RdrMaterial::LoadFromFile(rBinSubobject.materialName);
+
+		pModel->m_subObjects[i].pMaterial = RdrMaterial::Create(rBinSubobject.materialName, s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));
 
 		indicesAccum += rBinSubobject.indexCount;
 	}

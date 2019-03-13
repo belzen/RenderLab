@@ -7,8 +7,8 @@ struct PixelInput
 	float2 texcoords : TEXCOORD0;
 };
 
-Texture2D tex;
-SamplerState texSampler;
+Texture2D tex			: register(t0);
+SamplerState texSampler : register(s0);
 
 float4 main(PixelInput input) : SV_TARGET
 {

@@ -28,7 +28,6 @@ private:
 	RdrMaterial m_material;
 	ModelData* m_pSkyDomeModel;
 
-	RdrInputLayoutHandle m_hSkyDomeInputLayout;
 	RdrConstantBufferHandle m_hAtmosphereConstants;
 	RdrResourceHandle m_hTransmittanceLut;
 	RdrResourceHandle m_hScatteringRayleighDeltaLut;

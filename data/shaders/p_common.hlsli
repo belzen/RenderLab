@@ -34,8 +34,8 @@ cbuffer AtmosphereParamsBuffer : register(b3)
 
 		// Alpha doesn't write to the extra g-buffers
 		#if WRITE_GBUFFERS
-			float3 albedo : SV_TARGET1;
-			float3 normal : SV_TARGET2;
+			float4 albedo : SV_TARGET1;
+			float4 normal : SV_TARGET2;
 		#endif
 	};
 #endif

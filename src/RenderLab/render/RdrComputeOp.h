@@ -8,7 +8,7 @@ struct RdrComputeOp
 {
 	static uint getThreadGroupCount(uint dataSize, uint workSize);
 
-	RdrComputeShader shader;
+	RdrPipelineState pipelineState;
 	uint threads[3];
 
 	Array<RdrResourceHandle, 8>       ahResources;

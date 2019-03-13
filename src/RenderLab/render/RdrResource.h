@@ -4,13 +4,6 @@
 #include "MathLib\Vec4.h"
 #include "FreeList.h"
 
-struct ID3D11Buffer;
-struct ID3D11Texture2D;
-struct ID3D11Texture3D;
-struct ID3D11Resource;
-struct ID3D11ShaderResourceView;
-struct ID3D11UnorderedAccessView;
-
 interface ID3D12Resource;
 
 enum class RdrTextureType
@@ -50,38 +43,24 @@ struct RdrBufferInfo
 
 struct RdrShaderResourceView
 {
-	union
-	{
-		ID3D11ShaderResourceView* pViewD3D11;
-		D3D12DescriptorHandle hViewD3D12;
-		void* pTypeless;
-	};
+	D3D12DescriptorHandle hView;
+	RdrResource* pResource;
 };
 
 struct RdrUnorderedAccessView
 {
-	union
-	{
-		ID3D11UnorderedAccessView* pViewD3D11;
-		D3D12DescriptorHandle hViewD3D12;
-		void* pTypeless;
-	};
+	D3D12DescriptorHandle hView;
+	RdrResource* pResource;
 };
 
 struct RdrResource
 {
-	union
-	{
-		ID3D11Texture2D* pTexture2d;
-		ID3D11Texture3D* pTexture3d;
-		ID3D11Buffer*    pBuffer;
-		ID3D11Resource*  pResource;
-		ID3D12Resource*  pResource12;
-	};
-
-	RdrShaderResourceView resourceView;
+	ID3D12Resource* pResource;
+	RdrShaderResourceView srv;
 	RdrUnorderedAccessView uav;
-	RdrResourceUsage eUsage;
+	D3D12_RESOURCE_STATES eResourceState;
+	RdrResourceAccessFlags accessFlags;
+	uint size;
 
 	union
 	{
@@ -92,36 +71,11 @@ struct RdrResource
 	bool bIsTexture; // Whether this resource is a texture or a buffer.
 };
 
-union RdrConstantBufferDeviceObj
-{
-	ID3D11Buffer* pBufferD3D11;
-	ID3D12Resource* pBufferD3D12;
-	void* pTypeless;
-};
-
-struct RdrConstantBuffer
-{
-	RdrUnorderedAccessView uav;
-	RdrConstantBufferDeviceObj bufferObj;
-	RdrCpuAccessFlags cpuAccessFlags;
-	uint size;
-};
-
 //////////////////////////////////////////////////////////////////////////
-
-inline bool operator == (const RdrConstantBufferDeviceObj& rLeft, const RdrConstantBufferDeviceObj& rRight)
-{
-	return rLeft.pTypeless == rRight.pTypeless;
-}
-
-inline bool operator != (const RdrConstantBufferDeviceObj& rLeft, const RdrConstantBufferDeviceObj& rRight)
-{
-	return !(rLeft == rRight);
-}
 
 inline bool operator == (const RdrShaderResourceView& rLeft, const RdrShaderResourceView& rRight)
 {
-	return rLeft.pTypeless == rRight.pTypeless;
+	return rLeft.hView == rRight.hView;
 }
 
 inline bool operator != (const RdrShaderResourceView& rLeft, const RdrShaderResourceView& rRight)
@@ -134,7 +88,7 @@ inline bool operator != (const RdrShaderResourceView& rLeft, const RdrShaderReso
 typedef FreeList<RdrResource, 1024> RdrResourceList;
 typedef RdrResourceList::Handle RdrResourceHandle;
 
-typedef FreeList<RdrConstantBuffer, 16 * 1024> RdrConstantBufferList;
+typedef FreeList<RdrResource, 16 * 1024> RdrConstantBufferList; // donotcheckin - even bother with this lists anymore?
 typedef RdrConstantBufferList::Handle RdrConstantBufferHandle;
 
 typedef FreeList<RdrRenderTargetView, 128> RdrRenderTargetViewList;

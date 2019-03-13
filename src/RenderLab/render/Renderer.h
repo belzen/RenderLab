@@ -26,6 +26,16 @@ struct RdrFrameState
 // Global pointer to active renderer.
 extern Renderer* g_pRenderer;
 
+enum class RdrRenderStage //donotcheckin - merge with RdrPass
+{
+	kScene_ZPrepass,
+	kScene_GBuffer,
+	kScene,
+	kShadowMap,
+	kUI,
+	kPrimary
+};
+
 class Renderer
 {
 public:
@@ -57,6 +67,11 @@ public:
 	const RdrProfiler& GetProfiler() const;
 
 	RdrLightingMethod GetLightingMethod() const;
+
+	static const RdrResourceFormat* GetStageRTVFormats(RdrRenderStage eDrawStage);
+	static uint GetNumStageRTVFormats(RdrRenderStage eDrawStage);
+
+	RdrContext* GetContext();
 
 private:
 	RdrFrameState& GetQueueState();
@@ -121,4 +136,9 @@ inline const RdrProfiler& Renderer::GetProfiler() const
 inline RdrLightingMethod Renderer::GetLightingMethod() const
 {
 	return m_eLightingMethod;
+}
+
+inline RdrContext* Renderer::GetContext()
+{
+	return m_pContext;
 }

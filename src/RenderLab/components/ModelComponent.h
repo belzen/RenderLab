@@ -41,7 +41,6 @@ private:
 	RdrConstantBufferHandle m_hVsPerObjectConstantBuffer;
 	int m_lastTransformId;
 
-	RdrInputLayoutHandle m_hInputLayout;
 	uint16 m_instancedDataId;
 };
 

@@ -145,12 +145,6 @@
     <FxCompile Include="..\..\data\shaders\p_ocean.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\data\shaders\c_sh_project_cubemap.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\data\shaders\c_clustered_light_cull2.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Precompiled.cpp" />
@@ -181,12 +175,6 @@
       <Filter>render</Filter>
     </ClCompile>
     <ClCompile Include="render\ModelData.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
-    <ClCompile Include="render\RdrContextD3D11.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
-    <ClCompile Include="render\RdrContextD3D11_Shaders.cpp">
       <Filter>render</Filter>
     </ClCompile>
     <ClCompile Include="render\RdrDeviceTypes.cpp">
@@ -265,10 +253,7 @@
     <ClCompile Include="render\Ocean.cpp">
       <Filter>render</Filter>
     </ClCompile>
-    <ClCompile Include="render\RdrContextD3D12.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
-    <ClCompile Include="render\RdrContextD3D12_Shaders.cpp">
+    <ClCompile Include="render\RdrContext.cpp">
       <Filter>render</Filter>
     </ClCompile>
   </ItemGroup>
@@ -332,9 +317,6 @@
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="render\RdrContext.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="render\RdrContextD3D11.h">
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="render\RdrDeviceTypes.h">
@@ -402,9 +384,6 @@
     <ClInclude Include="..\..\data\shaders\d_constants.h">
       <Filter>shaders</Filter>
     </ClInclude>
-    <ClInclude Include="render\RdrTessellationMaterial.h">
-      <Filter>render</Filter>
-    </ClInclude>
     <ClInclude Include="render\RdrOffscreenTasks.h">
       <Filter>render</Filter>
     </ClInclude>
@@ -457,9 +436,6 @@
       <Filter>components</Filter>
     </ClInclude>
     <ClInclude Include="render\Ocean.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="render\RdrContextD3D12.h">
       <Filter>render</Filter>
     </ClInclude>
   </ItemGroup>

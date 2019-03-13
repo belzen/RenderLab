@@ -5,7 +5,6 @@
 #include "RdrShaders.h"
 #include "RdrGeometry.h"
 #include "RdrMaterial.h"
-#include "RdrTessellationMaterial.h"
 #include "RdrDrawOp.h"
 
 class RdrAction;
@@ -25,9 +24,7 @@ private:
 	UVec2 m_heightmapSize;
 
 	RdrMaterial m_material;
-	RdrTessellationMaterial m_tessMaterial;
 
-	RdrInputLayoutHandle m_hInputLayout;
 	RdrGeoHandle m_hGeo;
 	RdrResourceHandle m_hInstanceData;
 

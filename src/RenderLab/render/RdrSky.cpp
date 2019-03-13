@@ -23,9 +23,9 @@
 
 namespace
 {
-	const uint kNumScatteringOrders = 4;
+	static constexpr uint kNumScatteringOrders = 4;
 
-	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Sky, RdrShaderFlags::None };
+	static constexpr RdrVertexShader kVertexShader = { RdrVertexShaderType::Sky, RdrShaderFlags::None };
 
 	static const RdrVertexInputElement s_skyVertexDesc[] = {
 		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
@@ -56,45 +56,63 @@ RdrSky::RdrSky()
 
 void RdrSky::LazyInit()
 {
-	if (m_hSkyDomeInputLayout)
+	if (m_pSkyDomeModel)
 		return;
 
-	m_hSkyDomeInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_skyVertexDesc, ARRAY_SIZE(s_skyVertexDesc));
 	m_pSkyDomeModel = ModelData::LoadFromFile("skydome");
 	
 	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
 
 	// Transmittance LUTs
 	m_hTransmittanceLut = rResCommandList.CreateTexture2D(TRANSMITTANCE_LUT_WIDTH, TRANSMITTANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr);
 
 	// Scattering LUTs
 	m_hScatteringRayleighDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr);
 	m_hScatteringMieDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr);
 	m_hScatteringCombinedDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr);
 	m_hScatteringSumLuts[0] = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr);
 	m_hScatteringSumLuts[1] = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr);
 
 	// Irradiance LUTs
 	m_hIrradianceDeltaLut = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr);
 	m_hIrradianceSumLuts[0] = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr);
 	m_hIrradianceSumLuts[1] = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr);
 
 	// Radiance LUTs
 	m_hRadianceDeltaLut = rResCommandList.CreateTexture3D(RADIANCE_LUT_WIDTH, RADIANCE_LUT_HEIGHT, RADIANCE_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceUsage::Default, RdrResourceBindings::kUnorderedAccessView, nullptr);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr);
 
 	// Create the material
-	m_material.bNeedsLighting = false;
-	m_material.hPixelShaders[0] = RdrShaderSystem::CreatePixelShaderFromFile("p_sky.hlsl", { 0 }, 0);
+	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene);
+	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene);
+
+	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_sky.hlsl", { 0 }, 0);
+	
+	RdrRasterState rasterState;
+	rasterState.bWireframe = false;
+	rasterState.bDoubleSided = false;
+	rasterState.bEnableMSAA = false;//donotcheckin - match g_debugState
+	rasterState.bUseSlopeScaledDepthBias = false;
+	rasterState.bEnableScissor = false;
+
+	m_material.bNeedsLighting = true; //donotcheckin - technically only needs atmosphere
+	m_material.CreatePipelineState(RdrShaderMode::Normal,
+		kVertexShader, hPixelShader, 
+		s_skyVertexDesc, ARRAY_SIZE(s_skyVertexDesc), 
+		pRtvFormats, nNumRtvFormats,
+		RdrBlendMode::kOpaque,
+		rasterState,
+		RdrDepthStencilState(true, false, RdrComparisonFunc::Equal));
+
 	m_material.ahTextures.assign(0, m_hScatteringSumLuts[kNumScatteringOrders % 2]);
 	m_material.ahTextures.assign(1, m_hTransmittanceLut);
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
@@ -117,7 +135,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		uint constantsSize = sizeof(Vec4) * 4;
 		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
-		m_hVsPerObjectConstantBuffer = pAction->GetResCommandList().CreateConstantBuffer(pConstants, constantsSize, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
+		m_hVsPerObjectConstantBuffer = pAction->GetResCommandList().CreateConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
 	}
 
 	uint numSubObjects = m_pSkyDomeModel->GetNumSubObjects();
@@ -128,9 +146,6 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
 		pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
 		pDrawOp->pMaterial = &m_material;
-
-		pDrawOp->hInputLayout = m_hSkyDomeInputLayout;
-		pDrawOp->vertexShader = kVertexShader;
 
 		pDrawOp->hGeo = rSubObject.hGeo;
 		pDrawOp->bHasAlpha = false;
@@ -168,7 +183,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		}
 
 		m_hAtmosphereConstants = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_hAtmosphereConstants,
-			pParams, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+			pParams, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
 	}
 
 	m_pendingComputeOps = 0;
@@ -177,7 +192,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		// Transmittance
 		{
 			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
-			pOp->shader = RdrComputeShader::AtmosphereTransmittanceLut;
+			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereTransmittanceLut);
 			pOp->ahWritableResources.assign(0, m_hTransmittanceLut);
 			pOp->ahConstantBuffers.assign(0, m_hAtmosphereConstants);
 			pOp->threads[0] = RdrComputeOp::getThreadGroupCount(TRANSMITTANCE_LUT_WIDTH, ATM_LUT_THREADS_X);
@@ -191,7 +206,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		// Initial delta S (single scattering)
 		{
 			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
-			pOp->shader = RdrComputeShader::AtmosphereScatterLut_Single;
+			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereScatterLut_Single);
 			pOp->ahResources.assign(0, m_hTransmittanceLut);
 			pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 			pOp->ahWritableResources.assign(0, m_hScatteringRayleighDeltaLut);
@@ -208,7 +223,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		// Initial delta E (irradiance)
 		{
 			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
-			pOp->shader = RdrComputeShader::AtmosphereIrradianceLut_Initial;
+			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereIrradianceLut_Initial);
 			pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 			pOp->ahResources.assign(0, m_hTransmittanceLut);
 			pOp->ahWritableResources.assign(0, m_hIrradianceDeltaLut);
@@ -223,7 +238,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		// Clear E (irradiance)
 		{
 			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
-			pOp->shader = RdrComputeShader::Clear2d;
+			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::Clear2d);
 			pOp->ahWritableResources.assign(0, m_hIrradianceSumLuts[0]);
 			pOp->ahConstantBuffers.assign(0, m_hAtmosphereConstants);
 			pOp->threads[0] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_WIDTH, ATM_LUT_THREADS_Y);
@@ -245,13 +260,13 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 				pOp->ahResources.assign(1, m_hIrradianceDeltaLut);
 				if (i == 0)
 				{
-					pOp->shader = RdrComputeShader::AtmosphereRadianceLut;
+					pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereRadianceLut);
 					pOp->ahResources.assign(2, m_hScatteringRayleighDeltaLut);
 					pOp->ahResources.assign(3, m_hScatteringMieDeltaLut);
 				}
 				else
 				{
-					pOp->shader = RdrComputeShader::AtmosphereRadianceLut_CombinedScatter;
+					pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereRadianceLut_CombinedScatter);
 					pOp->ahResources.assign(2, m_hScatteringCombinedDeltaLut);
 				}
 				pOp->ahWritableResources.assign(0, m_hRadianceDeltaLut);
@@ -269,13 +284,13 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 				pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 				if (i == 0)
 				{
-					pOp->shader = RdrComputeShader::AtmosphereIrradianceLut_N;
+					pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereIrradianceLut_N);
 					pOp->ahResources.assign(0, m_hScatteringRayleighDeltaLut);
 					pOp->ahResources.assign(1, m_hScatteringMieDeltaLut);
 				}
 				else
 				{
-					pOp->shader = RdrComputeShader::AtmosphereIrradianceLut_N_CombinedScatter;
+					pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereIrradianceLut_N_CombinedScatter);
 					pOp->ahResources.assign(0, m_hScatteringCombinedDeltaLut);
 				}
 				pOp->ahWritableResources.assign(0, m_hIrradianceDeltaLut);
@@ -290,7 +305,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			// Delta S (scatter)
 			{
 				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
-				pOp->shader = RdrComputeShader::AtmosphereScatterLut_N;
+				pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereScatterLut_N);
 				pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 				pOp->ahResources.assign(0, m_hTransmittanceLut);
 				pOp->ahResources.assign(1, m_hRadianceDeltaLut);
@@ -306,7 +321,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			// Sum E (irradiance)
 			{
 				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
-				pOp->shader = RdrComputeShader::Add2d;
+				pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::Add2d);
 				pOp->ahResources.assign(0, m_hIrradianceDeltaLut);
 				pOp->ahResources.assign(1, m_hIrradianceSumLuts[!currIrradianceIndex]);
 				pOp->ahWritableResources.assign(0, m_hIrradianceSumLuts[currIrradianceIndex]);
@@ -320,7 +335,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			// Sum S (scatter)
 			{
 				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
-				pOp->shader = RdrComputeShader::Add3d;
+				pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::Add3d);
 				pOp->ahResources.assign(0, m_hScatteringCombinedDeltaLut);
 				pOp->ahResources.assign(1, m_hScatteringSumLuts[!currScatterIndex]);
 				pOp->ahWritableResources.assign(0, m_hScatteringSumLuts[currScatterIndex]);

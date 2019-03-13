@@ -12,8 +12,6 @@ void RdrProfiler::Cleanup()
 {
 	for (int i = 0; i < kFrameDelay; ++i)
 	{
-		m_pRdrContext->ReleaseQuery(m_disjointQueries[i]);
-
 		QueryList& rQueryList = m_frameQueries[i];
 		int queryCount = (int)rQueryList.size();
 		for (int n = 0; n < queryCount; ++n)
@@ -35,7 +33,7 @@ void RdrProfiler::Cleanup()
 
 void RdrProfiler::BeginSection(RdrProfileSection eSection)
 {
-	TimestampQueries queries = { 0 };
+	TimestampQueries queries = {};
 
 	if (!m_queryPool.empty())
 	{
@@ -44,7 +42,7 @@ void RdrProfiler::BeginSection(RdrProfileSection eSection)
 	}
 
 	queries.eSection = eSection;
-	if (!queries.timestampStart.pTypeless)
+	if (!queries.timestampStart.bIsValid)
 	{
 		queries.timestampStart = m_pRdrContext->CreateQuery(RdrQueryType::Timestamp);
 		queries.timestampEnd = m_pRdrContext->CreateQuery(RdrQueryType::Timestamp);
@@ -70,13 +68,6 @@ void RdrProfiler::BeginFrame()
 	// Reset counters
 	memset(m_counters, 0, sizeof(m_counters));
 
-	RdrQuery& rDisjointQuery = m_disjointQueries[m_currFrame];
-	if (!rDisjointQuery.pTypeless)
-	{
-		rDisjointQuery = m_pRdrContext->CreateQuery(RdrQueryType::Disjoint);
-	}
-
-	m_pRdrContext->BeginQuery(rDisjointQuery);
 	BeginSection(RdrProfileSection::Frame);
 
 	Timer::Reset(m_hRenderThreadTimer);
@@ -87,19 +78,10 @@ void RdrProfiler::EndFrame()
 	EndSection(); // End the main RdrProfileSection::Frame section
 	assert(m_currStackDepth == 0);
 
-	RdrQuery& rDisjointQuery = m_disjointQueries[m_currFrame];
-	m_pRdrContext->EndQuery(rDisjointQuery);
-
 	// The next frame in the list is also the oldest frame which we want to query from.
 	m_currFrame = (m_currFrame + 1) % kFrameDelay;
 
-	if (!m_disjointQueries[m_currFrame].pTypeless)
-	{
-		// Disjoint query hasn't been created yet meaning we're still in the first 5 frames of the app.
-		return;
-	}
-
-	RdrQueryDisjointData disjointData = m_pRdrContext->GetDisjointQueryData(m_disjointQueries[m_currFrame]);
+	uint64 timestampFrequency = m_pRdrContext->GetTimestampFrequency();
 
 	// Clear previous timings
 	memset(m_timings, 0, sizeof(m_timings));
@@ -113,7 +95,7 @@ void RdrProfiler::EndFrame()
 		uint64 start = m_pRdrContext->GetTimestampQueryData(rQueries.timestampStart);
 		uint64 end = m_pRdrContext->GetTimestampQueryData(rQueries.timestampEnd);
 
-		m_timings[(int)rQueries.eSection] += 1000.f * (end - start) / (float)disjointData.frequency;
+		m_timings[(int)rQueries.eSection] += 1000.f * (end - start) / (float)timestampFrequency;
 
 		// Return queries to the pool.
 		m_queryPool.push_back(rQueries);

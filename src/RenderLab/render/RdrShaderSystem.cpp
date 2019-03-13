@@ -1,20 +1,15 @@
 #include "Precompiled.h"
 #include "RdrShaderSystem.h"
-#include "RdrContext.h"
 #include "UtilsLib/Hash.h"
 #include "UtilsLib/FixedVector.h"
 #include <d3dcompiler.h>
 #include "debug/DebugConsole.h"
+#include "Renderer.h"
 
 namespace
 {
-#if defined(RENDERER_DX12)
-	const char* kShaderFolder = "shaders/DX12/";
-	const char* kShaderFilePattern = "shaders/DX12/*.*";
-#else
-	const char* kShaderFolder = "shaders/DX11/";
-	const char* kShaderFilePattern = "shaders/DX11/*.*";
-#endif
+	const char* kShaderFolder = "shaders/";
+	const char* kShaderFilePattern = "shaders/*.*";
 
 	const uint kMaxDefines = 16;
 
@@ -91,21 +86,6 @@ namespace
 
 	typedef std::map<Hashing::StringHash, RdrShaderHandle> RdrShaderHandleMap;
 
-	struct ShdrCmdCreatePixelShader
-	{
-		RdrShaderHandle hShader;
-		char* pShaderText;
-		uint textLen;
-	};
-
-	struct ShdrCmdCreateInputLayout
-	{
-		RdrInputLayoutHandle hLayout;
-		RdrVertexShader vertexShader;
-		RdrVertexInputElement vertexElements[16];
-		uint numElements;
-	};
-
 	struct ShdrCmdReloadShader
 	{
 		union
@@ -120,23 +100,13 @@ namespace
 
 	struct ShdrFrameState
 	{
-		FixedVector<ShdrCmdCreatePixelShader, 128> pixelShaderCreates;
-		FixedVector<ShdrCmdCreateInputLayout, 128> layoutCreates;
 		FixedVector<ShdrCmdReloadShader, 256>      shaderReloads;
-	};
-
-	struct InputLayoutCache
-	{
-		RdrInputLayoutHandle hInputLayouts[4];
-		Hashing::SHA1 hashes[4];
-		int numLayouts;
 	};
 
 	struct
 	{
 		RdrShader errorShaders[(int)RdrShaderStage::Count];
 
-		InputLayoutCache inputLayoutCaches[(int)RdrVertexShaderType::Count * (int)RdrShaderFlags::NumCombos];
 		RdrShader vertexShaders[(int)RdrVertexShaderType::Count * (int)RdrShaderFlags::NumCombos];
 
 		RdrShader geometryShaders[(int)RdrGeometryShaderType::Count * (int)RdrShaderFlags::NumCombos];
@@ -144,13 +114,12 @@ namespace
 		RdrShader domainShaders[(int)RdrTessellationShaderType::Count * (int)RdrShaderFlags::NumCombos];
 
 		RdrShader computeShaders[(int)RdrComputeShader::Count];
+		RdrPipelineState computeShaderPipelineStates[(int)RdrComputeShader::Count];
 
 		RdrShader wireframePixelShader;
 
 		RdrShaderHandleMap pixelShaderCache;
 		RdrShaderList      pixelShaders;
-
-		RdrInputLayoutList inputLayouts;
 
 		ThreadMutex reloadMutex;
 
@@ -195,7 +164,7 @@ namespace
 	ID3D10Blob* preprocessShader(const char* filename, const char** aDefines, uint numDefines)
 	{
 		HRESULT hr;
-		ID3D10Blob* pCompiledData = nullptr;
+		ID3D10Blob* pPreprocessedData = nullptr;
 		ID3D10Blob* pErrors = nullptr;
 
 		char fullFilename[FILE_MAX_PATH];
@@ -224,11 +193,11 @@ namespace
 		}
 
 		IncludeHandler include;
-		hr = D3DPreprocess(pFileData, fileSize, nullptr, macroDefines, &include, &pCompiledData, &pErrors);
+		hr = D3DPreprocess(pFileData, fileSize, nullptr, macroDefines, &include, &pPreprocessedData, &pErrors);
 		if (hr != S_OK)
 		{
-			if (pCompiledData)
-				pCompiledData->Release();
+			if (pPreprocessedData)
+				pPreprocessedData->Release();
 		}
 
 		if (pErrors)
@@ -241,7 +210,7 @@ namespace
 
 		delete pFileData;
 
-		return pCompiledData;
+		return pPreprocessedData;
 	}
 
 	void createDefaultShader(RdrContext* pRdrContext, const RdrShaderStage eStage, const RdrShaderDef& rShaderDef, const RdrShaderFlags flags, RdrShader& rOutShader)
@@ -278,17 +247,12 @@ namespace
 		assert(res);
 
 		rOutShader.filename = rShaderDef.filename;
-		rOutShader.pTypeless = pRdrContext->CreateShader(eStage, pCompiledData, compiledDataSize);
+		rOutShader.pCompiledData = pCompiledData;
+		rOutShader.compiledSize = compiledDataSize;
 		rOutShader.eStage = eStage;
-		if (eStage == RdrShaderStage::Vertex)
-		{
-			rOutShader.pVertexCompiledData = pCompiledData;
-			rOutShader.compiledSize = compiledDataSize;
-		}
-		else
-		{
-			delete pCompiledData;
-		}
+
+		rOutShader.pCompiledData = pCompiledData;
+		rOutShader.compiledSize = compiledDataSize;
 
 		pPreprocData->Release();
 	}
@@ -322,7 +286,7 @@ namespace
 	void processDefaultShaderReload(RdrShaderStage eStage, RdrShader* pShader, const RdrShaderDef& rShaderDef, RdrShaderFlags flags, RdrShader& rErrorShader, RdrContext* pRdrContext)
 	{
 		// Free the old shader object if it wasn't the error shader.
-		if (pShader->pTypeless != rErrorShader.pTypeless)
+		if (pShader->pCompiledData != rErrorShader.pCompiledData)
 		{
 			pRdrContext->ReleaseShader(pShader);
 		}
@@ -333,7 +297,7 @@ namespace
 	void processShaderReload(RdrShaderStage eStage, RdrShader* pShader, RdrShader& rErrorShader, RdrContext* pRdrContext)
 	{
 		// Free the old shader object if it wasn't the error shader.
-		if (pShader->pTypeless != rErrorShader.pTypeless)
+		if (pShader->pCompiledData != rErrorShader.pCompiledData)
 		{
 			pRdrContext->ReleaseShader(pShader);
 		}
@@ -350,13 +314,16 @@ namespace
 			bool succeeded = pRdrContext->CompileShader(eStage, pShaderText, textLen, &pCompiledData, &compiledDataSize);
 			if (succeeded)
 			{
-				pShader->pTypeless = pRdrContext->CreateShader(eStage, pCompiledData, compiledDataSize);
-				delete pCompiledData;
+				pShader->pCompiledData = pCompiledData;
+				pShader->compiledSize = compiledDataSize;
 			}
 			else
 			{
-				pShader->pTypeless = rErrorShader.pTypeless;
+				pShader->pCompiledData = rErrorShader.pCompiledData;
+				pShader->compiledSize = rErrorShader.compiledSize;
 			}
+
+			// donotcheckin - re-create all pipeline states that use this shader
 
 			delete pShaderText;
 			pBlob->Release();
@@ -417,6 +384,8 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 		createDefaultShader(pRdrContext, RdrShaderStage::Compute,
 			kComputeShaderDefs[cs], RdrShaderFlags::None,
 			s_shaderSystem.computeShaders[cs]);
+
+		s_shaderSystem.computeShaderPipelineStates[cs] = pRdrContext->CreateComputePipelineState(s_shaderSystem.computeShaders[cs]);
 	}
 
 	// Error shaders
@@ -571,56 +540,19 @@ RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename,
 		RdrShader* pShader = s_shaderSystem.pixelShaders.allocSafe();
 		pShader->filename = _strdup(filename);
 
-		ShdrCmdCreatePixelShader& cmd = getQueueState().pixelShaderCreates.pushSafe();
-		cmd.hShader = s_shaderSystem.pixelShaders.getId(pShader);
-		cmd.textLen = (uint)pBlob->GetBufferSize();
-		cmd.pShaderText = new char[cmd.textLen];
+		RdrShaderHandle hShader = s_shaderSystem.pixelShaders.getId(pShader); // donotcheckin - remove shader handles entirely for DX12?
 
-		memcpy(cmd.pShaderText, pBlob->GetBufferPointer(), cmd.textLen);
-		pBlob->Release();
+		s_shaderSystem.pixelShaderCache.insert(std::make_pair(nameHash, hShader));
 
-		s_shaderSystem.pixelShaderCache.insert(std::make_pair(nameHash, cmd.hShader));
-		return cmd.hShader;
+		bool res = g_pRenderer->GetContext()->CompileShader(RdrShaderStage::Pixel, (char*)pBlob->GetBufferPointer(), (uint)pBlob->GetBufferSize(), &pShader->pCompiledData, &pShader->compiledSize);
+		assert(res);
+
+		return hShader;
 	}
 	else
 	{
 		return 0;
 	}
-}
-
-RdrInputLayoutHandle RdrShaderSystem::CreateInputLayout(const RdrVertexShader& vertexShader, const RdrVertexInputElement* aVertexElements, const uint numElements)
-{
-	// Check for cached input layout
-	Hashing::SHA1 hash;
-	Hashing::SHA1::Calculate((char*)aVertexElements, numElements, hash);
-
-	uint shaderIndex = getVertexShaderIndex(vertexShader);
-	InputLayoutCache& rLayoutCache = s_shaderSystem.inputLayoutCaches[shaderIndex];
-	for (int i = 0; i < rLayoutCache.numLayouts; ++i)
-	{
-		if (memcmp(&rLayoutCache.hashes[i], &hash, sizeof(Hashing::SHA1)) == 0)
-		{
-			return rLayoutCache.hInputLayouts[i];
-		}
-	}
-
-	// Layout doesn't already exist, create a new one.
-	RdrInputLayout* pLayout = s_shaderSystem.inputLayouts.allocSafe();
-
-	ShdrCmdCreateInputLayout& cmd = getQueueState().layoutCreates.pushSafe();
-	cmd.hLayout = s_shaderSystem.inputLayouts.getId(pLayout);
-	cmd.vertexShader = vertexShader;
-	cmd.numElements = numElements;
-	memcpy(cmd.vertexElements, aVertexElements, sizeof(RdrVertexInputElement) * numElements);
-
-	// Add input layout to the cache.
-	assert(rLayoutCache.numLayouts < ARRAY_SIZE(rLayoutCache.hInputLayouts));
-
-	rLayoutCache.hInputLayouts[rLayoutCache.numLayouts] = cmd.hLayout;
-	rLayoutCache.hashes[rLayoutCache.numLayouts] = hash;
-	rLayoutCache.numLayouts++;
-
-	return cmd.hLayout;
 }
 
 const RdrShader* RdrShaderSystem::GetVertexShader(const RdrVertexShader& shader)
@@ -653,6 +585,12 @@ const RdrShader* RdrShaderSystem::GetComputeShader(const RdrComputeShader eShade
 	return &s_shaderSystem.computeShaders[idx];
 }
 
+const RdrPipelineState& RdrShaderSystem::GetComputeShaderPipelineState(const RdrComputeShader eShader)
+{
+	uint idx = getComputeShaderIndex(eShader);
+	return s_shaderSystem.computeShaderPipelineStates[idx];
+}
+
 const RdrShader* RdrShaderSystem::GetPixelShader(const RdrShaderHandle hShader)
 {
 	return s_shaderSystem.pixelShaders.get(hShader);
@@ -661,11 +599,6 @@ const RdrShader* RdrShaderSystem::GetPixelShader(const RdrShaderHandle hShader)
 const RdrShader* RdrShaderSystem::GetWireframePixelShader()
 {
 	return &s_shaderSystem.wireframePixelShader;
-}
-
-const RdrInputLayout* RdrShaderSystem::GetInputLayout(const RdrInputLayoutHandle hLayout)
-{
-	return s_shaderSystem.inputLayouts.get(hLayout);
 }
 
 void RdrShaderSystem::FlipState()
@@ -678,38 +611,10 @@ void RdrShaderSystem::ProcessCommands(RdrContext* pRdrContext)
 	ShdrFrameState& state = s_shaderSystem.states[!s_shaderSystem.queueState];
 
 	// Shader creates
-	uint numCmds = (uint)state.pixelShaderCreates.size();
-	for (uint i = 0; i < numCmds; ++i)
-	{
-		ShdrCmdCreatePixelShader& cmd = state.pixelShaderCreates[i];
-		RdrShader* pShader = s_shaderSystem.pixelShaders.get(cmd.hShader);
-
-		void* pCompiledData;
-		uint compiledDataSize;
-
-		bool res = pRdrContext->CompileShader(RdrShaderStage::Pixel, cmd.pShaderText, cmd.textLen, &pCompiledData, &compiledDataSize);
-		assert(res);
-
-		pShader->pTypeless = pRdrContext->CreateShader(RdrShaderStage::Pixel, pCompiledData, compiledDataSize);
-		
-		delete cmd.pShaderText;
-		delete pCompiledData;
-	}
-
-	numCmds = (uint)state.layoutCreates.size();
-	for (uint i = 0; i < numCmds; ++i)
-	{
-		ShdrCmdCreateInputLayout& cmd = state.layoutCreates[i];
-		RdrInputLayout* pLayout = s_shaderSystem.inputLayouts.get(cmd.hLayout);
-		const RdrShader* pShader = GetVertexShader(cmd.vertexShader);
-
-		*pLayout = pRdrContext->CreateInputLayout(pShader->pVertexCompiledData, pShader->compiledSize, cmd.vertexElements, cmd.numElements);
-	}
-
 	{
 		AutoScopedLock lock(s_shaderSystem.reloadMutex);
 
-		numCmds = (uint)state.shaderReloads.size();
+		uint numCmds = (uint)state.shaderReloads.size();
 		for (uint i = 0; i < numCmds; ++i)
 		{
 			ShdrCmdReloadShader& cmd = state.shaderReloads[i];
@@ -753,6 +658,7 @@ void RdrShaderSystem::ProcessCommands(RdrContext* pRdrContext)
 				{
 					pShader = &s_shaderSystem.computeShaders[getComputeShaderIndex(cmd.computeShader)];
 					processDefaultShaderReload(cmd.eStage, pShader, kComputeShaderDefs[(int)cmd.computeShader], RdrShaderFlags::None, rErrorShader, pRdrContext);
+					// donotcheckin - recreate pipeline state
 				}
 				break;
 			}
@@ -760,6 +666,4 @@ void RdrShaderSystem::ProcessCommands(RdrContext* pRdrContext)
 	}
 
 	state.shaderReloads.clear();
-	state.layoutCreates.clear();
-	state.pixelShaderCreates.clear();
 }

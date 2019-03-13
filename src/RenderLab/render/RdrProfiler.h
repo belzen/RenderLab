@@ -48,6 +48,10 @@ enum class RdrProfileCounter
 	DsConstantBuffer,
 	GsConstantBuffer,
 	PsConstantBuffer,
+	CsConstantBuffer,
+	CsResource,
+	CsSampler,
+	CsUnorderedAccess,
 
 	Count
 };
@@ -73,8 +77,7 @@ public:
 	float GetRenderThreadTime() const;
 
 private:
-	// Intel HD 530 takes 6 frames for timestamp data to be ready...
-	// Seems pretty fishy, especially since the disjoint query does not suffer from the same issue.
+	// Intel HD 530 takes 6 frames for timestamp data to be ready, seems pretty fishy...
 	static const int kFrameDelay = 6;
 
 	struct TimestampQueries
@@ -88,7 +91,6 @@ private:
 	QueryList m_queryPool;
 
 	QueryList m_frameQueries[kFrameDelay];
-	RdrQuery m_disjointQueries[kFrameDelay];
 
 	TimestampQueries m_activeQueryStack[8];
 	uint m_currStackDepth;

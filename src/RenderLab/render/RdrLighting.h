@@ -7,13 +7,14 @@
 #include "RdrResource.h"
 #include "UtilsLib/FixedVector.h"
 #include "../../data/shaders/light_types.h"
+#include "Camera.h"
 
 class RdrAction;
 class Camera;
 class Light;
 
 #define MAX_SHADOW_MAPS_PER_FRAME 10
-#define USE_SINGLEPASS_SHADOW_CUBEMAP 1
+#define USE_SINGLEPASS_SHADOW_CUBEMAP 1 //donotcheckin
 
 enum class RdrLightingMethod
 {
@@ -99,7 +100,7 @@ private:
 #if USE_SINGLEPASS_SHADOW_CUBEMAP
 	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS];
 #else
-	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * CubemapFace::Count];
+	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * (int)CubemapFace::Count];
 #endif
 
 	// Lighting mode data.

@@ -25,7 +25,7 @@ PsOutput main(VsOutputOcean input)
 	PsOutput output;
 	output.color.rgb = litColor;
 	output.color.a = 1.f;
-	output.albedo = albedo;
-	output.normal = input.normal * 0.5f + 0.5f;
+	output.albedo = float4(albedo, 0);
+	output.normal = float4(input.normal * 0.5f + 0.5f, 0);
 	return output;
 }

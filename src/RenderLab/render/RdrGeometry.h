@@ -33,19 +33,10 @@ struct RdrGeoInfo
 	Vec3 boundsMax;
 };
 
-struct RdrBuffer
-{
-	union
-	{
-		ID3D11Buffer* pBuffer;
-		ID3D12Resource* pBuffer12;
-	};
-};
-
 struct RdrGeometry
 {
-	RdrBuffer vertexBuffer;
-	RdrBuffer indexBuffer;
+	RdrResource vertexBuffer; // donotcheckin - should this be a RdrResource*?
+	RdrResource indexBuffer;
 	RdrGeoInfo geoInfo;
 };
 
@@ -53,14 +44,3 @@ struct RdrGeometry
 
 typedef FreeList<RdrGeometry, 1024> RdrGeoList;
 typedef RdrGeoList::Handle RdrGeoHandle;
-
-
-inline bool operator == (const RdrBuffer& rLeft, const RdrBuffer& rRight)
-{
-	return rLeft.pBuffer == rRight.pBuffer;
-}
-
-inline bool operator != (const RdrBuffer& rLeft, const RdrBuffer& rRight)
-{
-	return !(rLeft == rRight);
-}

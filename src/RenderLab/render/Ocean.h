@@ -5,7 +5,6 @@
 #include "RdrShaders.h"
 #include "RdrGeometry.h"
 #include "RdrMaterial.h"
-#include "RdrTessellationMaterial.h"
 #include "RdrDrawOp.h"
 #include "MathLib/FourierTransform.h"
 
@@ -37,7 +36,6 @@ private:
 	RdrMaterial m_material;
 
 	RdrConstantBufferHandle m_hVsPerObjectConstantBuffer;
-	RdrInputLayoutHandle m_hInputLayout;
 	RdrGeoHandle m_hGeo;
 
 	FourierTransform m_fft;

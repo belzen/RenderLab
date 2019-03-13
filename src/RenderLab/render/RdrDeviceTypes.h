@@ -2,12 +2,12 @@
 
 #include "UtilsLib\Util.h"
 
-struct ID3D11DepthStencilView;
-struct ID3D11RenderTargetView;
-struct ID3D11SamplerState;
-struct ID3D11Buffer;
-struct ID3D11Query;
-typedef uint64 D3D12DescriptorHandle;
+#include <wrl.h>
+#include "d3dx12.h"
+using namespace Microsoft::WRL;
+
+typedef CD3DX12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorHandle;
+struct RdrResource;
 
 struct D3D12QueryHandle
 {
@@ -102,6 +102,9 @@ enum class RdrShaderMode
 {
 	Normal,
 	DepthOnly,
+	Editor,
+	ShadowMap,
+	Wireframe,
 
 	Count
 };
@@ -157,15 +160,6 @@ enum class RdrComparisonFunc
 	Count
 };
 
-enum class RdrDepthTestMode
-{
-	None,
-	Less,
-	Equal,
-
-	Count
-};
-
 enum class RdrBlendMode
 {
 	kOpaque,
@@ -174,6 +168,16 @@ enum class RdrBlendMode
 	kSubtractive,
 
 	kCount
+};
+
+struct RdrDepthStencilState
+{
+	RdrDepthStencilState(bool bTest, bool bWrite, RdrComparisonFunc eFunc)
+		: bTestDepth(bTest), bWriteDepth(bWrite), eDepthFunc(eFunc) {}
+
+	bool bTestDepth;
+	bool bWriteDepth;
+	RdrComparisonFunc eDepthFunc;
 };
 
 struct RdrRasterState
@@ -206,22 +210,26 @@ struct RdrSamplerState
 	};
 };
 
+struct RdrRootSignature
+{
+	ComPtr<ID3D12RootSignature> pRootSignature;
+};
+
+struct RdrPipelineState
+{
+	ComPtr<ID3D12PipelineState> pPipelineState;
+};
+
 struct RdrDepthStencilView
 {
-	union
-	{
-		ID3D11DepthStencilView* pView;
-		D3D12DescriptorHandle hViewD3D12;
-	};
+	D3D12DescriptorHandle hView;
+	RdrResource* pResource;
 };
 
 struct RdrRenderTargetView
 {
-	union
-	{
-		ID3D11RenderTargetView* pView;
-		D3D12DescriptorHandle hViewD3D12;
-	};
+	D3D12DescriptorHandle hView;
+	RdrResource* pResource;
 };
 
 enum class RdrResourceMapMode
@@ -235,30 +243,24 @@ enum class RdrResourceMapMode
 	Count
 };
 
-enum class RdrCpuAccessFlags
+enum class RdrResourceAccessFlags
 {
-	None = 0x0,
-	Read = 0x1,
-	Write = 0x2
-};
-ENUM_FLAGS(RdrCpuAccessFlags);
+	None     = 0x0,
 
-enum class RdrResourceUsage
-{
-	Default,
-	Immutable,
-	Dynamic,
-	Staging,
+	CpuRead  = 0x1,
+	CpuWrite = 0x2,
 
-	Count
-};
+	GpuRead  = 0x4,
+	GpuWrite = 0x8,
+	GpuRenderTarget = 0x10,
 
-enum class RdrResourceBindings
-{
-	kNone,
-	kUnorderedAccessView,
-	kRenderTarget,
+	GpuRW = GpuRead | GpuWrite,
+	CpuRO_GpuRW = CpuRead | GpuRead | GpuWrite,
+	CpuRW_GpuRO = CpuRead | CpuWrite | GpuRead,
+	CpuRO_GpuRO = CpuRead | GpuRead,
+	CpuRO_GpuRO_RenderTarget = CpuRead | GpuRead | GpuRenderTarget,
 };
+ENUM_FLAGS(RdrResourceAccessFlags);
 
 struct RdrBox
 {
@@ -277,24 +279,13 @@ struct RdrBox
 
 enum class RdrQueryType : uint
 {
-	Timestamp,
-	Disjoint
-};
-
-struct RdrQueryDisjointData
-{
-	uint64 frequency;
-	bool isDisjoint;
+	Timestamp
 };
 
 struct RdrQuery
 {
-	union
-	{
-		ID3D11Query* pQueryD3D11;
-		void* pTypeless;
-		D3D12QueryHandle hQueryD3D12;
-	};
+	D3D12QueryHandle hQuery;
+	bool bIsValid = false;
 };
 
 //////////////////////////////////////////////////////////////////////////

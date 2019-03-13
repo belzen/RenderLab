@@ -17,7 +17,6 @@ public:
 	void QueueDraw(RdrAction* pAction, const Vec3& pos, const Vec2& scale, float alpha);
 
 private:
-	RdrInputLayoutHandle m_hInputLayout;
 	RdrGeoHandle m_hGeo;
 	RdrConstantBufferHandle m_hVsConstants;
 	RdrMaterial m_material;

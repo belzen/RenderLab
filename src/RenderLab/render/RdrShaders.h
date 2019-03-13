@@ -1,19 +1,6 @@
 #pragma once
 
-struct ID3D11VertexShader;
-struct ID3D11GeometryShader;
-struct ID3D11HullShader;
-struct ID3D11DomainShader;
-struct ID3D11PixelShader;
-struct ID3D11ComputeShader;
 struct ID3D10Blob;
-struct ID3D11Device;
-struct ID3D11InputLayout;
-
-struct RdrInputLayout
-{
-	ID3D11InputLayout* pInputLayout;
-};
 
 enum class RdrShaderStage
 {
@@ -27,22 +14,23 @@ enum class RdrShaderStage
 	Count
 };
 
+enum class RdrShaderStageFlags
+{
+	None		= 0,
+	Vertex		= 1 << (int)RdrShaderStage::Vertex,
+	Pixel		= 1 << (int)RdrShaderStage::Pixel,
+	Geometry	= 1 << (int)RdrShaderStage::Geometry,
+	Hull		= 1 << (int)RdrShaderStage::Hull,
+	Domain		= 1 << (int)RdrShaderStage::Domain,
+	Compute		= 1 << (int)RdrShaderStage::Compute,
+};
+ENUM_FLAGS(RdrShaderStageFlags);
+
 struct RdrShader
 {
-	union
-	{
-		ID3D11VertexShader*		pVertex;
-		ID3D11GeometryShader*	pGeometry;
-		ID3D11HullShader*		pHull;
-		ID3D11DomainShader*		pDomain;
-		ID3D11PixelShader*		pPixel;
-		ID3D11ComputeShader*	pCompute;
-		void*					pTypeless;
-	};
-
 	const char* filename;
 
-	const void* pVertexCompiledData;
+	void* pCompiledData;
 	uint compiledSize;
 
 	RdrShaderStage eStage;
@@ -154,6 +142,3 @@ enum class RdrComputeShader
 
 typedef FreeList<RdrShader, 1024> RdrShaderList;
 typedef RdrShaderList::Handle RdrShaderHandle;
-
-typedef FreeList<RdrInputLayout, 1024> RdrInputLayoutList;
-typedef RdrInputLayoutList::Handle RdrInputLayoutHandle;

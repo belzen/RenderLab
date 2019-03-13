@@ -1,4 +1,5 @@
 {
+    "vertexShader" : "model",
 	"pixelShader" : "p_model.hlsl",
 	"textures" : [ "sponza/chain", "sponza/chain_ddn", "sponza/chain_mask" ],
 	"needsLighting" : true,

@@ -11,26 +11,9 @@
 #include "render/RdrAction.h"
 #include "render/Renderer.h"
 
-namespace
-{
-	const RdrVertexShader kVertexShader = { RdrVertexShaderType::Model, RdrShaderFlags::None };
-
-	//todo - Get layout desc from ModelData instead of hardcoding here
-	static const RdrVertexInputElement s_modelVertexDesc[] = {
-		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Normal, 0, RdrVertexInputFormat::RGB_F32, 0, 12, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Color, 0, RdrVertexInputFormat::RGBA_F32, 0, 24, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Texcoord, 0, RdrVertexInputFormat::RG_F32, 0, 40, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Tangent, 0, RdrVertexInputFormat::RGB_F32, 0, 48, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Binormal, 0, RdrVertexInputFormat::RGB_F32, 0, 60, RdrVertexInputClass::PerVertex, 0 }
-	};
-}
-
-
 ModelComponent* ModelComponent::Create(IComponentAllocator* pAllocator, const CachedString& modelAssetName, const AssetLib::MaterialSwap* aMaterialSwaps, uint numMaterialSwaps)
 {
 	ModelComponent* pModel = pAllocator->AllocModelComponent();
-	pModel->m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_modelVertexDesc, ARRAY_SIZE(s_modelVertexDesc));
 	pModel->SetModelData(modelAssetName, aMaterialSwaps, numMaterialSwaps);
 	return pModel;
 }
@@ -79,7 +62,7 @@ void ModelComponent::SetModelData(const CachedString& modelAssetName, const Asse
 		{
 			if (m_pMaterials[i]->name == aMaterialSwaps[n].from)
 			{
-				m_pMaterials[i] = RdrMaterial::LoadFromFile(aMaterialSwaps[n].to);
+				m_pMaterials[i] = RdrMaterial::Create(aMaterialSwaps[n].to, m_pModelData->GetVertexElements(), m_pModelData->GetNumVertexElements());
 			}
 		}
 	}
@@ -96,7 +79,7 @@ RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 		pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
 		m_hVsPerObjectConstantBuffer = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer, 
-			pVsPerObject, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+			pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuWrite | RdrResourceAccessFlags::GpuRead);
 	
 		if (CanInstance())
 		{
@@ -124,13 +107,6 @@ RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 		rDrawOp.instanceDataId = m_instancedDataId;
 		rDrawOp.hVsConstants = m_hVsPerObjectConstantBuffer;
 		rDrawOp.pMaterial = m_pMaterials[i];
-
-		rDrawOp.hInputLayout = m_hInputLayout;
-		rDrawOp.vertexShader = kVertexShader;
-		if (rSubObject.pMaterial->bAlphaCutout)
-		{
-			rDrawOp.vertexShader.flags |= RdrShaderFlags::AlphaCutout;
-		}
 
 		rDrawOp.hGeo = rSubObject.hGeo;
 		rDrawOp.bHasAlpha = rDrawOp.pMaterial->bHasAlpha;

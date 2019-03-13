@@ -21,8 +21,6 @@ namespace
 
 void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 {
-	m_hInputLayout = RdrShaderSystem::CreateInputLayout(kVertexShader, s_vertexDesc, ARRAY_SIZE(s_vertexDesc));
-
 	SpriteVertex* verts = (SpriteVertex*)RdrFrameMem::Alloc(sizeof(SpriteVertex) * 4);
 	verts[0].position = Vec2(0.f, 0.f);
 	verts[0].uv = aTexcoords[0];
@@ -44,7 +42,27 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
 	m_hGeo = rResCommandList.CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f));
 
-	m_material.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_sprite.hlsl", nullptr, 0);
+	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kUI);
+	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kUI);
+	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_sprite.hlsl", nullptr, 0);
+
+
+	RdrRasterState rasterState;
+	rasterState.bWireframe = false;
+	rasterState.bDoubleSided = false;
+	rasterState.bEnableMSAA = false;
+	rasterState.bUseSlopeScaledDepthBias = false;
+	rasterState.bEnableScissor = false;
+
+
+	m_material.name = "Sprite";
+	m_material.CreatePipelineState(RdrShaderMode::Normal,
+		kVertexShader, hPixelShader, 
+		s_vertexDesc, ARRAY_SIZE(s_vertexDesc), 
+		pRtvFormats, nNumRtvFormats,
+		RdrBlendMode::kAlpha,
+		rasterState,
+		RdrDepthStencilState(false, false, RdrComparisonFunc::Never));
 	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile(textureName, nullptr));
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 }
@@ -53,8 +71,6 @@ void Sprite::QueueDraw(RdrAction* pAction, const Vec3& pos, const Vec2& scale, f
 {
 	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
 	pDrawOp->hGeo = m_hGeo;
-	pDrawOp->hInputLayout = m_hInputLayout;
-	pDrawOp->vertexShader = kVertexShader;
 	pDrawOp->pMaterial = &m_material;
 
 	const Rect& viewport = pAction->GetViewport();

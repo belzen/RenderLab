@@ -68,8 +68,8 @@ PsOutput main(VsOutputModel input)
 		output.color.rgb = litColor;
 		output.color.a = alpha;
 		#if WRITE_GBUFFERS
-			output.albedo = albedo;
-			output.normal = normal * 0.5f + 0.5f;
+			output.albedo = float4(albedo, 0);
+			output.normal = float4(normal * 0.5f + 0.5f, 0);
 		#endif
 
 		return output;
