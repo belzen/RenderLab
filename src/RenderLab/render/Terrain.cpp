@@ -72,7 +72,7 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	// Setup pixel material
 	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene_GBuffer);
 	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene_GBuffer);
-	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_terrain.hlsl", nullptr, 0);
+	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_terrain.hlsl", nullptr, 0);
 
 
 	RdrRasterState rasterState;
@@ -87,7 +87,7 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	m_material.bNeedsLighting = true;
 	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrResourceAccessFlags::CpuRW_GpuRO);
 	m_material.CreatePipelineState(RdrShaderMode::Normal,
-		kVertexShader, hPixelShader, 
+		kVertexShader, pPixelShader,
 		s_terrainVertexDesc, ARRAY_SIZE(s_terrainVertexDesc), 
 		pRtvFormats, nNumRtvFormats,
 		RdrBlendMode::kOpaque,

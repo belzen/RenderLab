@@ -102,7 +102,6 @@ enum class RdrShaderMode
 {
 	Normal,
 	DepthOnly,
-	Editor,
 	ShadowMap,
 	Wireframe,
 

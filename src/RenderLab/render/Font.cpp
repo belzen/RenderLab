@@ -69,7 +69,7 @@ void Font::Init()
 	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kUI);
 	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kUI);
 
-	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_text.hlsl", nullptr, 0);
+	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_text.hlsl", nullptr, 0);
 
 	RdrRasterState rasterState;
 	rasterState.bWireframe = false;
@@ -80,7 +80,7 @@ void Font::Init()
 
 	s_text.material.name = "Font";
 	s_text.material.CreatePipelineState(RdrShaderMode::Normal,
-		kVertexShader, hPixelShader,
+		kVertexShader, pPixelShader,
 		s_vertexDesc, ARRAY_SIZE(s_vertexDesc),
 		pRtvFormats, nNumRtvFormats,
 		RdrBlendMode::kAlpha,

@@ -16,6 +16,7 @@ struct Vertex
 
 enum class RdrTopology
 {
+	Undefined,
 	TriangleList,
 	TriangleStrip,
 	Quad,

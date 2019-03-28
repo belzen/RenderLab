@@ -217,9 +217,9 @@ void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, flo
 	rasterState.bUseSlopeScaledDepthBias = false;
 	rasterState.bEnableScissor = false;
 
-	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_ocean.hlsl", nullptr, 0);
+	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_ocean.hlsl", nullptr, 0);
 	m_material.CreatePipelineState(RdrShaderMode::Normal,
-		kVertexShader, hPixelShader, 
+		kVertexShader, pPixelShader,
 		s_oceanVertexDesc, ARRAY_SIZE(s_oceanVertexDesc), 
 		pRtvFormats, nNumRtvFormats,
 		RdrBlendMode::kOpaque,

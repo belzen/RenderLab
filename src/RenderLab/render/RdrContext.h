@@ -119,7 +119,6 @@ public:
 
 	bool CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, RdrResource& rResource);
 	bool CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, RdrResource& rResource);
-	bool UpdateBuffer(const void* pSrcData, RdrResource& rResource, int numElements);
 
 	void CopyResourceRegion(const RdrResource& rSrcResource, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset);
 	void ReadResource(const RdrResource& rSrcResource, void* pDstData, uint dstDataSize);
@@ -128,14 +127,14 @@ public:
 
 	void ResolveResource(const RdrResource& rSrc, const RdrResource& rDst);
 
-	RdrShaderResourceView CreateShaderResourceViewTexture(const RdrResource& rResource);
-	RdrShaderResourceView CreateShaderResourceViewBuffer(const RdrResource& rResource, uint firstElement);
+	RdrShaderResourceView CreateShaderResourceViewTexture(RdrResource& rResource);
+	RdrShaderResourceView CreateShaderResourceViewBuffer(RdrResource& rResource, uint firstElement);
 	void ReleaseShaderResourceView(RdrShaderResourceView& resourceView);
 
 	/////////////////////////////////////////////////////////////
 	// Depth Stencil Views
-	RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTex);
-	RdrDepthStencilView CreateDepthStencilView(const RdrResource& rDepthTexArray, uint arrayStartIndex, uint arraySize);
+	RdrDepthStencilView CreateDepthStencilView(RdrResource& rDepthTex);
+	RdrDepthStencilView CreateDepthStencilView(RdrResource& rDepthTexArray, uint arrayStartIndex, uint arraySize);
 	RdrDepthStencilView GetNullDepthStencilView() const { return m_nullDepthStencilView; }
 	void ClearDepthStencilView(const RdrDepthStencilView& depthStencil, const bool bClearDepth, const float depthVal, const bool bClearStencil, const uint8 stencilVal);
 	void ReleaseDepthStencilView(const RdrDepthStencilView& depthStencilView);

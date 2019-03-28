@@ -95,7 +95,7 @@ void RdrSky::LazyInit()
 	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene);
 	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene);
 
-	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_sky.hlsl", { 0 }, 0);
+	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_sky.hlsl", { 0 }, 0);
 	
 	RdrRasterState rasterState;
 	rasterState.bWireframe = false;
@@ -106,7 +106,7 @@ void RdrSky::LazyInit()
 
 	m_material.bNeedsLighting = true; //donotcheckin - technically only needs atmosphere
 	m_material.CreatePipelineState(RdrShaderMode::Normal,
-		kVertexShader, hPixelShader, 
+		kVertexShader, pPixelShader,
 		s_skyVertexDesc, ARRAY_SIZE(s_skyVertexDesc), 
 		pRtvFormats, nNumRtvFormats,
 		RdrBlendMode::kOpaque,

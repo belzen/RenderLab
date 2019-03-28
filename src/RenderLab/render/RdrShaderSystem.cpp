@@ -84,13 +84,13 @@ namespace
 	static_assert(ARRAY_SIZE(kComputeShaderDefs) == (int)RdrComputeShader::Count, "Missing compute shader defs!");
 
 
-	typedef std::map<Hashing::StringHash, RdrShaderHandle> RdrShaderHandleMap;
+	typedef std::map<Hashing::StringHash, RdrShader*> RdrShaderNameMap;
 
 	struct ShdrCmdReloadShader
 	{
 		union
 		{
-			RdrShaderHandle hPixelShader;
+			RdrShader* pPixelShader;
 			RdrVertexShaderType vertexShader;
 			RdrGeometryShaderType geomShader;
 			RdrComputeShader computeShader;
@@ -118,7 +118,7 @@ namespace
 
 		RdrShader wireframePixelShader;
 
-		RdrShaderHandleMap pixelShaderCache;
+		RdrShaderNameMap pixelShaderCache;
 		RdrShaderList      pixelShaders;
 
 		ThreadMutex reloadMutex;
@@ -407,12 +407,12 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 	bool found = false;
 
 	Hashing::StringHash nameHash = Hashing::HashString(filename);
-	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.find(nameHash);
+	RdrShaderNameMap::iterator iter = s_shaderSystem.pixelShaderCache.find(nameHash);
 	if (iter != s_shaderSystem.pixelShaderCache.end())
 	{
 		ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
 		cmd.eStage = RdrShaderStage::Pixel;
-		cmd.hPixelShader = iter->second;
+		cmd.pPixelShader = iter->second;
 		found = true;
 	}
 
@@ -480,12 +480,12 @@ void RdrShaderSystem::ReloadAllShaders()
 		cmd.geomShader = (RdrGeometryShaderType)i;
 	}
 
-	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.begin();
+	RdrShaderNameMap::iterator iter = s_shaderSystem.pixelShaderCache.begin();
 	for (; iter != s_shaderSystem.pixelShaderCache.end(); ++iter)
 	{
 		ShdrCmdReloadShader& cmd = getQueueState().shaderReloads.pushSafe();
 		cmd.eStage = RdrShaderStage::Pixel;
-		cmd.hPixelShader = iter->second;
+		cmd.pPixelShader = iter->second;
 	}
 }
 
@@ -518,7 +518,7 @@ void RdrShaderSystem::SetGlobalShaderDefine(const char* define, bool enable)
 	}
 }
 
-RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename, const char** aDefines, uint numDefines)
+const RdrShader* RdrShaderSystem::CreatePixelShaderFromFile(const char* filename, const char** aDefines, uint numDefines)
 {
 	// Find shader in cache
 	char cacheName[256] = { 0 };
@@ -530,7 +530,7 @@ RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename,
 	}
 
 	Hashing::StringHash nameHash = Hashing::HashString(cacheName);
-	RdrShaderHandleMap::iterator iter = s_shaderSystem.pixelShaderCache.find(nameHash);
+	RdrShaderNameMap::iterator iter = s_shaderSystem.pixelShaderCache.find(nameHash);
 	if (iter != s_shaderSystem.pixelShaderCache.end())
 		return iter->second;
 
@@ -540,14 +540,12 @@ RdrShaderHandle RdrShaderSystem::CreatePixelShaderFromFile(const char* filename,
 		RdrShader* pShader = s_shaderSystem.pixelShaders.allocSafe();
 		pShader->filename = _strdup(filename);
 
-		RdrShaderHandle hShader = s_shaderSystem.pixelShaders.getId(pShader); // donotcheckin - remove shader handles entirely for DX12?
-
-		s_shaderSystem.pixelShaderCache.insert(std::make_pair(nameHash, hShader));
+		s_shaderSystem.pixelShaderCache.insert(std::make_pair(nameHash, pShader));
 
 		bool res = g_pRenderer->GetContext()->CompileShader(RdrShaderStage::Pixel, (char*)pBlob->GetBufferPointer(), (uint)pBlob->GetBufferSize(), &pShader->pCompiledData, &pShader->compiledSize);
 		assert(res);
 
-		return hShader;
+		return pShader;
 	}
 	else
 	{
@@ -591,11 +589,6 @@ const RdrPipelineState& RdrShaderSystem::GetComputeShaderPipelineState(const Rdr
 	return s_shaderSystem.computeShaderPipelineStates[idx];
 }
 
-const RdrShader* RdrShaderSystem::GetPixelShader(const RdrShaderHandle hShader)
-{
-	return s_shaderSystem.pixelShaders.get(hShader);
-}
-
 const RdrShader* RdrShaderSystem::GetWireframePixelShader()
 {
 	return &s_shaderSystem.wireframePixelShader;
@@ -626,7 +619,7 @@ void RdrShaderSystem::ProcessCommands(RdrContext* pRdrContext)
 			{
 			case RdrShaderStage::Pixel:
 				{
-					pShader = s_shaderSystem.pixelShaders.get(cmd.hPixelShader);
+					pShader = cmd.pPixelShader;
 					processShaderReload(cmd.eStage, pShader, rErrorShader, pRdrContext);
 				}
 				break;

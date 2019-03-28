@@ -67,12 +67,12 @@ Decal* Decal::Create(IComponentAllocator* pAllocator, const CachedString& textur
 
 	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene_GBuffer);
 	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene_GBuffer);
-	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_decal.hlsl", nullptr, 0);
+	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_decal.hlsl", nullptr, 0);
 
 	RdrRasterState rasterState;
 	rasterState.bWireframe = false;
 	rasterState.bDoubleSided = true;
-	rasterState.bEnableMSAA = false;//donotcheckin - match g_debugState
+	rasterState.bEnableMSAA = (g_debugState.msaaLevel > 1);
 	rasterState.bUseSlopeScaledDepthBias = false;
 	rasterState.bEnableScissor = false;
 
@@ -80,7 +80,7 @@ Decal* Decal::Create(IComponentAllocator* pAllocator, const CachedString& textur
 	pDecal->m_material.name = "Decal";
 	pDecal->m_material.bHasAlpha = true;
 	pDecal->m_material.CreatePipelineState(RdrShaderMode::Normal,
-		kVertexShader, hPixelShader, 
+		kVertexShader, pPixelShader,
 		s_decalVertexDesc, ARRAY_SIZE(s_decalVertexDesc), 
 		pRtvFormats, nNumRtvFormats,
 		RdrBlendMode::kAlpha,

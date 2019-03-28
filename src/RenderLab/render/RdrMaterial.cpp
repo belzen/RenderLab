@@ -75,23 +75,50 @@ namespace
 		//////////////////////////////////////////////////////////////////////////
 		// Normal
 		RdrRasterState rasterState;
-		rasterState.bWireframe = false;
-		rasterState.bDoubleSided = false;
-		rasterState.bEnableMSAA = false; //donotcheckin g_debugState.msaaLevel
-		rasterState.bUseSlopeScaledDepthBias = false;
-		rasterState.bEnableScissor = false;
+		const RdrShader* pPixelShader;
+		const RdrResourceFormat* pRtvFormats;
+		uint nNumRtvFormats;
 
-		const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene_GBuffer); 
-		uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene_GBuffer);
+		if (pMaterial->bForEditor)
+		{
+			rasterState.bWireframe = false;
+			rasterState.bDoubleSided = false;
+			rasterState.bEnableMSAA = false;
+			rasterState.bUseSlopeScaledDepthBias = false;
+			rasterState.bEnableScissor = false;
 
-		RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
-		pOutMaterial->CreatePipelineState(RdrShaderMode::Normal,
-			vertexShader, hPixelShader,
-			pInputLayout, nNumInputElements,
-			pRtvFormats, nNumRtvFormats,
-			eBlendMode,
-			rasterState,
-			depthState);
+			pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kUI);
+			nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kUI);
+			pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
+
+			pOutMaterial->CreatePipelineState(RdrShaderMode::Normal,
+				vertexShader, pPixelShader,
+				pInputLayout, nNumInputElements,
+				pRtvFormats, nNumRtvFormats,
+				RdrBlendMode::kAlpha,
+				rasterState,
+				RdrDepthStencilState(false, false, RdrComparisonFunc::Never));
+		}
+		else
+		{
+			rasterState.bWireframe = false;
+			rasterState.bDoubleSided = false;
+			rasterState.bEnableMSAA = false; //donotcheckin g_debugState.msaaLevel
+			rasterState.bUseSlopeScaledDepthBias = false;
+			rasterState.bEnableScissor = false;
+
+			pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene_GBuffer); 
+			nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene_GBuffer);
+
+			pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
+			pOutMaterial->CreatePipelineState(RdrShaderMode::Normal,
+				vertexShader, pPixelShader,
+				pInputLayout, nNumInputElements,
+				pRtvFormats, nNumRtvFormats,
+				eBlendMode,
+				rasterState,
+				depthState);
+		}
 
 
 		//////////////////////////////////////////////////////////////////////////
@@ -100,49 +127,28 @@ namespace
 		rasterState.bWireframe = true;
 		rasterState.bDoubleSided = true;
 		rasterState.bEnableMSAA = false;
+		rasterState.bUseSlopeScaledDepthBias = false;
+		rasterState.bEnableScissor = false;
 
 		pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kPrimary);
 		nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kPrimary);
 
-		hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
+		pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
 		pOutMaterial->CreatePipelineState(RdrShaderMode::Wireframe,
-			vertexShader, hPixelShader,
+			vertexShader, pPixelShader,
 			pInputLayout, nNumInputElements,
 			pRtvFormats, nNumRtvFormats,
 			eBlendMode,
 			rasterState,
 			RdrDepthStencilState(true, false, RdrComparisonFunc::Less));
 
-
-		//////////////////////////////////////////////////////////////////////////
-		//////////////////////////////////////////////////////////////////////////
-		// Editor
-		rasterState.bWireframe = false;
-		rasterState.bDoubleSided = false;
-		rasterState.bEnableMSAA = false;
-		rasterState.bUseSlopeScaledDepthBias = false;
-		rasterState.bEnableScissor = false;
-
-		pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kUI);
-		nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kUI);
-		hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
-
-		pOutMaterial->CreatePipelineState(RdrShaderMode::Editor,
-			vertexShader, hPixelShader,
-			pInputLayout, nNumInputElements,
-			pRtvFormats, nNumRtvFormats,
-			RdrBlendMode::kAlpha,
-			rasterState,
-			RdrDepthStencilState(true, false, RdrComparisonFunc::Equal));
-
-
 		if (!pOutMaterial->bHasAlpha)
 		{
 			//////////////////////////////////////////////////////////////////////////
 			//////////////////////////////////////////////////////////////////////////
 			// Depth Only
-			pOutMaterial->activeShaderStages[(int)RdrShaderMode::DepthOnly] = RdrShaderStageFlags::Vertex;
-			pOutMaterial->activeShaderStages[(int)RdrShaderMode::ShadowMap] = RdrShaderStageFlags::Vertex;
+			RdrVertexShader depthVertexShader = vertexShader;
+			depthVertexShader.flags |= RdrShaderFlags::DepthOnly;
 
 			// Alpha cutout requires a depth-only pixel shader.
 			if (pMaterial->bAlphaCutout)
@@ -150,13 +156,11 @@ namespace
 				defines[numDefines++] = "DEPTH_ONLY";
 				assert(numDefines <= ARRAY_SIZE(defines));
 
-				hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
-				pOutMaterial->activeShaderStages[(int)RdrShaderMode::DepthOnly] |= RdrShaderStageFlags::Pixel;
-				pOutMaterial->activeShaderStages[(int)RdrShaderMode::ShadowMap] |= RdrShaderStageFlags::Pixel;
+				pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
 			}
 			else
 			{
-				hPixelShader = 0;
+				pPixelShader = nullptr;
 			}
 
 			pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene_ZPrepass);
@@ -169,7 +173,7 @@ namespace
 			rasterState.bEnableScissor = false;
 
 			pOutMaterial->CreatePipelineState(RdrShaderMode::DepthOnly,
-				vertexShader, hPixelShader,
+				depthVertexShader, pPixelShader,
 				pInputLayout, nNumInputElements,
 				pRtvFormats, nNumRtvFormats,
 				RdrBlendMode::kOpaque,
@@ -190,7 +194,7 @@ namespace
 			rasterState.bEnableScissor = false;
 
 			pOutMaterial->CreatePipelineState(RdrShaderMode::ShadowMap,
-				vertexShader, hPixelShader,
+				depthVertexShader, pPixelShader,
 				pInputLayout, nNumInputElements,
 				pRtvFormats, nNumRtvFormats,
 				RdrBlendMode::kOpaque,
@@ -226,7 +230,7 @@ namespace
 
 void RdrMaterial::CreatePipelineState(
 	RdrShaderMode eMode,
-	const RdrVertexShader& vertexShader, const RdrShaderHandle hPixelShader,
+	const RdrVertexShader& vertexShader, const RdrShader* pPixelShader,
 	const RdrVertexInputElement* pInputLayoutElements, uint nNumInputElements,
 	const RdrResourceFormat* pRtvFormats, uint nNumRtvFormats,
 	const RdrBlendMode eBlendMode,
@@ -234,7 +238,6 @@ void RdrMaterial::CreatePipelineState(
 	const RdrDepthStencilState& depthStencilState)
 {
 	const RdrShader* pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
-	const RdrShader* pPixelShader = hPixelShader ? RdrShaderSystem::GetPixelShader(hPixelShader) : nullptr;
 
 	hPipelineStates[(int)eMode] = g_pRenderer->GetContext()->CreateGraphicsPipelineState(
 		pVertexShader, pPixelShader,

@@ -2,5 +2,6 @@
     "vertexShader" : "model",
 	"pixelShader" : "p_editor_gizmo.hlsl",
 	"color" : [0.0, 0.0, 1.0],
-	"needsLighting" : false
+	"needsLighting" : false,
+	"forEditor" : true
 }

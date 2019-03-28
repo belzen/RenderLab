@@ -657,7 +657,18 @@ void RdrResourceCommandList::ProcessCommands(RdrContext* pRdrContext)
 	{
 		CmdUpdateBuffer& cmd = m_bufferUpdates[i];
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
-		pRdrContext->UpdateBuffer(cmd.pData, *pResource, cmd.numElements);
+
+		uint numElements = cmd.numElements;
+		if (numElements == -1)
+		{
+			numElements = pResource->bufferInfo.numElements;
+		}
+
+		uint dataSize = pResource->bufferInfo.elementSize
+			? (pResource->bufferInfo.elementSize * numElements)
+			: rdrGetTexturePitch(1, pResource->bufferInfo.eFormat) * numElements;
+
+		pRdrContext->UpdateResource(*pResource, cmd.pData, dataSize);
 	}
 
 	// Create buffers

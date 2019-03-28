@@ -35,6 +35,8 @@ Material* Material::Load(const CachedString& assetName, Material* pMaterial)
 
 	pMaterial->bNeedsLighting = jRoot.get("needsLighting", false).asBool();
 	pMaterial->bAlphaCutout = jRoot.get("alphaCutout", false).asBool();
+	pMaterial->bForEditor = jRoot.get("forEditor", false).asBool();
+
 	pMaterial->roughness = jRoot.get("roughness", 1.0f).asFloat();
 	pMaterial->metalness = jRoot.get("metalness", 0.0f).asFloat();
 

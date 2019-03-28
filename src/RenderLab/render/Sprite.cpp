@@ -44,8 +44,7 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 
 	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kUI);
 	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kUI);
-	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_sprite.hlsl", nullptr, 0);
-
+	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_sprite.hlsl", nullptr, 0);
 
 	RdrRasterState rasterState;
 	rasterState.bWireframe = false;
@@ -54,10 +53,9 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	rasterState.bUseSlopeScaledDepthBias = false;
 	rasterState.bEnableScissor = false;
 
-
 	m_material.name = "Sprite";
 	m_material.CreatePipelineState(RdrShaderMode::Normal,
-		kVertexShader, hPixelShader, 
+		kVertexShader, pPixelShader, 
 		s_vertexDesc, ARRAY_SIZE(s_vertexDesc), 
 		pRtvFormats, nNumRtvFormats,
 		RdrBlendMode::kAlpha,

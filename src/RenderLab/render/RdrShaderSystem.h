@@ -9,7 +9,7 @@ namespace RdrShaderSystem
 {
 	void Init(RdrContext* pRdrContext);
 
-	RdrShaderHandle CreatePixelShaderFromFile(const char* filename, const char** aDefines, uint numDefines);
+	const RdrShader* CreatePixelShaderFromFile(const char* filename, const char** aDefines, uint numDefines);
 
 	void ReloadShader(const char* filename);
 	void ReloadAllShaders();
@@ -20,7 +20,6 @@ namespace RdrShaderSystem
 	const RdrShader* GetGeometryShader(const RdrGeometryShader& shader);
 	const RdrShader* GetHullShader(const RdrTessellationShader& shader);
 	const RdrShader* GetDomainShader(const RdrTessellationShader& shader);
-	const RdrShader* GetPixelShader(const RdrShaderHandle hShader);
 
 	const RdrShader* GetComputeShader(const RdrComputeShader eShader);
 	const RdrPipelineState& GetComputeShaderPipelineState(const RdrComputeShader eShader);

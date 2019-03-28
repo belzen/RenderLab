@@ -90,14 +90,14 @@ namespace
 		pDrawState->vertexOffsets[0] = 0;
 		pDrawState->vertexBufferCount = 0;
 		pDrawState->vertexCount = 3;
+		pDrawState->eTopology = RdrTopology::TriangleList;
 	}
 
-	RdrPipelineState createFullscreenPipelineState(RdrContext* pRdrContext, RdrShaderHandle hPixelShader,
+	RdrPipelineState createFullscreenPipelineState(RdrContext* pRdrContext, const RdrShader* pPixelShader,
 		const RdrResourceFormat* pRtvFormats, uint nNumRtvFormats,
 		RdrBlendMode eBlendMode)
 	{
 		const RdrShader* pVertexShader = RdrShaderSystem::GetVertexShader(kScreenVertexShader);
-		const RdrShader* pPixelShader = RdrShaderSystem::GetPixelShader(hPixelShader);
 
 		RdrRasterState rasterState;
 		rasterState.bWireframe = false;
@@ -128,29 +128,29 @@ void RdrPostProcess::Init(RdrContext* pRdrContext, const InputManager* pInputMan
 	const RdrResourceFormat* pPrimaryRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kPrimary);
 	uint nNumPrimaryRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kPrimary);
 
-	RdrShaderHandle hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", nullptr, 0);
-	m_toneMapPipelineState = createFullscreenPipelineState(pRdrContext, hPixelShader, pPrimaryRtvFormats, nNumPrimaryRtvFormats, RdrBlendMode::kOpaque);
+	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", nullptr, 0);
+	m_toneMapPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, pPrimaryRtvFormats, nNumPrimaryRtvFormats, RdrBlendMode::kOpaque);
 	m_hToneMapOutputConstants = g_pRenderer->GetPreFrameCommandList().CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapOutputParams), RdrResourceAccessFlags::GpuRW);
 
 	const char* histogramDefines[] = { "TONEMAP_HISTOGRAM" };
-	hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", histogramDefines, 1);
-	m_toneMapHistogramPipelineState = createFullscreenPipelineState(pRdrContext, hPixelShader, pPrimaryRtvFormats, nNumPrimaryRtvFormats, RdrBlendMode::kOpaque);
+	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", histogramDefines, 1);
+	m_toneMapHistogramPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, pPrimaryRtvFormats, nNumPrimaryRtvFormats, RdrBlendMode::kOpaque);
 
 	pRdrContext->CreateConstantBuffer(nullptr, sizeof(ToneMapInputParams), RdrResourceAccessFlags::CpuRW_GpuRO, m_toneMapInputConstants);
 
-	hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_copy.hlsl", nullptr, 0);
-	m_copyPipelineState = createFullscreenPipelineState(pRdrContext, hPixelShader, pSceneRtvFormats, nNumSceneRtvFormats, RdrBlendMode::kOpaque);
+	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_copy.hlsl", nullptr, 0);
+	m_copyPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, pSceneRtvFormats, nNumSceneRtvFormats, RdrBlendMode::kOpaque);
 
 	const RdrResourceFormat rtvFormat = RdrResourceFormat::R8_UNORM;
 	pRdrContext->CreateConstantBuffer(nullptr, sizeof(SsaoParams), RdrResourceAccessFlags::CpuRW_GpuRO, m_ssaoConstants);
-	hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_ssao_gen.hlsl", nullptr, 0);
-	m_ssaoGenPipelineState = createFullscreenPipelineState(pRdrContext, hPixelShader, &rtvFormat, 1, RdrBlendMode::kOpaque);
+	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_ssao_gen.hlsl", nullptr, 0);
+	m_ssaoGenPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, &rtvFormat, 1, RdrBlendMode::kOpaque);
 
-	hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_ssao_blur.hlsl", nullptr, 0);
-	m_ssaoBlurPipelineState = createFullscreenPipelineState(pRdrContext, hPixelShader, &rtvFormat, 1, RdrBlendMode::kOpaque);
+	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_ssao_blur.hlsl", nullptr, 0);
+	m_ssaoBlurPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, &rtvFormat, 1, RdrBlendMode::kOpaque);
 
-	hPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_ssao_apply.hlsl", nullptr, 0);
-	m_ssaoApplyPipelineState = createFullscreenPipelineState(pRdrContext, hPixelShader, pSceneRtvFormats, nNumSceneRtvFormats, RdrBlendMode::kSubtractive);
+	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_ssao_apply.hlsl", nullptr, 0);
+	m_ssaoApplyPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, pSceneRtvFormats, nNumSceneRtvFormats, RdrBlendMode::kSubtractive);
 }
 
 void RdrPostProcess::ResizeResources(uint width, uint height)

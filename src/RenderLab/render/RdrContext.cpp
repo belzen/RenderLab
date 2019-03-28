@@ -52,6 +52,7 @@ namespace
 	D3D12_PRIMITIVE_TOPOLOGY getD3DTopology(const RdrTopology eTopology)
 	{
 		static const D3D12_PRIMITIVE_TOPOLOGY s_d3dTopology[] = {
+			D3D_PRIMITIVE_TOPOLOGY_UNDEFINED,					// RdrTopology::Undefined
 			D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,				// RdrTopology::TriangleList
 			D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,				// RdrTopology::TriangleStrip
 			D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST,	// RdrTopology::Quad
@@ -1450,7 +1451,7 @@ bool RdrContext::CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexI
 		RdrUploadBuffer& uploadBuffer = m_uploadBuffers[m_currBackBuffer];
 		static const uint kAlignment = 512;
 		uint nSrcOffset = (uint)(uploadBuffer.pCurr - uploadBuffer.pStart);
-		uint nPadding = kAlignment - (nSrcOffset % kAlignment); // donotcheckin - incorrectly inflates by 512 if 0
+		uint nPadding = kAlignment - (nSrcOffset % kAlignment);
 		nSrcOffset += (nPadding == 512) ? 0 : nPadding;
 
 		static constexpr uint kMaxSubresources = 16;
@@ -1526,7 +1527,7 @@ void RdrContext::ResolveResource(const RdrResource& rSrc, const RdrResource& rDs
 	m_pCommandList->ResolveSubresource(rDst.pResource, 0, rSrc.pResource, 0, getD3DFormat(rSrc.texInfo.format));
 }
 
-RdrShaderResourceView RdrContext::CreateShaderResourceViewTexture(const RdrResource& rResource)
+RdrShaderResourceView RdrContext::CreateShaderResourceViewTexture(RdrResource& rResource)
 {
 	RdrShaderResourceView view;
 	switch (rResource.texInfo.texType)
@@ -1542,18 +1543,18 @@ RdrShaderResourceView RdrContext::CreateShaderResourceViewTexture(const RdrResou
 		break;
 	}
 
-	view.pResource = const_cast<RdrResource*>(&rResource);
+	view.pResource = &rResource;
 	return view;
 }
 
-RdrShaderResourceView RdrContext::CreateShaderResourceViewBuffer(const RdrResource& rResource, uint firstElement)
+RdrShaderResourceView RdrContext::CreateShaderResourceViewBuffer(RdrResource& rResource, uint firstElement)
 {
 	RdrShaderResourceView view;
 
 	const RdrBufferInfo& rBufferInfo = rResource.bufferInfo;
 	createBufferSrv(m_pDevice, m_srvHeap, rResource, rBufferInfo.numElements - firstElement, 0, rBufferInfo.eFormat, firstElement, &view.hView);
 
-	view.pResource = const_cast<RdrResource*>(&rResource); //donotcheckin - const_casts = no bueno
+	view.pResource = &rResource;
 
 	return view;
 }
@@ -1564,7 +1565,7 @@ void RdrContext::ReleaseShaderResourceView(RdrShaderResourceView& resourceView)
 	resourceView.hView.ptr = 0;
 }
 
-RdrDepthStencilView RdrContext::CreateDepthStencilView(const RdrResource& rDepthTex)
+RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex)
 {
 	RdrDepthStencilView view;
 
@@ -1604,13 +1605,13 @@ RdrDepthStencilView RdrContext::CreateDepthStencilView(const RdrResource& rDepth
 	}
 
 	view.hView = m_dsvHeap.AllocateDescriptor();
-	view.pResource = const_cast<RdrResource*>(&rDepthTex);
+	view.pResource = &rDepthTex;
 	m_pDevice->CreateDepthStencilView(rDepthTex.pResource, &dsvDesc, view.hView);
 
 	return view;
 }
 
-RdrDepthStencilView RdrContext::CreateDepthStencilView(const RdrResource& rDepthTex, uint arrayStartIndex, uint arraySize)
+RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex, uint arrayStartIndex, uint arraySize)
 {
 	RdrDepthStencilView view;
 
@@ -1633,7 +1634,7 @@ RdrDepthStencilView RdrContext::CreateDepthStencilView(const RdrResource& rDepth
 	}
 
 	view.hView = m_dsvHeap.AllocateDescriptor();
-	view.pResource = const_cast<RdrResource*>(&rDepthTex); //donotcheckin
+	view.pResource = &rDepthTex;
 	m_pDevice->CreateDepthStencilView(rDepthTex.pResource, &dsvDesc, view.hView);
 
 	return view;
@@ -1964,52 +1965,6 @@ void RdrContext::UpdateResource(RdrResource& rResource, const void* pSrcData, co
 	}
 }
 
-bool RdrContext::UpdateBuffer(const void* pSrcData, RdrResource& rResource, int numElements)
-{
-	// donotcheckin - merge with UpdateResource
-	if (numElements == -1)
-	{
-		numElements = rResource.bufferInfo.numElements;
-	}
-
-	uint dataSize = rResource.bufferInfo.elementSize
-		? (rResource.bufferInfo.elementSize * numElements)
-		: rdrGetTexturePitch(1, rResource.bufferInfo.eFormat) * numElements;
-
-	if (IsFlagSet(rResource.accessFlags, RdrResourceAccessFlags::CpuWrite))
-	{
-		void* pDstData;
-		CD3DX12_RANGE readRange(0, 0);
-		HRESULT hr = rResource.pResource->Map(0, &readRange, &pDstData);
-		if (FAILED(hr))
-		{
-			assert(false);
-			return false;
-		}
-
-		memcpy(pDstData, pSrcData, dataSize);
-
-		CD3DX12_RANGE writeRange(0, dataSize);
-		rResource.pResource->Unmap(0, &writeRange);
-	}
-	else
-	{
-		D3D12_BOX box = { 0 };
-		box.top = 0;
-		box.bottom = 1;
-		box.front = 0;
-		box.back = 1;
-		box.left = 0;
-		box.right = dataSize;
-
-		assert(false);
-			//rResource.pResource->WriteToSubresource(0, &box, pSrcData, 0, 0);
-	}
-
-	return true;
-}
-
-
 void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 {
 	m_pCommandList->SetGraphicsRootSignature(m_pGraphicsRootSignature.Get());
@@ -2265,7 +2220,6 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 
 void RdrContext::DispatchCompute(const RdrDrawState& rDrawState, uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
 {
-	PSClearResources();
 	m_drawState.Reset();
 
 	m_pCommandList->SetComputeRootSignature(m_pComputeRootSignature.Get());

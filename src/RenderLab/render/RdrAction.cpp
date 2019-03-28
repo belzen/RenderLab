@@ -438,7 +438,7 @@ void RdrAction::InitCommon(const wchar_t* actionName, bool isPrimaryAction, cons
 		pPass->ahRenderTargets[0] = hOutputTarget;
 		pPass->hDepthTarget = hDepthTarget;
 		pPass->bClearDepthTarget = true;
-		pPass->shaderMode = RdrShaderMode::Editor;
+		pPass->shaderMode = RdrShaderMode::Normal;
 	}
 
 	// Wireframe
@@ -846,6 +846,8 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	m_pDrawState->vertexOffsets[0] = 0;
 	m_pDrawState->vertexBufferCount = 1;
 	m_pDrawState->vertexCount = pGeo->geoInfo.numVerts;
+
+	m_pDrawState->eTopology = pGeo->geoInfo.eTopology;
 
 	if (pDrawOp->hCustomInstanceBuffer)
 	{

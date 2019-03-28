@@ -26,7 +26,7 @@ struct RdrMaterial
 
 	void CreatePipelineState(
 		RdrShaderMode eMode,
-		const RdrVertexShader& vertexShader, const RdrShaderHandle hPixelShader,
+		const RdrVertexShader& vertexShader, const RdrShader* pPixelShader,
 		const RdrVertexInputElement* pInputLayoutElements, uint nNumInputElements,
 		const RdrResourceFormat* pRtvFormats, uint nNumRtvFormats,
 		const RdrBlendMode eBlendMode,

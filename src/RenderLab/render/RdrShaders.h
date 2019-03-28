@@ -141,4 +141,3 @@ enum class RdrComputeShader
 //////////////////////////////////////////////////////////////////////////
 
 typedef FreeList<RdrShader, 1024> RdrShaderList;
-typedef RdrShaderList::Handle RdrShaderHandle;

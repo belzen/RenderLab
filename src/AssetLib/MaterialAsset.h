@@ -21,6 +21,7 @@ namespace AssetLib
 
 		bool bNeedsLighting;
 		bool bAlphaCutout;
+		bool bForEditor;
 
 		Color color;
 		float roughness;
