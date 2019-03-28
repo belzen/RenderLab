@@ -145,6 +145,15 @@
     <FxCompile Include="..\..\data\shaders\p_ocean.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\data\shaders\v_water.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\p_water.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\data\shaders\c_wave_particles.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Precompiled.cpp" />
@@ -257,6 +266,9 @@
       <Filter>components</Filter>
     </ClCompile>
     <ClCompile Include="render\Ocean.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="render\Water.cpp">
       <Filter>render</Filter>
     </ClCompile>
   </ItemGroup>
@@ -445,6 +457,9 @@
       <Filter>components</Filter>
     </ClInclude>
     <ClInclude Include="render\Ocean.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="render\Water.h">
       <Filter>render</Filter>
     </ClInclude>
   </ItemGroup>

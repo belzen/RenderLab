@@ -28,6 +28,7 @@ namespace
 			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,				// RdrTopology::TriangleList
 			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,				// RdrTopology::TriangleStrip
 			D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST,	// RdrTopology::Quad
+			D3D11_PRIMITIVE_TOPOLOGY_POINTLIST,					// RdrTopology::Point
 		};
 		static_assert(ARRAY_SIZE(s_d3dTopology) == (int)RdrTopology::Count, "Missing D3D topologies!");
 		return s_d3dTopology[(int)eTopology];
@@ -422,6 +423,7 @@ bool RdrContextD3D11::Init(HWND hWnd, uint width, uint height)
 	swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
 	hr = D3D11CreateDeviceAndSwapChain(
 		nullptr,
@@ -1177,6 +1179,7 @@ void RdrContextD3D11::Present()
 	}
 	else
 	{
+		// TODO: These can happen anywhere
 		HRESULT hrRemovedReason = m_pDevice->GetDeviceRemovedReason();
 		switch (hrRemovedReason)
 		{

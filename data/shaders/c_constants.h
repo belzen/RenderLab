@@ -82,4 +82,21 @@ struct VolumetricFogParams
 	float unused;
 };
 
+struct WaveParticleParams
+{
+	int numParticles;
+	int globalTime;
+	uint2 unused;
+};
+
+struct WaveParticle
+{
+	float2 spawnPosition;
+	float2 direction;
+	float amplitude;
+	float dispersionAngle;
+	float spawnTime;
+	float velocity;
+};
+
 #endif // SHADER_C_CONSTANTS_H

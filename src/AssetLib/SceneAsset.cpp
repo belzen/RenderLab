@@ -78,6 +78,22 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 		}
 	}
 
+	// Water
+	{
+		Json::Value jWater = jRoot.get("water", Json::Value::null);
+		AssetLib::Water& rWater = pScene->water;
+
+		if (jWater.isNull())
+		{
+			rWater.enabled = false;
+		}
+		else
+		{
+			rWater.enabled = true;
+			rWater.size = jWater.get("size", 64).asInt();
+		}
+	}
+
 	// Objects
 	{
 		Json::Value jObjects = jRoot.get("objects", Json::Value::null);

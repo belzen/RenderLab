@@ -70,6 +70,7 @@ enum class RdrVertexShaderType
 	Sky,
 	Terrain,
 	Ocean,
+	Water,
 	Screen, // Pass through shader for geo in screen-space
 
 	Count

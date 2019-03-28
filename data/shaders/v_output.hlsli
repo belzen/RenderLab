@@ -50,6 +50,13 @@ struct VsOutputOcean
 	float color_mod : color_mod;
 };
 
+struct VsOutputWater
+{
+	float4 position : SV_POSITION;
+	float4 position_ws : POSITION;
+	float2 texcoord : TEXCOORD0;
+};
+
 // Hull/Domain outputs
 struct HsOutputTerrain
 {

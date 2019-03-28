@@ -19,6 +19,7 @@ enum class RdrTopology
 	TriangleList,
 	TriangleStrip,
 	Quad,
+	Point,
 
 	Count
 };

@@ -30,6 +30,9 @@ bool RenderDoc::Init()
 
 void RenderDoc::Capture()
 {
+	if (!s_pRenderDocApi)
+		return;
+
 	s_pRenderDocApi->TriggerCapture();
 	if (!s_pRenderDocApi->IsRemoteAccessConnected())
 	{
