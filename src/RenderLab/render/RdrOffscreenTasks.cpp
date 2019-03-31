@@ -57,8 +57,7 @@ void RdrOffscreenTasks::QueueDiffuseProbeCapture(const Vec3& position, const Rec
 
 void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 {
-	RdrResourceCommandList& rPrimaryCommandList = rRenderer.GetPreFrameCommandList();
-	RdrResourceCommandList& rCleanupCommandList = rRenderer.GetPostFrameCommandList();
+	RdrResourceCommandList& rResCommandList = rRenderer.GetResourceCommandList();
 
 	const int kMaxOffscreenActionsPerFrame = 2;
 	for (int numCompletedActions = 0; numCompletedActions < kMaxOffscreenActionsPerFrame && !s_offscreenTasks.empty(); ++numCompletedActions)
@@ -73,13 +72,13 @@ void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 					Camera cam;
 					cam.SetAsCubemapFace(rTask.position, (CubemapFace)rTask.state, 0.01f, 1000.f);
 
-					RdrRenderTargetViewHandle hRenderTarget = rPrimaryCommandList.CreateRenderTargetView(rTask.hTargetResource, (rTask.targetArrayIndex * (uint)CubemapFace::Count) + rTask.state, 1);
+					RdrRenderTargetViewHandle hRenderTarget = rResCommandList.CreateRenderTargetView(rTask.hTargetResource, (rTask.targetArrayIndex * (uint)CubemapFace::Count) + rTask.state, 1);
 					RdrAction* pAction = RdrAction::CreateOffscreen(L"Spec Probe Capture", cam, false, rTask.viewport, hRenderTarget);
 					Scene::QueueDraw(pAction);
 					rRenderer.QueueAction(pAction);
 
 					// Clean up render target view
-					rCleanupCommandList.ReleaseRenderTargetView(hRenderTarget);
+					rResCommandList.ReleaseRenderTargetView(hRenderTarget);
 					++rTask.state;
 				}
 				else if (rTask.state == 6)
@@ -101,13 +100,13 @@ void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 					Camera cam;
 					cam.SetAsCubemapFace(rTask.position, (CubemapFace)rTask.state, 0.01f, 1000.f);
 
-					RdrRenderTargetViewHandle hRenderTarget = rPrimaryCommandList.CreateRenderTargetView(rTask.hTargetResource, (rTask.targetArrayIndex * (uint)CubemapFace::Count) + rTask.state, 1);
+					RdrRenderTargetViewHandle hRenderTarget = rResCommandList.CreateRenderTargetView(rTask.hTargetResource, (rTask.targetArrayIndex * (uint)CubemapFace::Count) + rTask.state, 1);
 					RdrAction* pAction = RdrAction::CreateOffscreen(L"Diffuse Probe Capture", cam, false, rTask.viewport, hRenderTarget);
 					Scene::QueueDraw(pAction);
 					rRenderer.QueueAction(pAction);
 
 					// Clean up render target view
-					rCleanupCommandList.ReleaseRenderTargetView(hRenderTarget);
+					rResCommandList.ReleaseRenderTargetView(hRenderTarget);
 					rTask.state++;
 				}
 				else if (rTask.state == 6)

@@ -109,8 +109,6 @@ public:
 
 	void SortDrawOps(RdrBucketType eBucketType);
 
-	RdrResourceCommandList& GetResCommandList();
-
 	int GetShadowPassCount() const;
 	const Camera& GetShadowCamera(int shadowPassIndex) const;
 
@@ -148,7 +146,6 @@ private:
 	///
 	LPCWSTR m_name;
 
-	RdrResourceCommandList m_resourceCommands;
 	RdrRenderTargetViewHandle m_hOutputTarget;
 	RdrActionSurfaces m_surfaces;
 

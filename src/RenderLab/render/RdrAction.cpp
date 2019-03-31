@@ -99,8 +99,10 @@ namespace
 
 
 
-	RdrActionSurfaces* createActionSurfaces(RdrResourceCommandList& rResCommands, bool isPrimaryAction, uint width, uint height, int msaaLevel)
+	RdrActionSurfaces* createActionSurfaces(bool isPrimaryAction, uint width, uint height, int msaaLevel)
 	{
+		RdrResourceCommandList& rResCommands = g_pRenderer->GetResourceCommandList();
+
 		Vec2 viewportSize = Vec2((float)width, (float)height);
 		RdrActionSurfaces* pSurfaces = nullptr;
 
@@ -163,7 +165,7 @@ namespace
 	}
 
 
-	void createPerActionConstants(RdrResourceCommandList& rResCommandList, const Camera& rCamera, const Rect& rViewport, RdrGlobalConstants& rConstants)
+	void createPerActionConstants(const Camera& rCamera, const Rect& rViewport, RdrGlobalConstants& rConstants)
 	{
 		Matrix44 mtxView;
 		Matrix44 mtxProj;
@@ -180,7 +182,7 @@ namespace
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = rCamera.GetPosition();
 
-		rConstants.hVsPerAction = rResCommandList.CreateTempConstantBuffer(pVsPerAction, constantsSize);
+		rConstants.hVsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pVsPerAction, constantsSize);
 
 		// PS
 		constantsSize = sizeof(PsPerAction);
@@ -203,10 +205,10 @@ namespace
 		pPsPerAction->cameraFovY = rCamera.GetFieldOfViewY();
 		pPsPerAction->aspectRatio = rCamera.GetAspectRatio();
 
-		rConstants.hPsPerAction = rResCommandList.CreateTempConstantBuffer(pPsPerAction, constantsSize);
+		rConstants.hPsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
 
-	void createUiConstants(RdrResourceCommandList& rResCommandList, const Rect& rViewport, RdrGlobalConstants& rConstants)
+	void createUiConstants(const Rect& rViewport, RdrGlobalConstants& rConstants)
 	{
 		Matrix44 mtxView = Matrix44::kIdentity;
 		Matrix44 mtxProj = DirectX::XMMatrixOrthographicLH((float)rViewport.width, (float)rViewport.height, 0.01f, 1000.f);
@@ -221,7 +223,7 @@ namespace
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = Vec3::kZero;
 
-		rConstants.hVsPerAction = rResCommandList.CreateTempConstantBuffer(pVsPerAction, constantsSize);
+		rConstants.hVsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pVsPerAction, constantsSize);
 
 		// PS
 		constantsSize = sizeof(PsPerAction);
@@ -240,10 +242,10 @@ namespace
 		pPsPerAction->viewSize.x = (uint)rViewport.width;
 		pPsPerAction->viewSize.y = (uint)rViewport.height;
 
-		rConstants.hPsPerAction = rResCommandList.CreateTempConstantBuffer(pPsPerAction, constantsSize);
+		rConstants.hPsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pPsPerAction, constantsSize);
 	}
 
-	RdrConstantBufferHandle createCubemapCaptureConstants(RdrResourceCommandList& rResCommandList, const Vec3& position, const float nearDist, const float farDist)
+	RdrConstantBufferHandle createCubemapCaptureConstants(const Vec3& position, const float nearDist, const float farDist)
 	{
 		Camera cam;
 		Matrix44 mtxView, mtxProj;
@@ -258,7 +260,7 @@ namespace
 			pGsConstants->mtxViewProj[f] = Matrix44Transpose(pGsConstants->mtxViewProj[f]);
 		}
 
-		return rResCommandList.CreateTempConstantBuffer(pGsConstants, constantsSize);
+		return g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pGsConstants, constantsSize);
 	}
 }
 
@@ -318,8 +320,8 @@ void RdrAction::InitAsPrimary(Camera& rCamera)
 	m_passes[(int)RdrPass::Wireframe].bEnabled = true;
 	m_passes[(int)RdrPass::Editor].bEnabled = true;
 
-	createPerActionConstants(m_resourceCommands, m_camera, m_primaryViewport, m_constants);
-	createUiConstants(m_resourceCommands, m_primaryViewport, m_uiConstants);
+	createPerActionConstants(m_camera, m_primaryViewport, m_constants);
+	createUiConstants(m_primaryViewport, m_uiConstants);
 
 	switch (g_debugState.visMode)
 	{
@@ -348,13 +350,13 @@ void RdrAction::InitAsOffscreen(const wchar_t* actionName, Camera& rCamera,
 	m_passes[(int)RdrPass::Sky].bEnabled = true;
 	m_passes[(int)RdrPass::Alpha].bEnabled = true;
 
-	createPerActionConstants(m_resourceCommands, m_camera, m_primaryViewport, m_constants);
+	createPerActionConstants(m_camera, m_primaryViewport, m_constants);
 }
 
 void RdrAction::InitCommon(const wchar_t* actionName, bool isPrimaryAction, const Rect& viewport, bool enablePostProcessing, RdrRenderTargetViewHandle hOutputTarget)
 {
 	// Setup surfaces/render targets
-	m_surfaces = *createActionSurfaces(m_resourceCommands, isPrimaryAction, (uint)viewport.width, (uint)viewport.height, g_debugState.msaaLevel);
+	m_surfaces = *createActionSurfaces(isPrimaryAction, (uint)viewport.width, (uint)viewport.height, g_debugState.msaaLevel);
 
 	RdrRenderTargetViewHandle hColorTarget = enablePostProcessing ? m_surfaces.colorBuffer.hRenderTarget : hOutputTarget;
 	RdrRenderTargetViewHandle hAlbedoTarget = m_surfaces.albedoBuffer.hRenderTarget;
@@ -494,11 +496,6 @@ void RdrAction::Release()
 	s_actionSharedData.actions.releaseSafe(this);
 }
 
-RdrResourceCommandList& RdrAction::GetResCommandList()
-{
-	return m_resourceCommands;
-}
-
 void RdrAction::QueueSkyAndLighting(const AssetLib::SkySettings& rSkySettings, RdrResourceHandle hEnvironmentMapTexArray, float sceneDepthMin, float sceneDepthMax)
 {
 	m_sky = rSkySettings;
@@ -554,7 +551,7 @@ void RdrAction::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHan
 		rPassData.shaderMode = RdrShaderMode::ShadowMap;
 	}
 
-	createPerActionConstants(m_resourceCommands, rCamera, viewport, rShadowPass.constants);
+	createPerActionConstants(rCamera, viewport, rShadowPass.constants);
 }
 
 void RdrAction::QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
@@ -580,8 +577,8 @@ void RdrAction::QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencil
 		rPassData.bIsCubeMapCapture = true;
 	}
 
-	createPerActionConstants(m_resourceCommands, rShadowPass.camera, viewport, rShadowPass.constants);
-	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(m_resourceCommands, rLight.position, 0.1f, rLight.radius * 2.f);
+	createPerActionConstants(rShadowPass.camera, viewport, rShadowPass.constants);
+	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(rLight.position, 0.1f, rLight.radius * 2.f);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -589,7 +586,6 @@ void RdrAction::QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencil
 //////////////////////////////////////////////////////////////////////////
 void RdrAction::DrawIdle(RdrContext* pContext)
 {
-	m_resourceCommands.ProcessCommands(pContext);
 }
 
 void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler* pProfiler)
@@ -606,9 +602,6 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 	m_pProfiler = pProfiler;
 
 	m_pContext->BeginEvent(m_name);
-
-	// Process resource system commands for this action
-	m_resourceCommands.ProcessCommands(m_pContext);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Shadow passes
@@ -727,17 +720,14 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	bool bDepthOnly = (rPass.shaderMode == RdrShaderMode::DepthOnly);
 	const RdrGeometry* pGeo = RdrResourceSystem::GetGeo(pDrawOp->hGeo);
 
-	bool instanced = false;
-	if (instanceCount > 1)
-	{
-		instanced = true;
-	}
+	bool instanced = (instanceCount > 1);
 
 	const RdrMaterial* pMaterial = pDrawOp->pMaterial;
 	m_pDrawState->pipelineState = pMaterial->hPipelineStates[(int)rPass.shaderMode];
 
 	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerAction;
-	m_pDrawState->vsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->srv;
+
+	m_pDrawState->vsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->GetSRV();
 	m_pDrawState->vsConstantBufferCount = 1;
 
 	m_pDrawState->dsConstantBuffers[0] = m_pDrawState->vsConstantBuffers[0];
@@ -746,16 +736,16 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	if (instanced)
 	{
 		RdrResource& rBuffer = s_actionSharedData.instanceIds[s_actionSharedData.currentInstanceIds].buffer;
-		m_pContext->UpdateResource(rBuffer, s_actionSharedData.instanceIds[s_actionSharedData.currentInstanceIds].ids, rBuffer.size);
-		m_pDrawState->vsConstantBuffers[1] = rBuffer.srv;
+		m_pContext->UpdateResource(rBuffer, s_actionSharedData.instanceIds[s_actionSharedData.currentInstanceIds].ids, rBuffer.GetSize());
+		m_pDrawState->vsConstantBuffers[1] = rBuffer.GetSRV();
 		m_pDrawState->vsConstantBufferCount = 2;
 
-		m_pDrawState->vsResources[0] = RdrResourceSystem::GetResource(RdrInstancedObjectDataBuffer::GetResourceHandle())->srv;
+		m_pDrawState->vsResources[0] = RdrResourceSystem::GetResource(RdrInstancedObjectDataBuffer::GetResourceHandle())->GetSRV();
 		m_pDrawState->vsResourceCount = 1;
 	}
 	else if (pDrawOp->hVsConstants)
 	{
-		m_pDrawState->vsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pDrawOp->hVsConstants)->srv;
+		m_pDrawState->vsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pDrawOp->hVsConstants)->GetSRV();
 		m_pDrawState->vsConstantBufferCount = 2;
 	}
 
@@ -775,7 +765,7 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 		m_pDrawState->dsResourceCount = pMaterial->tessellation.ahResources.size();
 		for (uint i = 0; i < m_pDrawState->dsResourceCount; ++i)
 		{
-			m_pDrawState->dsResources[i] = RdrResourceSystem::GetResource(pMaterial->tessellation.ahResources.get(i))->srv;
+			m_pDrawState->dsResources[i] = RdrResourceSystem::GetResource(pMaterial->tessellation.ahResources.get(i))->GetSRV();
 		}
 
 		m_pDrawState->dsSamplerCount = pMaterial->tessellation.aSamplers.size();
@@ -786,7 +776,7 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 
 		if (pMaterial->tessellation.hDsConstants)
 		{
-			m_pDrawState->dsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pMaterial->tessellation.hDsConstants)->srv;
+			m_pDrawState->dsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pMaterial->tessellation.hDsConstants)->GetSRV();
 			m_pDrawState->dsConstantBufferCount = 2;
 		}
 	}
@@ -799,7 +789,7 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 			m_pDrawState->psResourceCount = pMaterial->ahTextures.size();
 			for (uint i = 0; i < m_pDrawState->psResourceCount; ++i)
 			{
-				m_pDrawState->psResources[i] = RdrResourceSystem::GetResource(pMaterial->ahTextures.get(i))->srv;
+				m_pDrawState->psResources[i] = RdrResourceSystem::GetResource(pMaterial->ahTextures.get(i))->GetSRV();
 			}
 
 			m_pDrawState->psSamplerCount = pMaterial->aSamplers.size();
@@ -808,30 +798,30 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 				m_pDrawState->psSamplers[i] = pMaterial->aSamplers.get(i);
 			}
 
-			m_pDrawState->psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsPerAction)->srv;
+			m_pDrawState->psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsPerAction)->GetSRV();
 			m_pDrawState->psConstantBufferCount = 1;
 
 			if (pMaterial->hConstants)
 			{
-				m_pDrawState->psConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pMaterial->hConstants)->srv;
+				m_pDrawState->psConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pMaterial->hConstants)->GetSRV();
 				m_pDrawState->psConstantBufferCount = 2;
 			}
 
 			if (pMaterial->bNeedsLighting && !bDepthOnly)
 			{
-				m_pDrawState->psConstantBuffers[2] = RdrResourceSystem::GetConstantBuffer(rLightParams.hGlobalLightsCb)->srv;
-				m_pDrawState->psConstantBuffers[3] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsAtmosphere)->srv;
+				m_pDrawState->psConstantBuffers[2] = RdrResourceSystem::GetConstantBuffer(rLightParams.hGlobalLightsCb)->GetSRV();
+				m_pDrawState->psConstantBuffers[3] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsAtmosphere)->GetSRV();
 				m_pDrawState->psConstantBufferCount = 4;
 
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::SpotLightList] = RdrResourceSystem::GetResource(rLightParams.hSpotLightListRes)->srv;
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::PointLightList] = RdrResourceSystem::GetResource(rLightParams.hPointLightListRes)->srv;
+				m_pDrawState->psResources[(int)RdrPsResourceSlots::SpotLightList] = RdrResourceSystem::GetResource(rLightParams.hSpotLightListRes)->GetSRV();
+				m_pDrawState->psResources[(int)RdrPsResourceSlots::PointLightList] = RdrResourceSystem::GetResource(rLightParams.hPointLightListRes)->GetSRV();
 
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::EnvironmentMaps] = RdrResourceSystem::GetResource(rLightParams.hEnvironmentMapTexArray)->srv;
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::VolumetricFogLut] = RdrResourceSystem::GetResource(rLightParams.hVolumetricFogLut)->srv;
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::SkyTransmittance] = RdrResourceSystem::GetResource(rLightParams.hSkyTransmittanceLut)->srv;
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::LightIds] = RdrResourceSystem::GetResource(rLightParams.hLightIndicesRes)->srv;
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::ShadowMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowMapTexArray)->srv;
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::ShadowCubeMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowCubeMapTexArray)->srv;
+				m_pDrawState->psResources[(int)RdrPsResourceSlots::EnvironmentMaps] = RdrResourceSystem::GetResource(rLightParams.hEnvironmentMapTexArray)->GetSRV();
+				m_pDrawState->psResources[(int)RdrPsResourceSlots::VolumetricFogLut] = RdrResourceSystem::GetResource(rLightParams.hVolumetricFogLut)->GetSRV();
+				m_pDrawState->psResources[(int)RdrPsResourceSlots::SkyTransmittance] = RdrResourceSystem::GetResource(rLightParams.hSkyTransmittanceLut)->GetSRV();
+				m_pDrawState->psResources[(int)RdrPsResourceSlots::LightIds] = RdrResourceSystem::GetResource(rLightParams.hLightIndicesRes)->GetSRV();
+				m_pDrawState->psResources[(int)RdrPsResourceSlots::ShadowMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowMapTexArray)->GetSRV();
+				m_pDrawState->psResources[(int)RdrPsResourceSlots::ShadowCubeMaps] = RdrResourceSystem::GetResource(rLightParams.hShadowCubeMapTexArray)->GetSRV();
 				m_pDrawState->psResourceCount = max((uint)RdrPsResourceSlots::LightIds + 1, m_pDrawState->psResourceCount);
 
 				m_pDrawState->psSamplers[(int)RdrPsSamplerSlots::Clamp] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
@@ -853,7 +843,7 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	{
 		const RdrResource* pInstanceData = RdrResourceSystem::GetResource(pDrawOp->hCustomInstanceBuffer);
 		m_pDrawState->pVertexBuffers[1] = pInstanceData;
-		m_pDrawState->vertexStrides[1] = pInstanceData->bufferInfo.elementSize;
+		m_pDrawState->vertexStrides[1] = pInstanceData->GetBufferInfo().elementSize;
 		m_pDrawState->vertexOffsets[1] = 0;
 		m_pDrawState->vertexBufferCount = 2;
 
@@ -861,7 +851,7 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 		instanceCount = pDrawOp->instanceCount;
 	}
 
-	if (pGeo->indexBuffer.pResource)
+	if (pGeo->indexBuffer.IsValid())
 	{
 		m_pDrawState->pIndexBuffer = &pGeo->indexBuffer;
 		m_pDrawState->indexCount = pGeo->geoInfo.numIndices;
@@ -887,14 +877,14 @@ void RdrAction::DispatchCompute(const RdrComputeOp* pComputeOp)
 	m_pDrawState->csConstantBufferCount = pComputeOp->ahConstantBuffers.size();
 	for (uint i = 0; i < m_pDrawState->csConstantBufferCount; ++i)
 	{
-		m_pDrawState->csConstantBuffers[i] = RdrResourceSystem::GetConstantBuffer(pComputeOp->ahConstantBuffers.get(i))->srv;
+		m_pDrawState->csConstantBuffers[i] = RdrResourceSystem::GetConstantBuffer(pComputeOp->ahConstantBuffers.get(i))->GetSRV();
 	}
 
 	uint count = pComputeOp->ahResources.size();
 	for (uint i = 0; i < count; ++i)
 	{
 		if (pComputeOp->ahResources.get(i))
-			m_pDrawState->csResources[i] = RdrResourceSystem::GetResource(pComputeOp->ahResources.get(i))->srv;
+			m_pDrawState->csResources[i] = RdrResourceSystem::GetResource(pComputeOp->ahResources.get(i))->GetSRV();
 		else
 			m_pDrawState->csResources[i].hView.ptr = 0;
 	}
@@ -909,7 +899,7 @@ void RdrAction::DispatchCompute(const RdrComputeOp* pComputeOp)
 	for (uint i = 0; i < count; ++i)
 	{
 		if (pComputeOp->ahWritableResources.get(i))
-			m_pDrawState->csUavs[i] = RdrResourceSystem::GetResource(pComputeOp->ahWritableResources.get(i))->uav;
+			m_pDrawState->csUavs[i] = RdrResourceSystem::GetResource(pComputeOp->ahWritableResources.get(i))->GetUAV();
 		else
 			m_pDrawState->csUavs[i].hView.ptr = 0;
 	}

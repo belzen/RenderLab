@@ -61,7 +61,7 @@ void RdrSky::LazyInit()
 
 	m_pSkyDomeModel = ModelData::LoadFromFile("skydome");
 	
-	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
 
 	// Transmittance LUTs
 	m_hTransmittanceLut = rResCommandList.CreateTexture2D(TRANSMITTANCE_LUT_WIDTH, TRANSMITTANCE_LUT_HEIGHT,
@@ -135,7 +135,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		uint constantsSize = sizeof(Vec4) * 4;
 		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
-		m_hVsPerObjectConstantBuffer = pAction->GetResCommandList().CreateConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
+		m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
 	}
 
 	uint numSubObjects = m_pSkyDomeModel->GetNumSubObjects();
@@ -182,7 +182,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			pParams->sunColor = float3(0.f, 0.f, 0.f);
 		}
 
-		m_hAtmosphereConstants = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_hAtmosphereConstants,
+		m_hAtmosphereConstants = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hAtmosphereConstants,
 			pParams, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
 	}
 

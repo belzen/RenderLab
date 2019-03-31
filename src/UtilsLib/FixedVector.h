@@ -98,6 +98,12 @@ public:
 		return &m_objects[m_size];
 	}
 
+	void eraseFast(uint nIndex)
+	{
+		m_objects[nIndex] = m_objects[m_size - 1];
+		--m_size;
+	}
+
 private:
 	T_object m_objects[T_kCapacity];
 	uint m_size;

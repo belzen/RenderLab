@@ -50,7 +50,7 @@ namespace
 			5, 4, 0, 5, 0, 1  // Back
 		};
 
-		return g_pRenderer->GetPreFrameCommandList().CreateGeo(aVertices, sizeof(DecalVertex), ARRAY_SIZE(aVertices),
+		return g_pRenderer->GetResourceCommandList().CreateGeo(aVertices, sizeof(DecalVertex), ARRAY_SIZE(aVertices),
 			aIndices, ARRAY_SIZE(aIndices), RdrTopology::TriangleList, boundsMin, boundsMax);
 	}
 }
@@ -97,12 +97,12 @@ void Decal::Release()
 {
 	if (m_hVsPerObjectConstantBuffer)
 	{
-		g_pRenderer->GetPreFrameCommandList().ReleaseConstantBuffer(m_hVsPerObjectConstantBuffer);
+		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hVsPerObjectConstantBuffer);
 		m_hVsPerObjectConstantBuffer = 0;
 	}
 	if (m_hPsMaterialBuffer)
 	{
-		g_pRenderer->GetPreFrameCommandList().ReleaseConstantBuffer(m_hPsMaterialBuffer);
+		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hPsMaterialBuffer);
 		m_hPsMaterialBuffer = 0;
 	}
 
@@ -130,7 +130,7 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 		VsPerObject* pVsPerObject = (VsPerObject*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
-		m_hVsPerObjectConstantBuffer = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
+		m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
 			pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
 
 		// Decal material
@@ -139,7 +139,7 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 		pPsMaterial->mtxInvWorld = Matrix44Inverse(mtxWorld);
 		pPsMaterial->mtxInvWorld = Matrix44Transpose(pPsMaterial->mtxInvWorld);
 
-		m_hPsMaterialBuffer = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_hPsMaterialBuffer,
+		m_hPsMaterialBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hPsMaterialBuffer,
 			pPsMaterial, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
 		m_material.hConstants = m_hPsMaterialBuffer;
 
@@ -162,7 +162,7 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 void Decal::SetTexture(const CachedString& textureName)
 {
 	m_textureName = textureName;
-	m_hTexture = g_pRenderer->GetPreFrameCommandList().CreateTextureFromFile(textureName, nullptr);
+	m_hTexture = g_pRenderer->GetResourceCommandList().CreateTextureFromFile(textureName, nullptr);
 	m_material.ahTextures.assign(0, m_hTexture);
 }
 

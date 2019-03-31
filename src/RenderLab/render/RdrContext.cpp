@@ -18,7 +18,7 @@
 namespace
 {
 	static const int kMaxNumRenderTargetViews = 64;
-	static const int kMaxNumShaderResourceViews = 1024;
+	static const int kMaxNumShaderResourceViews = 90240;
 	static const int kMaxNumDepthStencilViews = 64;
 
 
@@ -150,7 +150,7 @@ namespace
 		return CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	}
 
-	void createBufferSrv(ComPtr<ID3D12Device2> pDevice, DescriptorHeap& srvHeap, const RdrResource& rResource, uint numElements, uint structureByteStride, RdrResourceFormat eFormat, int firstElement, D3D12DescriptorHandle* pOutView)
+	void createBufferSrv(ComPtr<ID3D12Device> pDevice, DescriptorHeap& srvHeap, const RdrResource& rResource, uint numElements, uint structureByteStride, RdrResourceFormat eFormat, int firstElement, D3D12DescriptorHandle* pOutView)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC desc;
 		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -162,7 +162,7 @@ namespace
 		desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = srvHeap.AllocateDescriptor();
-		pDevice->CreateShaderResourceView(rResource.pResource, &desc, descHandle);
+		pDevice->CreateShaderResourceView(rResource.GetResource(), &desc, descHandle);
 
 		*pOutView = descHandle;
 	}
@@ -173,13 +173,13 @@ bool RdrContext::CreateDataBuffer(const void* pSrcData, int numElements, RdrReso
 	uint nDataSize = numElements * rdrGetTexturePitch(1, eFormat);
 	CreateBuffer(pSrcData, nDataSize, accessFlags, D3D12_RESOURCE_STATE_GENERIC_READ, rResource);
 
-	if (IsFlagSet(rResource.accessFlags, RdrResourceAccessFlags::GpuRead))
+	if (IsFlagSet(rResource.GetAccessFlags(), RdrResourceAccessFlags::GpuRead))
 	{
-		createBufferSrv(m_pDevice, m_srvHeap, rResource, numElements, 0, eFormat, 0, &rResource.srv.hView);
-		rResource.srv.pResource = &rResource;
+		createBufferSrv(m_pDevice, m_srvHeap, rResource, numElements, 0, eFormat, 0, &rResource.m_srv.hView);
+		rResource.m_srv.pResource = &rResource;
 	}
 
-	if (IsFlagSet(rResource.accessFlags, RdrResourceAccessFlags::GpuWrite))
+	if (IsFlagSet(rResource.m_accessFlags, RdrResourceAccessFlags::GpuWrite))
 	{
 		D3D12_UNORDERED_ACCESS_VIEW_DESC desc;
 		desc.Buffer.FirstElement = 0;
@@ -190,9 +190,9 @@ bool RdrContext::CreateDataBuffer(const void* pSrcData, int numElements, RdrReso
 		desc.Format = getD3DFormat(eFormat);
 		desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
 
-		rResource.uav.hView = m_srvHeap.AllocateDescriptor();
-		rResource.uav.pResource = &rResource;
-		m_pDevice->CreateUnorderedAccessView(rResource.pResource, nullptr, &desc, rResource.uav.hView);
+		rResource.m_uav.hView = m_srvHeap.AllocateDescriptor();
+		rResource.m_uav.pResource = &rResource;
+		m_pDevice->CreateUnorderedAccessView(rResource.m_pResource, nullptr, &desc, rResource.m_uav.hView);
 	}
 
 	return true;
@@ -203,13 +203,13 @@ bool RdrContext::CreateStructuredBuffer(const void* pSrcData, int numElements, i
 	uint nDataSize = numElements * elementSize;
 	CreateBuffer(pSrcData, nDataSize, accessFlags, D3D12_RESOURCE_STATE_GENERIC_READ, rResource);
 
-	if (IsFlagSet(rResource.accessFlags, RdrResourceAccessFlags::GpuRead))
+	if (IsFlagSet(rResource.m_accessFlags, RdrResourceAccessFlags::GpuRead))
 	{
-		createBufferSrv(m_pDevice, m_srvHeap, rResource, numElements, elementSize, RdrResourceFormat::UNKNOWN, 0, &rResource.srv.hView);
-		rResource.srv.pResource = &rResource;
+		createBufferSrv(m_pDevice, m_srvHeap, rResource, numElements, elementSize, RdrResourceFormat::UNKNOWN, 0, &rResource.m_srv.hView);
+		rResource.m_srv.pResource = &rResource;
 	}
 
-	if (IsFlagSet(rResource.accessFlags, RdrResourceAccessFlags::GpuWrite))
+	if (IsFlagSet(rResource.m_accessFlags, RdrResourceAccessFlags::GpuWrite))
 	{
 		D3D12_UNORDERED_ACCESS_VIEW_DESC desc;
 		desc.Buffer.FirstElement = 0;
@@ -220,9 +220,9 @@ bool RdrContext::CreateStructuredBuffer(const void* pSrcData, int numElements, i
 		desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
 		desc.Format = DXGI_FORMAT_UNKNOWN;
 
-		rResource.uav.hView = m_srvHeap.AllocateDescriptor();
-		rResource.uav.pResource = &rResource;
-		m_pDevice->CreateUnorderedAccessView(rResource.pResource, nullptr, &desc, rResource.uav.hView);
+		rResource.m_uav.hView = m_srvHeap.AllocateDescriptor();
+		rResource.m_uav.pResource = &rResource;
+		m_pDevice->CreateUnorderedAccessView(rResource.m_pResource, nullptr, &desc, rResource.m_uav.hView);
 	}
 
 	return true;
@@ -246,7 +246,7 @@ void RdrContext::ReadResource(const RdrResource& rSrcResource, void* pDstData, u
 {
 	void* pMappedData;
 	D3D12_RANGE readRange = { 0, dstDataSize };
-	HRESULT hr = rSrcResource.pResource->Map(0, &readRange, &pMappedData);
+	HRESULT hr = rSrcResource.m_pResource->Map(0, &readRange, &pMappedData);
 	if (FAILED(hr))
 	{
 		assert(false);
@@ -256,7 +256,7 @@ void RdrContext::ReadResource(const RdrResource& rSrcResource, void* pDstData, u
 	memcpy(pDstData, pMappedData, dstDataSize);
 
 	D3D12_RANGE writeRange = { 0,0 };
-	rSrcResource.pResource->Unmap(0, nullptr);
+	rSrcResource.m_pResource->Unmap(0, nullptr);
 }
 
 bool RdrContext::CreateBuffer(const void* pSrcData, const int size, RdrResourceAccessFlags accessFlags, const D3D12_RESOURCE_STATES initialState, RdrResource& rResource)
@@ -284,7 +284,7 @@ bool RdrContext::CreateBuffer(const void* pSrcData, const int size, RdrResourceA
 		&resourceDesc,
 		initialState,
 		nullptr,
-		IID_PPV_ARGS(&rResource.pResource)); //donotcheckin - manage ref count?
+		IID_PPV_ARGS(&rResource.m_pResource)); //donotcheckin - manage ref count?
 
 	if (FAILED(hr))
 	{
@@ -292,9 +292,9 @@ bool RdrContext::CreateBuffer(const void* pSrcData, const int size, RdrResourceA
 		return false;
 	}
 
-	rResource.eResourceState = initialState; // donotcheckin - fill this in elsewhere?
-	rResource.size = size;
-	rResource.accessFlags = accessFlags;
+	rResource.m_eResourceState = initialState; // donotcheckin - fill this in elsewhere?
+	rResource.m_size = size;
+	rResource.m_accessFlags = accessFlags;
 	if (pSrcData)
 	{
 		UpdateResource(rResource, pSrcData, size);
@@ -387,7 +387,7 @@ ComPtr<IDXGIAdapter4> GetAdapter()
 		// is favored.
 		if ((dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0 &&
 			SUCCEEDED(D3D12CreateDevice(dxgiAdapter1.Get(),
-				D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)) &&
+				D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)) &&
 			dxgiAdapterDesc1.DedicatedVideoMemory > maxDedicatedVideoMemory)
 		{
 			maxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
@@ -400,23 +400,28 @@ ComPtr<IDXGIAdapter4> GetAdapter()
 		}
 	}
 
+	if (!dxgiAdapter4)
+	{
+		assert(false);
+		return nullptr;
+	}
 	return dxgiAdapter4;
 }
 
-ComPtr<ID3D12Device2> CreateDevice(ComPtr<IDXGIAdapter4> adapter)
+ComPtr<ID3D12Device> CreateDevice(ComPtr<IDXGIAdapter4> adapter)
 {
-	ComPtr<ID3D12Device2> d3d12Device2;
-	HRESULT hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device2));
+	ComPtr<ID3D12Device> d3d12Device1;
+	HRESULT hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&d3d12Device1));
 	if (FAILED(hr))
 	{
 		assert(false);
 		return nullptr;
 	}
 
-	return d3d12Device2;
+	return d3d12Device1;
 }
 
-ComPtr<ID3D12CommandQueue> CreateCommandQueue(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type)
+ComPtr<ID3D12CommandQueue> CreateCommandQueue(ComPtr<ID3D12Device> device, D3D12_COMMAND_LIST_TYPE type)
 {
 	ComPtr<ID3D12CommandQueue> d3d12CommandQueue;
 
@@ -525,7 +530,7 @@ ComPtr<IDXGISwapChain4> CreateSwapChain(HWND hWnd,
 	return dxgiSwapChain4;
 }
 
-void DescriptorHeap::Create(ComPtr<ID3D12Device2> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors, bool bShaderVisible)
+void DescriptorHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors, bool bShaderVisible)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.NumDescriptors = nMaxDescriptors;
@@ -572,7 +577,7 @@ void DescriptorHeap::GetDescriptorHandle(uint nId, CD3DX12_CPU_DESCRIPTOR_HANDLE
 	*pOutDesc = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart()).Offset(nId, m_descriptorSize);
 }
 
-void DescriptorRingBuffer::Create(ComPtr<ID3D12Device2> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors)
+void DescriptorRingBuffer::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.NumDescriptors = nMaxDescriptors;
@@ -611,7 +616,7 @@ CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorRingBuffer::GetGpuHandle(uint nDescripto
 	return CD3DX12_GPU_DESCRIPTOR_HANDLE(m_pDescriptorHeap->GetGPUDescriptorHandleForHeapStart(), nDescriptor, m_descriptorSize);
 }
 
-void QueryHeap::Create(ComPtr<ID3D12Device2> pDevice, D3D12_QUERY_HEAP_TYPE type, uint nMaxQueries)
+void QueryHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_QUERY_HEAP_TYPE type, uint nMaxQueries)
 {
 	D3D12_QUERY_HEAP_DESC desc = {};
 	desc.Count = nMaxQueries;
@@ -641,7 +646,7 @@ void QueryHeap::FreeQuery(D3D12QueryHandle hQuery)
 }
 
 
-ComPtr<ID3D12CommandAllocator> CreateCommandAllocator(ComPtr<ID3D12Device2> device,
+ComPtr<ID3D12CommandAllocator> CreateCommandAllocator(ComPtr<ID3D12Device> device,
 	D3D12_COMMAND_LIST_TYPE type)
 {
 	ComPtr<ID3D12CommandAllocator> commandAllocator;
@@ -655,7 +660,7 @@ ComPtr<ID3D12CommandAllocator> CreateCommandAllocator(ComPtr<ID3D12Device2> devi
 	return commandAllocator;
 }
 
-ComPtr<ID3D12GraphicsCommandList> CreateCommandList(ComPtr<ID3D12Device2> device,
+ComPtr<ID3D12GraphicsCommandList> CreateCommandList(ComPtr<ID3D12Device> device,
 	ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type)
 {
 	ComPtr<ID3D12GraphicsCommandList> commandList;
@@ -676,7 +681,7 @@ ComPtr<ID3D12GraphicsCommandList> CreateCommandList(ComPtr<ID3D12Device2> device
 	return commandList;
 }
 
-ComPtr<ID3D12Fence> CreateFence(ComPtr<ID3D12Device2> device)
+ComPtr<ID3D12Fence> CreateFence(ComPtr<ID3D12Device> device)
 {
 	ComPtr<ID3D12Fence> fence;
 
@@ -700,18 +705,13 @@ HANDLE CreateEventHandle()
 	return fenceEvent;
 }
 
-uint64_t Signal(ComPtr<ID3D12CommandQueue> pCommandQueue, ComPtr<ID3D12Fence> pFence,
-	uint64_t& fenceValue)
+void Signal(ComPtr<ID3D12CommandQueue> pCommandQueue, ComPtr<ID3D12Fence> pFence, uint64 fenceValue)
 {
-	uint64_t fenceValueForSignal = ++fenceValue;
-	HRESULT hr = pCommandQueue->Signal(pFence.Get(), fenceValueForSignal);
+	HRESULT hr = pCommandQueue->Signal(pFence.Get(), fenceValue);
 	if (FAILED(hr))
 	{
 		assert(false);
-		return 0;
 	}
-
-	return fenceValueForSignal;
 }
 
 void WaitForFenceValue(ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fenceEvent)
@@ -730,10 +730,10 @@ void WaitForFenceValue(ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fe
 }
 
 void Flush(ComPtr<ID3D12CommandQueue> pCommandQueue, ComPtr<ID3D12Fence> pFence,
-	uint64_t& fenceValue, HANDLE hFenceEvent)
+	uint64 fenceValue, HANDLE hFenceEvent)
 {
-	uint64_t fenceValueForSignal = Signal(pCommandQueue, pFence, fenceValue);
-	WaitForFenceValue(pFence, fenceValueForSignal, hFenceEvent);
+	Signal(pCommandQueue, pFence, fenceValue);
+	WaitForFenceValue(pFence, fenceValue, hFenceEvent);
 }
 
 void RdrContext::UpdateRenderTargetViews()
@@ -815,7 +815,6 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 	}
 
 	m_pCommandList = CreateCommandList(m_pDevice, m_pCommandAllocators[m_currBackBuffer], D3D12_COMMAND_LIST_TYPE_DIRECT);
-	SetDescriptorHeaps();
 
 	m_pFence = CreateFence(m_pDevice);
 	m_hFenceEvent = CreateEventHandle();
@@ -1090,7 +1089,7 @@ D3D12DescriptorHandle RdrContext::GetSampler(const RdrSamplerState& state)
 
 namespace
 {
-	bool createTextureCubeSrv(ComPtr<ID3D12Device2> pDevice, DescriptorHeap& srvHeap, const RdrTextureInfo& rTexInfo, const RdrResource& rResource, D3D12DescriptorHandle* pOutView)
+	bool createTextureCubeSrv(ComPtr<ID3D12Device> pDevice, DescriptorHeap& srvHeap, const RdrTextureInfo& rTexInfo, const RdrResource& rResource, D3D12DescriptorHandle* pOutView)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc;
 		viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -1112,13 +1111,13 @@ namespace
 		}
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = srvHeap.AllocateDescriptor();
-		pDevice->CreateShaderResourceView(rResource.pResource, &viewDesc, descHandle);
+		pDevice->CreateShaderResourceView(rResource.GetResource(), &viewDesc, descHandle);
 
 		*pOutView = descHandle;
 		return true;
 	}
 
-	bool createTextureCube(ComPtr<ID3D12Device2> pDevice, DescriptorHeap& srvHeap, D3D12_RESOURCE_STATES eInitialState, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, RdrResource& rResource)
+	bool createTextureCube(ComPtr<ID3D12Device> pDevice, DescriptorHeap& srvHeap, D3D12_RESOURCE_STATES eInitialState, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, RdrResource& rResource)
 	{
 		const uint cubemapArraySize = rTexInfo.depth * 6;
 		D3D12_RESOURCE_DESC desc;
@@ -1140,15 +1139,15 @@ namespace
 		}
 
 		D3D12_HEAP_PROPERTIES heapProps = selectHeapProperties(accessFlags);
-		rResource.eResourceState = eInitialState;
 
+		ID3D12Resource* pResource;
 		HRESULT hr = pDevice->CreateCommittedResource(
 			&heapProps, 
 			D3D12_HEAP_FLAG_NONE,
 			&desc, 
-			rResource.eResourceState,
+			eInitialState,
 			nullptr,
-			IID_PPV_ARGS(&rResource.pResource)); //donotcheckin - manage ref count?
+			IID_PPV_ARGS(&pResource)); //donotcheckin - manage ref count?
 
 		if (FAILED(hr))
 		{
@@ -1156,12 +1155,14 @@ namespace
 			return false;
 		}
 
-		createTextureCubeSrv(pDevice, srvHeap, rTexInfo, rResource, &rResource.srv.hView);
-		rResource.srv.pResource = &rResource;
+		RdrShaderResourceView srv;
+		createTextureCubeSrv(pDevice, srvHeap, rTexInfo, rResource, &srv.hView);
+
+		rResource.BindDeviceResources(pResource, eInitialState, &srv, nullptr);
 		return true;
 	}
 
-	bool createTexture2DSrv(ComPtr<ID3D12Device2> pDevice, DescriptorHeap& srvHeap, const RdrTextureInfo& rTexInfo, const RdrResource& rResource, D3D12DescriptorHandle* pOutView)
+	bool createTexture2DSrv(ComPtr<ID3D12Device> pDevice, DescriptorHeap& srvHeap, const RdrTextureInfo& rTexInfo, const RdrResource& rResource, D3D12DescriptorHandle* pOutView)
 	{
 		bool bIsMultisampled = (rTexInfo.sampleCount > 1);
 		bool bIsArray = (rTexInfo.depth > 1);
@@ -1206,13 +1207,13 @@ namespace
 		}
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = srvHeap.AllocateDescriptor();
-		pDevice->CreateShaderResourceView(rResource.pResource, &viewDesc, descHandle);
+		pDevice->CreateShaderResourceView(rResource.GetResource(), &viewDesc, descHandle);
 
 		*pOutView = descHandle;
 		return true;
 	}
 
-	bool createTexture2D(ComPtr<ID3D12Device2> pDevice, DescriptorHeap& srvHeap, D3D12_RESOURCE_STATES eInitialState, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, RdrResource& rResource)
+	bool createTexture2D(ComPtr<ID3D12Device> pDevice, DescriptorHeap& srvHeap, D3D12_RESOURCE_STATES eInitialState, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, RdrResource& rResource)
 	{
 		bool bIsMultisampled = (rTexInfo.sampleCount > 1);
 		bool bIsArray = (rTexInfo.depth > 1);
@@ -1262,15 +1263,15 @@ namespace
 		}
 
 		D3D12_HEAP_PROPERTIES heapProps = selectHeapProperties(accessFlags);
-		rResource.eResourceState = eInitialState;
 
+		ID3D12Resource* pResource;
 		HRESULT hr = pDevice->CreateCommittedResource(
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
-			rResource.eResourceState,
+			eInitialState,
 			pClearValue,
-			IID_PPV_ARGS(&rResource.pResource)); //donotcheckin - manage ref count?
+			IID_PPV_ARGS(&pResource)); //donotcheckin - manage ref count?
 
 		if (FAILED(hr))
 		{
@@ -1278,14 +1279,20 @@ namespace
 			return false;
 		}
 
+		RdrShaderResourceView srv;
+		RdrShaderResourceView* pSRV = nullptr;
 		if (IsFlagSet(accessFlags, RdrResourceAccessFlags::GpuRead))
 		{
-			createTexture2DSrv(pDevice, srvHeap, rTexInfo, rResource, &rResource.srv.hView);
-			rResource.srv.pResource = &rResource;
+			pSRV = &srv;
+			createTexture2DSrv(pDevice, srvHeap, rTexInfo, rResource, &srv.hView);
 		}
 
+		RdrUnorderedAccessView uav;
+		RdrUnorderedAccessView* pUAV = nullptr;
 		if (IsFlagSet(accessFlags, RdrResourceAccessFlags::GpuWrite))
 		{
+			pUAV = &uav;
+
 			D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc;
 			viewDesc.Format = getD3DFormat(rTexInfo.format);
 			if (bIsArray)
@@ -1304,17 +1311,18 @@ namespace
 			}
 
 			CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = srvHeap.AllocateDescriptor();
-			pDevice->CreateUnorderedAccessView(rResource.pResource, nullptr, &viewDesc, descHandle);
-			rResource.uav.hView = descHandle;
-			rResource.uav.pResource = &rResource;
+			pDevice->CreateUnorderedAccessView(pResource, nullptr, &viewDesc, descHandle);
+			uav.hView = descHandle;
 
 			assert(hr == S_OK);
 		}
 
+		rResource.BindDeviceResources(pResource, eInitialState, pSRV, pUAV);
+
 		return true;
 	}
 
-	bool createTexture3DSrv(ComPtr<ID3D12Device2> pDevice, DescriptorHeap& srvHeap, const RdrTextureInfo& rTexInfo, const RdrResource& rResource, D3D12DescriptorHandle* pOutView)
+	bool createTexture3DSrv(ComPtr<ID3D12Device> pDevice, DescriptorHeap& srvHeap, const RdrTextureInfo& rTexInfo, const RdrResource& rResource, D3D12DescriptorHandle* pOutView)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc;
 		viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -1324,13 +1332,13 @@ namespace
 		viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = srvHeap.AllocateDescriptor();
-		pDevice->CreateShaderResourceView(rResource.pResource, &viewDesc, descHandle);
+		pDevice->CreateShaderResourceView(rResource.GetResource(), &viewDesc, descHandle);
 		*pOutView = descHandle;
 
 		return true;
 	}
 
-	bool createTexture3D(ComPtr<ID3D12Device2> pDevice, DescriptorHeap& srvHeap, D3D12_RESOURCE_STATES eInitialState, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, RdrResource& rResource)
+	bool createTexture3D(ComPtr<ID3D12Device> pDevice, DescriptorHeap& srvHeap, D3D12_RESOURCE_STATES eInitialState, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, RdrResource& rResource)
 	{
 		D3D12_RESOURCE_DESC desc;
 		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
@@ -1357,15 +1365,15 @@ namespace
 		}
 
 		D3D12_HEAP_PROPERTIES heapProps = selectHeapProperties(accessFlags);
-		rResource.eResourceState = eInitialState;
 
+		ID3D12Resource* pResource = nullptr;
 		HRESULT hr = pDevice->CreateCommittedResource(
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
-			rResource.eResourceState,
+			eInitialState,
 			nullptr,
-			IID_PPV_ARGS(&rResource.pResource)); //donotcheckin - manage ref count?
+			IID_PPV_ARGS(&pResource)); //donotcheckin - manage ref count?
 
 		if (FAILED(hr))
 		{
@@ -1373,14 +1381,21 @@ namespace
 			return false;
 		}
 
+		RdrShaderResourceView srv;
+		RdrShaderResourceView* pSRV = nullptr;
 		if (IsFlagSet(accessFlags, RdrResourceAccessFlags::GpuRead))
 		{
-			createTexture3DSrv(pDevice, srvHeap, rTexInfo, rResource, &rResource.srv.hView);
-			rResource.srv.pResource = &rResource;
+			pSRV = &srv;
+			createTexture3DSrv(pDevice, srvHeap, rTexInfo, rResource, &srv.hView);
+			srv.pResource = &rResource;
 		}
 
+		RdrUnorderedAccessView uav;
+		RdrUnorderedAccessView* pUAV = nullptr;
 		if (IsFlagSet(accessFlags, RdrResourceAccessFlags::GpuWrite))
 		{
+			pUAV = &uav;
+
 			D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc;
 			viewDesc.Format = getD3DFormat(rTexInfo.format);
 			viewDesc.Texture3D.MipSlice = 0;
@@ -1388,10 +1403,11 @@ namespace
 			viewDesc.Texture3D.WSize = rTexInfo.depth;
 			viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
 
-			rResource.uav.hView = srvHeap.AllocateDescriptor();
-			rResource.uav.pResource = &rResource;
-			pDevice->CreateUnorderedAccessView(rResource.pResource, nullptr, &viewDesc, rResource.uav.hView);
+			uav.hView = srvHeap.AllocateDescriptor();
+			pDevice->CreateUnorderedAccessView(pResource, nullptr, &viewDesc, uav.hView);
 		}
+
+		rResource.BindDeviceResources(pResource, eInitialState, pSRV, pUAV);
 
 		return true;
 	}
@@ -1463,7 +1479,7 @@ bool RdrContext::CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexI
 		UINT64 RowSizesInBytes[kMaxSubresources];
 
 
-		D3D12_RESOURCE_DESC Desc = rResource.pResource->GetDesc();
+		D3D12_RESOURCE_DESC Desc = rResource.m_pResource->GetDesc();
 		m_pDevice->GetCopyableFootprints(&Desc, 0, numSubresources, nSrcOffset, Layouts, NumRows, RowSizesInBytes, &RequiredSize);
 
 		if (uploadBuffer.pCurr + nPadding + RequiredSize <= uploadBuffer.pEnd)
@@ -1483,7 +1499,7 @@ bool RdrContext::CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexI
 
 			for (uint i = 0; i < numSubresources; ++i)
 			{
-				CD3DX12_TEXTURE_COPY_LOCATION Dst(rResource.pResource, i);
+				CD3DX12_TEXTURE_COPY_LOCATION Dst(rResource.m_pResource, i);
 				CD3DX12_TEXTURE_COPY_LOCATION Src(uploadBuffer.pBuffer.Get(), Layouts[i]);
 				m_pCommandList->CopyTextureRegion(&Dst, 0, 0, 0, &Src, nullptr);
 			}
@@ -1505,41 +1521,41 @@ bool RdrContext::CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexI
 
 void RdrContext::ReleaseResource(RdrResource& rResource)
 {
-	if (rResource.pResource)
+	if (rResource.m_pResource)
 	{
-		rResource.pResource->Release();
-		rResource.pResource = nullptr;
+		rResource.m_pResource->Release();
+		rResource.m_pResource = nullptr;
 	}
-	if (rResource.srv.hView.ptr)
+	if (rResource.m_srv.hView.ptr)
 	{
-		m_srvHeap.FreeDescriptor(rResource.srv.hView);
-		rResource.srv.hView.ptr = 0;
+		m_srvHeap.FreeDescriptor(rResource.m_srv.hView);
+		rResource.m_srv.hView.ptr = 0;
 	}
-	if (rResource.uav.hView.ptr)
+	if (rResource.m_uav.hView.ptr)
 	{
-		m_srvHeap.FreeDescriptor(rResource.uav.hView);
-		rResource.uav.hView.ptr = 0;
+		m_srvHeap.FreeDescriptor(rResource.m_uav.hView);
+		rResource.m_uav.hView.ptr = 0;
 	}
 }
 
 void RdrContext::ResolveResource(const RdrResource& rSrc, const RdrResource& rDst)
 {
-	m_pCommandList->ResolveSubresource(rDst.pResource, 0, rSrc.pResource, 0, getD3DFormat(rSrc.texInfo.format));
+	m_pCommandList->ResolveSubresource(rDst.m_pResource, 0, rSrc.m_pResource, 0, getD3DFormat(rSrc.GetTextureInfo().format));
 }
 
 RdrShaderResourceView RdrContext::CreateShaderResourceViewTexture(RdrResource& rResource)
 {
 	RdrShaderResourceView view;
-	switch (rResource.texInfo.texType)
+	switch (rResource.GetTextureInfo().texType)
 	{
 	case RdrTextureType::k2D:
-		createTexture2DSrv(m_pDevice, m_srvHeap, rResource.texInfo, rResource, &view.hView);
+		createTexture2DSrv(m_pDevice, m_srvHeap, rResource.GetTextureInfo(), rResource, &view.hView);
 		break;
 	case RdrTextureType::k3D:
-		createTexture3DSrv(m_pDevice, m_srvHeap, rResource.texInfo, rResource, &view.hView);
+		createTexture3DSrv(m_pDevice, m_srvHeap, rResource.GetTextureInfo(), rResource, &view.hView);
 		break;
 	case RdrTextureType::kCube:
-		createTextureCubeSrv(m_pDevice, m_srvHeap, rResource.texInfo, rResource, &view.hView);
+		createTextureCubeSrv(m_pDevice, m_srvHeap, rResource.GetTextureInfo(), rResource, &view.hView);
 		break;
 	}
 
@@ -1551,7 +1567,7 @@ RdrShaderResourceView RdrContext::CreateShaderResourceViewBuffer(RdrResource& rR
 {
 	RdrShaderResourceView view;
 
-	const RdrBufferInfo& rBufferInfo = rResource.bufferInfo;
+	const RdrBufferInfo& rBufferInfo = rResource.GetBufferInfo();
 	createBufferSrv(m_pDevice, m_srvHeap, rResource, rBufferInfo.numElements - firstElement, 0, rBufferInfo.eFormat, firstElement, &view.hView);
 
 	view.pResource = &rResource;
@@ -1569,24 +1585,24 @@ RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex)
 {
 	RdrDepthStencilView view;
 
-	bool bIsMultisampled = (rDepthTex.texInfo.sampleCount > 1);
+	bool bIsMultisampled = (rDepthTex.GetTextureInfo().sampleCount > 1);
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
 	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-	dsvDesc.Format = getD3DDepthFormat(rDepthTex.texInfo.format);
-	if (rDepthTex.texInfo.depth > 1)
+	dsvDesc.Format = getD3DDepthFormat(rDepthTex.GetTextureInfo().format);
+	if (rDepthTex.GetTextureInfo().depth > 1)
 	{
 		if (bIsMultisampled)
 		{
 			dsvDesc.Texture2DMSArray.FirstArraySlice = 0;
-			dsvDesc.Texture2DMSArray.ArraySize = rDepthTex.texInfo.depth;
+			dsvDesc.Texture2DMSArray.ArraySize = rDepthTex.GetTextureInfo().depth;
 			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY;
 		}
 		else
 		{
 			dsvDesc.Texture2DArray.MipSlice = 0;
 			dsvDesc.Texture2DArray.FirstArraySlice = 0;
-			dsvDesc.Texture2DArray.ArraySize = rDepthTex.texInfo.depth;
+			dsvDesc.Texture2DArray.ArraySize = rDepthTex.GetTextureInfo().depth;
 			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 		}
 	}
@@ -1606,7 +1622,7 @@ RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex)
 
 	view.hView = m_dsvHeap.AllocateDescriptor();
 	view.pResource = &rDepthTex;
-	m_pDevice->CreateDepthStencilView(rDepthTex.pResource, &dsvDesc, view.hView);
+	m_pDevice->CreateDepthStencilView(rDepthTex.m_pResource, &dsvDesc, view.hView);
 
 	return view;
 }
@@ -1617,9 +1633,9 @@ RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex, u
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
 	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-	dsvDesc.Format = getD3DDepthFormat(rDepthTex.texInfo.format);
+	dsvDesc.Format = getD3DDepthFormat(rDepthTex.GetTextureInfo().format);
 
-	if (rDepthTex.texInfo.sampleCount > 1)
+	if (rDepthTex.GetTextureInfo().sampleCount > 1)
 	{
 		dsvDesc.Texture2DMSArray.FirstArraySlice = arrayStartIndex;
 		dsvDesc.Texture2DMSArray.ArraySize = arraySize;
@@ -1635,7 +1651,7 @@ RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex, u
 
 	view.hView = m_dsvHeap.AllocateDescriptor();
 	view.pResource = &rDepthTex;
-	m_pDevice->CreateDepthStencilView(rDepthTex.pResource, &dsvDesc, view.hView);
+	m_pDevice->CreateDepthStencilView(rDepthTex.m_pResource, &dsvDesc, view.hView);
 
 	return view;
 }
@@ -1650,8 +1666,8 @@ RdrRenderTargetView RdrContext::CreateRenderTargetView(RdrResource& rTexRes)
 	RdrRenderTargetView view;
 
 	D3D12_RENDER_TARGET_VIEW_DESC desc;
-	desc.Format = getD3DFormat(rTexRes.texInfo.format);
-	if (rTexRes.texInfo.sampleCount > 1)
+	desc.Format = getD3DFormat(rTexRes.GetTextureInfo().format);
+	if (rTexRes.GetTextureInfo().sampleCount > 1)
 	{
 		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
 		desc.Texture2DMS.UnusedField_NothingToDefine = 0;
@@ -1664,7 +1680,7 @@ RdrRenderTargetView RdrContext::CreateRenderTargetView(RdrResource& rTexRes)
 	}
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = m_rtvHeap.AllocateDescriptor();
-	m_pDevice->CreateRenderTargetView(rTexRes.pResource, &desc, descHandle);
+	m_pDevice->CreateRenderTargetView(rTexRes.m_pResource, &desc, descHandle);
 	view.hView = descHandle;
 	view.pResource = &rTexRes;
 
@@ -1676,7 +1692,7 @@ RdrRenderTargetView RdrContext::CreateRenderTargetView(RdrResource& rTexArrayRes
 	RdrRenderTargetView view;
 
 	D3D12_RENDER_TARGET_VIEW_DESC desc;
-	desc.Format = getD3DFormat(rTexArrayRes.texInfo.format);
+	desc.Format = getD3DFormat(rTexArrayRes.GetTextureInfo().format);
 	desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 	desc.Texture2DArray.MipSlice = 0;
 	desc.Texture2DArray.FirstArraySlice = arrayStartIndex;
@@ -1684,7 +1700,7 @@ RdrRenderTargetView RdrContext::CreateRenderTargetView(RdrResource& rTexArrayRes
 	desc.Texture2DArray.PlaneSlice = 0;
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = m_rtvHeap.AllocateDescriptor();
-	m_pDevice->CreateRenderTargetView(rTexArrayRes.pResource, &desc, descHandle);
+	m_pDevice->CreateRenderTargetView(rTexArrayRes.m_pResource, &desc, descHandle);
 	view.hView = descHandle;
 	view.pResource = &rTexArrayRes;
 
@@ -1698,21 +1714,21 @@ void RdrContext::ReleaseRenderTargetView(const RdrRenderTargetView& renderTarget
 
 void RdrContext::TransitionResource(RdrResource* pResource, D3D12_RESOURCE_STATES eState)
 {
-	if (pResource == nullptr || pResource->eResourceState == eState)
+	if (pResource == nullptr || pResource->m_eResourceState == eState)
 		return;
 
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-		pResource->pResource,
-		pResource->eResourceState, 
+		pResource->m_pResource,
+		pResource->m_eResourceState, 
 		eState);
 	m_pCommandList->ResourceBarrier(1, &barrier);
 
-	pResource->eResourceState = eState;
+	pResource->m_eResourceState = eState;
 }
 
 void RdrContext::UAVBarrier(const RdrResource* pResource)
 {
-	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::UAV(pResource->pResource);
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::UAV(pResource->m_pResource);
 	m_pCommandList->ResourceBarrier(1, &barrier);
 }
 
@@ -1749,6 +1765,8 @@ void RdrContext::BeginFrame()
 {
 	// Reset command list for the next frame
 	HRESULT hr = m_pCommandList->Reset(m_pCommandAllocators[m_currBackBuffer].Get(), nullptr);
+	assert(SUCCEEDED(hr));
+	
 	SetDescriptorHeaps();
 
 	// Transition new backbuffer back into RTV state
@@ -1778,7 +1796,8 @@ void RdrContext::Present()
 	ID3D12CommandList* aCommandLists[1] = { m_pCommandList.Get() };
 	m_pCommandQueue->ExecuteCommandLists(ARRAYSIZE(aCommandLists), aCommandLists);
 
-	m_nFrameFenceValues[m_currBackBuffer] = Signal(m_pCommandQueue, m_pFence, m_nFenceValue);
+	Signal(m_pCommandQueue, m_pFence, m_nFrameNum);
+	++m_nFrameNum;
 
 
 	uint syncInterval = g_userConfig.vsync;
@@ -1826,21 +1845,21 @@ void RdrContext::Present()
 	m_currBackBuffer = m_pSwapChain->GetCurrentBackBufferIndex();
 	m_uploadBuffers[m_currBackBuffer].pCurr = m_uploadBuffers[m_currBackBuffer].pStart;
 
-	WaitForFenceValue(m_pFence, m_nFrameFenceValues[m_currBackBuffer], m_hFenceEvent);
+	WaitForFenceValue(m_pFence, m_nFrameNum - 1, m_hFenceEvent);
 }
 
 void RdrContext::Resize(uint width, uint height)
 {
 	// Flush the GPU queue to make sure the swap chain's back buffers
 	// are not being referenced by an in-flight command list.
-	Flush(m_pCommandQueue, m_pFence, m_nFenceValue, m_hFenceEvent);
+	Flush(m_pCommandQueue, m_pFence, ++m_nFenceValue, m_hFenceEvent);
 
 	for (int i = 0; i < kNumBackBuffers; ++i)
 	{
 		// Any references to the back buffers must be released
 		// before the swap chain can be resized.
 		m_pBackBuffers[i].Reset();
-		m_nFrameFenceValues[i] = m_nFrameFenceValues[m_currBackBuffer];
+		//donotcheckin m_nFrameFenceValues[i] = m_nFrameFenceValues[m_currBackBuffer];
 	}
 
 	DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
@@ -1918,25 +1937,25 @@ bool RdrContext::CreateConstantBuffer(const void* pData, uint size, RdrResourceA
 
 	CreateBuffer(pData, size, accessFlags, eResourceState, rResource);
 
-	rResource.srv.hView = m_srvHeap.AllocateDescriptor();
-	rResource.srv.pResource = &rResource;
+	rResource.m_srv.hView = m_srvHeap.AllocateDescriptor();
+	rResource.m_srv.pResource = &rResource;
 
 	// Describe and create a constant buffer view.
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-	cbvDesc.BufferLocation = rResource.pResource->GetGPUVirtualAddress();
+	cbvDesc.BufferLocation = rResource.m_pResource->GetGPUVirtualAddress();
 	cbvDesc.SizeInBytes = size;
-	m_pDevice->CreateConstantBufferView(&cbvDesc, rResource.srv.hView);
+	m_pDevice->CreateConstantBufferView(&cbvDesc, rResource.m_srv.hView);
 
 	return true;
 }
 
 void RdrContext::UpdateResource(RdrResource& rResource, const void* pSrcData, const uint dataSize)
 {
-	if (IsFlagSet(rResource.accessFlags, RdrResourceAccessFlags::CpuWrite))
+	if (IsFlagSet(rResource.m_accessFlags, RdrResourceAccessFlags::CpuWrite))
 	{
 		void* pDstData;
 		CD3DX12_RANGE readRange(0, 0);
-		HRESULT hr = rResource.pResource->Map(0, &readRange, &pDstData);
+		HRESULT hr = rResource.m_pResource->Map(0, &readRange, &pDstData);
 		if (FAILED(hr))
 		{
 			assert(false);
@@ -1946,7 +1965,7 @@ void RdrContext::UpdateResource(RdrResource& rResource, const void* pSrcData, co
 		memcpy(pDstData, pSrcData, dataSize);
 
 		CD3DX12_RANGE writeRange(0, dataSize);
-		rResource.pResource->Unmap(0, &writeRange);
+		rResource.m_pResource->Unmap(0, &writeRange);
 	}
 	else
 	{
@@ -1955,9 +1974,9 @@ void RdrContext::UpdateResource(RdrResource& rResource, const void* pSrcData, co
 		{
 			memcpy(uploadBuffer.pCurr, pSrcData, dataSize);
 
-			D3D12_RESOURCE_STATES eOrigState = rResource.eResourceState;
+			D3D12_RESOURCE_STATES eOrigState = rResource.m_eResourceState;
 			TransitionResource(&rResource, D3D12_RESOURCE_STATE_COPY_DEST);
-			m_pCommandList->CopyBufferRegion(rResource.pResource, 0, uploadBuffer.pBuffer.Get(), (uploadBuffer.pCurr - uploadBuffer.pStart), dataSize);
+			m_pCommandList->CopyBufferRegion(rResource.m_pResource, 0, uploadBuffer.pBuffer.Get(), (uploadBuffer.pCurr - uploadBuffer.pStart), dataSize);
 			TransitionResource(&rResource, eOrigState);
 
 			uploadBuffer.pCurr += dataSize;
@@ -1975,9 +1994,9 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 	for (uint i = 0; i < rDrawState.vertexBufferCount; ++i)
 	{
 		const RdrResource* pBuffer = rDrawState.pVertexBuffers[i];
-		views[i].BufferLocation = pBuffer->pResource ? pBuffer->pResource->GetGPUVirtualAddress() : 0;
+		views[i].BufferLocation = pBuffer->m_pResource ? pBuffer->m_pResource->GetGPUVirtualAddress() : 0;
 		views[i].BufferLocation += rDrawState.vertexOffsets[i];
-		views[i].SizeInBytes = pBuffer->size;
+		views[i].SizeInBytes = pBuffer->m_size;
 		views[i].StrideInBytes = rDrawState.vertexStrides[i];
 	}
 
@@ -2102,12 +2121,12 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 		m_rProfiler.IncrementCounter(RdrProfileCounter::PrimitiveTopology);
 	}
 
-	if (rDrawState.pIndexBuffer && rDrawState.pIndexBuffer->pResource)
+	if (rDrawState.pIndexBuffer && rDrawState.pIndexBuffer->m_pResource)
 	{
 		if (rDrawState.pIndexBuffer != m_drawState.pIndexBuffer)
 		{
 			D3D12_INDEX_BUFFER_VIEW view;
-			view.BufferLocation = rDrawState.pIndexBuffer->pResource->GetGPUVirtualAddress();
+			view.BufferLocation = rDrawState.pIndexBuffer->m_pResource->GetGPUVirtualAddress();
 			view.Format = DXGI_FORMAT_R16_UINT;
 			view.SizeInBytes = rDrawState.indexCount * sizeof(uint16);
 

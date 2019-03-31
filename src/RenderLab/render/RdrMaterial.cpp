@@ -207,7 +207,7 @@ namespace
 		pOutMaterial->bNeedsLighting = pMaterial->bNeedsLighting;
 		pOutMaterial->bAlphaCutout = pMaterial->bAlphaCutout;
 			
-		RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
+		RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
 		for (int n = 0; n < pMaterial->texCount; ++n)
 		{
 			pOutMaterial->ahTextures.assign(n, rResCommandList.CreateTextureFromFile(pMaterial->pTextureNames[n], nullptr));

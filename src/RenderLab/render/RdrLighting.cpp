@@ -126,7 +126,7 @@ RdrLighting::RdrLighting()
 
 void RdrLighting::Cleanup()
 {
-	RdrResourceCommandList& rResCommands = g_pRenderer->GetPreFrameCommandList();
+	RdrResourceCommandList& rResCommands = g_pRenderer->GetResourceCommandList();
 
 	for (uint i = 0; i < MAX_SHADOW_MAPS; ++i)
 	{
@@ -168,7 +168,7 @@ void RdrLighting::LazyInitShadowResources()
 {
 	if (!m_hShadowMapTexArray)
 	{
-		RdrResourceCommandList& rResCommands = g_pRenderer->GetPreFrameCommandList();
+		RdrResourceCommandList& rResCommands = g_pRenderer->GetResourceCommandList();
 		m_hShadowMapTexArray = rResCommands.CreateTexture2DArray(s_shadowMapSize, s_shadowMapSize, MAX_SHADOW_MAPS, 
 			kDefaultDepthFormat, RdrResourceAccessFlags::CpuRO_GpuRO_RenderTarget);
 		for (int i = 0; i < MAX_SHADOW_MAPS; ++i)
@@ -326,7 +326,9 @@ void RdrLighting::QueueDraw(RdrAction* pAction, RdrLightList* pLights, RdrLighti
 
 	//////////////////////////////////////////////////////////////////////////
 	// Apply resource updates
-	RdrResourceCommandList& rResCommandList = pAction->GetResCommandList();
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
+
+	// donotcheckin - all these mid-frame / between action things are invalid now...
 
 	// Update spot lights
 	SpotLight* pSpotLights = (SpotLight*)RdrFrameMem::Alloc(sizeof(SpotLight) * pLights->m_spotLights.size());
@@ -400,7 +402,7 @@ void RdrLighting::QueueDraw(RdrAction* pAction, RdrLightList* pLights, RdrLighti
 
 void RdrLighting::QueueClusteredLightCulling(RdrAction* pAction, const Camera& rCamera, int numSpotLights, int numPointLights)
 {
-	RdrResourceCommandList& rResCommandList = pAction->GetResCommandList();
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
 	const Rect& viewport = pAction->GetViewport();
 
 	// Determine the cluster tile size given two rules:
@@ -461,7 +463,7 @@ void RdrLighting::QueueClusteredLightCulling(RdrAction* pAction, const Camera& r
 
 void RdrLighting::QueueTiledLightCulling(RdrAction* pAction, const Camera& rCamera, int numSpotLights, int numPointLights)
 {
-	RdrResourceCommandList& rResCommandList = pAction->GetResCommandList();
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
 	const Rect& viewport = pAction->GetViewport();
 
 	uint tileCountX = RdrComputeOp::getThreadGroupCount((uint)viewport.width, TILEDLIGHTING_TILE_SIZE);
@@ -565,7 +567,7 @@ void RdrLighting::QueueTiledLightCulling(RdrAction* pAction, const Camera& rCame
 
 void RdrLighting::QueueVolumetricFog(RdrAction* pAction, const AssetLib::VolumetricFogSettings& rFogSettings, const RdrResourceHandle hLightIndicesRes)
 {
-	RdrResourceCommandList& rResCommandList = pAction->GetResCommandList();
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
 	const RdrLightResources& rLightParams = pAction->GetLightResources();
 	const RdrGlobalConstants& rGlobalConstants = pAction->GetGlobalConstants();
 

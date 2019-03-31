@@ -64,7 +64,8 @@ namespace RdrResourceSystem
 class RdrResourceCommandList
 {
 public:
-	void ProcessCommands(RdrContext* pRdrContext);
+	void ProcessPreFrameCommands(RdrContext* pRdrContext);
+	void ProcessCleanupCommands(RdrContext* pRdrContext);
 
 	RdrResourceHandle CreateTextureFromFile(const CachedString& texName, RdrTextureInfo* pOutInfo);
 

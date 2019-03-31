@@ -165,7 +165,7 @@ void Ocean::GenerateFourierGrid(int gridSize, float tileWorldSize, const Vec2& w
 
 void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, float waveHeightScalar, const Vec2& wind)
 {
-	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
 
 	m_initialized = true;
 	m_timer = 0.f;
@@ -232,7 +232,7 @@ void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, flo
 	VsPerObject* pVsPerObject = (VsPerObject*)RdrFrameMem::AllocAligned(constantsSize, 16);
 	pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
-	m_hVsPerObjectConstantBuffer = g_pRenderer->GetPreFrameCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
+	m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
 		pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
 }
 
@@ -328,7 +328,7 @@ void Ocean::Update()
 		}
 	}
 
-	g_pRenderer->GetPreFrameCommandList().UpdateGeoVerts(m_hGeo, aVertices);
+	g_pRenderer->GetResourceCommandList().UpdateGeoVerts(m_hGeo, aVertices);
 }
 
 RdrDrawOpSet Ocean::BuildDrawOps(RdrAction* pAction)

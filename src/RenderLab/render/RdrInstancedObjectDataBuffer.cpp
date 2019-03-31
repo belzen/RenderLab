@@ -33,7 +33,7 @@ void RdrInstancedObjectDataBuffer::ReleaseEntry(RdrInstancedObjectDataId id)
 
 void RdrInstancedObjectDataBuffer::UpdateBuffer(Renderer& rRenderer)
 {
-	RdrResourceCommandList& rResCommandList = rRenderer.GetPreFrameCommandList();
+	RdrResourceCommandList& rResCommandList = rRenderer.GetResourceCommandList();
 
 	// TODO: This is not safe.  The buffer data could be changing on the main thread
 	//	while the render thread processes the update.  This should use immediate commands instead.

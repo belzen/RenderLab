@@ -22,7 +22,7 @@ void ModelComponent::Release()
 {
 	if (m_hVsPerObjectConstantBuffer)
 	{
-		g_pRenderer->GetPreFrameCommandList().ReleaseConstantBuffer(m_hVsPerObjectConstantBuffer);
+		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hVsPerObjectConstantBuffer);
 		m_hVsPerObjectConstantBuffer = 0;
 	}
 
@@ -78,7 +78,7 @@ RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 		VsPerObject* pVsPerObject = (VsPerObject*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
-		m_hVsPerObjectConstantBuffer = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer, 
+		m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
 			pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuWrite | RdrResourceAccessFlags::GpuRead);
 	
 		if (CanInstance())

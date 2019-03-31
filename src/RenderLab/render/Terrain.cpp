@@ -26,7 +26,7 @@ Terrain::Terrain()
 
 void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 {
-	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
 
 	m_initialized = true;
 	m_srcData = rTerrainAsset;
@@ -115,7 +115,7 @@ RdrDrawOpSet Terrain::BuildDrawOps(RdrAction* pAction)
 	pDsConstants->heightmapTexelSize.y = 1.f / m_heightmapSize.y;
 	pDsConstants->heightScale = m_srcData.heightScale;
 #if 0 //donotcheckin
-	m_tessMaterial.hDsConstants = pAction->GetResCommandList().CreateUpdateConstantBuffer(m_tessMaterial.hDsConstants,
+	m_tessMaterial.hDsConstants = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_tessMaterial.hDsConstants,
 		pDsConstants, sizeof(DsTerrain), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
 #endif
 

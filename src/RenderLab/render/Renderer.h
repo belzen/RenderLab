@@ -19,8 +19,7 @@ class Renderer;
 struct RdrFrameState
 {
 	FixedVector<RdrAction*, MAX_ACTIONS_PER_FRAME> actions;
-	RdrResourceCommandList preFrameResourceCommands;
-	RdrResourceCommandList postFrameResourceCommands;
+	RdrResourceCommandList resourceCommands;
 };
 
 // Global pointer to active renderer.
@@ -48,8 +47,7 @@ public:
 
 	void QueueAction(RdrAction* pAction);
 
-	RdrResourceCommandList& GetPreFrameCommandList();
-	RdrResourceCommandList& GetPostFrameCommandList();
+	RdrResourceCommandList& GetResourceCommandList();
 
 	void DrawFrame();
 	void PostFrameSync();

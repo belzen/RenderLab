@@ -21,7 +21,7 @@ class RdrContext;
 class RdrDrawState;
 
 #if 0 //donotcheckin - unnecessary if keeping dx12 includes here
-interface ID3D12Device2;
+interface ID3D12Device;
 interface ID3D12CommandQueue;
 interface ID3D12GraphicsCommandList;
 interface ID3D12Resource;
@@ -46,7 +46,7 @@ static constexpr RdrResourceFormat kDefaultDepthFormat = RdrResourceFormat::D24_
 class DescriptorHeap
 {
 public:
-	void Create(ComPtr<ID3D12Device2> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors, bool bShaderVisible);
+	void Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors, bool bShaderVisible);
 
 	uint AllocateDescriptorId();
 	D3D12DescriptorHandle AllocateDescriptor();
@@ -65,7 +65,7 @@ private:
 class DescriptorRingBuffer
 {
 public:
-	void Create(ComPtr<ID3D12Device2> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors);
+	void Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors);
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE AllocateDescriptors(uint numToAllocate, uint& nOutDescriptorStartIndex);
 	CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(uint nDescriptor) const;
@@ -83,7 +83,7 @@ private:
 class QueryHeap
 {
 public:
-	void Create(ComPtr<ID3D12Device2> pDevice, D3D12_QUERY_HEAP_TYPE type, uint nMaxQueries);
+	void Create(ComPtr<ID3D12Device> pDevice, D3D12_QUERY_HEAP_TYPE type, uint nMaxQueries);
 
 	D3D12QueryHandle AllocateQuery();
 	void FreeQuery(D3D12QueryHandle hQuery);
@@ -204,6 +204,9 @@ public:
 	uint64 GetTimestampQueryData(RdrQuery& rQuery);
 	uint64 GetTimestampFrequency() const;
 
+	uint64 GetLastCompletedFrame() const { return m_nFrameNum - (kNumBackBuffers - 1); }
+	uint64 GetFrameNum() const { return m_nFrameNum; }
+
 private:
 	static constexpr int kNumBackBuffers = 2;
 	static constexpr int kMaxNumSamplers = 64;
@@ -214,7 +217,7 @@ private:
 
 	D3D12DescriptorHandle GetSampler(const RdrSamplerState& state);
 
-	ComPtr<ID3D12Device2> m_pDevice;
+	ComPtr<ID3D12Device> m_pDevice;
 	ComPtr<ID3D12CommandQueue> m_pCommandQueue;
 	uint64 m_commandQueueTimestampFreqency;
 	ComPtr<ID3D12GraphicsCommandList> m_pCommandList;
@@ -236,7 +239,7 @@ private:
 	ComPtr<ID3D12Fence> m_pFence;
 	HANDLE m_hFenceEvent;
 	uint64 m_nFenceValue;
-	uint64 m_nFrameFenceValues[kNumBackBuffers];
+	uint64 m_nFrameNum;
 
 	DescriptorHeap m_rtvHeap;
 	DescriptorHeap m_samplerHeap;

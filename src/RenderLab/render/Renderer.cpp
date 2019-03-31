@@ -81,7 +81,7 @@ void Renderer::ApplyDeviceChanges()
 {
 	if (m_pendingViewWidth != m_viewWidth || m_pendingViewHeight != m_viewHeight)
 	{
-		RdrResourceCommandList& rResCommandList = GetPreFrameCommandList();
+		RdrResourceCommandList& rResCommandList = GetResourceCommandList();
 		m_pContext->Resize(m_pendingViewWidth, m_pendingViewHeight);
 
 		m_viewWidth = m_pendingViewWidth;
@@ -100,14 +100,9 @@ void Renderer::QueueAction(RdrAction* pAction)
 	GetQueueState().actions.push(pAction);
 }
 
-RdrResourceCommandList& Renderer::GetPreFrameCommandList()
+RdrResourceCommandList& Renderer::GetResourceCommandList()
 {
-	return GetQueueState().preFrameResourceCommands;
-}
-
-RdrResourceCommandList& Renderer::GetPostFrameCommandList()
-{
-	return GetQueueState().postFrameResourceCommands;
+	return GetQueueState().resourceCommands;
 }
 
 void Renderer::PostFrameSync()
@@ -133,7 +128,6 @@ void Renderer::PostFrameSync()
 	//////////////////////////////////////////////////////////////////////////
 	// Clear the data that we just rendered with.
 	RdrFrameState& rActiveState = GetActiveState();
-	RdrResourceCommandList& rResCommandList = GetPostFrameCommandList();
 
 	// Release actions.
 	for (RdrAction* pAction : rActiveState.actions)
@@ -191,7 +185,7 @@ void Renderer::DrawFrame()
 
 	// Process threaded render commands.
 	RdrShaderSystem::ProcessCommands(m_pContext);
-	rFrameState.preFrameResourceCommands.ProcessCommands(m_pContext);
+	rFrameState.resourceCommands.ProcessPreFrameCommands(m_pContext);
 
 	ProcessReadbackRequests();
 
@@ -218,7 +212,7 @@ void Renderer::DrawFrame()
 	m_pContext->Present();
 
 	// Process post-frame commands.
-	rFrameState.postFrameResourceCommands.ProcessCommands(m_pContext);
+	rFrameState.resourceCommands.ProcessCleanupCommands(m_pContext);
 }
 
 RdrResourceReadbackRequestHandle Renderer::IssueTextureReadbackRequest(RdrResourceHandle hResource, const IVec3& pixelCoord)
@@ -229,9 +223,9 @@ RdrResourceReadbackRequestHandle Renderer::IssueTextureReadbackRequest(RdrResour
 	pReq->frameCount = 0;
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(pixelCoord.x, pixelCoord.y, 0, 1, 1, 1);
-	pReq->hDstResource = GetPreFrameCommandList().CreateTexture2D(1, 1, pSrcResource->texInfo.format, 
+	pReq->hDstResource = GetResourceCommandList().CreateTexture2D(1, 1, pSrcResource->GetTextureInfo().format, 
 		RdrResourceAccessFlags::CpuRO_GpuRW, nullptr);
-	pReq->dataSize = rdrGetTexturePitch(1, pSrcResource->texInfo.format);
+	pReq->dataSize = rdrGetTexturePitch(1, pSrcResource->GetTextureInfo().format);
 	pReq->pData = new char[pReq->dataSize]; // todo: custom heap
 
 	AutoScopedLock lock(m_readbackMutex);
@@ -247,7 +241,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueStructuredBufferReadbackRequest(
 	pReq->frameCount = 0;
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(startByteOffset, 0, 0, numBytesToRead, 1, 1);
-	pReq->hDstResource = GetPreFrameCommandList().CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceAccessFlags::CpuRO_GpuRW);
+	pReq->hDstResource = GetResourceCommandList().CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceAccessFlags::CpuRO_GpuRW);
 	pReq->dataSize = numBytesToRead;
 	pReq->pData = new char[numBytesToRead]; // todo: custom heap
 
@@ -281,7 +275,7 @@ void Renderer::ReleaseResourceReadbackRequest(RdrResourceReadbackRequestHandle h
 	}
 
 	// todo: pool/reuse dest resources.
-	GetPreFrameCommandList().ReleaseResource(pReq->hDstResource);
+	GetResourceCommandList().ReleaseResource(pReq->hDstResource);
 	SAFE_DELETE(pReq->pData);
 
 	m_readbackRequests.releaseId(hRequest);

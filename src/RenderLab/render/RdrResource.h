@@ -15,8 +15,6 @@ enum class RdrTextureType
 
 struct RdrTextureInfo
 {
-	const char* filename;
-
 	RdrTextureType texType;
 	RdrResourceFormat format;
 	uint width;
@@ -55,20 +53,49 @@ struct RdrUnorderedAccessView
 
 struct RdrResource
 {
-	ID3D12Resource* pResource;
-	RdrShaderResourceView srv;
-	RdrUnorderedAccessView uav;
-	D3D12_RESOURCE_STATES eResourceState;
-	RdrResourceAccessFlags accessFlags;
-	uint size;
+public:
+	void SetName(const char* name) { filename = name; }
+	void InitAsTexture(const RdrTextureInfo& texInfo, RdrResourceAccessFlags accessFlags);
+	void InitAsBuffer(const RdrBufferInfo& bufferInfo, RdrResourceAccessFlags accessFlags);
+
+	void BindDeviceResources(ID3D12Resource* pResource, D3D12_RESOURCE_STATES eInitialState, RdrShaderResourceView* pSRV, RdrUnorderedAccessView* pUAV);
+	
+	bool IsTexture() const { return m_bIsTexture; }
+	bool IsBuffer() const { return !m_bIsTexture; }
+
+	bool IsValid() const { return !!m_pResource; }
+	ID3D12Resource* GetResource() const { MarkUsedThisFrame();  return m_pResource; }
+	const RdrShaderResourceView& GetSRV() const { MarkUsedThisFrame(); return m_srv; }
+	const RdrUnorderedAccessView GetUAV() const { MarkUsedThisFrame(); return m_uav; }
+
+	uint GetSize() const { return m_size; }
+	RdrResourceAccessFlags GetAccessFlags() const { return m_accessFlags; }
+
+	void MarkUsedThisFrame() const;
+	uint64 GetLastUsedFrame() const { return m_nLastUsedFrameCode; }
+
+	const RdrBufferInfo& GetBufferInfo() const { return m_bufferInfo; }
+	const RdrTextureInfo& GetTextureInfo() const { return m_textureInfo; }
+private:
+	friend class RdrContext; //donotcheckin
+
+	ID3D12Resource* m_pResource;
+	RdrShaderResourceView m_srv;
+	RdrUnorderedAccessView m_uav;
+	D3D12_RESOURCE_STATES m_eResourceState;
+	RdrResourceAccessFlags m_accessFlags;
+	uint m_size;
+	uint64 m_nLastUsedFrameCode;
+
+	const char* filename;
 
 	union
 	{
-		RdrTextureInfo texInfo;
-		RdrBufferInfo bufferInfo;
+		RdrTextureInfo m_textureInfo;
+		RdrBufferInfo m_bufferInfo;
 	};
 
-	bool bIsTexture; // Whether this resource is a texture or a buffer.
+	bool m_bIsTexture; // Whether this resource is a texture or a buffer.
 };
 
 //////////////////////////////////////////////////////////////////////////

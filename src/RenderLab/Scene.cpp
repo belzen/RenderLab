@@ -100,7 +100,7 @@ void Scene::Load(const char* sceneName)
 	memset(s_scene.m_apActiveEnvironmentLights, 0, sizeof(s_scene.m_apActiveEnvironmentLights));
 	if (!s_scene.m_hEnvironmentMapTexArray || s_scene.m_environmentMapSize != pSceneData->environmentMapTexSize)
 	{
-		RdrResourceCommandList& rResCommands = g_pRenderer->GetPreFrameCommandList();
+		RdrResourceCommandList& rResCommands = g_pRenderer->GetResourceCommandList();
 		if (s_scene.m_hEnvironmentMapTexArray)
 		{
 			rResCommands.ReleaseResource(s_scene.m_hEnvironmentMapTexArray);
