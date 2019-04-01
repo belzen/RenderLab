@@ -19,7 +19,7 @@ class Renderer;
 struct RdrFrameState
 {
 	FixedVector<RdrAction*, MAX_ACTIONS_PER_FRAME> actions;
-	RdrResourceCommandList resourceCommands;
+	RdrResourceCommandList resourceCommands; // donotcheckin - consolidate to 1 list - resource frees only get processed every other frame this way.
 };
 
 // Global pointer to active renderer.

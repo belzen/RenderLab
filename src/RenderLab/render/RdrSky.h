@@ -14,9 +14,8 @@ public:
 	RdrSky();
 
 	void AssignExternalResources(RdrResourceHandle hVolumetricFogLut);
-	void QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySettings, const RdrLightList* pLightList);
+	void QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySettings, const RdrLightList* pLightList, RdrConstantBufferHandle* phOutAtmosphereCb);
 
-	RdrConstantBufferHandle GetAtmosphereConstantBuffer() const;
 	RdrResourceHandle GetTransmittanceLut() const;
 
 private:
@@ -28,7 +27,6 @@ private:
 	RdrMaterial m_material;
 	ModelData* m_pSkyDomeModel;
 
-	RdrConstantBufferHandle m_hAtmosphereConstants;
 	RdrResourceHandle m_hTransmittanceLut;
 	RdrResourceHandle m_hScatteringRayleighDeltaLut;
 	RdrResourceHandle m_hScatteringMieDeltaLut;
@@ -41,11 +39,6 @@ private:
 
 	uint m_pendingComputeOps;
 };
-
-inline RdrConstantBufferHandle RdrSky::GetAtmosphereConstantBuffer() const
-{
-	return m_hAtmosphereConstants;
-}
 
 inline RdrResourceHandle RdrSky::GetTransmittanceLut() const
 {

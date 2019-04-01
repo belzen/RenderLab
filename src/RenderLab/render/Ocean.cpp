@@ -200,12 +200,12 @@ void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, flo
 	m_hGeo = rResCommandList.CreateGeo(
 		aVertices, sizeof(aVertices[0]), numVerts,
 		aIndices, numTriangles * 3,
-		RdrTopology::TriangleList, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f));
+		RdrTopology::TriangleList, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f), this);
 
 	// Setup pixel material
 	memset(&m_material, 0, sizeof(m_material));
 	m_material.bNeedsLighting = true;
-	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrResourceAccessFlags::CpuRW_GpuRO);
+	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrResourceAccessFlags::CpuRW_GpuRO, this);
 
 	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene);
 	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene);
@@ -233,7 +233,7 @@ void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, flo
 	pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
 	m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
-		pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO);
+		pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, this);
 }
 
 Vec2 Ocean::GetDisplacement(int n, int m)
@@ -328,7 +328,7 @@ void Ocean::Update()
 		}
 	}
 
-	g_pRenderer->GetResourceCommandList().UpdateGeoVerts(m_hGeo, aVertices);
+	g_pRenderer->GetResourceCommandList().UpdateGeoVerts(m_hGeo, aVertices, this);
 }
 
 RdrDrawOpSet Ocean::BuildDrawOps(RdrAction* pAction)

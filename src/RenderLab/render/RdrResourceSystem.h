@@ -8,6 +8,40 @@
 class Renderer;
 class RdrContext;
 
+class RdrLighting;
+class Decal;
+class ModelComponent;
+class ModelData;
+class RdrSky;
+class Terrain;
+class Sprite;
+class Ocean;
+class RdrAction;
+struct RdrMaterial;
+class RdrPostProcess;
+struct RdrDebugBackpointer
+{
+	// donotcheckin - smoother type handling
+	RdrDebugBackpointer() = default;
+	RdrDebugBackpointer(const RdrLighting* pSrc)	: pSource(pSrc), nDataType(0) {}
+	RdrDebugBackpointer(const RdrSky* pSrc)			: pSource(pSrc), nDataType(1) {}
+	RdrDebugBackpointer(const Decal* pSrc)			: pSource(pSrc), nDataType(2) {}
+	RdrDebugBackpointer(const ModelComponent* pSrc) : pSource(pSrc), nDataType(3) {}
+	RdrDebugBackpointer(const ModelData* pSrc)		: pSource(pSrc), nDataType(4) {}
+	RdrDebugBackpointer(const Terrain* pSrc)		: pSource(pSrc), nDataType(5) {}
+	RdrDebugBackpointer(const Sprite* pSrc)			: pSource(pSrc), nDataType(6) {}
+	RdrDebugBackpointer(const Ocean* pSrc)			: pSource(pSrc), nDataType(7) {}
+	RdrDebugBackpointer(const RdrAction* pSrc)		: pSource(pSrc), nDataType(8) {}
+	RdrDebugBackpointer(const RdrMaterial* pSrc)	: pSource(pSrc), nDataType(9) {}
+	RdrDebugBackpointer(const Renderer* pSrc)		: pSource(pSrc), nDataType(10) {}
+	RdrDebugBackpointer(const RdrPostProcess* pSrc)	: pSource(pSrc), nDataType(11) {}
+
+	~RdrDebugBackpointer() = default;
+
+	const void* pSource;
+	uint nDataType;
+};
+
 enum class RdrDefaultResource
 {
 	kBlackTex2d,
@@ -67,54 +101,54 @@ public:
 	void ProcessPreFrameCommands(RdrContext* pRdrContext);
 	void ProcessCleanupCommands(RdrContext* pRdrContext);
 
-	RdrResourceHandle CreateTextureFromFile(const CachedString& texName, RdrTextureInfo* pOutInfo);
+	RdrResourceHandle CreateTextureFromFile(const CachedString& texName, RdrTextureInfo* pOutInfo, const RdrDebugBackpointer& debug);
 
-	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData);
-	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount, RdrResourceAccessFlags accessFlags);
-	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags);
+	RdrResourceHandle CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData, const RdrDebugBackpointer& debug);
+	RdrResourceHandle CreateTexture2DMS(uint width, uint height, RdrResourceFormat format, uint sampleCount, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
+	RdrResourceHandle CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
 
-	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags);
-	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags);
+	RdrResourceHandle CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
+	RdrResourceHandle CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
 
-	RdrResourceHandle CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData);
+	RdrResourceHandle CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData, const RdrDebugBackpointer& debug);
 
 	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
-		RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax);
-	RdrGeoHandle UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVertData);
-	void ReleaseGeo(const RdrGeoHandle hGeo);
+		RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax, const RdrDebugBackpointer& debug);
+	RdrGeoHandle UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVertData, const RdrDebugBackpointer& debug);
+	void ReleaseGeo(const RdrGeoHandle hGeo, const RdrDebugBackpointer& debug);
 
-	RdrResourceHandle CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceAccessFlags accessFlags);
+	RdrResourceHandle CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
 
-	RdrResourceHandle CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags);
-	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceAccessFlags accessFlags);
-	RdrResourceHandle UpdateBuffer(const RdrResourceHandle hResource, const void* pSrcData, int numElements = -1);
+	RdrResourceHandle CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
+	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
+	RdrResourceHandle UpdateBuffer(const RdrResourceHandle hResource, const void* pSrcData, int numElements, const RdrDebugBackpointer& debug);
 
-	RdrShaderResourceViewHandle CreateShaderResourceView(RdrResourceHandle hResource, uint firstElement);
-	void ReleaseShaderResourceView(RdrShaderResourceViewHandle hView);
+	RdrShaderResourceViewHandle CreateShaderResourceView(RdrResourceHandle hResource, uint firstElement, const RdrDebugBackpointer& debug);
+	void ReleaseShaderResourceView(RdrShaderResourceViewHandle hView, const RdrDebugBackpointer& debug);
 
-	RdrConstantBufferHandle CreateConstantBuffer(const void* pData, uint size, RdrResourceAccessFlags accessFlags);
-	RdrConstantBufferHandle CreateTempConstantBuffer(const void* pData, uint size);
-	RdrConstantBufferHandle CreateUpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint size, RdrResourceAccessFlags accessFlags);
-	void UpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData);
-	void ReleaseConstantBuffer(RdrConstantBufferHandle hBuffer);
+	RdrConstantBufferHandle CreateConstantBuffer(const void* pData, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
+	RdrConstantBufferHandle CreateTempConstantBuffer(const void* pData, uint size, const RdrDebugBackpointer& debug);
+	RdrConstantBufferHandle CreateUpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
+	void UpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, const RdrDebugBackpointer& debug);
+	void ReleaseConstantBuffer(RdrConstantBufferHandle hBuffer, const RdrDebugBackpointer& debug);
 
-	void ReleaseResource(RdrResourceHandle hRes);
+	void ReleaseResource(RdrResourceHandle hRes, const RdrDebugBackpointer& debug);
 
-	RdrDepthStencilViewHandle CreateDepthStencilView(RdrResourceHandle hResource);
-	RdrDepthStencilViewHandle CreateDepthStencilView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize);
-	void ReleaseDepthStencilView(const RdrRenderTargetViewHandle hView);
+	RdrDepthStencilViewHandle CreateDepthStencilView(RdrResourceHandle hResource, const RdrDebugBackpointer& debug);
+	RdrDepthStencilViewHandle CreateDepthStencilView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug);
+	void ReleaseDepthStencilView(const RdrRenderTargetViewHandle hView, const RdrDebugBackpointer& debug);
 
-	RdrRenderTargetViewHandle CreateRenderTargetView(RdrResourceHandle hResource);
-	RdrRenderTargetViewHandle CreateRenderTargetView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize);
-	void ReleaseRenderTargetView(const RdrRenderTargetViewHandle hView);
+	RdrRenderTargetViewHandle CreateRenderTargetView(RdrResourceHandle hResource, const RdrDebugBackpointer& debug);
+	RdrRenderTargetViewHandle CreateRenderTargetView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug);
+	void ReleaseRenderTargetView(const RdrRenderTargetViewHandle hView, const RdrDebugBackpointer& debug);
 
 	// Utility functions to create resource batches
-	RdrRenderTarget InitRenderTarget2d(uint width, uint height, RdrResourceFormat eFormat, int multisampleLevel);
-	void ReleaseRenderTarget2d(const RdrRenderTarget& rRenderTarget);
+	RdrRenderTarget InitRenderTarget2d(uint width, uint height, RdrResourceFormat eFormat, int multisampleLevel, const RdrDebugBackpointer& debug);
+	void ReleaseRenderTarget2d(const RdrRenderTarget& rRenderTarget, const RdrDebugBackpointer& debug);
 
 private:
 	RdrResourceHandle CreateTextureCommon(RdrTextureType texType, uint width, uint height, uint depth,
-		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceAccessFlags accessFlags, char* pTextureData);
+		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceAccessFlags accessFlags, char* pTextureData, const RdrDebugBackpointer& debug);
 
 private:
 	// Command definitions
@@ -127,6 +161,8 @@ private:
 		char* pFileData; // Pointer to start of texture data when loaded from a file.
 		char* pData; // Pointer to start of raw data.
 		uint dataSize;
+
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdCreateBuffer
@@ -135,6 +171,8 @@ private:
 		const void* pData;
 		RdrBufferInfo info;
 		RdrResourceAccessFlags accessFlags;
+
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdUpdateBuffer
@@ -142,11 +180,14 @@ private:
 		RdrResourceHandle hResource;
 		const void* pData;
 		uint numElements;
+
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdReleaseResource
 	{
 		RdrResourceHandle hResource;
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdCreateConstantBuffer
@@ -155,18 +196,22 @@ private:
 		RdrResourceAccessFlags accessFlags;
 		const void* pData;
 		uint size;
+
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdUpdateConstantBuffer
 	{
 		RdrConstantBufferHandle hBuffer;
 		const void* pData;
-		bool bIsTemp;
+
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdReleaseConstantBuffer
 	{
 		RdrConstantBufferHandle hBuffer;
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdCreateRenderTarget
@@ -175,11 +220,14 @@ private:
 		RdrResourceHandle hResource;
 		int arrayStartIndex;
 		int arraySize;
+
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdReleaseRenderTarget
 	{
 		RdrRenderTargetViewHandle hView;
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdCreateDepthStencil
@@ -188,11 +236,14 @@ private:
 		RdrResourceHandle hResource;
 		int arrayStartIndex;
 		int arraySize;
+
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdReleaseDepthStencil
 	{
 		RdrDepthStencilViewHandle hView;
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdCreateShaderResourceView
@@ -200,11 +251,14 @@ private:
 		RdrShaderResourceViewHandle hView;
 		RdrResourceHandle hResource;
 		int firstElement;
+
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdReleaseShaderResourceView
 	{
 		RdrShaderResourceViewHandle hView;
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdUpdateGeo
@@ -213,11 +267,14 @@ private:
 		const void* pVertData;
 		const uint16* pIndexData;
 		RdrGeoInfo info;
+
+		RdrDebugBackpointer debug;
 	};
 
 	struct CmdReleaseGeo
 	{
 		RdrGeoHandle hGeo;
+		RdrDebugBackpointer debug;
 	};
 
 private:

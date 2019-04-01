@@ -57,6 +57,9 @@ public:
 	void SetName(const char* name) { filename = name; }
 	void InitAsTexture(const RdrTextureInfo& texInfo, RdrResourceAccessFlags accessFlags);
 	void InitAsBuffer(const RdrBufferInfo& bufferInfo, RdrResourceAccessFlags accessFlags);
+	void InitAsConstantBuffer(RdrResourceAccessFlags accessFlags, uint nByteSize);
+	void InitAsIndexBuffer(RdrResourceAccessFlags accessFlags, uint nByteSize);
+	void InitAsVertexBuffer(RdrResourceAccessFlags accessFlags, uint nByteSize);
 
 	void BindDeviceResources(ID3D12Resource* pResource, D3D12_RESOURCE_STATES eInitialState, RdrShaderResourceView* pSRV, RdrUnorderedAccessView* pUAV);
 	
@@ -64,6 +67,13 @@ public:
 	bool IsBuffer() const { return !m_bIsTexture; }
 
 	bool IsValid() const { return !!m_pResource; }
+
+	void Reset();
+
+	// donotcheckin - make RdrResource owner of all its data - extract from RdrContext
+	D3D12_RESOURCE_STATES GetResourceState() const { return m_eResourceState; }
+	void SetResourceState(D3D12_RESOURCE_STATES eState) { m_eResourceState = eState; }
+
 	ID3D12Resource* GetResource() const { MarkUsedThisFrame();  return m_pResource; }
 	const RdrShaderResourceView& GetSRV() const { MarkUsedThisFrame(); return m_srv; }
 	const RdrUnorderedAccessView GetUAV() const { MarkUsedThisFrame(); return m_uav; }
@@ -77,8 +87,6 @@ public:
 	const RdrBufferInfo& GetBufferInfo() const { return m_bufferInfo; }
 	const RdrTextureInfo& GetTextureInfo() const { return m_textureInfo; }
 private:
-	friend class RdrContext; //donotcheckin
-
 	ID3D12Resource* m_pResource;
 	RdrShaderResourceView m_srv;
 	RdrUnorderedAccessView m_uav;

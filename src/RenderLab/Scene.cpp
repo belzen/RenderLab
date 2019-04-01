@@ -103,13 +103,13 @@ void Scene::Load(const char* sceneName)
 		RdrResourceCommandList& rResCommands = g_pRenderer->GetResourceCommandList();
 		if (s_scene.m_hEnvironmentMapTexArray)
 		{
-			rResCommands.ReleaseResource(s_scene.m_hEnvironmentMapTexArray);
+			rResCommands.ReleaseResource(s_scene.m_hEnvironmentMapTexArray, RdrDebugBackpointer());
 			s_scene.m_hEnvironmentMapTexArray = 0;
 		}
 
 		s_scene.m_environmentMapSize = pSceneData->environmentMapTexSize;
 		s_scene.m_hEnvironmentMapTexArray = rResCommands.CreateTextureCubeArray(s_scene.m_environmentMapSize, s_scene.m_environmentMapSize, MAX_ENVIRONMENT_MAPS, 
-			RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::CpuRO_GpuRO_RenderTarget);
+			RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::CpuRO_GpuRO_RenderTarget, RdrDebugBackpointer());
 	}
 
 	// Camera

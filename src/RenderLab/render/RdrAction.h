@@ -86,6 +86,7 @@ struct RdrActionSurfaces
 	RdrDepthStencilViewHandle hDepthStencilView;
 };
 
+// donotcheckin - actions can't be re-used each frame since the GPU might be using some of their resources
 class RdrAction
 {
 public:
@@ -118,7 +119,7 @@ public:
 	const Rect& GetViewport() const;
 	const Camera& GetCamera() const;
 
-	const RdrLightResources& GetLightResources() const;
+	const RdrActionLightResources& GetLightResources() const;
 	const RdrGlobalConstants& GetGlobalConstants() const;
 
 	RdrDepthStencilViewHandle GetPrimaryDepthBuffer() const;
@@ -139,8 +140,8 @@ private:
 	//
 	void DrawPass(RdrPass ePass);
 	void DrawShadowPass(int shadowPassIndex);
-	void DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants, const RdrLightResources& rLightParams);
-	void DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlobalConstants, const RdrDrawOp* pDrawOp, const RdrLightResources& rLightParams, uint instanceCount);
+	void DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants);
+	void DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlobalConstants, const RdrDrawOp* pDrawOp, uint instanceCount);
 	void DispatchCompute(const RdrComputeOp* pComputeOp);
 
 	///
@@ -166,7 +167,7 @@ private:
 	// This will typically be a texture that is written to as part of the action.
 	RdrResourceHandle m_hDebugCopyTexture;
 
-	RdrLightResources m_lightResources;
+	RdrActionLightResources m_lightResources;
 	RdrLightList m_lights;
 
 	RdrGlobalConstants m_constants;
@@ -221,7 +222,7 @@ inline const Camera& RdrAction::GetCamera() const
 	return m_camera;
 }
 
-inline const RdrLightResources& RdrAction::GetLightResources() const
+inline const RdrActionLightResources& RdrAction::GetLightResources() const
 {
 	return m_lightResources;
 }

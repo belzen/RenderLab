@@ -130,7 +130,7 @@ void RdrPostProcess::Init(RdrContext* pRdrContext, const InputManager* pInputMan
 
 	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", nullptr, 0);
 	m_toneMapPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, pPrimaryRtvFormats, nNumPrimaryRtvFormats, RdrBlendMode::kOpaque);
-	m_hToneMapOutputConstants = g_pRenderer->GetResourceCommandList().CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapOutputParams), RdrResourceAccessFlags::GpuRW);
+	m_hToneMapOutputConstants = g_pRenderer->GetResourceCommandList().CreateStructuredBuffer(nullptr, 1, sizeof(ToneMapOutputParams), RdrResourceAccessFlags::GpuRW, this);
 
 	const char* histogramDefines[] = { "TONEMAP_HISTOGRAM" };
 	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", histogramDefines, 1);
@@ -164,13 +164,13 @@ void RdrPostProcess::ResizeResources(uint width, uint height)
 	while (w > 16 || h > 16)
 	{
 		if (m_hLumOutputs[i])
-			rResCommandList.ReleaseResource(m_hLumOutputs[i]);
+			rResCommandList.ReleaseResource(m_hLumOutputs[i], this);
 
 		w = (uint)ceil(w / 16.f);
 		h = (uint)ceil(h / 16.f);
 
 		m_hLumOutputs[i] = rResCommandList.CreateTexture2D(w, h, RdrResourceFormat::R16G16B16A16_FLOAT, 
-			RdrResourceAccessFlags::GpuRW, nullptr);
+			RdrResourceAccessFlags::GpuRW, nullptr, this);
 		++i;
 	}
 
@@ -188,13 +188,13 @@ void RdrPostProcess::ResizeResources(uint width, uint height)
 		for (int n = 0; n < ARRAY_SIZE(rBloom.hResources); ++n)
 		{
 			if (rBloom.hResources[n])
-				rResCommandList.ReleaseResource(rBloom.hResources[n]);
+				rResCommandList.ReleaseResource(rBloom.hResources[n], this);
 			rBloom.hResources[n] = rResCommandList.CreateTexture2D(w, h, RdrResourceFormat::R16G16B16A16_FLOAT, 
-				RdrResourceAccessFlags::GpuRW, nullptr);
+				RdrResourceAccessFlags::GpuRW, nullptr, this);
 		}
 
 		if (rBloom.hBlendConstants)
-			rResCommandList.ReleaseConstantBuffer(rBloom.hBlendConstants);
+			rResCommandList.ReleaseConstantBuffer(rBloom.hBlendConstants, this);
 
 		uint constantsSize = sizeof(Blend2dParams);
 		Blend2dParams* pBlendParams = (Blend2dParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
@@ -212,27 +212,27 @@ void RdrPostProcess::ResizeResources(uint width, uint height)
 			pBlendParams->weight2 = 1.f;
 		}
 
-		rBloom.hBlendConstants = rResCommandList.CreateConstantBuffer(pBlendParams, constantsSize, RdrResourceAccessFlags::CpuRO_GpuRO);
+		rBloom.hBlendConstants = rResCommandList.CreateConstantBuffer(pBlendParams, constantsSize, RdrResourceAccessFlags::CpuRO_GpuRO, this);
 	}
 
 	if (m_useHistogramToneMap)
 	{
 		uint numTiles = (uint)ceilf(width / 32.f) * (uint)ceilf(height / 16.f); // todo - share tile sizes & histogram bin sizes with shader
 		if (m_hToneMapTileHistograms)
-			rResCommandList.ReleaseResource(m_hToneMapTileHistograms);
-		m_hToneMapTileHistograms = rResCommandList.CreateDataBuffer(nullptr, numTiles * 64, RdrResourceFormat::R16_UINT, RdrResourceAccessFlags::GpuRW);
+			rResCommandList.ReleaseResource(m_hToneMapTileHistograms, this);
+		m_hToneMapTileHistograms = rResCommandList.CreateDataBuffer(nullptr, numTiles * 64, RdrResourceFormat::R16_UINT, RdrResourceAccessFlags::GpuRW, this);
 	
 		if (m_hToneMapMergedHistogram)
-			rResCommandList.ReleaseResource(m_hToneMapMergedHistogram);
-		m_hToneMapMergedHistogram = rResCommandList.CreateDataBuffer(nullptr, 64, RdrResourceFormat::R32_UINT, RdrResourceAccessFlags::GpuRW);
+			rResCommandList.ReleaseResource(m_hToneMapMergedHistogram, this);
+		m_hToneMapMergedHistogram = rResCommandList.CreateDataBuffer(nullptr, 64, RdrResourceFormat::R32_UINT, RdrResourceAccessFlags::GpuRW, this);
 
 		if (m_hToneMapHistogramResponseCurve)
-			rResCommandList.ReleaseResource(m_hToneMapHistogramResponseCurve);
-		m_hToneMapHistogramResponseCurve = rResCommandList.CreateDataBuffer(nullptr, 64, RdrResourceFormat::R16_FLOAT, RdrResourceAccessFlags::GpuRW);
+			rResCommandList.ReleaseResource(m_hToneMapHistogramResponseCurve, this);
+		m_hToneMapHistogramResponseCurve = rResCommandList.CreateDataBuffer(nullptr, 64, RdrResourceFormat::R16_FLOAT, RdrResourceAccessFlags::GpuRW, this);
 
 
 		if (m_hToneMapHistogramSettings)
-			rResCommandList.ReleaseConstantBuffer(m_hToneMapHistogramSettings);
+			rResCommandList.ReleaseConstantBuffer(m_hToneMapHistogramSettings, this);
 
 		struct Test
 		{
@@ -245,7 +245,7 @@ void RdrPostProcess::ResizeResources(uint width, uint height)
 		pTest->logLuminanceMin = 0.f;
 		pTest->logLuminanceMax = 3.f;
 		pTest->tileCount = numTiles;
-		m_hToneMapHistogramSettings = rResCommandList.CreateConstantBuffer(pTest, constantsSize, RdrResourceAccessFlags::CpuRO_GpuRO);
+		m_hToneMapHistogramSettings = rResCommandList.CreateConstantBuffer(pTest, constantsSize, RdrResourceAccessFlags::CpuRO_GpuRO, this);
 	}
 
 	ResizeSsaoResources(width, height);
@@ -566,7 +566,7 @@ void RdrPostProcess::ResizeSsaoResources(uint width, uint height)
 	const UVec2 ssaoBufferSize = UVec2(width / 2, height / 2);
 
 	if (m_hSsaoNoiseTexture)
-		rResCommands.ReleaseResource(m_hSsaoNoiseTexture);
+		rResCommands.ReleaseResource(m_hSsaoNoiseTexture, this);
 
 	// Noise texture
 	const int kNoiseTexSize = 4;
@@ -585,7 +585,7 @@ void RdrPostProcess::ResizeSsaoResources(uint width, uint height)
 	}
 
 	m_hSsaoNoiseTexture = rResCommands.CreateTexture2D(kNoiseTexSize, kNoiseTexSize, RdrResourceFormat::R8G8_UNORM,
-		RdrResourceAccessFlags::CpuRO_GpuRO, pNoiseTexData);
+		RdrResourceAccessFlags::CpuRO_GpuRO, pNoiseTexData, this);
 
 	// Sample kernel
 	m_ssaoParams.texelSize = float2(1.f / ssaoBufferSize.x, 1.f / ssaoBufferSize.y);
@@ -613,11 +613,11 @@ void RdrPostProcess::ResizeSsaoResources(uint width, uint height)
 	}
 
 	// Buffers
-	rResCommands.ReleaseRenderTarget2d(m_ssaoBuffer);
-	m_ssaoBuffer = rResCommands.InitRenderTarget2d(ssaoBufferSize.x, ssaoBufferSize.y, RdrResourceFormat::R8_UNORM, 1);
+	rResCommands.ReleaseRenderTarget2d(m_ssaoBuffer, this);
+	m_ssaoBuffer = rResCommands.InitRenderTarget2d(ssaoBufferSize.x, ssaoBufferSize.y, RdrResourceFormat::R8_UNORM, 1, this);
 
-	rResCommands.ReleaseRenderTarget2d(m_ssaoBlurredBuffer);
-	m_ssaoBlurredBuffer = rResCommands.InitRenderTarget2d(ssaoBufferSize.x, ssaoBufferSize.y, RdrResourceFormat::R8_UNORM, 1);
+	rResCommands.ReleaseRenderTarget2d(m_ssaoBlurredBuffer, this);
+	m_ssaoBlurredBuffer = rResCommands.InitRenderTarget2d(ssaoBufferSize.x, ssaoBufferSize.y, RdrResourceFormat::R8_UNORM, 1, this);
 }
 
 void RdrPostProcess::DoSsao(RdrContext* pRdrContext, RdrDrawState* pDrawState, const RdrActionSurfaces& rBuffers,

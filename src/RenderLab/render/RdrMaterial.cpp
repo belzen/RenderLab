@@ -210,7 +210,7 @@ namespace
 		RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
 		for (int n = 0; n < pMaterial->texCount; ++n)
 		{
-			pOutMaterial->ahTextures.assign(n, rResCommandList.CreateTextureFromFile(pMaterial->pTextureNames[n], nullptr));
+			pOutMaterial->ahTextures.assign(n, rResCommandList.CreateTextureFromFile(pMaterial->pTextureNames[n], nullptr, pOutMaterial));
 			pOutMaterial->aSamplers.assign(n, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 		}
 
@@ -222,7 +222,7 @@ namespace
 		pConstants->metalness = pMaterial->metalness;
 		pConstants->roughness = pMaterial->roughness;
 		pConstants->color = pMaterial->color.asFloat4();
-		pOutMaterial->hConstants = rResCommandList.CreateConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRO_GpuRO);
+		pOutMaterial->hConstants = rResCommandList.CreateConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRO_GpuRO, pOutMaterial);
 
 		pOutMaterial->name = materialName;
 	}

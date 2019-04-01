@@ -204,7 +204,7 @@ public:
 	uint64 GetTimestampQueryData(RdrQuery& rQuery);
 	uint64 GetTimestampFrequency() const;
 
-	uint64 GetLastCompletedFrame() const { return m_nFrameNum - (kNumBackBuffers - 1); }
+	uint64 GetLastCompletedFrame() const { return m_nFrameNum - kNumBackBuffers; }
 	uint64 GetFrameNum() const { return m_nFrameNum; }
 
 private:
@@ -213,7 +213,7 @@ private:
 
 	void SetDescriptorHeaps();
 	void UpdateRenderTargetViews();
-	bool CreateBuffer(const void* pSrcData, const int size, RdrResourceAccessFlags accessFlags, const D3D12_RESOURCE_STATES initialState, RdrResource& rResource);
+	ID3D12Resource* CreateBuffer(const int size, RdrResourceAccessFlags accessFlags, const D3D12_RESOURCE_STATES initialState);
 
 	D3D12DescriptorHandle GetSampler(const RdrSamplerState& state);
 

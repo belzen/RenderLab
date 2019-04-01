@@ -25,8 +25,6 @@ enum class RdrLightingMethod
 struct RdrTiledLightingData
 {
 	RdrResourceHandle       hLightIndices;
-	RdrConstantBufferHandle hDepthMinMaxConstants;
-	RdrConstantBufferHandle hCullConstants;
 	RdrResourceHandle	    hDepthMinMaxTex;
 	int					    tileCountX;
 	int					    tileCountY;
@@ -35,19 +33,14 @@ struct RdrTiledLightingData
 struct RdrClusteredLightingData
 {
 	RdrResourceHandle       hLightIndices;
-	RdrConstantBufferHandle hCullConstants;
 	int					    clusterCountX;
 	int					    clusterCountY;
 	int					    clusterCountZ;
 	int						clusterTileSize;
 };
 
-struct RdrLightResources
+struct RdrSharedLightResources
 {
-	RdrConstantBufferHandle hGlobalLightsCb;
-	RdrResourceHandle hSpotLightListRes;
-	RdrResourceHandle hPointLightListRes;
-	RdrResourceHandle hEnvironmentLightListRes;
 	RdrResourceHandle hLightIndicesRes;
 
 	RdrResourceHandle hSkyTransmittanceLut;
@@ -55,6 +48,20 @@ struct RdrLightResources
 	RdrResourceHandle hEnvironmentMapTexArray;
 	RdrResourceHandle hShadowMapTexArray;
 	RdrResourceHandle hShadowCubeMapTexArray;
+};
+
+struct RdrActionLightResources
+{
+	RdrConstantBufferHandle hGlobalLightsCb;
+	RdrResourceHandle hSpotLightListRes;
+	RdrResourceHandle hPointLightListRes;
+	RdrResourceHandle hEnvironmentLightListRes;
+
+	RdrConstantBufferHandle hDepthMinMaxConstants;
+	RdrConstantBufferHandle hCullConstants;
+
+	// Not owned by action.  Filled in each frame by RdrLighting::QueueDraw()
+	RdrSharedLightResources sharedResources;
 };
 
 struct RdrLightList
@@ -78,22 +85,18 @@ public:
 
 	void QueueDraw(RdrAction* pAction, RdrLightList* pLights, RdrLightingMethod lightingMethod,
 		const AssetLib::VolumetricFogSettings& rFog, const float sceneDepthMin, const float sceneDepthMax,
-		RdrLightResources* pOutResources);
+		RdrActionLightResources* pOutResources);
 
 private:
 	void LazyInitShadowResources();
 
-	void QueueClusteredLightCulling(RdrAction* pAction, const Camera& rCamera, int numSpotLights, int numPointLights);
+	void QueueClusteredLightCulling(RdrAction* pAction, const Camera& rCamera, int numSpotLights, int numPointLights,
+		RdrActionLightResources* pOutResources);
 	void QueueTiledLightCulling(RdrAction* pAction, const Camera& rCamera, int numSpotLights, int numPointLights);
 	void QueueVolumetricFog(RdrAction* pAction, const AssetLib::VolumetricFogSettings& rFogSettings, const RdrResourceHandle hLightIndicesRes);
 
 private:
 	// Lighting render resources
-	RdrConstantBufferHandle m_hGlobalLightsCb;
-	RdrResourceHandle m_hSpotLightListRes;
-	RdrResourceHandle m_hPointLightListRes;
-	RdrResourceHandle m_hEnvironmentLightListRes;
-
 	RdrResourceHandle m_hShadowMapTexArray;
 	RdrResourceHandle m_hShadowCubeMapTexArray;
 	RdrDepthStencilViewHandle m_shadowMapDepthViews[MAX_SHADOW_MAPS];

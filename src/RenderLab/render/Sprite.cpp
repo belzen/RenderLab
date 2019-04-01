@@ -40,7 +40,7 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	indices[5] = 2;
 
 	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
-	m_hGeo = rResCommandList.CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f));
+	m_hGeo = rResCommandList.CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f), this);
 
 	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kUI);
 	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kUI);
@@ -61,7 +61,7 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 		RdrBlendMode::kAlpha,
 		rasterState,
 		RdrDepthStencilState(false, false, RdrComparisonFunc::Never));
-	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile(textureName, nullptr));
+	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile(textureName, nullptr, this));
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 }
 
@@ -76,7 +76,7 @@ void Sprite::QueueDraw(RdrAction* pAction, const Vec3& pos, const Vec2& scale, f
 	Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 	pConstants[0] = Vec4(pos.x - viewport.width * 0.5f, pos.y + viewport.height * 0.5f, pos.z + 1.f, 0.f);
 	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
-	pDrawOp->hVsConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pConstants, constantsSize);
+	pDrawOp->hVsConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pConstants, constantsSize, this);
 
 	pAction->AddDrawOp(pDrawOp, RdrBucketType::UI);
 }

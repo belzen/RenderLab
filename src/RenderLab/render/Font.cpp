@@ -53,7 +53,7 @@ namespace
 		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pConstants[0] = Vec4(color.r, color.g, color.b, color.a);
 		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
-		pDrawOp->hVsConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pConstants, constantsSize);
+		pDrawOp->hVsConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pConstants, constantsSize, RdrDebugBackpointer());
 
 		pAction->AddDrawOp(pDrawOp, RdrBucketType::UI);
 	}
@@ -90,7 +90,7 @@ void Font::Init()
 	s_text.material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 
 	RdrTextureInfo texInfo;
-	s_text.material.ahTextures.assign(0, g_pRenderer->GetResourceCommandList().CreateTextureFromFile("fonts/verdana", &texInfo));
+	s_text.material.ahTextures.assign(0, g_pRenderer->GetResourceCommandList().CreateTextureFromFile("fonts/verdana", &texInfo, RdrDebugBackpointer()));
 	s_text.glyphPixelSize = texInfo.width / 16;
 }
 
@@ -166,7 +166,7 @@ TextObject Font::CreateText(const char* text)
 	TextObject obj;
 	obj.size.x = size.x;
 	obj.size.y = size.y;
-	obj.hTextGeo = g_pRenderer->GetResourceCommandList().CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, RdrTopology::TriangleList, Vec3::kZero, size);
+	obj.hTextGeo = g_pRenderer->GetResourceCommandList().CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, RdrTopology::TriangleList, Vec3::kZero, size, RdrDebugBackpointer());
 	return obj;
 }
 
@@ -174,7 +174,7 @@ void Font::QueueDraw(RdrAction* pAction, const UI::Position& pos, float size, co
 {
 	TextObject textObj = CreateText(text);
 	queueDrawCommon(pAction, pos, size, textObj, color);
-	g_pRenderer->GetResourceCommandList().ReleaseGeo(textObj.hTextGeo);
+	g_pRenderer->GetResourceCommandList().ReleaseGeo(textObj.hTextGeo, RdrDebugBackpointer());
 }
 
 void Font::QueueDraw(RdrAction* pAction, const UI::Position& pos, float size, const TextObject& rText, Color color)

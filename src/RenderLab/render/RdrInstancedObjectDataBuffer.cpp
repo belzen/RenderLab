@@ -44,11 +44,12 @@ void RdrInstancedObjectDataBuffer::UpdateBuffer(Renderer& rRenderer)
 			s_objectBuffer.data.data(), 
 			s_objectBuffer.data.kMaxEntries, 
 			sizeof(VsPerObject), 
-			RdrResourceAccessFlags::CpuRW_GpuRO);
+			RdrResourceAccessFlags::CpuRW_GpuRO,
+			RdrDebugBackpointer());
 	}
 	else if (lastObject > 0)
 	{
-		rResCommandList.UpdateBuffer(s_objectBuffer.hResource, s_objectBuffer.data.data(), lastObject);
+		rResCommandList.UpdateBuffer(s_objectBuffer.hResource, s_objectBuffer.data.data(), lastObject, RdrDebugBackpointer());
 	}
 }
 
