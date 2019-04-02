@@ -439,7 +439,6 @@ RdrConstantBufferHandle RdrResourceCommandList::CreateUpdateConstantBuffer(RdrCo
 {
 	if (hBuffer)
 	{
-		// donotcheckin - not doing updates because of GPU mem overwrite issues - should be using pool though.
 		ReleaseConstantBuffer(hBuffer, debug);
 		return CreateConstantBuffer(pData, size, accessFlags, debug);
 	}
@@ -466,15 +465,6 @@ RdrConstantBufferHandle RdrResourceCommandList::CreateTempConstantBuffer(const v
 	ReleaseConstantBuffer(cmd.hBuffer, debug);
 
 	return cmd.hBuffer;
-}
-
-void RdrResourceCommandList::UpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, const RdrDebugBackpointer& debug)
-{
-	// donotcheckin - remove?  otherwise needs to be frame-buffered
-	CmdUpdateConstantBuffer& cmd = m_constantBufferUpdates.pushSafe();
-	cmd.hBuffer = hBuffer;
-	cmd.pData = pData;
-	cmd.debug = debug;
 }
 
 void RdrResourceCommandList::ReleaseConstantBuffer(RdrConstantBufferHandle hBuffer, const RdrDebugBackpointer& debug)

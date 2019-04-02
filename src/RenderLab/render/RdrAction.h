@@ -86,7 +86,6 @@ struct RdrActionSurfaces
 	RdrDepthStencilViewHandle hDepthStencilView;
 };
 
-// donotcheckin - actions can't be re-used each frame since the GPU might be using some of their resources
 class RdrAction
 {
 public:

@@ -10,45 +10,14 @@ void RdrProfiler::Init(RdrContext* pRdrContext)
 
 void RdrProfiler::Cleanup()
 {
-	for (int i = 0; i < kFrameDelay; ++i)
-	{
-		QueryList& rQueryList = m_frameQueries[i];
-		int queryCount = (int)rQueryList.size();
-		for (int n = 0; n < queryCount; ++n)
-		{
-			TimestampQueries& rQueries = rQueryList[n];
-			m_pRdrContext->ReleaseQuery(rQueries.timestampEnd);
-			m_pRdrContext->ReleaseQuery(rQueries.timestampStart);
-		}
-	}
-
-	int queryCount = (int)m_queryPool.size();
-	for (int n = 0; n < queryCount; ++n)
-	{
-		TimestampQueries& rQueries = m_queryPool[n];
-		m_pRdrContext->ReleaseQuery(rQueries.timestampEnd);
-		m_pRdrContext->ReleaseQuery(rQueries.timestampStart);
-	}
 }
 
 void RdrProfiler::BeginSection(RdrProfileSection eSection)
 {
 	TimestampQueries queries = {};
 
-	if (!m_queryPool.empty())
-	{
-		queries = m_queryPool.back();
-		m_queryPool.pop_back();
-	}
-
 	queries.eSection = eSection;
-	if (!queries.timestampStart.bIsValid)
-	{
-		queries.timestampStart = m_pRdrContext->CreateQuery(RdrQueryType::Timestamp);
-		queries.timestampEnd = m_pRdrContext->CreateQuery(RdrQueryType::Timestamp);
-	}
-
-	m_pRdrContext->EndQuery(queries.timestampStart);
+	queries.timestampStart = m_pRdrContext->InsertTimestampQuery();
 
 	m_activeQueryStack[m_currStackDepth] = queries;
 	++m_currStackDepth;
@@ -57,7 +26,7 @@ void RdrProfiler::BeginSection(RdrProfileSection eSection)
 void RdrProfiler::EndSection()
 {
 	TimestampQueries& rQueries = m_activeQueryStack[m_currStackDepth - 1];
-	m_pRdrContext->EndQuery(rQueries.timestampEnd);
+	rQueries.timestampEnd = m_pRdrContext->InsertTimestampQuery();
 	--m_currStackDepth;
 
 	m_frameQueries[m_currFrame].push_back(rQueries);
@@ -96,9 +65,6 @@ void RdrProfiler::EndFrame()
 		uint64 end = m_pRdrContext->GetTimestampQueryData(rQueries.timestampEnd);
 
 		m_timings[(int)rQueries.eSection] += 1000.f * (end - start) / (float)timestampFrequency;
-
-		// Return queries to the pool.
-		m_queryPool.push_back(rQueries);
 	}
 	rQueryList.clear();
 

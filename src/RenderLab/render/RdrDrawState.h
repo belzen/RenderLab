@@ -11,7 +11,6 @@ public:
 	// todo: remove need for reset()
 	void Reset()
 	{
-		pipelineState.pPipelineState = nullptr; //donotcheckin
 		memset(this, 0, sizeof(RdrDrawState));
 	}
 

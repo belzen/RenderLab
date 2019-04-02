@@ -88,8 +88,6 @@ private:
 	};
 	typedef std::vector<TimestampQueries> QueryList;
 
-	QueryList m_queryPool;
-
 	QueryList m_frameQueries[kFrameDelay];
 
 	TimestampQueries m_activeQueryStack[8];

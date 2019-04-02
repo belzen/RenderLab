@@ -129,7 +129,6 @@ public:
 	RdrConstantBufferHandle CreateConstantBuffer(const void* pData, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
 	RdrConstantBufferHandle CreateTempConstantBuffer(const void* pData, uint size, const RdrDebugBackpointer& debug);
 	RdrConstantBufferHandle CreateUpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
-	void UpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, const RdrDebugBackpointer& debug);
 	void ReleaseConstantBuffer(RdrConstantBufferHandle hBuffer, const RdrDebugBackpointer& debug);
 
 	void ReleaseResource(RdrResourceHandle hRes, const RdrDebugBackpointer& debug);

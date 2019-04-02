@@ -9,12 +9,6 @@ using namespace Microsoft::WRL;
 typedef CD3DX12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorHandle;
 struct RdrResource;
 
-struct D3D12QueryHandle
-{
-	uint nType;
-	uint nId;
-};
-
 enum class RdrShaderSemantic
 {
 	Position,
@@ -216,7 +210,7 @@ struct RdrRootSignature
 
 struct RdrPipelineState
 {
-	ComPtr<ID3D12PipelineState> pPipelineState;
+	ID3D12PipelineState* pPipelineState;
 };
 
 struct RdrDepthStencilView
@@ -276,15 +270,9 @@ struct RdrBox
 	uint depth;
 };
 
-enum class RdrQueryType : uint
-{
-	Timestamp
-};
-
 struct RdrQuery
 {
-	D3D12QueryHandle hQuery;
-	bool bIsValid = false;
+	uint nId;
 };
 
 //////////////////////////////////////////////////////////////////////////

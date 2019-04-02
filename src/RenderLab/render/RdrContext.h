@@ -47,6 +47,7 @@ class DescriptorHeap
 {
 public:
 	void Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors, bool bShaderVisible);
+	void Cleanup();
 
 	uint AllocateDescriptorId();
 	D3D12DescriptorHandle AllocateDescriptor();
@@ -66,6 +67,7 @@ class DescriptorRingBuffer
 {
 public:
 	void Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors);
+	void Cleanup();
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE AllocateDescriptors(uint numToAllocate, uint& nOutDescriptorStartIndex);
 	CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(uint nDescriptor) const;
@@ -83,22 +85,36 @@ private:
 class QueryHeap
 {
 public:
-	void Create(ComPtr<ID3D12Device> pDevice, D3D12_QUERY_HEAP_TYPE type, uint nMaxQueries);
+	typedef std::pair<uint, uint> TQueryRange;
 
-	D3D12QueryHandle AllocateQuery();
-	void FreeQuery(D3D12QueryHandle hQuery);
+	void Create(ComPtr<ID3D12Device> pDevice, D3D12_QUERY_HEAP_TYPE type, uint nMaxQueries);
+	void Cleanup();
+
+	RdrQuery AllocateQuery();
+
+	void BeginFrame();
+	TQueryRange EndFrame();
 
 	ID3D12QueryHeap* GetHeap() { return m_pQueryHeap.Get(); }
+	TQueryRange GetFrameRange() const { return m_nFrameQueryStartEnd[m_nFrame]; }
+	uint GetMaxQueries() const { return m_nMaxQueries; }
 
 private:
 	ComPtr<ID3D12QueryHeap> m_pQueryHeap;
 	D3D12_QUERY_HEAP_TYPE m_type;
-	IdSetDynamic m_idSet;
+
+	TQueryRange m_nFrameQueryStartEnd[2];//donotcheckin RdrContext::kNumBackBuffers];
+	uint m_nFrame;
+	uint m_nNextQuery;
+	uint m_nMaxQueries;
 };
 
 class RdrContext
 {
 public:
+	static constexpr int kNumBackBuffers = 2;
+	static constexpr int kMaxNumSamplers = 64;
+
 	RdrContext(RdrProfiler& rProfiler);
 
 	bool Init(HWND hWnd, uint width, uint height);
@@ -195,11 +211,7 @@ public:
 
 	/////////////////////////////////////////////////////////////
 	// Queries
-	RdrQuery CreateQuery(RdrQueryType eType);
-	void ReleaseQuery(RdrQuery& rQuery);
-
-	void BeginQuery(RdrQuery& rQuery);
-	void EndQuery(RdrQuery& rQuery);
+	RdrQuery InsertTimestampQuery();
 
 	uint64 GetTimestampQueryData(RdrQuery& rQuery);
 	uint64 GetTimestampFrequency() const;
@@ -208,8 +220,6 @@ public:
 	uint64 GetFrameNum() const { return m_nFrameNum; }
 
 private:
-	static constexpr int kNumBackBuffers = 2;
-	static constexpr int kMaxNumSamplers = 64;
 
 	void SetDescriptorHeaps();
 	void UpdateRenderTargetViews();
@@ -256,7 +266,6 @@ private:
 	ComPtr<ID3D12Resource> m_timestampResultBuffer;
 
 	ComPtr<ID3D12Debug> m_pDebug;
-	ComPtr<ID3D12InfoQueue> m_pInfoQueue;
 
 	ComPtr<IDXGISwapChain4> m_pSwapChain;
 	ComPtr<ID3D12RootSignature> m_pGraphicsRootSignature;

@@ -602,6 +602,11 @@ void DescriptorHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_
 	m_idSet.init(nMaxDescriptors);
 }
 
+void DescriptorHeap::Cleanup()
+{
+	m_pDescriptorHeap->Release();
+}
+
 uint DescriptorHeap::AllocateDescriptorId()
 {
 	return m_idSet.allocId();
@@ -649,6 +654,11 @@ void DescriptorRingBuffer::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR
 	m_maxDescriptors = nMaxDescriptors;
 }
 
+void DescriptorRingBuffer::Cleanup()
+{
+	m_pDescriptorHeap->Release();
+}
+
 CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorRingBuffer::AllocateDescriptors(uint numToAllocate, uint& nOutDescriptorStartIndex)
 {
 	if (m_nextDescriptor + numToAllocate >= m_maxDescriptors)
@@ -680,23 +690,45 @@ void QueryHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_QUERY_HEAP_TYPE type,
 		assert(false);
 	}
 
-	m_idSet.init(nMaxQueries);
+	m_nNextQuery = 0;
+	m_nFrame = 0;
+	m_nMaxQueries = nMaxQueries;
 	m_type = type;
 }
 
-D3D12QueryHandle QueryHeap::AllocateQuery()
+void QueryHeap::Cleanup()
 {
-	D3D12QueryHandle handle;
-	handle.nType = m_type;
-	handle.nId = m_idSet.allocId();
+	m_pQueryHeap->Release();
+}
+
+void QueryHeap::BeginFrame()
+{
+	m_nFrameQueryStartEnd[m_nFrame].first = m_nNextQuery;
+}
+
+QueryHeap::TQueryRange QueryHeap::EndFrame()
+{
+	TQueryRange& frameRange = m_nFrameQueryStartEnd[m_nFrame];
+	frameRange.second = m_nNextQuery;
+
+	m_nFrame = (m_nFrame + 1) % ARRAYSIZE(m_nFrameQueryStartEnd);
+
+	return frameRange;
+}
+
+RdrQuery QueryHeap::AllocateQuery()
+{
+	RdrQuery handle;
+	handle.nId = m_nNextQuery;
+
+	++m_nNextQuery;
+	if (m_nNextQuery >= m_nMaxQueries)
+	{
+		m_nNextQuery = 0;
+	}
+
 	return handle;
 }
-
-void QueryHeap::FreeQuery(D3D12QueryHandle hQuery)
-{
-	m_idSet.releaseId(hQuery.nId);
-}
-
 
 ComPtr<ID3D12CommandAllocator> CreateCommandAllocator(ComPtr<ID3D12Device> device,
 	D3D12_COMMAND_LIST_TYPE type)
@@ -1099,9 +1131,40 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 
 void RdrContext::Release()
 {
-	//donotcheckin
+	// Wait until the active frame is done.
+	WaitForFenceValue(m_pFence, m_nFrameNum - 1, m_hFenceEvent);
+
 	m_drawState.Reset();
+
+	for (uint i = 0; i < kNumBackBuffers; ++i)
+	{
+		m_uploadBuffers[i].pBuffer->Release();
+		m_rtvHeap.FreeDescriptor(m_hBackBufferRtvs[i]);
+		m_pBackBuffers[i]->Release();
+		m_pCommandAllocators[i]->Release();
+	}
+
+	m_pFence->Release();
+
+	m_rtvHeap.FreeDescriptor(m_nullRenderTargetView.hView);
+	m_dsvHeap.FreeDescriptor(m_nullDepthStencilView.hView);
+
+	m_dynamicDescriptorHeap.Cleanup();
+	m_dynamicSamplerDescriptorHeap.Cleanup();
+
+	m_rtvHeap.Cleanup();
+	m_samplerHeap.Cleanup();
+	m_srvHeap.Cleanup();
+	m_dsvHeap.Cleanup();
+
+	m_timestampQueryHeap.Cleanup();
+	m_timestampResultBuffer->Release();
+	m_pDebug->Release();
+	m_pGraphicsRootSignature->Release();
+	m_pComputeRootSignature->Release();
 	m_pSwapChain->Release();
+	m_pCommandList->Release();
+	m_pCommandQueue->Release();
 	m_pDevice->Release();
 }
 
@@ -1822,6 +1885,8 @@ void RdrContext::BeginFrame()
 	HRESULT hr = m_pCommandList->Reset(m_pCommandAllocators[m_currBackBuffer].Get(), nullptr);
 	assert(SUCCEEDED(hr));
 	
+	m_timestampQueryHeap.BeginFrame();
+
 	SetDescriptorHeaps();
 
 	// Transition new backbuffer back into RTV state
@@ -1840,6 +1905,33 @@ void RdrContext::Present()
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		D3D12_RESOURCE_STATE_PRESENT);
 	m_pCommandList->ResourceBarrier(1, &barrier);
+
+	{
+		ID3D12Resource* pTimestampResultsBuffer = m_timestampResultBuffer.Get();
+		QueryHeap::TQueryRange queryRange = m_timestampQueryHeap.EndFrame();
+
+		// If the timestamp query indices wrap around, we need to split the resolve into 2 calls
+		if (queryRange.second < queryRange.first)
+		{
+			uint nNumQueries = m_timestampQueryHeap.GetMaxQueries() - queryRange.first;
+			m_pCommandList->ResolveQueryData(m_timestampQueryHeap.GetHeap(),
+				D3D12_QUERY_TYPE_TIMESTAMP,
+				queryRange.first,
+				nNumQueries,
+				pTimestampResultsBuffer,
+				queryRange.first * sizeof(uint64));
+
+			queryRange.first = 0;
+		}
+
+		uint nNumQueries = queryRange.second - queryRange.first;
+		m_pCommandList->ResolveQueryData(m_timestampQueryHeap.GetHeap(),
+			D3D12_QUERY_TYPE_TIMESTAMP,
+			queryRange.first,
+			nNumQueries,
+			pTimestampResultsBuffer,
+			queryRange.first * sizeof(uint64));
+	}
 
 	HRESULT hr = m_pCommandList->Close();
 	if (FAILED(hr))
@@ -2051,7 +2143,7 @@ void RdrContext::UpdateResource(RdrResource& rResource, const void* pSrcData, co
 void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 {
 	m_pCommandList->SetGraphicsRootSignature(m_pGraphicsRootSignature.Get());
-	m_pCommandList->SetPipelineState(rDrawState.pipelineState.pPipelineState.Get());
+	m_pCommandList->SetPipelineState(rDrawState.pipelineState.pPipelineState);
 
 	// Vertex buffers
 	D3D12_VERTEX_BUFFER_VIEW views[RdrDrawState::kMaxVertexBuffers];
@@ -2306,7 +2398,7 @@ void RdrContext::DispatchCompute(const RdrDrawState& rDrawState, uint threadGrou
 	m_drawState.Reset();
 
 	m_pCommandList->SetComputeRootSignature(m_pComputeRootSignature.Get());
-	m_pCommandList->SetPipelineState(rDrawState.pipelineState.pPipelineState.Get());
+	m_pCommandList->SetPipelineState(rDrawState.pipelineState.pPipelineState);
 
 	uint nDescriptorStartIndex;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescCurr = m_dynamicDescriptorHeap.AllocateDescriptors(rDrawState.csConstantBufferCount, nDescriptorStartIndex);
@@ -2371,70 +2463,25 @@ void RdrContext::PSClearResources()
 	//m_pCommandList->PSSetShaderResources(0, 20, resourceViews);
 }
 
-RdrQuery RdrContext::CreateQuery(RdrQueryType eType)
+RdrQuery RdrContext::InsertTimestampQuery()
 {
-	RdrQuery query;
-
-	switch (eType)
-	{
-	case RdrQueryType::Timestamp:
-		query.hQuery = m_timestampQueryHeap.AllocateQuery();
-		break;
-	}
-
-	query.bIsValid = true;
+	RdrQuery query = m_timestampQueryHeap.AllocateQuery();
+	m_pCommandList->EndQuery(m_timestampQueryHeap.GetHeap(), D3D12_QUERY_TYPE_TIMESTAMP, query.nId);
 	return query;
-}
-
-void RdrContext::ReleaseQuery(RdrQuery& rQuery)
-{
-	rQuery.bIsValid = false;
-
-	switch (rQuery.hQuery.nType)
-	{
-	case D3D12_QUERY_HEAP_TYPE_TIMESTAMP:
-		m_timestampQueryHeap.FreeQuery(rQuery.hQuery);
-		break;
-	}
-}
-
-void RdrContext::BeginQuery(RdrQuery& rQuery)
-{
-	switch (rQuery.hQuery.nType)
-	{
-	case D3D12_QUERY_HEAP_TYPE_TIMESTAMP:
-		// Timestamp queries don't have a begin.
-		break;
-	}
-}
-
-void RdrContext::EndQuery(RdrQuery& rQuery)
-{
-	switch (rQuery.hQuery.nType)
-	{
-	case D3D12_QUERY_HEAP_TYPE_TIMESTAMP:
-		m_pCommandList->EndQuery(m_timestampQueryHeap.GetHeap(), D3D12_QUERY_TYPE_TIMESTAMP, rQuery.hQuery.nId);
-		break;
-	}
 }
 
 uint64 RdrContext::GetTimestampQueryData(RdrQuery& rQuery)
 {
 	uint64 timestamp = -1;
-	uint64 nBufferOffset = rQuery.hQuery.nId * sizeof(timestamp);
-	m_pCommandList->ResolveQueryData(m_timestampQueryHeap.GetHeap(), // donotcheckin - do at end of frame and hit all the queries at once?
-		D3D12_QUERY_TYPE_TIMESTAMP, 
-		rQuery.hQuery.nId, 
-		1, 
-		m_timestampResultBuffer.Get(), 
-		nBufferOffset);
 
-	D3D12_RANGE readRange = { nBufferOffset, nBufferOffset + sizeof(timestamp) };
+	uint64 nBufferOffset = rQuery.nId * sizeof(timestamp);
+	CD3DX12_RANGE readRange(nBufferOffset, nBufferOffset + sizeof(timestamp));
+
 	uint64* pTimestampData = nullptr;
 	HRESULT hr = m_timestampResultBuffer->Map(0, &readRange, (void**)&pTimestampData);
 	if (hr == S_OK)
 	{
-		timestamp = pTimestampData[0];
+		timestamp = pTimestampData[rQuery.nId];
 	}
 
 	D3D12_RANGE writeRange = { 0, 0 };

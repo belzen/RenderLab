@@ -275,6 +275,8 @@ int MainWindow::Run()
 		::SetEvent(m_hFrameDoneEvent);
 	}
 
+	// End the render thread.
+	::SetEvent(m_hFrameDoneEvent);
 	renderThread.join();
 
 	m_pRenderWindow->Close();
