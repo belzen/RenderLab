@@ -2181,16 +2181,6 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 	}
 
 #if 0 // donotcheckin - ignoring for now
-	// GS constants
-	for (uint i = 0; i < rDrawState.gsConstantBufferCount; ++i)
-	{
-		if (rDrawState.gsConstantBuffers[i] != m_drawState.gsConstantBuffers[i])
-		{
-			m_pCommandList->SetGraphicsRootShaderResourceView(kRootConstantBufferStart + i, rDrawState.gsConstantBuffers[i].hView);
-			m_rProfiler.IncrementCounter(RdrProfileCounter::GsConstantBuffer);
-		}
-	}
-
 	if (rDrawState.pDomainShader)
 	{
 		for (uint i = 0; i < rDrawState.dsConstantBufferCount; ++i)
@@ -2325,22 +2315,6 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 		m_pCommandList->VSSetShader(rDrawState.pVertexShader->pVertex, nullptr, 0);
 		m_drawState.pVertexShader = rDrawState.pVertexShader;
 		m_rProfiler.IncrementCounter(RdrProfileCounter::VertexShader);
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// Geometry shader
-	if (rDrawState.pGeometryShader != m_drawState.pGeometryShader)
-	{
-		if (rDrawState.pGeometryShader)
-		{
-			m_pCommandList->GSSetShader(rDrawState.pGeometryShader->pGeometry, nullptr, 0);
-		}
-		else
-		{
-			m_pCommandList->GSSetShader(nullptr, nullptr, 0);
-		}
-		m_rProfiler.IncrementCounter(RdrProfileCounter::GeometryShader);
-		m_drawState.pGeometryShader = rDrawState.pGeometryShader;
 	}
 
 	//////////////////////////////////////////////////////////////////////////

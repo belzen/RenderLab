@@ -50,7 +50,6 @@ struct RdrGlobalConstants
 	RdrConstantBufferHandle hVsPerAction;
 	RdrConstantBufferHandle hPsPerAction;
 	RdrConstantBufferHandle hPsAtmosphere;
-	RdrConstantBufferHandle hGsCubeMap;
 };
 
 struct RdrPassData
@@ -65,7 +64,6 @@ struct RdrPassData
 	bool bEnabled;
 	bool bClearRenderTargets;
 	bool bClearDepthTarget;
-	bool bIsCubeMapCapture;
 };
 
 struct RdrShadowPass
@@ -113,7 +111,6 @@ public:
 	const Camera& GetShadowCamera(int shadowPassIndex) const;
 
 	void QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
-	void QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport);
 
 	const Rect& GetViewport() const;
 	const Camera& GetCamera() const;
@@ -172,7 +169,6 @@ private:
 	RdrGlobalConstants m_constants;
 	RdrGlobalConstants m_uiConstants;
 
-	bool m_bIsCubemapCapture;
 	bool m_bEnablePostProcessing;
 
 	// Active render state data. Filled in during Draw() and cleared before returning.  
@@ -187,6 +183,8 @@ private:
 
 inline void RdrAction::AddDrawOp(const RdrDrawOp* pDrawOp, RdrBucketType eBucket)
 {
+	assert(eBucket < RdrBucketType::Count);
+
 	RdrDrawBucketEntry entry(pDrawOp);
 	m_drawOpBuckets[(int)eBucket].push_back(entry);
 }

@@ -232,8 +232,6 @@ namespace
 
 		if ((flags & RdrShaderFlags::DepthOnly) != RdrShaderFlags::None)
 			aDefines[numDefines++] = "DEPTH_ONLY";
-		if ((flags & RdrShaderFlags::CubemapCapture) != RdrShaderFlags::None)
-			aDefines[numDefines++] = "CUBEMAP_CAPTURE";
 		if ((flags & RdrShaderFlags::AlphaCutout) != RdrShaderFlags::None)
 			aDefines[numDefines++] = "ALPHA_CUTOUT";
 		if ((flags & RdrShaderFlags::IsInstanced) != RdrShaderFlags::None)

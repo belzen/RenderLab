@@ -31,7 +31,6 @@ enum class RdrProfileCounter
 
 	// State changes
 	VertexShader,
-	GeometryShader,
 	HullShader,
 	DomainShader,
 	PixelShader,
@@ -46,7 +45,6 @@ enum class RdrProfileCounter
 	DsSamplers,
 	VsConstantBuffer,
 	DsConstantBuffer,
-	GsConstantBuffer,
 	PsConstantBuffer,
 	CsConstantBuffer,
 	CsResource,

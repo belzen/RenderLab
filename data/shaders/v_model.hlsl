@@ -48,9 +48,7 @@ VsOutputModel main( VertexInput input )
 
 	output.position_ws = mul(float4(input.position, 1), mtxWorld);
 
-#if !CUBEMAP_CAPTURE // This is unnecessary if we're using cubemap capture geometry shader.
 	output.position = mul(output.position_ws, cbPerAction.mtxViewProj);
-#endif
 
 #if !DEPTH_ONLY
 	output.normal = mul(input.normal, (float3x3)mtxWorld);

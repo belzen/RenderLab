@@ -13,8 +13,7 @@ class RdrAction;
 class Camera;
 class Light;
 
-#define MAX_SHADOW_MAPS_PER_FRAME 10
-#define USE_SINGLEPASS_SHADOW_CUBEMAP 1 //donotcheckin
+#define MAX_SHADOW_MAPS_PER_FRAME 12
 
 enum class RdrLightingMethod
 {
@@ -100,11 +99,7 @@ private:
 	RdrResourceHandle m_hShadowMapTexArray;
 	RdrResourceHandle m_hShadowCubeMapTexArray;
 	RdrDepthStencilViewHandle m_shadowMapDepthViews[MAX_SHADOW_MAPS];
-#if USE_SINGLEPASS_SHADOW_CUBEMAP
-	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS];
-#else
 	RdrDepthStencilViewHandle m_shadowCubeMapDepthViews[MAX_SHADOW_CUBEMAPS * (int)CubemapFace::Count];
-#endif
 
 	// Lighting mode data.
 	RdrTiledLightingData m_tiledLightData;

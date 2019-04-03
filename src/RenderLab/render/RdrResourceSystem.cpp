@@ -388,7 +388,6 @@ RdrResourceHandle RdrResourceCommandList::CreateStructuredBuffer(const void* pSr
 
 RdrResourceHandle RdrResourceCommandList::UpdateBuffer(const RdrResourceHandle hResource, const void* pSrcData, int numElements, const RdrDebugBackpointer& debug)
 {
-	// donotcheckin - all calls to this need to be frame-buffered
 	CmdUpdateBuffer& cmd = m_bufferUpdates.pushSafe();
 	cmd.hResource = hResource;
 	cmd.pData = pSrcData;
@@ -618,6 +617,8 @@ RdrGeoHandle RdrResourceCommandList::CreateGeo(const void* pVertData, int vertSt
 RdrGeoHandle RdrResourceCommandList::UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVertData, const RdrDebugBackpointer& debug)
 {
 	// donotcheckin - all calls to this need to be frame-buffered
+	assert(false);
+
 	CmdUpdateGeo& cmd = m_geoUpdates.pushSafe();
 	cmd.hGeo = hGeo;
 	cmd.pVertData = pVertData;

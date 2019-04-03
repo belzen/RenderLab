@@ -40,9 +40,8 @@ enum class RdrShaderFlags : uint
 {
 	None			= 0,
 	DepthOnly		= 1 << 1,
-	CubemapCapture	= 1 << 2,
-	AlphaCutout		= 1 << 3,
-	IsInstanced		= 1 << 4,
+	AlphaCutout		= 1 << 2,
+	IsInstanced		= 1 << 3,
 
 	// Note: Need to switch m_vertexShaders over to a hash table if flag count gets too large.
 	NumCombos		= 1 << 5

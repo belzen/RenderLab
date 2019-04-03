@@ -123,7 +123,7 @@ inline bool operator != (const RdrShaderResourceView& rLeft, const RdrShaderReso
 typedef FreeList<RdrResource, 1024> RdrResourceList;
 typedef RdrResourceList::Handle RdrResourceHandle;
 
-typedef FreeList<RdrResource, 16 * 1024> RdrConstantBufferList; // donotcheckin - even bother with this lists anymore?
+typedef FreeList<RdrResource, 16 * 1024> RdrConstantBufferList;
 typedef RdrConstantBufferList::Handle RdrConstantBufferHandle;
 
 typedef FreeList<RdrRenderTargetView, 128> RdrRenderTargetViewList;

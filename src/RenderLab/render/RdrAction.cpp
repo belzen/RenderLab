@@ -244,24 +244,6 @@ namespace
 
 		rConstants.hPsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pPsPerAction, constantsSize, pAction);
 	}
-
-	RdrConstantBufferHandle createCubemapCaptureConstants(const RdrAction* pAction, const Vec3& position, const float nearDist, const float farDist)
-	{
-		Camera cam;
-		Matrix44 mtxView, mtxProj;
-
-		uint constantsSize = sizeof(GsCubemapPerAction);
-		GsCubemapPerAction* pGsConstants = (GsCubemapPerAction*)RdrFrameMem::AllocAligned(constantsSize, 16);
-		for (uint f = 0; f < (uint)CubemapFace::Count; ++f)
-		{
-			cam.SetAsCubemapFace(position, (CubemapFace)f, nearDist, farDist);
-			cam.GetMatrices(mtxView, mtxProj);
-			pGsConstants->mtxViewProj[f] = Matrix44Multiply(mtxView, mtxProj);
-			pGsConstants->mtxViewProj[f] = Matrix44Transpose(pGsConstants->mtxViewProj[f]);
-		}
-
-		return g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pGsConstants, constantsSize, pAction);
-	}
 }
 
 void RdrAction::InitSharedData(RdrContext* pContext, const InputManager* pInputManager)
@@ -487,7 +469,6 @@ void RdrAction::Release()
 		rPass.bEnabled = false;
 		rPass.bClearRenderTargets = false;
 		rPass.bClearDepthTarget = false;
-		rPass.bIsCubeMapCapture = false;
 	}
 
 	m_shadowPassCount = 0;
@@ -553,32 +534,6 @@ void RdrAction::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHan
 	createPerActionConstants(this, rCamera, viewport, rShadowPass.constants);
 }
 
-void RdrAction::QueueShadowCubeMapPass(const PointLight& rLight, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
-{
-	assert(m_shadowPassCount + 1 < MAX_SHADOW_MAPS_PER_FRAME);
-
-	int shadowPassIndex = m_shadowPassCount;
-	RdrShadowPass& rShadowPass = m_shadowPasses[shadowPassIndex];
-	m_shadowPassCount++;
-
-	float viewDist = rLight.radius * 2.f;
-	rShadowPass.camera.SetAsSphere(rLight.position, 0.1f, viewDist);
-	rShadowPass.camera.UpdateFrustum();
-
-	// Setup action passes
-	RdrPassData& rPassData = rShadowPass.passData;
-	{
-		rPassData.viewport = viewport;
-		rPassData.bEnabled = true;
-		rPassData.shaderMode = RdrShaderMode::DepthOnly;
-		rPassData.bClearDepthTarget = true;
-		rPassData.hDepthTarget = hDepthView;
-		rPassData.bIsCubeMapCapture = true;
-	}
-
-	createPerActionConstants(this, rShadowPass.camera, viewport, rShadowPass.constants);
-	rShadowPass.constants.hGsCubeMap = createCubemapCaptureConstants(this, rLight.position, 0.1f, rLight.radius * 2.f);
-}
 
 //////////////////////////////////////////////////////////////////////////
 // Drawing
@@ -747,16 +702,6 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 		m_pDrawState->vsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pDrawOp->hVsConstants)->GetSRV();
 		m_pDrawState->vsConstantBufferCount = 2;
 	}
-
-#if 0 //donotcheckin
-	// Geom shader
-	if (rPass.bIsCubeMapCapture)
-	{
-		RdrGeometryShader geomShader = { RdrGeometryShaderType::Model_CubemapCapture, vertexShader.flags };
-		m_pDrawState->gsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hGsCubeMap)->resourceView;
-		m_pDrawState->gsConstantBufferCount = 1;
-	}
-#endif
 
 	// Tessellation material
 	if (pMaterial->IsShaderStageActive(rPass.shaderMode, RdrShaderStageFlags::Domain))
@@ -982,7 +927,7 @@ void RdrAction::DrawShadowPass(int shadowPassIndex)
 {
 	const RdrShadowPass& rShadowPass = m_shadowPasses[shadowPassIndex];
 	const RdrPassData& rPassData = rShadowPass.passData;
-	m_pContext->BeginEvent(rPassData.bIsCubeMapCapture ? L"Shadow Cube Map" : L"Shadow Map");
+	m_pContext->BeginEvent(L"Shadow Map");
 
 	RdrRenderTargetView renderTargets[MAX_RENDER_TARGETS];
 	uint nNumRenderTargets = 0;

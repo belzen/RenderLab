@@ -137,11 +137,7 @@ void RdrLighting::Cleanup()
 		}
 	}
 
-#if USE_SINGLEPASS_SHADOW_CUBEMAP
-	uint numCubemapViews = MAX_SHADOW_CUBEMAPS;
-#else
 	uint numCubemapViews = MAX_SHADOW_CUBEMAPS * (uint)CubemapFace::Count;
-#endif
 	for (uint i = 0; i < numCubemapViews; ++i)
 	{
 		if (m_shadowCubeMapDepthViews[i])
@@ -179,17 +175,10 @@ void RdrLighting::LazyInitShadowResources()
 		m_hShadowCubeMapTexArray = rResCommands.CreateTextureCubeArray(s_shadowCubeMapSize, s_shadowCubeMapSize, MAX_SHADOW_CUBEMAPS, 
 			kDefaultDepthFormat, RdrResourceAccessFlags::CpuRO_GpuRO_RenderTarget, this);
 
-#if USE_SINGLEPASS_SHADOW_CUBEMAP
-		for (int i = 0; i < MAX_SHADOW_CUBEMAPS; ++i)
-		{
-			m_shadowCubeMapDepthViews[i] = rResCommands.CreateDepthStencilView(m_hShadowCubeMapTexArray, i * (int)CubemapFace::Count, (int)CubemapFace::Count, this);
-		}
-#else
 		for (int i = 0; i < MAX_SHADOW_CUBEMAPS * (int)CubemapFace::Count; ++i)
 		{
 			m_shadowCubeMapDepthViews[i] = rResCommands.CreateDepthStencilView(m_hShadowCubeMapTexArray, i, 1, this);
 		}
-#endif
 	}
 }
 
@@ -306,15 +295,12 @@ void RdrLighting::QueueDraw(RdrAction* pAction, RdrLightList* pLights, RdrLighti
 			rPointLight.shadowMapIndex = curShadowCubeMapIndex + MAX_SHADOW_MAPS;
 
 			Rect viewport(0.f, 0.f, (float)s_shadowCubeMapSize, (float)s_shadowCubeMapSize);
-#if USE_SINGLEPASS_SHADOW_CUBEMAP
-			pAction->QueueShadowCubeMapPass(rPointLight, m_shadowCubeMapDepthViews[curShadowCubeMapIndex], viewport);
-#else
 			for (uint face = 0; face < 6; ++face)
 			{
 				lightCamera.SetAsCubemapFace(rPointLight.position, (CubemapFace)face, 0.1f, rPointLight.radius * 2.f);
 				pAction->QueueShadowMapPass(lightCamera, m_shadowCubeMapDepthViews[curShadowCubeMapIndex * (int)CubemapFace::Count + face], viewport);
 			}
-#endif
+
 			++shadowMapsThisFrame;
 			++curShadowCubeMapIndex;
 		}

@@ -37,10 +37,6 @@ public:
 	uint vsConstantBufferCount;
 	uint vsResourceCount;
 
-	// Geometry shader
-	RdrShaderResourceView gsConstantBuffers[4];
-	uint gsConstantBufferCount;
-
 	// Domain shader
 	RdrShaderResourceView dsConstantBuffers[4];
 	RdrShaderResourceView dsResources[4];

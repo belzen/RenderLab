@@ -88,6 +88,8 @@ enum class RdrBucketType
 	ShadowMap7,
 	ShadowMap8,
 	ShadowMap9,
+	ShadowMap10,
+	ShadowMap11,
 
 	Count
 };
