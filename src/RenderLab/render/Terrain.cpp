@@ -78,7 +78,7 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	RdrRasterState rasterState;
 	rasterState.bWireframe = false;
 	rasterState.bDoubleSided = false;
-	rasterState.bEnableMSAA = false; // donotcheckin g_debugState
+	rasterState.bEnableMSAA = (g_debugState.msaaLevel > 1);
 	rasterState.bUseSlopeScaledDepthBias = false;
 	rasterState.bEnableScissor = false;
 

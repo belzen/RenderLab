@@ -208,7 +208,7 @@ void Renderer::DrawFrame()
 		}
 	}
 
-	m_profiler.EndFrame(); //donotcheckin - this should be involved with present somehow...
+	m_profiler.EndFrame();
 	m_pContext->Present();
 
 	// Process post-frame commands.

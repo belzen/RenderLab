@@ -2006,7 +2006,6 @@ void RdrContext::Resize(uint width, uint height)
 		// Any references to the back buffers must be released
 		// before the swap chain can be resized.
 		m_pBackBuffers[i].Reset();
-		//donotcheckin m_nFrameFenceValues[i] = m_nFrameFenceValues[m_currBackBuffer];
 	}
 
 	DXGI_SWAP_CHAIN_DESC swapChainDesc = {};

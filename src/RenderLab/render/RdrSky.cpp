@@ -99,7 +99,7 @@ void RdrSky::LazyInit()
 	RdrRasterState rasterState;
 	rasterState.bWireframe = false;
 	rasterState.bDoubleSided = false;
-	rasterState.bEnableMSAA = false;//donotcheckin - match g_debugState
+	rasterState.bEnableMSAA = (g_debugState.msaaLevel > 1);
 	rasterState.bUseSlopeScaledDepthBias = false;
 	rasterState.bEnableScissor = false;
 

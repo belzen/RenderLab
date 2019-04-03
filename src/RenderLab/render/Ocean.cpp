@@ -213,7 +213,7 @@ void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, flo
 	RdrRasterState rasterState;
 	rasterState.bWireframe = false;
 	rasterState.bDoubleSided = false;
-	rasterState.bEnableMSAA = false;//donotcheckin - match g_debugState
+	rasterState.bEnableMSAA = (g_debugState.msaaLevel > 1);
 	rasterState.bUseSlopeScaledDepthBias = false;
 	rasterState.bEnableScissor = false;
 

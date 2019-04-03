@@ -24,7 +24,7 @@ void GlobalState::Init()
 
 	// Init default state
 	g_debugState.enableInstancing = false; // Leaving this disabled as the engine is far more GPU bound than CPU right now.
-	g_debugState.msaaLevel = 1;
+	g_debugState.msaaLevel = 2;
 	g_debugState.wireframe = false;
 	g_debugState.visMode = DebugVisMode::kNone;
 }

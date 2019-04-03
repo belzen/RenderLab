@@ -103,7 +103,7 @@ namespace
 		{
 			rasterState.bWireframe = false;
 			rasterState.bDoubleSided = false;
-			rasterState.bEnableMSAA = false; //donotcheckin g_debugState.msaaLevel
+			rasterState.bEnableMSAA = (g_debugState.msaaLevel > 1);
 			rasterState.bUseSlopeScaledDepthBias = false;
 			rasterState.bEnableScissor = false;
 
@@ -168,7 +168,7 @@ namespace
 
 			rasterState.bWireframe = false;
 			rasterState.bDoubleSided = false;
-			rasterState.bEnableMSAA = false; // donotcheckin (g_debugState.msaaLevel > 1);
+			rasterState.bEnableMSAA = (g_debugState.msaaLevel > 1);
 			rasterState.bUseSlopeScaledDepthBias = false;
 			rasterState.bEnableScissor = false;
 
