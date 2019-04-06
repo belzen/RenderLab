@@ -21,6 +21,7 @@ namespace
 	static const int kMaxNumShaderResourceViews = 90240;
 	static const int kMaxNumDepthStencilViews = 64;
 
+	static constexpr uint kUploadBufferSize = 32 * 1024 * 1024; // 32 MB per frame
 
 	static constexpr uint kMaxRootVsConstantBufferViews = 4;
 	static constexpr uint kMaxRootVsShaderResourceViews = 1;
@@ -166,6 +167,26 @@ namespace
 
 		*pOutView = descHandle;
 	}
+
+	bool ValidateHResult(HRESULT hResult, const char* func, const char* msg, const ComPtr<ID3DBlob>& pError = nullptr)
+	{
+		if (FAILED(hResult))
+		{
+			char str[256];
+			if (pError)
+			{
+				sprintf_s(str, "%s\n\tHRESULT: %d\n\tError: %s\n\tFunction: %s", msg, hResult, (const char*)pError->GetBufferPointer(), func);
+			}
+			else
+			{
+				sprintf_s(str, "%s\n\tHRESULT: %d\n\tFunction: %s", msg, hResult, func);
+			}
+			Error(str);
+			return false;
+		}
+
+		return true;
+	}
 }
 
 bool RdrContext::CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, RdrResource& rResource)
@@ -260,16 +281,25 @@ bool RdrContext::CreateStructuredBuffer(const void* pSrcData, int numElements, i
 
 void RdrContext::CopyResourceRegion(const RdrResource& rSrcResource, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset)
 {
-	D3D12_BOX box;
-	box.left = srcRegion.left;
-	box.right = srcRegion.left + srcRegion.width;
-	box.top = srcRegion.top;
-	box.bottom = srcRegion.top + srcRegion.height;
-	box.front = srcRegion.front;
-	box.back = srcRegion.front + srcRegion.depth;
+	if (rSrcResource.IsTexture())
+	{
+		D3D12_BOX box;
+		box.left = srcRegion.left;
+		box.right = srcRegion.left + srcRegion.width;
+		box.top = srcRegion.top;
+		box.bottom = srcRegion.top + srcRegion.height;
+		box.front = srcRegion.front;
+		box.back = srcRegion.front + srcRegion.depth;
 
-	assert(false);
-	//donotcheckin 	m_pDevContext->CopySubresourceRegion(rDstResource.pResource, 0, dstOffset.x, dstOffset.y, dstOffset.z, rSrcResource.pResource, 0, &box);
+		CD3DX12_TEXTURE_COPY_LOCATION src(rSrcResource.GetResource(), 0);
+		CD3DX12_TEXTURE_COPY_LOCATION dst(rDstResource.GetResource(), 0);
+
+		m_pCommandList->CopyTextureRegion(&dst, dstOffset.x, dstOffset.y, dstOffset.z, &src, &box);
+	}
+	else
+	{
+		m_pCommandList->CopyBufferRegion(rDstResource.GetResource(), dstOffset.x, rSrcResource.GetResource(), srcRegion.left, srcRegion.width);
+	}
 }
 
 void RdrContext::ReadResource(const RdrResource& rSrcResource, void* pDstData, uint dstDataSize)
@@ -279,11 +309,9 @@ void RdrContext::ReadResource(const RdrResource& rSrcResource, void* pDstData, u
 	void* pMappedData;
 	D3D12_RANGE readRange = { 0, dstDataSize };
 	HRESULT hr = pDeviceResource->Map(0, &readRange, &pMappedData);
-	if (FAILED(hr))
-	{
-		assert(false);
+
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to map resource!"))
 		return;
-	}
 
 	memcpy(pDstData, pMappedData, dstDataSize);
 
@@ -318,13 +346,10 @@ ID3D12Resource* RdrContext::CreateBuffer(const int size, RdrResourceAccessFlags 
 		&resourceDesc,
 		initialState,
 		nullptr,
-		IID_PPV_ARGS(&pResource)); //donotcheckin - manage ref count?
+		IID_PPV_ARGS(&pResource));
 
-	if (FAILED(hr))
-	{
-		assert(false);
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create resource!"))
 		return nullptr;
-	}
 
 	return pResource;
 }
@@ -419,11 +444,8 @@ ComPtr<IDXGIAdapter4> GetAdapter()
 #endif
 
 	HRESULT hr = CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&dxgiFactory));
-	if (FAILED(hr))
-	{
-		assert(false);
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to get adapter!"))
 		return nullptr;
-	}
 
 	ComPtr<IDXGIAdapter1> dxgiAdapter1;
 	ComPtr<IDXGIAdapter4> dxgiAdapter4;
@@ -444,11 +466,9 @@ ComPtr<IDXGIAdapter4> GetAdapter()
 		{
 			maxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
 			hr = dxgiAdapter1.As(&dxgiAdapter4);
-			if (FAILED(hr))
-			{
-				assert(false);
+
+			if (!ValidateHResult(hr, __FUNCTION__, "Failed to create device!"))
 				return nullptr;
-			}
 		}
 	}
 
@@ -464,11 +484,9 @@ ComPtr<ID3D12Device> CreateDevice(ComPtr<IDXGIAdapter4> adapter)
 {
 	ComPtr<ID3D12Device> d3d12Device1;
 	HRESULT hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&d3d12Device1));
-	if (FAILED(hr))
-	{
-		assert(false);
+
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create device!"))
 		return nullptr;
-	}
 
 	return d3d12Device1;
 }
@@ -484,11 +502,9 @@ ComPtr<ID3D12CommandQueue> CreateCommandQueue(ComPtr<ID3D12Device> device, D3D12
 	desc.NodeMask = 0;
 
 	HRESULT hr = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&d3d12CommandQueue));
-	if (FAILED(hr))
-	{
-		assert(false);
+
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create command queue!"))
 		return nullptr;
-	}
 
 	return d3d12CommandQueue;
 }
@@ -528,11 +544,9 @@ ComPtr<IDXGISwapChain4> CreateSwapChain(HWND hWnd,
 	UINT createFactoryFlags = g_userConfig.debugDevice ? DXGI_CREATE_FACTORY_DEBUG : 0;
 
 	HRESULT hr = CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&dxgiFactory4));
-	if (FAILED(hr))
-	{
-		assert(false);
+
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create DXGI factory!"))
 		return nullptr;
-	}
 
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 	swapChainDesc.Width = width;
@@ -557,27 +571,18 @@ ComPtr<IDXGISwapChain4> CreateSwapChain(HWND hWnd,
 		nullptr,
 		&swapChain1);
 
-	if (FAILED(hr))
-	{
-		assert(false);
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create swap chain!"))
 		return nullptr;
-	}
 
 	// Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen
 	// will be handled manually.
 	hr = dxgiFactory4->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
-	if (FAILED(hr))
-	{
-		assert(false);
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to make window association!"))
 		return nullptr;
-	}
 
 	hr = swapChain1.As(&dxgiSwapChain4);
-	if (FAILED(hr))
-	{
-		assert(false);
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to setup swap chain!"))
 		return nullptr;
-	}
 
 	return dxgiSwapChain4;
 }
@@ -592,10 +597,8 @@ void DescriptorHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_
 		? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
 	HRESULT hr = pDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_pDescriptorHeap));
-	if (FAILED(hr))
-	{
-		assert(false);
-	}
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create descriptor heap!"))
+		return;
 
 	m_descriptorSize = pDevice->GetDescriptorHandleIncrementSize(type);
 
@@ -644,10 +647,8 @@ void DescriptorRingBuffer::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR
 		? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
 	HRESULT hr = pDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_pDescriptorHeap));
-	if (FAILED(hr))
-	{
-		assert(false);
-	}
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create descriptor heap!"))
+		return;
 
 	m_descriptorSize = pDevice->GetDescriptorHandleIncrementSize(type);
 	m_nextDescriptor = 0;
@@ -685,10 +686,8 @@ void QueryHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_QUERY_HEAP_TYPE type,
 	desc.Type = type;
 
 	HRESULT hr = pDevice->CreateQueryHeap(&desc, IID_PPV_ARGS(&m_pQueryHeap));
-	if (FAILED(hr))
-	{
-		assert(false);
-	}
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create query heap!"))
+		return;
 
 	m_nNextQuery = 0;
 	m_nFrame = 0;
@@ -735,11 +734,8 @@ ComPtr<ID3D12CommandAllocator> CreateCommandAllocator(ComPtr<ID3D12Device> devic
 {
 	ComPtr<ID3D12CommandAllocator> commandAllocator;
 	HRESULT hr = device->CreateCommandAllocator(type, IID_PPV_ARGS(&commandAllocator));
-	if(FAILED(hr))
-	{
-		assert(false);
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create command allocator!"))
 		return false;
-	}
 
 	return commandAllocator;
 }
@@ -749,18 +745,12 @@ ComPtr<ID3D12GraphicsCommandList> CreateCommandList(ComPtr<ID3D12Device> device,
 {
 	ComPtr<ID3D12GraphicsCommandList> commandList;
 	HRESULT hr = device->CreateCommandList(0, type, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList));
-	if (FAILED(hr))
-	{
-		assert(false);
-		return false;
-	}
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create command list!"))
+		return nullptr;
 
 	hr = commandList->Close();
-	if (FAILED(hr))
-	{
-		assert(false);
-		return false;
-	}
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to close command list!"))
+		return nullptr;
 
 	return commandList;
 }
@@ -770,11 +760,8 @@ ComPtr<ID3D12Fence> CreateFence(ComPtr<ID3D12Device> device)
 	ComPtr<ID3D12Fence> fence;
 
 	HRESULT hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
-	if (FAILED(hr))
-	{
-		assert(false);
-		return false;
-	}
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create fence!"))
+		return nullptr;
 
 	return fence;
 }
@@ -792,10 +779,7 @@ HANDLE CreateEventHandle()
 void Signal(ComPtr<ID3D12CommandQueue> pCommandQueue, ComPtr<ID3D12Fence> pFence, uint64 fenceValue)
 {
 	HRESULT hr = pCommandQueue->Signal(pFence.Get(), fenceValue);
-	if (FAILED(hr))
-	{
-		assert(false);
-	}
+	ValidateHResult(hr, __FUNCTION__, "Failed to signal fence!");
 }
 
 void WaitForFenceValue(ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fenceEvent)
@@ -803,11 +787,8 @@ void WaitForFenceValue(ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fe
 	if (fence->GetCompletedValue() < fenceValue)
 	{
 		HRESULT hr = fence->SetEventOnCompletion(fenceValue, fenceEvent);
-		if (FAILED(hr))
-		{
-			assert(false);
+		if (!ValidateHResult(hr, __FUNCTION__, "Failed to set event!"))
 			return;
-		}
 
 		::WaitForSingleObject(fenceEvent, INFINITE);
 	}
@@ -826,11 +807,8 @@ void RdrContext::UpdateRenderTargetViews()
 	{
 		ComPtr<ID3D12Resource> backBuffer;
 		HRESULT hr = m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
-		if (FAILED(hr))
-		{
-			assert(false);
+		if (!ValidateHResult(hr, __FUNCTION__, "Failed to get swap chain buffer!"))
 			return;
-		}
 
 		if (m_hBackBufferRtvs[i].ptr == 0)
 		{
@@ -877,7 +855,6 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 	{
 		m_pCommandAllocators[i] = CreateCommandAllocator(m_pDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
 
-		static constexpr uint kUploadBufferSize = 32 * 1024 * 1024; // 32 MB per frame - donotcheckin - define elsewhere
 		CD3DX12_HEAP_PROPERTIES heapProperties = selectHeapProperties(RdrResourceAccessFlags::CpuRW_GpuRO);
 		HRESULT hr = m_pDevice->CreateCommittedResource(
 			&heapProperties,
@@ -887,10 +864,7 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 			nullptr,
 			IID_PPV_ARGS(&m_uploadBuffers[i].pBuffer));
 
-		if (FAILED(hr))
-		{
-			assert(false);//donotcheckin
-		}
+		ValidateHResult(hr, __FUNCTION__, "Failed to create upload buffer!");
 
 		CD3DX12_RANGE readRange(0, 0);
 		m_uploadBuffers[i].pBuffer->Map(0, &readRange, (void**)&m_uploadBuffers[i].pStart);
@@ -916,10 +890,8 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		nullptr,
 		IID_PPV_ARGS(&m_timestampResultBuffer));
 
-	if (FAILED(hr))
-	{
-		assert(false);//donotcheckin
-	}
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to create timestamp buffer!"))
+		return false;
 
 	// Debug settings
 	if (g_userConfig.debugDevice)
@@ -1048,19 +1020,11 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
 		hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);
-		if (FAILED(hr))
-		{
-			const char* pErrorMsg = (const char*)error->GetBufferPointer();
-			Error(pErrorMsg);
-			return nullptr;
-		}
+		if (!ValidateHResult(hr, __FUNCTION__, "Failed to serialize root signature!", error))
+			return false;
 
 		hr = m_pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pGraphicsRootSignature));
-		if (FAILED(hr))
-		{
-			assert(false);
-			return nullptr;
-		}
+		ValidateHResult(hr, __FUNCTION__, "Failed to graphics root signature!");
 	}
 
 	// Compute root signature
@@ -1078,26 +1042,23 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_ALL);
 
 		// Allow input layout and deny unnecessary access to certain pipeline stages.
-		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags = D3D12_ROOT_SIGNATURE_FLAG_NONE; //DONOTCHECKIN - deny everything?
+		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags = D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Init(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
 
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
 		hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);
-		if (FAILED(hr))
-		{
-			const char* pErrorMsg = (const char*)error->GetBufferPointer();
-			Error(pErrorMsg);
-			return nullptr;
-		}
+		if (!ValidateHResult(hr, __FUNCTION__, "Failed to serialize root signature!", error))
+			return false;
 
 		hr = m_pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pComputeRootSignature));
-		if (FAILED(hr))
-		{
-			assert(false);
-			return nullptr;
-		}
+		if (!ValidateHResult(hr, __FUNCTION__, "Failed to create compute root signature!"))
+			return false;
 	}
 
 	// Null resources
@@ -1263,13 +1224,10 @@ namespace
 			&desc, 
 			eInitialState,
 			nullptr,
-			IID_PPV_ARGS(&pResource)); //donotcheckin - manage ref count?
+			IID_PPV_ARGS(&pResource));
 
-		if (FAILED(hr))
-		{
-			assert(false);
+		if (!ValidateHResult(hr, __FUNCTION__, "Failed to create texture cube!"))
 			return false;
-		}
 
 		RdrShaderResourceView srv;
 		createTextureCubeSrv(pDevice, srvHeap, rTexInfo, pResource, &srv.hView);
@@ -1387,13 +1345,10 @@ namespace
 			&desc,
 			eInitialState,
 			pClearValue,
-			IID_PPV_ARGS(&pResource)); //donotcheckin - manage ref count?
+			IID_PPV_ARGS(&pResource));
 
-		if (FAILED(hr))
-		{
-			assert(false);
+		if (!ValidateHResult(hr, __FUNCTION__, "Failed to create texture 2D!"))
 			return false;
-		}
 
 		RdrShaderResourceView srv;
 		RdrShaderResourceView* pSRV = nullptr;
@@ -1489,13 +1444,10 @@ namespace
 			&desc,
 			eInitialState,
 			nullptr,
-			IID_PPV_ARGS(&pResource)); //donotcheckin - manage ref count?
+			IID_PPV_ARGS(&pResource));
 
-		if (FAILED(hr))
-		{
-			assert(false);
+		if (!ValidateHResult(hr, __FUNCTION__, "Failed to create texture 3D!"))
 			return false;
-		}
 
 		RdrShaderResourceView srv;
 		RdrShaderResourceView* pSRV = nullptr;
@@ -1883,7 +1835,8 @@ void RdrContext::BeginFrame()
 {
 	// Reset command list for the next frame
 	HRESULT hr = m_pCommandList->Reset(m_pCommandAllocators[m_currBackBuffer].Get(), nullptr);
-	assert(SUCCEEDED(hr));
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to reset command list!"))
+		return;
 	
 	m_timestampQueryHeap.BeginFrame();
 
@@ -1934,11 +1887,8 @@ void RdrContext::Present()
 	}
 
 	HRESULT hr = m_pCommandList->Close();
-	if (FAILED(hr))
-	{
-		assert(false);
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to close command list!"))
 		return;
-	}
 
 	ID3D12CommandList* aCommandLists[1] = { m_pCommandList.Get() };
 	m_pCommandQueue->ExecuteCommandLists(ARRAYSIZE(aCommandLists), aCommandLists);
@@ -2010,19 +1960,13 @@ void RdrContext::Resize(uint width, uint height)
 
 	DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
 	HRESULT hr = m_pSwapChain->GetDesc(&swapChainDesc);
-	if (FAILED(hr))
-	{
-		assert(false);
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to get swap chain desc!"))
 		return;
-	}
 
 	hr = m_pSwapChain->ResizeBuffers(kNumBackBuffers, width, height,
 		swapChainDesc.BufferDesc.Format, swapChainDesc.Flags);
-	if (FAILED(hr))
-	{
-		assert(false);
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to resize buffers!"))
 		return;
-	}
 
 	m_currBackBuffer = m_pSwapChain->GetCurrentBackBufferIndex();
 
@@ -2051,7 +1995,7 @@ RdrRenderTargetView RdrContext::GetPrimaryRenderTarget()
 {
 	RdrRenderTargetView view;
 	view.hView = m_hBackBufferRtvs[m_currBackBuffer];
-	view.pResource = nullptr;//donotcheckin m_pBackBuffers[m_currBackBuffer];
+	view.pResource = nullptr;
 	return view;
 }
 
@@ -2111,11 +2055,9 @@ void RdrContext::UpdateResource(RdrResource& rResource, const void* pSrcData, co
 		void* pDstData;
 		CD3DX12_RANGE readRange(0, 0);
 		HRESULT hr = pDeviceResource->Map(0, &readRange, &pDstData);
-		if (FAILED(hr))
-		{
-			assert(false);
+
+		if (!ValidateHResult(hr, __FUNCTION__, "Failed to map resource!"))
 			return;
-		}
 
 		memcpy(pDstData, pSrcData, dataSize);
 
@@ -2384,12 +2326,12 @@ void RdrContext::DispatchCompute(const RdrDrawState& rDrawState, uint threadGrou
 	}
 
 	// CS resources
-	uint numResources = ARRAY_SIZE(rDrawState.csResources);
+	uint numResources = rDrawState.csResourceCount;
 	hDescCurr = m_dynamicDescriptorHeap.AllocateDescriptors(numResources, nDescriptorStartIndex);
 	m_pCommandList->SetComputeRootDescriptorTable(kRootCsShaderResourceViewTable, m_dynamicDescriptorHeap.GetGpuHandle(nDescriptorStartIndex));
 	for (uint i = 0; i < numResources; ++i)
 	{
-		if (rDrawState.csResources[i].hView.ptr != 0) // donotcheckin - define numResources explicitly
+		if (rDrawState.csResources[i].hView.ptr != 0)
 		{
 			m_pDevice->CopyDescriptorsSimple(1, hDescCurr, rDrawState.csResources[i].hView, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			m_rProfiler.IncrementCounter(RdrProfileCounter::CsResource);
@@ -2397,7 +2339,7 @@ void RdrContext::DispatchCompute(const RdrDrawState& rDrawState, uint threadGrou
 		hDescCurr.Offset(1, m_dynamicDescriptorHeap.GetDescriptorSize());
 	}
 
-	uint numSamplers = ARRAY_SIZE(rDrawState.csSamplers);
+	uint numSamplers = rDrawState.csSamplerCount;
 	hDescCurr = m_dynamicSamplerDescriptorHeap.AllocateDescriptors(numSamplers, nDescriptorStartIndex);
 	m_pCommandList->SetComputeRootDescriptorTable(kRootCsSamplerTable, m_dynamicSamplerDescriptorHeap.GetGpuHandle(nDescriptorStartIndex));
 	for (uint i = 0; i < numSamplers; ++i)
@@ -2407,12 +2349,12 @@ void RdrContext::DispatchCompute(const RdrDrawState& rDrawState, uint threadGrou
 		m_rProfiler.IncrementCounter(RdrProfileCounter::CsSampler);
 	}
 
-	uint numUavs = ARRAY_SIZE(rDrawState.csUavs);
+	uint numUavs = rDrawState.csUavCount;
 	hDescCurr = m_dynamicDescriptorHeap.AllocateDescriptors(numUavs, nDescriptorStartIndex);
 	m_pCommandList->SetComputeRootDescriptorTable(kRootCsUnorderedAccessViewTable, m_dynamicDescriptorHeap.GetGpuHandle(nDescriptorStartIndex));
 	for (uint i = 0; i < numUavs; ++i)
 	{
-		if (rDrawState.csUavs[i].hView.ptr != 0) // donotcheckin - define numUavs explicitly
+		if (rDrawState.csUavs[i].hView.ptr != 0)
 		{
 			m_pDevice->CopyDescriptorsSimple(1, hDescCurr, rDrawState.csUavs[i].hView, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			m_rProfiler.IncrementCounter(RdrProfileCounter::CsUnorderedAccess);
@@ -2421,19 +2363,6 @@ void RdrContext::DispatchCompute(const RdrDrawState& rDrawState, uint threadGrou
 	}
 
 	m_pCommandList->Dispatch(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
-
-	// donotcheckin? Clear resources to avoid binding errors (input bound as output).  todo: don't do this
-
-	m_drawState.Reset();
-}
-
-void RdrContext::PSClearResources()
-{
-	memset(m_drawState.psResources, 0, sizeof(m_drawState.psResources));
-
-	// donotcheckin - do nothing?
-	//ID3D12ShaderResourceView* resourceViews[ARRAY_SIZE(RdrDrawState::psResources)] = { 0 };
-	//m_pCommandList->PSSetShaderResources(0, 20, resourceViews);
 }
 
 RdrQuery RdrContext::InsertTimestampQuery()
@@ -2605,13 +2534,14 @@ RdrPipelineState RdrContext::CreateGraphicsPipelineState(
 	psoDesc.DepthStencilState.StencilEnable = FALSE;
 	psoDesc.DSVFormat = (psoDesc.DepthStencilState.DepthEnable ? getD3DDepthFormat(kDefaultDepthFormat) : DXGI_FORMAT_UNKNOWN);
 	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.SampleDesc.Count = (rasterState.bEnableMSAA ? g_debugState.msaaLevel : 1);
+	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	psoDesc.NumRenderTargets = nNumRtvFormats;
 	for (uint i = 0; i < nNumRtvFormats; ++i)
 	{
 		psoDesc.RTVFormats[i] = getD3DFormat(pRtvFormats[i]);
 	}
-	psoDesc.SampleDesc.Count = 1;
 
 	// Rasterizer state
 	{

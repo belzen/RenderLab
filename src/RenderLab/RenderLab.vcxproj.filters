@@ -432,6 +432,7 @@
     <ClInclude Include="render\Ocean.h">
       <Filter>render</Filter>
     </ClInclude>
+    <ClInclude Include="RdrDebugBackpointer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\shaders\p_common.hlsli">

@@ -224,7 +224,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueTextureReadbackRequest(RdrResour
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(pixelCoord.x, pixelCoord.y, 0, 1, 1, 1);
 	pReq->hDstResource = GetResourceCommandList().CreateTexture2D(1, 1, pSrcResource->GetTextureInfo().format, 
-		RdrResourceAccessFlags::CpuRO_GpuRW, nullptr, this);
+		RdrResourceAccessFlags::CpuRO_GpuRW, nullptr, CREATE_BACKPOINTER(this));
 	pReq->dataSize = rdrGetTexturePitch(1, pSrcResource->GetTextureInfo().format);
 	pReq->pData = new char[pReq->dataSize]; // todo: custom heap
 
@@ -241,7 +241,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueStructuredBufferReadbackRequest(
 	pReq->frameCount = 0;
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(startByteOffset, 0, 0, numBytesToRead, 1, 1);
-	pReq->hDstResource = GetResourceCommandList().CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceAccessFlags::CpuRO_GpuRW, this);
+	pReq->hDstResource = GetResourceCommandList().CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceAccessFlags::CpuRO_GpuRW, CREATE_BACKPOINTER(this));
 	pReq->dataSize = numBytesToRead;
 	pReq->pData = new char[numBytesToRead]; // todo: custom heap
 
@@ -275,7 +275,7 @@ void Renderer::ReleaseResourceReadbackRequest(RdrResourceReadbackRequestHandle h
 	}
 
 	// todo: pool/reuse dest resources.
-	GetResourceCommandList().ReleaseResource(pReq->hDstResource, this);
+	GetResourceCommandList().ReleaseResource(pReq->hDstResource, CREATE_BACKPOINTER(this));
 	SAFE_DELETE(pReq->pData);
 
 	m_readbackRequests.releaseId(hRequest);
@@ -290,46 +290,36 @@ namespace
 	static constexpr RdrResourceFormat kShadowMapRtvFormats[] = { kDefaultDepthFormat };
 }
 
-const RdrResourceFormat* Renderer::GetStageRTVFormats(RdrRenderStage eDrawStage)
+void Renderer::GetStageRenderTargetFormats(RdrRenderStage eStage, const RdrResourceFormat** ppOutFormats, uint* pOutNumFormats)
 {
-	switch (eDrawStage)
+	switch (eStage)
 	{
 	case RdrRenderStage::kScene_ZPrepass:
-		return nullptr;
+		*ppOutFormats = nullptr;
+		*pOutNumFormats = 0;
+		break;
 	case RdrRenderStage::kScene_GBuffer:
-		return kSceneGBufferRtvFormats;
+		*ppOutFormats = kSceneGBufferRtvFormats;
+		*pOutNumFormats = ARRAY_SIZE(kSceneGBufferRtvFormats);
+		break;
 	case RdrRenderStage::kScene:
-		return kSceneRtvFormats;
+		*ppOutFormats = kSceneRtvFormats;
+		*pOutNumFormats = ARRAY_SIZE(kSceneRtvFormats);
+		break;
 	case RdrRenderStage::kUI:
-		return kUIRtvFormats;
+		*ppOutFormats = kUIRtvFormats;
+		*pOutNumFormats = ARRAY_SIZE(kUIRtvFormats);
+		break;
 	case RdrRenderStage::kPrimary:
-		return kPrimaryRtvFormats;
+		*ppOutFormats = kPrimaryRtvFormats;
+		*pOutNumFormats = ARRAY_SIZE(kPrimaryRtvFormats);
+		break;
 	case RdrRenderStage::kShadowMap:
-		return kShadowMapRtvFormats;
+		*ppOutFormats = kShadowMapRtvFormats;
+		*pOutNumFormats = ARRAY_SIZE(kShadowMapRtvFormats);
+		break;
+	default:
+		assert(false);
+		break;
 	}
-
-	assert(false);
-	return nullptr;
-}
-
-uint Renderer::GetNumStageRTVFormats(RdrRenderStage eDrawStage)
-{
-	switch (eDrawStage)
-	{
-	case RdrRenderStage::kScene_ZPrepass:
-		return 0;
-	case RdrRenderStage::kScene_GBuffer:
-		return ARRAY_SIZE(kSceneGBufferRtvFormats);
-	case RdrRenderStage::kScene:
-		return ARRAY_SIZE(kSceneRtvFormats);
-	case RdrRenderStage::kUI:
-		return ARRAY_SIZE(kUIRtvFormats);
-	case RdrRenderStage::kPrimary:
-		return ARRAY_SIZE(kPrimaryRtvFormats);
-	case RdrRenderStage::kShadowMap:
-		return ARRAY_SIZE(kShadowMapRtvFormats);
-	}
-
-	assert(false);
-	return 0;
 }

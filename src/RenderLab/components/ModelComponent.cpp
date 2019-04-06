@@ -22,7 +22,7 @@ void ModelComponent::Release()
 {
 	if (m_hVsPerObjectConstantBuffer)
 	{
-		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hVsPerObjectConstantBuffer, this);
+		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hVsPerObjectConstantBuffer, CREATE_BACKPOINTER(this));
 		m_hVsPerObjectConstantBuffer = 0;
 	}
 
@@ -79,7 +79,7 @@ RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 		pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
 		m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
-			pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuWrite | RdrResourceAccessFlags::GpuRead, this);
+			pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuWrite | RdrResourceAccessFlags::GpuRead, CREATE_BACKPOINTER(this));
 	
 		if (CanInstance())
 		{
@@ -97,7 +97,7 @@ RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 	}
 
 	uint numSubObjects = m_pModelData->GetNumSubObjects();
-	RdrDrawOp* aDrawOps = RdrFrameMem::AllocDrawOps(numSubObjects);
+	RdrDrawOp* aDrawOps = RdrFrameMem::AllocDrawOps(numSubObjects, CREATE_BACKPOINTER(this));
 
 	for (uint i = 0; i < numSubObjects; ++i)
 	{

@@ -25,7 +25,7 @@ struct RdrFrameState
 // Global pointer to active renderer.
 extern Renderer* g_pRenderer;
 
-enum class RdrRenderStage //donotcheckin - merge with RdrPass
+enum class RdrRenderStage
 {
 	kScene_ZPrepass,
 	kScene_GBuffer,
@@ -66,8 +66,7 @@ public:
 
 	RdrLightingMethod GetLightingMethod() const;
 
-	static const RdrResourceFormat* GetStageRTVFormats(RdrRenderStage eDrawStage);
-	static uint GetNumStageRTVFormats(RdrRenderStage eDrawStage);
+	static void GetStageRenderTargetFormats(RdrRenderStage eStage, const RdrResourceFormat** ppOutFormats, uint* pOutNumFormats);
 
 	RdrContext* GetContext();
 

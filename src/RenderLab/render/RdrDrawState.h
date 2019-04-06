@@ -59,4 +59,7 @@ public:
 	RdrSamplerState csSamplers[4];
 	RdrUnorderedAccessView csUavs[4];
 	uint csConstantBufferCount;
+	uint csResourceCount;
+	uint csSamplerCount;
+	uint csUavCount;
 };

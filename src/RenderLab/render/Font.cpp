@@ -45,7 +45,7 @@ namespace
 		const Rect& viewport = pAction->GetViewport();
 		Vec3 pos = UI::PosToScreenSpace(uiPos, Vec2(rText.size.x, rText.size.y) * size, Vec2(viewport.width, viewport.height));
 
-		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp(CREATE_NULL_BACKPOINTER);
 		pDrawOp->hGeo = rText.hTextGeo;
 		pDrawOp->pMaterial = &s_text.material;
 
@@ -53,7 +53,7 @@ namespace
 		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pConstants[0] = Vec4(color.r, color.g, color.b, color.a);
 		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
-		pDrawOp->hVsConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pConstants, constantsSize, RdrDebugBackpointer());
+		pDrawOp->hVsConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pConstants, constantsSize, CREATE_NULL_BACKPOINTER);
 
 		pAction->AddDrawOp(pDrawOp, RdrBucketType::UI);
 	}
@@ -66,8 +66,9 @@ void Font::Init()
 	sprintf_s(filename, "%s/textures/fonts/verdana.dat", Paths::GetDataDir());
 	loadFontData(filename);
 
-	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kUI);
-	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kUI);
+	const RdrResourceFormat* pRtvFormats;
+	uint nNumRtvFormats;
+	Renderer::GetStageRenderTargetFormats(RdrRenderStage::kUI, &pRtvFormats, &nNumRtvFormats);
 
 	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_text.hlsl", nullptr, 0);
 
@@ -90,7 +91,7 @@ void Font::Init()
 	s_text.material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 
 	RdrTextureInfo texInfo;
-	s_text.material.ahTextures.assign(0, g_pRenderer->GetResourceCommandList().CreateTextureFromFile("fonts/verdana", &texInfo, RdrDebugBackpointer()));
+	s_text.material.ahTextures.assign(0, g_pRenderer->GetResourceCommandList().CreateTextureFromFile("fonts/verdana", &texInfo, CREATE_NULL_BACKPOINTER));
 	s_text.glyphPixelSize = texInfo.width / 16;
 }
 
@@ -166,7 +167,7 @@ TextObject Font::CreateText(const char* text)
 	TextObject obj;
 	obj.size.x = size.x;
 	obj.size.y = size.y;
-	obj.hTextGeo = g_pRenderer->GetResourceCommandList().CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, RdrTopology::TriangleList, Vec3::kZero, size, RdrDebugBackpointer());
+	obj.hTextGeo = g_pRenderer->GetResourceCommandList().CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, RdrTopology::TriangleList, Vec3::kZero, size, CREATE_NULL_BACKPOINTER);
 	return obj;
 }
 
@@ -174,7 +175,7 @@ void Font::QueueDraw(RdrAction* pAction, const UI::Position& pos, float size, co
 {
 	TextObject textObj = CreateText(text);
 	queueDrawCommon(pAction, pos, size, textObj, color);
-	g_pRenderer->GetResourceCommandList().ReleaseGeo(textObj.hTextGeo, RdrDebugBackpointer());
+	g_pRenderer->GetResourceCommandList().ReleaseGeo(textObj.hTextGeo, CREATE_NULL_BACKPOINTER);
 }
 
 void Font::QueueDraw(RdrAction* pAction, const UI::Position& pos, float size, const TextObject& rText, Color color)

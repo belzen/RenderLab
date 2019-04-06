@@ -40,7 +40,8 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	m_hGeo = rResCommandList.CreateGeo(
 		aVertices, sizeof(aVertices[0]), 4, 
 		nullptr, 0,
-		RdrTopology::Quad, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f), this);
+		RdrTopology::Quad, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f),
+		CREATE_BACKPOINTER(this));
 
 	// Instance buffer
 	float cellSize = 16.f;
@@ -58,7 +59,10 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 				0.f);
 		}
 	}
-	m_hInstanceData = rResCommandList.CreateVertexBuffer(aInstanceData, sizeof(aInstanceData[0]), m_gridSize.x * m_gridSize.y, RdrResourceAccessFlags::CpuRO_GpuRO, this);
+	m_hInstanceData = rResCommandList.CreateVertexBuffer(aInstanceData
+		, sizeof(aInstanceData[0]), m_gridSize.x * m_gridSize.y
+		, RdrResourceAccessFlags::CpuRO_GpuRO
+		, CREATE_BACKPOINTER(this));
 
 #if 0 //donotcheckin
 	// Tessellation material
@@ -70,8 +74,9 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 #endif
 
 	// Setup pixel material
-	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene_GBuffer);
-	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene_GBuffer);
+	const RdrResourceFormat* pRtvFormats;
+	uint nNumRtvFormats;
+	Renderer::GetStageRenderTargetFormats(RdrRenderStage::kScene_GBuffer, &pRtvFormats, &nNumRtvFormats);
 	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_terrain.hlsl", nullptr, 0);
 
 
@@ -85,7 +90,7 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 
 	memset(&m_material, 0, sizeof(m_material));
 	m_material.bNeedsLighting = true;
-	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrResourceAccessFlags::CpuRW_GpuRO, this);
+	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 	m_material.CreatePipelineState(RdrShaderMode::Normal,
 		kVertexShader, pPixelShader,
 		s_terrainVertexDesc, ARRAY_SIZE(s_terrainVertexDesc), 
@@ -93,8 +98,8 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 		RdrBlendMode::kOpaque,
 		rasterState,
 		RdrDepthStencilState(true, false, RdrComparisonFunc::Equal)); //donotcheckin? - zprepass is different!
-	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile("white", nullptr, this));
-	m_material.ahTextures.assign(1, rResCommandList.CreateTextureFromFile("flat_ddn", nullptr, this));
+	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile("white", nullptr, CREATE_BACKPOINTER(this)));
+	m_material.ahTextures.assign(1, rResCommandList.CreateTextureFromFile("flat_ddn", nullptr, CREATE_BACKPOINTER(this)));
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 }
 
@@ -121,7 +126,7 @@ RdrDrawOpSet Terrain::BuildDrawOps(RdrAction* pAction)
 
 	//////////////////////////////////////////////////////////////////////////
 	// Fill out the draw op
-	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp(CREATE_BACKPOINTER(this));
 	pDrawOp->hGeo = m_hGeo;
 	pDrawOp->hCustomInstanceBuffer = m_hInstanceData;
 	pDrawOp->pMaterial = &m_material;

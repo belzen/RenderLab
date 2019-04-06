@@ -51,7 +51,7 @@ namespace
 		};
 
 		return g_pRenderer->GetResourceCommandList().CreateGeo(aVertices, sizeof(DecalVertex), ARRAY_SIZE(aVertices),
-			aIndices, ARRAY_SIZE(aIndices), RdrTopology::TriangleList, boundsMin, boundsMax, RdrDebugBackpointer());
+			aIndices, ARRAY_SIZE(aIndices), RdrTopology::TriangleList, boundsMin, boundsMax, CREATE_NULL_BACKPOINTER);
 	}
 }
 
@@ -65,8 +65,10 @@ Decal* Decal::Create(IComponentAllocator* pAllocator, const CachedString& textur
 
 	Decal* pDecal = pAllocator->AllocDecal();
 
-	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene_GBuffer);
-	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene_GBuffer);
+	const RdrResourceFormat* pRtvFormats;
+	uint nNumRtvFormats;
+	Renderer::GetStageRenderTargetFormats(RdrRenderStage::kScene_GBuffer, &pRtvFormats, &nNumRtvFormats);
+
 	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_decal.hlsl", nullptr, 0);
 
 	RdrRasterState rasterState;
@@ -97,12 +99,12 @@ void Decal::Release()
 {
 	if (m_hVsPerObjectConstantBuffer)
 	{
-		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hVsPerObjectConstantBuffer, this);
+		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hVsPerObjectConstantBuffer, CREATE_BACKPOINTER(this));
 		m_hVsPerObjectConstantBuffer = 0;
 	}
 	if (m_hPsMaterialBuffer)
 	{
-		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hPsMaterialBuffer, this);
+		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hPsMaterialBuffer, CREATE_BACKPOINTER(this));
 		m_hPsMaterialBuffer = 0;
 	}
 
@@ -131,7 +133,7 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 		pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
 		m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
-			pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, this);
+			pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 
 		// Decal material
 		constantsSize = sizeof(DecalMaterialParams);
@@ -140,7 +142,7 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 		pPsMaterial->mtxInvWorld = Matrix44Transpose(pPsMaterial->mtxInvWorld);
 
 		m_hPsMaterialBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hPsMaterialBuffer,
-			pPsMaterial, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, this);
+			pPsMaterial, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 		m_material.hConstants = m_hPsMaterialBuffer;
 
 		///
@@ -148,7 +150,7 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 	}
 
 	///
-	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp(CREATE_BACKPOINTER(this));
 
 	pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
 	pDrawOp->pMaterial = &m_material;
@@ -162,7 +164,7 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 void Decal::SetTexture(const CachedString& textureName)
 {
 	m_textureName = textureName;
-	m_hTexture = g_pRenderer->GetResourceCommandList().CreateTextureFromFile(textureName, nullptr, this);
+	m_hTexture = g_pRenderer->GetResourceCommandList().CreateTextureFromFile(textureName, nullptr, CREATE_BACKPOINTER(this));
 	m_material.ahTextures.assign(0, m_hTexture);
 }
 

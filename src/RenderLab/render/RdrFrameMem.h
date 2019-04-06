@@ -1,5 +1,7 @@
 #pragma once
 
+#include "RdrDebugBackpointer.h"
+
 struct RdrDrawOp;
 struct RdrComputeOp;
 
@@ -12,8 +14,8 @@ namespace RdrFrameMem
 	void* Alloc(const uint size);
 	void* AllocAligned(const uint size, const uint alignment);
 
-	RdrDrawOp* AllocDrawOp();
-	RdrDrawOp* AllocDrawOps(uint16 count);
+	RdrDrawOp* AllocDrawOp(const RdrDebugBackpointer& src);
+	RdrDrawOp* AllocDrawOps(uint16 count, const RdrDebugBackpointer& src);
 	RdrComputeOp* AllocComputeOp();
 
 	void FlipState();

@@ -42,6 +42,7 @@ enum D3D12_RESOURCE_STATES;
 #define RASTER_STATES_COUNT 2 * 2 * 2 * 2
 
 static constexpr RdrResourceFormat kDefaultDepthFormat = RdrResourceFormat::D24_UNORM_S8_UINT;
+static constexpr int kNumBackBuffers = 2;
 
 class DescriptorHeap
 {
@@ -103,7 +104,7 @@ private:
 	ComPtr<ID3D12QueryHeap> m_pQueryHeap;
 	D3D12_QUERY_HEAP_TYPE m_type;
 
-	TQueryRange m_nFrameQueryStartEnd[2];//donotcheckin RdrContext::kNumBackBuffers];
+	TQueryRange m_nFrameQueryStartEnd[kNumBackBuffers];
 	uint m_nFrame;
 	uint m_nNextQuery;
 	uint m_nMaxQueries;
@@ -112,9 +113,6 @@ private:
 class RdrContext
 {
 public:
-	static constexpr int kNumBackBuffers = 2;
-	static constexpr int kMaxNumSamplers = 64;
-
 	RdrContext(RdrProfiler& rProfiler);
 
 	bool Init(HWND hWnd, uint width, uint height);
@@ -195,8 +193,6 @@ public:
 	void SetRenderTargets(uint numTargets, const RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget);
 	void SetViewport(const Rect& viewport);
 
-	void PSClearResources();
-
 	void TransitionResource(RdrResource* pResource, D3D12_RESOURCE_STATES eState);
 
 	/////////////////////////////////////////////////////////////
@@ -220,6 +216,7 @@ public:
 	uint64 GetFrameNum() const { return m_nFrameNum; }
 
 private:
+	static constexpr int kMaxNumSamplers = 64;
 
 	void SetDescriptorHeaps();
 	void UpdateRenderTargetViews();

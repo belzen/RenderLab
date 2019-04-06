@@ -87,10 +87,9 @@ namespace
 			rasterState.bUseSlopeScaledDepthBias = false;
 			rasterState.bEnableScissor = false;
 
-			pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kUI);
-			nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kUI);
-			pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
+			Renderer::GetStageRenderTargetFormats(RdrRenderStage::kUI, &pRtvFormats, &nNumRtvFormats);
 
+			pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
 			pOutMaterial->CreatePipelineState(RdrShaderMode::Normal,
 				vertexShader, pPixelShader,
 				pInputLayout, nNumInputElements,
@@ -107,8 +106,7 @@ namespace
 			rasterState.bUseSlopeScaledDepthBias = false;
 			rasterState.bEnableScissor = false;
 
-			pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene_GBuffer); 
-			nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene_GBuffer);
+			Renderer::GetStageRenderTargetFormats(RdrRenderStage::kScene_GBuffer, &pRtvFormats, &nNumRtvFormats);
 
 			pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
 			pOutMaterial->CreatePipelineState(RdrShaderMode::Normal,
@@ -130,8 +128,7 @@ namespace
 		rasterState.bUseSlopeScaledDepthBias = false;
 		rasterState.bEnableScissor = false;
 
-		pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kPrimary);
-		nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kPrimary);
+		Renderer::GetStageRenderTargetFormats(RdrRenderStage::kPrimary, &pRtvFormats, &nNumRtvFormats);
 
 		pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
 		pOutMaterial->CreatePipelineState(RdrShaderMode::Wireframe,
@@ -163,8 +160,7 @@ namespace
 				pPixelShader = nullptr;
 			}
 
-			pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene_ZPrepass);
-			nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene_ZPrepass);
+			Renderer::GetStageRenderTargetFormats(RdrRenderStage::kScene_ZPrepass, &pRtvFormats, &nNumRtvFormats);
 
 			rasterState.bWireframe = false;
 			rasterState.bDoubleSided = false;
@@ -184,8 +180,7 @@ namespace
 			//////////////////////////////////////////////////////////////////////////
 			//////////////////////////////////////////////////////////////////////////
 			// Shadows
-			pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kShadowMap);
-			nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kShadowMap);
+			Renderer::GetStageRenderTargetFormats(RdrRenderStage::kShadowMap, &pRtvFormats, &nNumRtvFormats);
 
 			rasterState.bWireframe = false;
 			rasterState.bDoubleSided = true; // donotcheckin - double-sided? opposite cull mode?
@@ -210,7 +205,7 @@ namespace
 		RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
 		for (int n = 0; n < pMaterial->texCount; ++n)
 		{
-			pOutMaterial->ahTextures.assign(n, rResCommandList.CreateTextureFromFile(pMaterial->pTextureNames[n], nullptr, pOutMaterial));
+			pOutMaterial->ahTextures.assign(n, rResCommandList.CreateTextureFromFile(pMaterial->pTextureNames[n], nullptr, CREATE_BACKPOINTER(pOutMaterial)));
 			pOutMaterial->aSamplers.assign(n, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 		}
 
@@ -222,7 +217,7 @@ namespace
 		pConstants->metalness = pMaterial->metalness;
 		pConstants->roughness = pMaterial->roughness;
 		pConstants->color = pMaterial->color.asFloat4();
-		pOutMaterial->hConstants = rResCommandList.CreateConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRO_GpuRO, pOutMaterial);
+		pOutMaterial->hConstants = rResCommandList.CreateConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRO_GpuRO, CREATE_BACKPOINTER(pOutMaterial));
 
 		pOutMaterial->name = materialName;
 	}

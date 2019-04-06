@@ -36,7 +36,7 @@ struct RdrGeoInfo
 
 struct RdrGeometry
 {
-	RdrResource vertexBuffer; // donotcheckin - should this be a RdrResource*?
+	RdrResource vertexBuffer;
 	RdrResource indexBuffer;
 	RdrGeoInfo geoInfo;
 };

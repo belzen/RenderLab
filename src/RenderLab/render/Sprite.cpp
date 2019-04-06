@@ -40,10 +40,12 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	indices[5] = 2;
 
 	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
-	m_hGeo = rResCommandList.CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f), this);
+	m_hGeo = rResCommandList.CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f), CREATE_BACKPOINTER(this));
 
-	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kUI);
-	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kUI);
+	const RdrResourceFormat* pRtvFormats;
+	uint nNumRtvFormats;
+	Renderer::GetStageRenderTargetFormats(RdrRenderStage::kUI, &pRtvFormats, &nNumRtvFormats);
+
 	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_sprite.hlsl", nullptr, 0);
 
 	RdrRasterState rasterState;
@@ -61,13 +63,13 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 		RdrBlendMode::kAlpha,
 		rasterState,
 		RdrDepthStencilState(false, false, RdrComparisonFunc::Never));
-	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile(textureName, nullptr, this));
+	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile(textureName, nullptr, CREATE_BACKPOINTER(this)));
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
 }
 
 void Sprite::QueueDraw(RdrAction* pAction, const Vec3& pos, const Vec2& scale, float alpha)
 {
-	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp(CREATE_BACKPOINTER(this));
 	pDrawOp->hGeo = m_hGeo;
 	pDrawOp->pMaterial = &m_material;
 
@@ -76,7 +78,7 @@ void Sprite::QueueDraw(RdrAction* pAction, const Vec3& pos, const Vec2& scale, f
 	Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 	pConstants[0] = Vec4(pos.x - viewport.width * 0.5f, pos.y + viewport.height * 0.5f, pos.z + 1.f, 0.f);
 	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
-	pDrawOp->hVsConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pConstants, constantsSize, this);
+	pDrawOp->hVsConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pConstants, constantsSize, CREATE_BACKPOINTER(this));
 
 	pAction->AddDrawOp(pDrawOp, RdrBucketType::UI);
 }

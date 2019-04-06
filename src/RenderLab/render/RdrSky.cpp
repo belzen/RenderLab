@@ -64,35 +64,36 @@ void RdrSky::LazyInit()
 
 	// Transmittance LUTs
 	m_hTransmittanceLut = rResCommandList.CreateTexture2D(TRANSMITTANCE_LUT_WIDTH, TRANSMITTANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, this);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 
 	// Scattering LUTs
 	m_hScatteringRayleighDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, this);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 	m_hScatteringMieDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, this);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 	m_hScatteringCombinedDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, this);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 	m_hScatteringSumLuts[0] = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, this);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 	m_hScatteringSumLuts[1] = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, this);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 
 	// Irradiance LUTs
 	m_hIrradianceDeltaLut = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, this);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 	m_hIrradianceSumLuts[0] = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, this);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 	m_hIrradianceSumLuts[1] = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, this);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 
 	// Radiance LUTs
 	m_hRadianceDeltaLut = rResCommandList.CreateTexture3D(RADIANCE_LUT_WIDTH, RADIANCE_LUT_HEIGHT, RADIANCE_LUT_DEPTH,
-		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, this);
+		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 
 	// Create the material
-	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene);
-	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene);
+	const RdrResourceFormat* pRtvFormats;
+	uint nNumRtvFormats;
+	Renderer::GetStageRenderTargetFormats(RdrRenderStage::kScene, &pRtvFormats, &nNumRtvFormats);
 
 	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_sky.hlsl", { 0 }, 0);
 	
@@ -103,7 +104,7 @@ void RdrSky::LazyInit()
 	rasterState.bUseSlopeScaledDepthBias = false;
 	rasterState.bEnableScissor = false;
 
-	m_material.bNeedsLighting = true; //donotcheckin - technically only needs atmosphere
+	m_material.bNeedsLighting = true;
 	m_material.CreatePipelineState(RdrShaderMode::Normal,
 		kVertexShader, pPixelShader,
 		s_skyVertexDesc, ARRAY_SIZE(s_skyVertexDesc), 
@@ -134,7 +135,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		uint constantsSize = sizeof(Vec4) * 4;
 		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
-		m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, this);
+		m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 	}
 
 	uint numSubObjects = m_pSkyDomeModel->GetNumSubObjects();
@@ -142,7 +143,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 	{
 		const ModelData::SubObject& rSubObject = m_pSkyDomeModel->GetSubObject(i);
 
-		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+		RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp(CREATE_BACKPOINTER(this));
 		pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
 		pDrawOp->pMaterial = &m_material;
 
@@ -182,7 +183,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			pParams->sunColor = float3(0.f, 0.f, 0.f);
 		}
 
-		hAtmosphereConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pParams, constantsSize, this);
+		hAtmosphereConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pParams, constantsSize, CREATE_BACKPOINTER(this));
 	}
 
 	m_pendingComputeOps = 0;

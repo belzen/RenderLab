@@ -4,43 +4,10 @@
 #include "RdrGeometry.h"
 #include "UtilsLib/FixedVector.h"
 #include "UtilsLib/StringCache.h"
+#include "RdrDebugBackpointer.h"
 
 class Renderer;
 class RdrContext;
-
-class RdrLighting;
-class Decal;
-class ModelComponent;
-class ModelData;
-class RdrSky;
-class Terrain;
-class Sprite;
-class Ocean;
-class RdrAction;
-struct RdrMaterial;
-class RdrPostProcess;
-struct RdrDebugBackpointer
-{
-	// donotcheckin - smoother type handling
-	RdrDebugBackpointer() = default;
-	RdrDebugBackpointer(const RdrLighting* pSrc)	: pSource(pSrc), nDataType(0) {}
-	RdrDebugBackpointer(const RdrSky* pSrc)			: pSource(pSrc), nDataType(1) {}
-	RdrDebugBackpointer(const Decal* pSrc)			: pSource(pSrc), nDataType(2) {}
-	RdrDebugBackpointer(const ModelComponent* pSrc) : pSource(pSrc), nDataType(3) {}
-	RdrDebugBackpointer(const ModelData* pSrc)		: pSource(pSrc), nDataType(4) {}
-	RdrDebugBackpointer(const Terrain* pSrc)		: pSource(pSrc), nDataType(5) {}
-	RdrDebugBackpointer(const Sprite* pSrc)			: pSource(pSrc), nDataType(6) {}
-	RdrDebugBackpointer(const Ocean* pSrc)			: pSource(pSrc), nDataType(7) {}
-	RdrDebugBackpointer(const RdrAction* pSrc)		: pSource(pSrc), nDataType(8) {}
-	RdrDebugBackpointer(const RdrMaterial* pSrc)	: pSource(pSrc), nDataType(9) {}
-	RdrDebugBackpointer(const Renderer* pSrc)		: pSource(pSrc), nDataType(10) {}
-	RdrDebugBackpointer(const RdrPostProcess* pSrc)	: pSource(pSrc), nDataType(11) {}
-
-	~RdrDebugBackpointer() = default;
-
-	const void* pSource;
-	uint nDataType;
-};
 
 enum class RdrDefaultResource
 {

@@ -263,6 +263,7 @@
     <ClInclude Include="debug\PostProcessDebugger.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Raycast.h" />
+    <ClInclude Include="RdrDebugBackpointer.h" />
     <ClInclude Include="render\Ocean.h" />
     <ClInclude Include="render\RdrSky.h" />
     <ClInclude Include="shapes\OBB.h" />

@@ -161,10 +161,10 @@ void RdrResourceSystem::Init(Renderer& rRenderer)
 	static uchar blackTexData[4] = { 0, 0, 0, 255 };
 	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex2d] =
 		rRenderer.GetResourceCommandList().CreateTexture2D(1, 1, RdrResourceFormat::B8G8R8A8_UNORM,
-			RdrResourceAccessFlags::CpuRO_GpuRO, (char*)blackTexData, RdrDebugBackpointer());
+			RdrResourceAccessFlags::CpuRO_GpuRO, (char*)blackTexData, CREATE_NULL_BACKPOINTER);
 	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex3d] =
 		rRenderer.GetResourceCommandList().CreateTexture3D(1, 1, 1, RdrResourceFormat::B8G8R8A8_UNORM, 
-			RdrResourceAccessFlags::CpuRO_GpuRO, (char*)blackTexData, RdrDebugBackpointer());
+			RdrResourceAccessFlags::CpuRO_GpuRO, (char*)blackTexData, CREATE_NULL_BACKPOINTER);
 }
 
 void RdrResourceSystem::SetActiveGlobalResources(const RdrGlobalResources& rResources)

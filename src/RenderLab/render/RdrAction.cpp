@@ -136,22 +136,22 @@ namespace
 
 			// Release existing resources
 			if (pSurfaces->hDepthStencilView)
-				rResCommands.ReleaseDepthStencilView(pSurfaces->hDepthStencilView, pAction);
+				rResCommands.ReleaseDepthStencilView(pSurfaces->hDepthStencilView, CREATE_BACKPOINTER(pAction));
 			if (pSurfaces->hDepthBuffer)
-				rResCommands.ReleaseResource(pSurfaces->hDepthBuffer, pAction);
+				rResCommands.ReleaseResource(pSurfaces->hDepthBuffer, CREATE_BACKPOINTER(pAction));
 
-			rResCommands.ReleaseRenderTarget2d(pSurfaces->colorBuffer, pAction);
-			rResCommands.ReleaseRenderTarget2d(pSurfaces->albedoBuffer, pAction);
-			rResCommands.ReleaseRenderTarget2d(pSurfaces->normalBuffer, pAction);
+			rResCommands.ReleaseRenderTarget2d(pSurfaces->colorBuffer, CREATE_BACKPOINTER(pAction));
+			rResCommands.ReleaseRenderTarget2d(pSurfaces->albedoBuffer, CREATE_BACKPOINTER(pAction));
+			rResCommands.ReleaseRenderTarget2d(pSurfaces->normalBuffer, CREATE_BACKPOINTER(pAction));
 
 			// Create resized buffers
-			pSurfaces->colorBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::R16G16B16A16_FLOAT, msaaLevel, pAction);
-			pSurfaces->albedoBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::B8G8R8A8_UNORM, msaaLevel, pAction);
-			pSurfaces->normalBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::B8G8R8A8_UNORM, msaaLevel, pAction);
+			pSurfaces->colorBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::R16G16B16A16_FLOAT, msaaLevel, CREATE_BACKPOINTER(pAction));
+			pSurfaces->albedoBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::B8G8R8A8_UNORM, msaaLevel, CREATE_BACKPOINTER(pAction));
+			pSurfaces->normalBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::B8G8R8A8_UNORM, msaaLevel, CREATE_BACKPOINTER(pAction));
 			// Depth Buffer
 			pSurfaces->hDepthBuffer = rResCommands.CreateTexture2DMS(width, height, kDefaultDepthFormat,
-				g_debugState.msaaLevel, RdrResourceAccessFlags::CpuRO_GpuRO_RenderTarget, pAction);
-			pSurfaces->hDepthStencilView = rResCommands.CreateDepthStencilView(pSurfaces->hDepthBuffer, pAction);
+				g_debugState.msaaLevel, RdrResourceAccessFlags::CpuRO_GpuRO_RenderTarget, CREATE_BACKPOINTER(pAction));
+			pSurfaces->hDepthStencilView = rResCommands.CreateDepthStencilView(pSurfaces->hDepthBuffer, CREATE_BACKPOINTER(pAction));
 
 			if (isPrimaryAction)
 			{
@@ -182,7 +182,7 @@ namespace
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = rCamera.GetPosition();
 
-		rConstants.hVsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pVsPerAction, constantsSize, pAction);
+		rConstants.hVsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pVsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
 
 		// PS
 		constantsSize = sizeof(PsPerAction);
@@ -205,7 +205,7 @@ namespace
 		pPsPerAction->cameraFovY = rCamera.GetFieldOfViewY();
 		pPsPerAction->aspectRatio = rCamera.GetAspectRatio();
 
-		rConstants.hPsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pPsPerAction, constantsSize, pAction);
+		rConstants.hPsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pPsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
 	}
 
 	void createUiConstants(const RdrAction* pAction, const Rect& rViewport, RdrGlobalConstants& rConstants)
@@ -223,7 +223,7 @@ namespace
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = Vec3::kZero;
 
-		rConstants.hVsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pVsPerAction, constantsSize, pAction);
+		rConstants.hVsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pVsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
 
 		// PS
 		constantsSize = sizeof(PsPerAction);
@@ -242,7 +242,7 @@ namespace
 		pPsPerAction->viewSize.x = (uint)rViewport.width;
 		pPsPerAction->viewSize.y = (uint)rViewport.height;
 
-		rConstants.hPsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pPsPerAction, constantsSize, pAction);
+		rConstants.hPsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pPsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
 	}
 }
 
@@ -826,6 +826,7 @@ void RdrAction::DispatchCompute(const RdrComputeOp* pComputeOp)
 	}
 
 	uint count = pComputeOp->ahResources.size();
+	m_pDrawState->csResourceCount = count;
 	for (uint i = 0; i < count; ++i)
 	{
 		if (pComputeOp->ahResources.get(i))
@@ -834,13 +835,16 @@ void RdrAction::DispatchCompute(const RdrComputeOp* pComputeOp)
 			m_pDrawState->csResources[i].hView.ptr = 0;
 	}
 
+
 	count = pComputeOp->aSamplers.size();
+	m_pDrawState->csSamplerCount = count;
 	for (uint i = 0; i < count; ++i)
 	{
 		m_pDrawState->csSamplers[i] = pComputeOp->aSamplers.get(i);
 	}
 
 	count = pComputeOp->ahWritableResources.size();
+	m_pDrawState->csUavCount = count;
 	for (uint i = 0; i < count; ++i)
 	{
 		if (pComputeOp->ahWritableResources.get(i))
@@ -898,9 +902,6 @@ void RdrAction::DrawPass(RdrPass ePass)
 	{
 		m_pContext->ClearDepthStencilView(depthView, true, 1.f, true, 0);
 	}
-
-	// Clear resource bindings to avoid input/output binding errors
-	m_pContext->PSClearResources();
 
 	m_pContext->SetRenderTargets(MAX_RENDER_TARGETS, renderTargets, depthView);
 	m_pContext->SetViewport(rPass.viewport);
@@ -964,9 +965,6 @@ void RdrAction::DrawShadowPass(int shadowPassIndex)
 	{
 		m_pContext->ClearDepthStencilView(depthView, true, 1.f, true, 0);
 	}
-
-	// Clear resource bindings to avoid input/output binding errors
-	m_pContext->PSClearResources();
 
 	m_pContext->SetRenderTargets(nNumRenderTargets, renderTargets, depthView);
 	m_pContext->SetViewport(rPassData.viewport);

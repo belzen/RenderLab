@@ -40,14 +40,22 @@ void* RdrFrameMem::AllocAligned(const uint size, const uint alignment)
 	return s_frameMem[s_frame].genericMem.Alloc(size, alignment);
 }
 
-RdrDrawOp* RdrFrameMem::AllocDrawOp()
+RdrDrawOp* RdrFrameMem::AllocDrawOp(const RdrDebugBackpointer& src)
 {
-	return s_frameMem[s_frame].drawOps.Alloc();
+	RdrDrawOp* pOp = s_frameMem[s_frame].drawOps.Alloc();
+	pOp->debug = src;
+	return pOp;
 }
 
-RdrDrawOp* RdrFrameMem::AllocDrawOps(uint16 count)
+RdrDrawOp* RdrFrameMem::AllocDrawOps(uint16 count, const RdrDebugBackpointer& src)
 {
-	return s_frameMem[s_frame].drawOps.AllocArray(count);
+	RdrDrawOp* pOps = s_frameMem[s_frame].drawOps.AllocArray(count);
+	for (uint i = 0; i < count; ++i)
+	{
+		pOps[i].debug = src;
+	}
+
+	return pOps;
 }
 
 RdrComputeOp* RdrFrameMem::AllocComputeOp()

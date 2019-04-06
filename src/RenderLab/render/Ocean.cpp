@@ -200,15 +200,16 @@ void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, flo
 	m_hGeo = rResCommandList.CreateGeo(
 		aVertices, sizeof(aVertices[0]), numVerts,
 		aIndices, numTriangles * 3,
-		RdrTopology::TriangleList, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f), this);
+		RdrTopology::TriangleList, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f), CREATE_BACKPOINTER(this));
 
 	// Setup pixel material
 	memset(&m_material, 0, sizeof(m_material));
 	m_material.bNeedsLighting = true;
-	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrResourceAccessFlags::CpuRW_GpuRO, this);
+	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 
-	const RdrResourceFormat* pRtvFormats = Renderer::GetStageRTVFormats(RdrRenderStage::kScene);
-	uint nNumRtvFormats = Renderer::GetNumStageRTVFormats(RdrRenderStage::kScene);
+	const RdrResourceFormat* pRtvFormats;
+	uint nNumRtvFormats;
+	Renderer::GetStageRenderTargetFormats(RdrRenderStage::kScene, &pRtvFormats, &nNumRtvFormats);
 
 	RdrRasterState rasterState;
 	rasterState.bWireframe = false;
@@ -233,7 +234,7 @@ void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, flo
 	pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
 	m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
-		pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, this);
+		pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 }
 
 Vec2 Ocean::GetDisplacement(int n, int m)
@@ -328,7 +329,7 @@ void Ocean::Update()
 		}
 	}
 
-	g_pRenderer->GetResourceCommandList().UpdateGeoVerts(m_hGeo, aVertices, this);
+	g_pRenderer->GetResourceCommandList().UpdateGeoVerts(m_hGeo, aVertices, CREATE_BACKPOINTER(this));
 }
 
 RdrDrawOpSet Ocean::BuildDrawOps(RdrAction* pAction)
@@ -338,7 +339,7 @@ RdrDrawOpSet Ocean::BuildDrawOps(RdrAction* pAction)
 
 	//////////////////////////////////////////////////////////////////////////
 	// Fill out the draw op
-	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp(CREATE_BACKPOINTER(this));
 	pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
 	pDrawOp->hGeo = m_hGeo;
 	pDrawOp->pMaterial = &m_material;

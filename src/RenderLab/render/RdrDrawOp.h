@@ -4,6 +4,7 @@
 #include "RdrShaders.h"
 #include "RdrMaterial.h"
 #include "RdrInstancedObjectDataBuffer.h"
+#include "RdrDebugBackpointer.h"
 
 struct RdrDrawOpSortKey
 {
@@ -52,6 +53,8 @@ struct RdrDrawOp
 
 	uint8 bHasAlpha : 1;
 	uint8 unused : 7;
+
+	RdrDebugBackpointer debug;
 };
 
 struct RdrDrawOpSet
