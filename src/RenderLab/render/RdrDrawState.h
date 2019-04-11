@@ -14,13 +14,13 @@ public:
 		memset(this, 0, sizeof(RdrDrawState));
 	}
 
-	bool IsShaderStageActive(RdrShaderStage eStage)
+	bool IsShaderStageActive(RdrShaderStageFlags eStageFlag) const
 	{
-		return (shaderStages & (1 << (uint)eStage)) != 0;
+		return (shaderStages & eStageFlag) != RdrShaderStageFlags::None;
 	}
 
 	RdrPipelineState pipelineState;
-	uint shaderStages; // Bit-field of RdrShaderStage
+	RdrShaderStageFlags shaderStages;
 	RdrTopology eTopology;
 
 	const RdrResource* pIndexBuffer;

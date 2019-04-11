@@ -32,6 +32,15 @@ struct RdrMaterial
 		const RdrBlendMode eBlendMode,
 		const RdrRasterState& rasterState,
 		const RdrDepthStencilState& depthStencilState);
+	void CreateTessellationPipelineState(
+		RdrShaderMode eMode,
+		const RdrVertexShader& vertexShader, const RdrShader* pPixelShader,
+		const RdrShader* pHullShader, const RdrShader* pDomainShader,
+		const RdrVertexInputElement* pInputLayoutElements, uint nNumInputElements,
+		const RdrResourceFormat* pRtvFormats, uint nNumRtvFormats,
+		const RdrBlendMode eBlendMode,
+		const RdrRasterState& rasterState,
+		const RdrDepthStencilState& depthStencilState);
 
 	RdrShaderStageFlags activeShaderStages[(int)RdrShaderMode::Count];
 

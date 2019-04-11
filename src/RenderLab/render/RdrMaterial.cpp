@@ -225,7 +225,7 @@ namespace
 
 void RdrMaterial::CreatePipelineState(
 	RdrShaderMode eMode,
-	const RdrVertexShader& vertexShader, const RdrShader* pPixelShader,
+	const RdrVertexShader& vertexShader, const RdrShader* pPixelShader, 
 	const RdrVertexInputElement* pInputLayoutElements, uint nNumInputElements,
 	const RdrResourceFormat* pRtvFormats, uint nNumRtvFormats,
 	const RdrBlendMode eBlendMode,
@@ -236,6 +236,7 @@ void RdrMaterial::CreatePipelineState(
 
 	hPipelineStates[(int)eMode] = g_pRenderer->GetContext()->CreateGraphicsPipelineState(
 		pVertexShader, pPixelShader,
+		nullptr, nullptr,
 		pInputLayoutElements, nNumInputElements,
 		pRtvFormats, nNumRtvFormats,
 		eBlendMode,
@@ -243,6 +244,34 @@ void RdrMaterial::CreatePipelineState(
 		depthStencilState);
 
 	activeShaderStages[(int)eMode] = RdrShaderStageFlags::Vertex;
+	if (pPixelShader)
+	{
+		activeShaderStages[(int)eMode] |= RdrShaderStageFlags::Pixel;
+	}
+}
+
+void RdrMaterial::CreateTessellationPipelineState(
+	RdrShaderMode eMode,
+	const RdrVertexShader& vertexShader, const RdrShader* pPixelShader,
+	const RdrShader* pHullShader, const RdrShader* pDomainShader,
+	const RdrVertexInputElement* pInputLayoutElements, uint nNumInputElements,
+	const RdrResourceFormat* pRtvFormats, uint nNumRtvFormats,
+	const RdrBlendMode eBlendMode,
+	const RdrRasterState& rasterState,
+	const RdrDepthStencilState& depthStencilState)
+{
+	const RdrShader* pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
+
+	hPipelineStates[(int)eMode] = g_pRenderer->GetContext()->CreateGraphicsPipelineState(
+		pVertexShader, pPixelShader,
+		pHullShader, pDomainShader,
+		pInputLayoutElements, nNumInputElements,
+		pRtvFormats, nNumRtvFormats,
+		eBlendMode,
+		rasterState,
+		depthStencilState);
+
+	activeShaderStages[(int)eMode] = RdrShaderStageFlags::Vertex | RdrShaderStageFlags::Hull | RdrShaderStageFlags::Domain;
 	if (pPixelShader)
 	{
 		activeShaderStages[(int)eMode] |= RdrShaderStageFlags::Pixel;

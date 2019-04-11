@@ -64,22 +64,16 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 		, RdrResourceAccessFlags::CpuRO_GpuRO
 		, CREATE_BACKPOINTER(this));
 
-#if 0 //donotcheckin
-	// Tessellation material
-	RdrTextureInfo heightmapTexInfo;
-	m_tessMaterial.shader = kTessellationShader;
-	m_tessMaterial.ahResources.assign(0, rResCommandList.CreateTextureFromFile(m_srcData.heightmapName, &heightmapTexInfo));
-	m_tessMaterial.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
-	m_heightmapSize = UVec2(heightmapTexInfo.width, heightmapTexInfo.height);
-#endif
-
-	// Setup pixel material
+	// Create shaders
 	const RdrResourceFormat* pRtvFormats;
 	uint nNumRtvFormats;
 	Renderer::GetStageRenderTargetFormats(RdrRenderStage::kScene_GBuffer, &pRtvFormats, &nNumRtvFormats);
 	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_terrain.hlsl", nullptr, 0);
 
+	const RdrShader* pHullShader = RdrShaderSystem::GetHullShader(kTessellationShader);
+	const RdrShader* pDomainShader = RdrShaderSystem::GetDomainShader(kTessellationShader);
 
+	// Rasterizer state
 	RdrRasterState rasterState;
 	rasterState.bWireframe = false;
 	rasterState.bDoubleSided = false;
@@ -87,20 +81,36 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	rasterState.bUseSlopeScaledDepthBias = false;
 	rasterState.bEnableScissor = false;
 
-
+	// Setup material
 	memset(&m_material, 0, sizeof(m_material));
 	m_material.bNeedsLighting = true;
 	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
-	m_material.CreatePipelineState(RdrShaderMode::Normal,
+	m_material.CreateTessellationPipelineState(RdrShaderMode::Normal,
 		kVertexShader, pPixelShader,
+		pHullShader, pDomainShader,
 		s_terrainVertexDesc, ARRAY_SIZE(s_terrainVertexDesc), 
 		pRtvFormats, nNumRtvFormats,
 		RdrBlendMode::kOpaque,
 		rasterState,
-		RdrDepthStencilState(true, false, RdrComparisonFunc::Equal)); //donotcheckin? - zprepass is different!
+		RdrDepthStencilState(true, true, RdrComparisonFunc::LessEqual));
 	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile("white", nullptr, CREATE_BACKPOINTER(this)));
 	m_material.ahTextures.assign(1, rResCommandList.CreateTextureFromFile("flat_ddn", nullptr, CREATE_BACKPOINTER(this)));
 	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
+
+	// Tessellation
+	RdrTextureInfo heightmapTexInfo;
+	m_material.tessellation.ahResources.assign(0, rResCommandList.CreateTextureFromFile(m_srcData.heightmapName, &heightmapTexInfo, CREATE_BACKPOINTER(this)));
+	m_material.tessellation.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
+	m_heightmapSize = UVec2(heightmapTexInfo.width, heightmapTexInfo.height);
+
+	DsTerrain* pDsConstants = (DsTerrain*)RdrFrameMem::AllocAligned(sizeof(DsTerrain), 16);
+	pDsConstants->lods[0].minPos = m_srcData.cornerMin;
+	pDsConstants->lods[0].size = (m_srcData.cornerMax - m_srcData.cornerMin);
+	pDsConstants->heightmapTexelSize.x = 1.f / m_heightmapSize.x;
+	pDsConstants->heightmapTexelSize.y = 1.f / m_heightmapSize.y;
+	pDsConstants->heightScale = m_srcData.heightScale;
+	m_material.tessellation.hDsConstants = g_pRenderer->GetResourceCommandList().CreateConstantBuffer(
+		pDsConstants, sizeof(DsTerrain), RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 }
 
 RdrDrawOpSet Terrain::BuildDrawOps(RdrAction* pAction)
@@ -113,24 +123,12 @@ RdrDrawOpSet Terrain::BuildDrawOps(RdrAction* pAction)
 	if (!m_initialized)
 		return RdrDrawOpSet();
 
-	DsTerrain* pDsConstants = (DsTerrain*)RdrFrameMem::AllocAligned(sizeof(DsTerrain), 16);
-	pDsConstants->lods[0].minPos = m_srcData.cornerMin;
-	pDsConstants->lods[0].size = (m_srcData.cornerMax - m_srcData.cornerMin);
-	pDsConstants->heightmapTexelSize.x = 1.f / m_heightmapSize.x;
-	pDsConstants->heightmapTexelSize.y = 1.f / m_heightmapSize.y;
-	pDsConstants->heightScale = m_srcData.heightScale;
-#if 0 //donotcheckin
-	m_tessMaterial.hDsConstants = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_tessMaterial.hDsConstants,
-		pDsConstants, sizeof(DsTerrain), RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic, this);
-#endif
-
 	//////////////////////////////////////////////////////////////////////////
 	// Fill out the draw op
 	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp(CREATE_BACKPOINTER(this));
 	pDrawOp->hGeo = m_hGeo;
 	pDrawOp->hCustomInstanceBuffer = m_hInstanceData;
 	pDrawOp->pMaterial = &m_material;
-	//donotcheckin pDrawOp->pTessellationMaterial = &m_tessMaterial;
 	pDrawOp->instanceCount = m_gridSize.x * m_gridSize.y;
 
 	return RdrDrawOpSet(pDrawOp, 1);

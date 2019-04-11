@@ -169,7 +169,8 @@ public:
 	void ReleaseShader(RdrShader* pShader) const;
 
 	RdrPipelineState CreateGraphicsPipelineState(
-		const RdrShader* pVertexShader, const RdrShader* pPixelShader,
+		const RdrShader* pVertexShader, const RdrShader* pPixelShader, 
+		const RdrShader* pHullShader, const RdrShader* pDomainShader,
 		const RdrVertexInputElement* pInputLayoutElements, uint nNumInputElements,
 		const RdrResourceFormat* pRtvFormats, uint nNumRtvFormats,
 		const RdrBlendMode eBlendMode,

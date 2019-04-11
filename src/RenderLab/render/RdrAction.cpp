@@ -52,7 +52,7 @@ namespace
 
 	// Pass to bucket mappings
 	RdrBucketType s_passBuckets[] = {
-		RdrBucketType::Opaque,	      // RdrPass::ZPrepass
+		RdrBucketType::ZPrepass,	  // RdrPass::ZPrepass
 		RdrBucketType::LightCulling,  // RdrPass::LightCulling
 		RdrBucketType::VolumetricFog, // RdrPass::VolumetricFog
 		RdrBucketType::Opaque,	      // RdrPass::Opaque
@@ -678,14 +678,12 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 
 	const RdrMaterial* pMaterial = pDrawOp->pMaterial;
 	m_pDrawState->pipelineState = pMaterial->hPipelineStates[(int)rPass.shaderMode];
+	m_pDrawState->shaderStages = pMaterial ? pMaterial->activeShaderStages[(int)rPass.shaderMode] : RdrShaderStageFlags::Vertex;
 
 	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerAction;
 
 	m_pDrawState->vsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->GetSRV();
 	m_pDrawState->vsConstantBufferCount = 1;
-
-	m_pDrawState->dsConstantBuffers[0] = m_pDrawState->vsConstantBuffers[0];
-	m_pDrawState->dsConstantBufferCount = 1;
 
 	if (instanced)
 	{
@@ -717,6 +715,10 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 		{
 			m_pDrawState->dsSamplers[i] = pMaterial->tessellation.aSamplers.get(i);
 		}
+
+		// Copy per-action constant buffer to domain shader
+		m_pDrawState->dsConstantBuffers[0] = m_pDrawState->vsConstantBuffers[0];
+		m_pDrawState->dsConstantBufferCount = 1;
 
 		if (pMaterial->tessellation.hDsConstants)
 		{

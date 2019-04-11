@@ -108,6 +108,7 @@ namespace
 
 		return pRdrContext->CreateGraphicsPipelineState(
 			pVertexShader, pPixelShader,
+			nullptr, nullptr,
 			nullptr, 0,
 			pRtvFormats, nNumRtvFormats,
 			eBlendMode,

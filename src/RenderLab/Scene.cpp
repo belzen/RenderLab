@@ -254,8 +254,15 @@ void Scene::QueueDraw(RdrAction* pAction)
 		for (uint16 i = 0; i < opSet.numDrawOps; ++i)
 		{
 			RdrDrawOp* pDrawOp = &opSet.aDrawOps[i];
-			RdrBucketType bucket = pDrawOp->bHasAlpha ? RdrBucketType::Alpha : RdrBucketType::Opaque;
-			pAction->AddDrawOp(pDrawOp, bucket);
+			if (pDrawOp->bHasAlpha)
+			{
+				pAction->AddDrawOp(pDrawOp, RdrBucketType::Alpha);
+			}
+			else
+			{
+				pAction->AddDrawOp(pDrawOp, RdrBucketType::ZPrepass);
+				pAction->AddDrawOp(pDrawOp, RdrBucketType::Opaque);
+			}
 		}
 
 		Vec3 diff = pEntity->GetPosition() - camPos;

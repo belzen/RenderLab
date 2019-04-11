@@ -70,6 +70,7 @@ enum class RdrBucketType
 {
 	LightCulling,
 	VolumetricFog,
+	ZPrepass,
 	Opaque,
 	Decal,
 	Sky,

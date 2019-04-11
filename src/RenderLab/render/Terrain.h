@@ -27,6 +27,7 @@ private:
 
 	RdrGeoHandle m_hGeo;
 	RdrResourceHandle m_hInstanceData;
+	RdrConstantBufferHandle m_hDomainConstants;
 
 	bool m_initialized;
 };
