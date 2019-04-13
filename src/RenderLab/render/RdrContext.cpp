@@ -656,6 +656,10 @@ void DescriptorRingBuffer::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR
 	m_descriptorSize = pDevice->GetDescriptorHandleIncrementSize(type);
 	m_nextDescriptor = 0;
 	m_maxDescriptors = nMaxDescriptors;
+
+	m_nFrame = 0;
+	memset(m_nFrameStartDescriptor, 0, sizeof(m_nFrameStartDescriptor)); 
+	memset(m_nFrameDescriptorCount, 0, sizeof(m_nFrameDescriptorCount));
 }
 
 void DescriptorRingBuffer::Cleanup()
@@ -663,13 +667,36 @@ void DescriptorRingBuffer::Cleanup()
 	m_pDescriptorHeap->Release();
 }
 
+void DescriptorRingBuffer::BeginFrame()
+{
+	m_nFrame = (m_nFrame + 1) % ARRAYSIZE(m_nFrameStartDescriptor);
+	m_nFrameStartDescriptor[m_nFrame] = m_nextDescriptor;
+	m_nFrameDescriptorCount[m_nFrame] = 0;
+
+	m_nFrameAvailableDescriptors = m_maxDescriptors;
+	for (uint nDescriptorCount : m_nFrameDescriptorCount)
+	{
+		m_nFrameAvailableDescriptors -= nDescriptorCount;
+	}
+}
+
 CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorRingBuffer::AllocateDescriptors(uint numToAllocate, uint& nOutDescriptorStartIndex)
 {
 	if (m_nextDescriptor + numToAllocate >= m_maxDescriptors)
 	{
-		// donotcheckin - this doesn't stop re-use in the same set of frames...
+		uint nSkipped = (m_maxDescriptors - m_nextDescriptor);
+		m_nFrameDescriptorCount[m_nFrame] += nSkipped;
+
 		m_nextDescriptor = 0;
 	}
+
+	if (m_nFrameDescriptorCount[m_nFrame] + numToAllocate > m_nFrameAvailableDescriptors)
+	{
+		assert(false);
+	}
+
+	m_nFrameDescriptorCount[m_nFrame] += numToAllocate;
+
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	hDescriptor.Offset(m_nextDescriptor, m_descriptorSize);
 	nOutDescriptorStartIndex = m_nextDescriptor;
@@ -852,7 +879,7 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 	m_dsvHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, kMaxNumDepthStencilViews, false);
 
 	m_dynamicDescriptorHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024 * 16);
-	m_dynamicSamplerDescriptorHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1024);
+	m_dynamicSamplerDescriptorHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 2048);
 
 	for (int i = 0; i < kNumBackBuffers; ++i)
 	{
@@ -1568,9 +1595,6 @@ bool RdrContext::CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexI
 
 			for (uint i = 0; i < numSubresources; ++i)
 			{
-				if (RowSizesInBytes[i] > (SIZE_T)-1)
-					assert(false);//donotcheckin
-
 				D3D12_MEMCPY_DEST DestData = { uploadBuffer.pStart + Layouts[i].Offset, Layouts[i].Footprint.RowPitch, SIZE_T(Layouts[i].Footprint.RowPitch) * SIZE_T(NumRows[i]) };
 				MemcpySubresource(&DestData, &pSubresourceData[i], (SIZE_T)RowSizesInBytes[i], NumRows[i], Layouts[i].Footprint.Depth);
 			}
@@ -1840,6 +1864,9 @@ void RdrContext::EndEvent()
 
 void RdrContext::BeginFrame()
 {
+	m_dynamicDescriptorHeap.BeginFrame();
+	m_dynamicSamplerDescriptorHeap.BeginFrame();
+
 	// Reset command list for the next frame
 	HRESULT hr = m_pCommandList->Reset(m_pCommandAllocators[m_currBackBuffer].Get(), nullptr);
 	if (!ValidateHResult(hr, __FUNCTION__, "Failed to reset command list!"))
@@ -2193,7 +2220,7 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 	for (uint i = 0; i < rDrawState.psSamplerCount; ++i)
 	{
 		m_pDevice->CopyDescriptorsSimple(1, hDescCurr, GetSampler(rDrawState.psSamplers[i]), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		hDescCurr.Offset(1, m_dynamicDescriptorHeap.GetDescriptorSize());
+		hDescCurr.Offset(1, m_dynamicSamplerDescriptorHeap.GetDescriptorSize());
 		m_rProfiler.IncrementCounter(RdrProfileCounter::PsSamplers);
 	}
 
@@ -2341,7 +2368,7 @@ void RdrContext::DispatchCompute(const RdrDrawState& rDrawState, uint threadGrou
 	for (uint i = 0; i < numSamplers; ++i)
 	{
 		m_pDevice->CopyDescriptorsSimple(1, hDescCurr, GetSampler(rDrawState.csSamplers[i]), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		hDescCurr.Offset(1, m_dynamicDescriptorHeap.GetDescriptorSize());
+		hDescCurr.Offset(1, m_dynamicSamplerDescriptorHeap.GetDescriptorSize());
 		m_rProfiler.IncrementCounter(RdrProfileCounter::CsSampler);
 	}
 

@@ -671,7 +671,7 @@ void RdrAction::DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBuc
 void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlobalConstants,
 	const RdrDrawOp* pDrawOp, uint instanceCount)
 {
-	bool bDepthOnly = (rPass.shaderMode == RdrShaderMode::DepthOnly);
+	bool bDepthOnly = (rPass.shaderMode == RdrShaderMode::DepthOnly || rPass.shaderMode == RdrShaderMode::ShadowMap);
 	const RdrGeometry* pGeo = RdrResourceSystem::GetGeo(pDrawOp->hGeo);
 
 	bool instanced = (instanceCount > 1);

@@ -70,6 +70,8 @@ public:
 	void Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors);
 	void Cleanup();
 
+	void BeginFrame();
+
 	CD3DX12_CPU_DESCRIPTOR_HANDLE AllocateDescriptors(uint numToAllocate, uint& nOutDescriptorStartIndex);
 	CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(uint nDescriptor) const;
 
@@ -78,6 +80,12 @@ public:
 
 private:
 	ComPtr<ID3D12DescriptorHeap> m_pDescriptorHeap;
+
+	uint m_nFrameStartDescriptor[kNumBackBuffers];
+	uint m_nFrameDescriptorCount[kNumBackBuffers];
+	uint m_nFrame;
+	uint m_nFrameAvailableDescriptors;
+
 	uint m_descriptorSize;
 	uint m_nextDescriptor;
 	uint m_maxDescriptors;
