@@ -1126,6 +1126,16 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 
 void RdrContext::Release()
 {
+	if (g_userConfig.debugDevice)
+	{
+		ComPtr<ID3D12DebugDevice> pDebugDevice;
+		if (SUCCEEDED(m_pDevice->QueryInterface(IID_PPV_ARGS(&pDebugDevice))))
+		{
+			HRESULT hr = pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_SUMMARY);
+			assert(hr == S_OK);
+		}
+	}
+
 	// Wait until the active frame is done.
 	WaitForFenceValue(m_pFence, m_nFrameNum - 1, m_hFenceEvent);
 
@@ -1868,7 +1878,11 @@ void RdrContext::BeginFrame()
 	m_dynamicSamplerDescriptorHeap.BeginFrame();
 
 	// Reset command list for the next frame
-	HRESULT hr = m_pCommandList->Reset(m_pCommandAllocators[m_currBackBuffer].Get(), nullptr);
+	HRESULT hr = m_pCommandAllocators[m_currBackBuffer]->Reset();
+	if (!ValidateHResult(hr, __FUNCTION__, "Failed to reset command allocator!"))
+		return;
+
+	hr = m_pCommandList->Reset(m_pCommandAllocators[m_currBackBuffer].Get(), nullptr);
 	if (!ValidateHResult(hr, __FUNCTION__, "Failed to reset command list!"))
 		return;
 	
@@ -2183,7 +2197,7 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 		for (uint i = 0; i < rDrawState.dsSamplerCount; ++i)
 		{
 			m_pDevice->CopyDescriptorsSimple(1, hDescCurr, GetSampler(rDrawState.dsSamplers[i]), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-			hDescCurr.Offset(1, m_dynamicDescriptorHeap.GetDescriptorSize());
+			hDescCurr.Offset(1, m_dynamicSamplerDescriptorHeap.GetDescriptorSize());
 			m_rProfiler.IncrementCounter(RdrProfileCounter::DsSamplers);
 		}
 	}

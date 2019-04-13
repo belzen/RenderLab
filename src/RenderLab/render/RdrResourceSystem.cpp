@@ -924,6 +924,7 @@ void RdrResourceCommandList::ProcessPreFrameCommands(RdrContext* pRdrContext)
 			// TODO: May want to add support for dynamic buffers geo buffers.
 			if (cmd.pVertData)
 			{
+				//donotcheckin
 				//pRdrContext->ReleaseResource(pGeo->vertexBuffer);
 				pRdrContext->CreateVertexBuffer(cmd.pVertData, pGeo->geoInfo.vertStride * pGeo->geoInfo.numVerts, RdrResourceAccessFlags::CpuRO_GpuRO, pGeo->vertexBuffer);
 			}
