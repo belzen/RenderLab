@@ -206,6 +206,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="render\RdrResource.cpp" />
     <ClCompile Include="render\RdrSky.cpp" />
     <ClCompile Include="Time.cpp" />
     <ClCompile Include="GlobalState.cpp" />

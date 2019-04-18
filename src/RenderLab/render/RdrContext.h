@@ -130,28 +130,9 @@ public:
 
 	bool IsIdle();
 
-	/////////////////////////////////////////////////////////////
-	// Geometry
-	bool CreateVertexBuffer(const void* vertices, int size, RdrResourceAccessFlags accessFlags, RdrResource& rResource);
-	bool CreateIndexBuffer(const void* indices, int size, RdrResourceAccessFlags accessFlags, RdrResource& rResource);
-
-	/////////////////////////////////////////////////////////////
-	// Resources
-	bool CreateTexture(const void* pSrcData, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, RdrResource& rResource);
-
-	bool CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, RdrResource& rResource);
-	bool CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, RdrResource& rResource);
-
-	void CopyResourceRegion(const RdrResource& rSrcResource, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset);
-	void ReadResource(const RdrResource& rSrcResource, void* pDstData, uint dstDataSize);
-
-	void ReleaseResource(RdrResource& rResource);
-
-	void ResolveResource(const RdrResource& rSrc, const RdrResource& rDst);
-
-	RdrShaderResourceView CreateShaderResourceViewTexture(RdrResource& rResource);
-	RdrShaderResourceView CreateShaderResourceViewBuffer(RdrResource& rResource, uint firstElement);
-	void ReleaseShaderResourceView(RdrShaderResourceView& resourceView);
+	ID3D12GraphicsCommandList* GetCommandList() { return m_pCommandList.Get(); }
+	ID3D12Device* GetDevice() { return m_pDevice.Get(); }
+	DescriptorHeap& GetSrvHeap() { return m_srvHeap; }
 
 	/////////////////////////////////////////////////////////////
 	// Depth Stencil Views
@@ -202,17 +183,10 @@ public:
 	void SetRenderTargets(uint numTargets, const RdrRenderTargetView* aRenderTargets, RdrDepthStencilView depthStencilTarget);
 	void SetViewport(const Rect& viewport);
 
-	void TransitionResource(RdrResource* pResource, D3D12_RESOURCE_STATES eState);
-
 	/////////////////////////////////////////////////////////////
 	// Events
 	void BeginEvent(LPCWSTR eventName);
 	void EndEvent();
-
-	/////////////////////////////////////////////////////////////
-	// Constant Buffers
-	bool CreateConstantBuffer(const void* pData, uint size, RdrResourceAccessFlags accessFlags, RdrResource& rResource);
-	void UpdateResource(RdrResource& rResource, const void* pData, const uint dataSize);
 
 	/////////////////////////////////////////////////////////////
 	// Queries
@@ -229,7 +203,6 @@ private:
 
 	void SetDescriptorHeaps();
 	void UpdateRenderTargetViews();
-	ID3D12Resource* CreateBuffer(const int size, RdrResourceAccessFlags accessFlags, const D3D12_RESOURCE_STATES initialState);
 
 	D3D12DescriptorHandle GetSampler(const RdrSamplerState& state);
 
@@ -242,15 +215,6 @@ private:
 	D3D12DescriptorHandle m_hBackBufferRtvs[kNumBackBuffers];
 
 	ComPtr<ID3D12CommandAllocator> m_pCommandAllocators[kNumBackBuffers];
-
-	struct RdrUploadBuffer
-	{
-		ComPtr<ID3D12Resource> pBuffer;
-		uint8* pStart;
-		uint8* pEnd;
-		uint8* pCurr;
-	};
-	RdrUploadBuffer m_uploadBuffers[kNumBackBuffers];
 
 	ComPtr<ID3D12Fence> m_pFence;
 	HANDLE m_hFenceEvent;

@@ -61,7 +61,7 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	}
 	m_hInstanceData = rResCommandList.CreateVertexBuffer(aInstanceData
 		, sizeof(aInstanceData[0]), m_gridSize.x * m_gridSize.y
-		, RdrResourceAccessFlags::CpuRO_GpuRO
+		, RdrResourceAccessFlags::None
 		, CREATE_BACKPOINTER(this));
 
 	// Create shaders

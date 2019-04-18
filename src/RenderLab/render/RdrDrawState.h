@@ -1,6 +1,6 @@
 #pragma once
 #include "RdrShaders.h"
-
+#include "RdrGeometry.h"
 
 // todo: manage changed states
 class RdrDrawState

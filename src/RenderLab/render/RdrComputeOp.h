@@ -15,6 +15,8 @@ struct RdrComputeOp
 	Array<RdrSamplerState, 4>         aSamplers;
 	Array<RdrResourceHandle, 4>       ahWritableResources;
 	Array<RdrConstantBufferHandle, 4> ahConstantBuffers;
+
+	RdrDebugBackpointer debug;
 };
 
 inline uint RdrComputeOp::getThreadGroupCount(uint dataSize, uint workSize)

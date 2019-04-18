@@ -263,8 +263,7 @@ void RdrAction::InitSharedData(RdrContext* pContext, const InputManager* pInputM
 		std::align(16, dataSize, pAlignedData, temp);
 
 		s_actionSharedData.instanceIds[i].ids = (uint*)pAlignedData;
-		pContext->CreateConstantBuffer(nullptr, kMaxInstancesPerDraw * sizeof(uint), RdrResourceAccessFlags::CpuRW_GpuRO,
-			s_actionSharedData.instanceIds[i].buffer);
+		s_actionSharedData.instanceIds[i].buffer.CreateConstantBuffer(*pContext, nullptr, kMaxInstancesPerDraw * sizeof(uint), RdrResourceAccessFlags::CpuRW_GpuRO);
 	}
 }
 
@@ -582,7 +581,7 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 	{
 		const RdrResource* pColorBufferMultisampled = RdrResourceSystem::GetResource(m_surfaces.colorBuffer.hTextureMultisampled);
 		const RdrResource* pColorBuffer = RdrResourceSystem::GetResource(m_surfaces.colorBuffer.hTexture);
-		m_pContext->ResolveResource(*pColorBufferMultisampled, *pColorBuffer);
+		pColorBufferMultisampled->ResolveResource(*pContext, *pColorBuffer);
 	}
 
 	if (m_bEnablePostProcessing)
@@ -688,7 +687,7 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	if (instanced)
 	{
 		RdrResource& rBuffer = s_actionSharedData.instanceIds[s_actionSharedData.currentInstanceIds].buffer;
-		m_pContext->UpdateResource(rBuffer, s_actionSharedData.instanceIds[s_actionSharedData.currentInstanceIds].ids, rBuffer.GetSize());
+		rBuffer.UpdateResource(*m_pContext, s_actionSharedData.instanceIds[s_actionSharedData.currentInstanceIds].ids, rBuffer.GetSize());
 		m_pDrawState->vsConstantBuffers[1] = rBuffer.GetSRV();
 		m_pDrawState->vsConstantBufferCount = 2;
 

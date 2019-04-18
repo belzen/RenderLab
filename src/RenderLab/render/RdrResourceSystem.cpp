@@ -74,72 +74,6 @@ namespace
 	}
 }
 
-
-void RdrResource::InitAsTexture(const RdrTextureInfo& texInfo, RdrResourceAccessFlags accessFlags)
-{
-	m_textureInfo = texInfo;
-	m_accessFlags = accessFlags;
-	m_bIsTexture = true;
-}
-
-void RdrResource::InitAsBuffer(const RdrBufferInfo& bufferInfo, RdrResourceAccessFlags accessFlags)
-{
-	m_bufferInfo = bufferInfo;
-	m_accessFlags = accessFlags;
-	m_bIsTexture = false;
-}
-
-void RdrResource::InitAsConstantBuffer(RdrResourceAccessFlags accessFlags, uint nByteSize)
-{
-	m_accessFlags = accessFlags;
-	m_bIsTexture = false;
-	m_size = nByteSize;
-}
-
-void RdrResource::InitAsIndexBuffer(RdrResourceAccessFlags accessFlags, uint nByteSize)
-{
-	m_accessFlags = accessFlags;
-	m_bIsTexture = false;
-	m_size = nByteSize;
-}
-
-void RdrResource::InitAsVertexBuffer(RdrResourceAccessFlags accessFlags, uint nByteSize)
-{
-	m_accessFlags = accessFlags;
-	m_bIsTexture = false;
-	m_size = nByteSize;
-}
-
-void RdrResource::BindDeviceResources(ID3D12Resource* pResource, D3D12_RESOURCE_STATES eInitialState, RdrShaderResourceView* pSRV, RdrUnorderedAccessView* pUAV)
-{
-	m_pResource = pResource;
-	m_eResourceState = eInitialState;
-	if (pSRV)
-	{
-		m_srv = *pSRV;
-		m_srv.pResource = this;
-	}
-
-	if (pUAV)
-	{
-		m_uav = *pUAV;
-		m_uav.pResource = this;
-	}
-}
-
-void RdrResource::MarkUsedThisFrame() const
-{ 
-	const_cast<RdrResource*>(this)->m_nLastUsedFrameCode = g_pRenderer->GetContext()->GetFrameNum(); 
-}
-
-void RdrResource::Reset()
-{
-	//donotcheckin - this isn't a good design - cleanup of these resources isn't guaranteed
-	m_pResource = nullptr;
-	m_srv.hView.ptr = 0;
-	m_uav.hView.ptr = 0;
-}
-
 //////////////////////////////////////////////////////////////////////////
 /// RdrResourceSystem
 //////////////////////////////////////////////////////////////////////////
@@ -641,7 +575,7 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 			RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 			if (pResource->GetLastUsedFrame() <= nLastCompletedFrame)
 			{
-				pRdrContext->ReleaseResource(*pResource);
+				pResource->ReleaseResource(*pRdrContext);
 				s_resourceSystem.resources.releaseId(cmd.hResource);
 				m_resourceReleases.eraseFast(i);
 				--i;
@@ -725,7 +659,7 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 				}
 				else
 				{
-					pRdrContext->ReleaseResource(*pBuffer);
+					pBuffer->ReleaseResource(*pRdrContext);
 				}
 
 				s_resourceSystem.constantBuffers.releaseId(cmd.hBuffer);
@@ -748,8 +682,8 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 		if (pGeo->vertexBuffer.GetLastUsedFrame() <= nLastCompletedFrame &&
 			pGeo->indexBuffer.GetLastUsedFrame() <= nLastCompletedFrame)
 		{
-			pRdrContext->ReleaseResource(pGeo->vertexBuffer);
-			pRdrContext->ReleaseResource(pGeo->indexBuffer);
+			pGeo->vertexBuffer.ReleaseResource(*pRdrContext);
+			pGeo->indexBuffer.ReleaseResource(*pRdrContext);
 
 			s_resourceSystem.geos.releaseId(cmd.hGeo);
 			m_geoReleases.eraseFast(i);
@@ -768,7 +702,7 @@ void RdrResourceCommandList::ProcessPreFrameCommands(RdrContext* pRdrContext)
 	{
 		CmdCreateTexture& cmd = m_textureCreates[i];
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
-		pRdrContext->CreateTexture(cmd.pData, cmd.texInfo, cmd.accessFlags, *pResource);
+		pResource->CreateTexture(*pRdrContext, cmd.texInfo, cmd.accessFlags, cmd.pData);
 
 		SAFE_DELETE(cmd.pFileData);
 	}
@@ -790,7 +724,7 @@ void RdrResourceCommandList::ProcessPreFrameCommands(RdrContext* pRdrContext)
 			? (pResource->GetBufferInfo().elementSize * numElements)
 			: rdrGetTexturePitch(1, pResource->GetBufferInfo().eFormat) * numElements;
 
-		pRdrContext->UpdateResource(*pResource, cmd.pData, dataSize);
+		pResource->UpdateResource(*pRdrContext, cmd.pData, dataSize);
 	}
 
 	// Create buffers
@@ -800,20 +734,7 @@ void RdrResourceCommandList::ProcessPreFrameCommands(RdrContext* pRdrContext)
 		CmdCreateBuffer& cmd = m_bufferCreates[i];
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 
-		pResource->InitAsBuffer(cmd.info, cmd.accessFlags);
-
-		switch (cmd.info.eType)
-		{
-		case RdrBufferType::Data:
-			pRdrContext->CreateDataBuffer(cmd.pData, cmd.info.numElements, cmd.info.eFormat, cmd.accessFlags, *pResource);
-			break;
-		case RdrBufferType::Structured:
-			pRdrContext->CreateStructuredBuffer(cmd.pData, cmd.info.numElements, cmd.info.elementSize, cmd.accessFlags, *pResource);
-			break;
-		case RdrBufferType::Vertex:
-			pRdrContext->CreateVertexBuffer(cmd.pData, cmd.info.elementSize * cmd.info.numElements, cmd.accessFlags, *pResource);
-			break;
-		}
+		pResource->CreateBuffer(*pRdrContext, cmd.info, cmd.accessFlags, cmd.pData);
 	}
 
 	// Create render targets
@@ -859,11 +780,11 @@ void RdrResourceCommandList::ProcessPreFrameCommands(RdrContext* pRdrContext)
 		RdrResource* pResource = s_resourceSystem.resources.get(cmd.hResource);
 		if (pResource->IsTexture())
 		{
-			*pView = pRdrContext->CreateShaderResourceViewTexture(*pResource);
+			*pView = pResource->CreateShaderResourceViewTexture(*pRdrContext);
 		}
 		else
 		{
-			*pView = pRdrContext->CreateShaderResourceViewBuffer(*pResource, cmd.firstElement);
+			*pView = pResource->CreateShaderResourceViewBuffer(*pRdrContext, cmd.firstElement);
 		}
 	}
 
@@ -883,11 +804,11 @@ void RdrResourceCommandList::ProcessPreFrameCommands(RdrContext* pRdrContext)
 		{
 			ConstantBufferPool& rPool = s_resourceSystem.constantBufferPools[poolIndex];
 			*pBuffer = rPool.aBuffers[--rPool.bufferCount];
-			pRdrContext->UpdateResource(*pBuffer, cmd.pData, cmd.size);
+			pBuffer->UpdateResource(*pRdrContext, cmd.pData, cmd.size);
 		}
 		else
 		{
-			pRdrContext->CreateConstantBuffer(cmd.pData, cmd.size, cmd.accessFlags, *pBuffer);
+			pBuffer->CreateConstantBuffer(*pRdrContext, cmd.pData, cmd.size, cmd.accessFlags);
 		}
 	}
 
@@ -897,7 +818,7 @@ void RdrResourceCommandList::ProcessPreFrameCommands(RdrContext* pRdrContext)
 	{
 		const CmdUpdateConstantBuffer& cmd = m_constantBufferUpdates[i];
 		RdrResource* pBuffer = s_resourceSystem.constantBuffers.get(cmd.hBuffer);
-		pRdrContext->UpdateResource(*pBuffer, cmd.pData, pBuffer->GetSize());
+		pBuffer->UpdateResource(*pRdrContext, cmd.pData, pBuffer->GetSize());
 	}
 
 	// Create/Update geos
@@ -907,33 +828,33 @@ void RdrResourceCommandList::ProcessPreFrameCommands(RdrContext* pRdrContext)
 	{
 		CmdUpdateGeo& cmd = m_geoUpdates[i];
 		RdrGeometry* pGeo = s_resourceSystem.geos.get(cmd.hGeo);
-		if (!pGeo->vertexBuffer.IsValid())
-		{
-			// Creating
-			pGeo->geoInfo = cmd.info;
-			pRdrContext->CreateVertexBuffer(cmd.pVertData, cmd.info.vertStride * cmd.info.numVerts, RdrResourceAccessFlags::CpuRO_GpuRO, pGeo->vertexBuffer);
-			if (cmd.pIndexData)
-			{
-				pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices, RdrResourceAccessFlags::CpuRO_GpuRO, pGeo->indexBuffer);
-			}
-		}
-		else
-		{
-			// Updating
-			// This destroys and re-creates the buffers that have changed.
-			// TODO: May want to add support for dynamic buffers geo buffers.
-			if (cmd.pVertData)
-			{
-				//donotcheckin
-				//pRdrContext->ReleaseResource(pGeo->vertexBuffer);
-				pRdrContext->CreateVertexBuffer(cmd.pVertData, pGeo->geoInfo.vertStride * pGeo->geoInfo.numVerts, RdrResourceAccessFlags::CpuRO_GpuRO, pGeo->vertexBuffer);
-			}
 
-			if (cmd.pIndexData)
-			{
+		pGeo->geoInfo = cmd.info;
+
+		if (cmd.pVertData)
+		{
+			RdrBufferInfo vertexBufferInfo;
+			vertexBufferInfo.eType = RdrBufferType::Vertex;
+			vertexBufferInfo.eFormat = RdrResourceFormat::UNKNOWN;
+			vertexBufferInfo.elementSize = cmd.info.vertStride;
+			vertexBufferInfo.numElements = cmd.info.numVerts;
+
+			//if (!pGeo->vertexBuffer.IsValid())
+				//pRdrContext->ReleaseResource(pGeo->vertexBuffer);
+			pGeo->vertexBuffer.CreateBuffer(*pRdrContext, vertexBufferInfo, RdrResourceAccessFlags::None, cmd.pVertData);
+		}
+		
+		if (cmd.pIndexData)
+		{
+			RdrBufferInfo indexBufferInfo;
+			indexBufferInfo.eType = RdrBufferType::Index;
+			indexBufferInfo.eFormat = RdrResourceFormat::R16_UINT;
+			indexBufferInfo.elementSize = 0;
+			indexBufferInfo.numElements = cmd.info.numIndices;
+
+			//if (!pGeo->indexBuffer.IsValid())
 				//pRdrContext->ReleaseResource(pGeo->indexBuffer);
-				pRdrContext->CreateIndexBuffer(cmd.pIndexData, sizeof(uint16) * cmd.info.numIndices, RdrResourceAccessFlags::CpuRO_GpuRO, pGeo->indexBuffer);
-			}
+			pGeo->indexBuffer.CreateBuffer(*pRdrContext, indexBufferInfo, RdrResourceAccessFlags::None, cmd.pIndexData);
 		}
 	}
 	s_resourceSystem.geos.ReleaseLock();

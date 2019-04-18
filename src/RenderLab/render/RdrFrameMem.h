@@ -16,7 +16,7 @@ namespace RdrFrameMem
 
 	RdrDrawOp* AllocDrawOp(const RdrDebugBackpointer& src);
 	RdrDrawOp* AllocDrawOps(uint16 count, const RdrDebugBackpointer& src);
-	RdrComputeOp* AllocComputeOp();
+	RdrComputeOp* AllocComputeOp(const RdrDebugBackpointer& src);
 
 	void FlipState();
 }

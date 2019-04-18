@@ -191,7 +191,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 	{
 		// Transmittance
 		{
-			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
+			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereTransmittanceLut);
 			pOp->ahWritableResources.assign(0, m_hTransmittanceLut);
 			pOp->ahConstantBuffers.assign(0, hAtmosphereConstants);
@@ -205,7 +205,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 
 		// Initial delta S (single scattering)
 		{
-			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
+			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereScatterLut_Single);
 			pOp->ahResources.assign(0, m_hTransmittanceLut);
 			pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
@@ -222,7 +222,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 
 		// Initial delta E (irradiance)
 		{
-			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
+			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereIrradianceLut_Initial);
 			pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 			pOp->ahResources.assign(0, m_hTransmittanceLut);
@@ -237,7 +237,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 
 		// Clear E (irradiance)
 		{
-			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
+			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::Clear2d);
 			pOp->ahWritableResources.assign(0, m_hIrradianceSumLuts[0]);
 			pOp->ahConstantBuffers.assign(0, hAtmosphereConstants);
@@ -254,7 +254,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		{
 			// Delta J (radiance)
 			{
-				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
+				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 				pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 				pOp->ahResources.assign(0, m_hTransmittanceLut);
 				pOp->ahResources.assign(1, m_hIrradianceDeltaLut);
@@ -280,7 +280,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 
 			// Delta E (irradiance)
 			{
-				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
+				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 				pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 				if (i == 0)
 				{
@@ -304,7 +304,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 
 			// Delta S (scatter)
 			{
-				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
+				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 				pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereScatterLut_N);
 				pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
 				pOp->ahResources.assign(0, m_hTransmittanceLut);
@@ -320,7 +320,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 
 			// Sum E (irradiance)
 			{
-				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
+				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 				pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::Add2d);
 				pOp->ahResources.assign(0, m_hIrradianceDeltaLut);
 				pOp->ahResources.assign(1, m_hIrradianceSumLuts[!currIrradianceIndex]);
@@ -334,7 +334,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 
 			// Sum S (scatter)
 			{
-				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp();
+				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 				pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::Add3d);
 				pOp->ahResources.assign(0, m_hScatteringCombinedDeltaLut);
 				pOp->ahResources.assign(1, m_hScatteringSumLuts[!currScatterIndex]);

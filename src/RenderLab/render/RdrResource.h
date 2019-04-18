@@ -5,6 +5,7 @@
 #include "FreeList.h"
 
 interface ID3D12Resource;
+class RdrContext;
 
 enum class RdrTextureType
 {
@@ -28,7 +29,8 @@ enum class RdrBufferType
 {
 	Data,
 	Structured,
-	Vertex
+	Vertex,
+	Index
 };
 
 struct RdrBufferInfo
@@ -55,24 +57,36 @@ struct RdrResource
 {
 public:
 	void SetName(const char* name) { filename = name; }
-	void InitAsTexture(const RdrTextureInfo& texInfo, RdrResourceAccessFlags accessFlags);
-	void InitAsBuffer(const RdrBufferInfo& bufferInfo, RdrResourceAccessFlags accessFlags);
-	void InitAsConstantBuffer(RdrResourceAccessFlags accessFlags, uint nByteSize);
-	void InitAsIndexBuffer(RdrResourceAccessFlags accessFlags, uint nByteSize);
-	void InitAsVertexBuffer(RdrResourceAccessFlags accessFlags, uint nByteSize);
 
-	void BindDeviceResources(ID3D12Resource* pResource, D3D12_RESOURCE_STATES eInitialState, RdrShaderResourceView* pSRV, RdrUnorderedAccessView* pUAV);
-	
+	/////////////////////////////////////////////////////////////
+	// Resources
+	bool CreateTexture(RdrContext& context, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, const void* pSrcData);
+
+	bool CreateBuffer(RdrContext& context, const RdrBufferInfo& rBufferInfo, RdrResourceAccessFlags accessFlags, const void* pSrcData);
+	bool CreateStructuredBuffer(RdrContext& context, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, const void* pSrcData);
+
+	void CopyResourceRegion(RdrContext& context, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset) const;
+	void ReadResource(RdrContext& context, void* pDstData, uint dstDataSize) const;
+
+	void ReleaseResource(RdrContext& context);
+
+	void ResolveResource(RdrContext& context, const RdrResource& rDst) const;
+
+	RdrShaderResourceView CreateShaderResourceViewTexture(RdrContext& context);
+	RdrShaderResourceView CreateShaderResourceViewBuffer(RdrContext& context, uint firstElement);
+	void ReleaseShaderResourceView(RdrContext& context, RdrShaderResourceView& resourceView);
+
+	/////////////////////////////////////////////////////////////
+	// Constant Buffers
+	bool CreateConstantBuffer(RdrContext& context, const void* pData, uint size, RdrResourceAccessFlags accessFlags);
+	void UpdateResource(RdrContext& context, const void* pData, const uint dataSize);
+
+	void TransitionState(RdrContext& context, D3D12_RESOURCE_STATES eState);
+
 	bool IsTexture() const { return m_bIsTexture; }
 	bool IsBuffer() const { return !m_bIsTexture; }
 
 	bool IsValid() const { return !!m_pResource; }
-
-	void Reset();
-
-	// donotcheckin - make RdrResource owner of all its data - extract from RdrContext
-	D3D12_RESOURCE_STATES GetResourceState() const { return m_eResourceState; }
-	void SetResourceState(D3D12_RESOURCE_STATES eState) { m_eResourceState = eState; }
 
 	ID3D12Resource* GetResource() const { MarkUsedThisFrame();  return m_pResource; }
 	const RdrShaderResourceView& GetSRV() const { MarkUsedThisFrame(); return m_srv; }
@@ -87,7 +101,12 @@ public:
 	const RdrBufferInfo& GetBufferInfo() const { return m_bufferInfo; }
 	const RdrTextureInfo& GetTextureInfo() const { return m_textureInfo; }
 private:
+	ID3D12Resource* CreateBufferCommon(RdrContext& context, const int size, RdrResourceAccessFlags accessFlags, const D3D12_RESOURCE_STATES initialState);
+
+
 	ID3D12Resource* m_pResource;
+	ID3D12Resource* m_pUploadResource;
+
 	RdrShaderResourceView m_srv;
 	RdrUnorderedAccessView m_uav;
 	D3D12_RESOURCE_STATES m_eResourceState;

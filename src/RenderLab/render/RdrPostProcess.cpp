@@ -45,9 +45,9 @@ namespace
 			info.depth = 1;
 			info.mipLevels = 1;
 			info.sampleCount = 1;
-			pRdrContext->CreateTexture(nullptr, info, RdrResourceAccessFlags::CpuRO_GpuRW, rLumCopyRes);
+			rLumCopyRes.CreateTexture(*pRdrContext, info, RdrResourceAccessFlags::CpuRO_GpuRW, nullptr);
 		}
-		pRdrContext->CopyResourceRegion(*pColorBuffer, srcRect, rLumCopyRes, IVec3::kZero);
+		pColorBuffer->CopyResourceRegion(*pRdrContext, srcRect, rLumCopyRes, IVec3::kZero);
 
 		if (rLumReadRes.IsValid())
 		{
@@ -58,7 +58,7 @@ namespace
 			std::align(16, pixelByteSize, pAlignedData, space);
 
 			uint size = rdrGetTexturePitch(1, pColorBuffer->GetTextureInfo().format);
-			pRdrContext->ReadResource(rLumReadRes, pAlignedData, pixelByteSize);
+			rLumReadRes.ReadResource(*pRdrContext, pAlignedData, pixelByteSize);
 
 			rOutData.lumColor = Maths::convertHalfToSinglePrecision4((float16*)pAlignedData);
 			rOutData.lumAtCursor = calcLuminance(rOutData.lumColor);
@@ -70,14 +70,14 @@ namespace
 		RdrBox srcRect(0, 0, 0, sizeof(ToneMapOutputParams), 1, 1);
 		if (!rTonemapCopyRes.IsValid())
 		{
-			pRdrContext->CreateStructuredBuffer(nullptr, 1, srcRect.width, RdrResourceAccessFlags::CpuRO_GpuRW, rTonemapCopyRes);
+			rTonemapCopyRes.CreateStructuredBuffer(*pRdrContext, 1, srcRect.width, RdrResourceAccessFlags::CpuRO_GpuRW, nullptr);
 		}
-		pRdrContext->CopyResourceRegion(*pTonemapOutputBuffer, srcRect, rTonemapCopyRes, IVec3::kZero);
+		pTonemapOutputBuffer->CopyResourceRegion(*pRdrContext, srcRect, rTonemapCopyRes, IVec3::kZero);
 
 		if (rTonemapReadRes.IsValid())
 		{
 			ToneMapOutputParams tonemap;
-			pRdrContext->ReadResource(rTonemapReadRes, &tonemap, sizeof(tonemap));
+			rTonemapReadRes.ReadResource(*pRdrContext, &tonemap, sizeof(tonemap));
 			rOutData.linearExposure = tonemap.linearExposure;
 			rOutData.adaptedLum = tonemap.adaptedLum;
 		}
@@ -140,13 +140,13 @@ void RdrPostProcess::Init(RdrContext* pRdrContext, const InputManager* pInputMan
 	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", histogramDefines, 1);
 	m_toneMapHistogramPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, pPrimaryRtvFormats, nNumPrimaryRtvFormats, RdrBlendMode::kOpaque);
 
-	pRdrContext->CreateConstantBuffer(nullptr, sizeof(ToneMapInputParams), RdrResourceAccessFlags::CpuRW_GpuRO, m_toneMapInputConstants);
+	m_toneMapInputConstants.CreateConstantBuffer(*pRdrContext, nullptr, sizeof(ToneMapInputParams), RdrResourceAccessFlags::CpuRW_GpuRO);
 
 	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_copy.hlsl", nullptr, 0);
 	m_copyPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, pSceneRtvFormats, nNumSceneRtvFormats, RdrBlendMode::kOpaque);
 
 	const RdrResourceFormat rtvFormat = RdrResourceFormat::R8_UNORM;
-	pRdrContext->CreateConstantBuffer(nullptr, sizeof(SsaoParams), RdrResourceAccessFlags::CpuRW_GpuRO, m_ssaoConstants);
+	m_ssaoConstants.CreateConstantBuffer(*pRdrContext, nullptr, sizeof(SsaoParams), RdrResourceAccessFlags::CpuRW_GpuRO);
 	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_ssao_gen.hlsl", nullptr, 0);
 	m_ssaoGenPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, &rtvFormat, 1, RdrBlendMode::kOpaque);
 
@@ -284,7 +284,7 @@ void RdrPostProcess::DoPostProcessing(RdrContext* pRdrContext, RdrDrawState* pDr
 	tonemapSettings.maxExposure = pow(2.f, rEffects.eyeAdaptation.maxExposure);
 	tonemapSettings.bloomThreshold = rEffects.bloom.threshold;
 	tonemapSettings.frameTime = Time::FrameTime() * rEffects.eyeAdaptation.adaptationSpeed; // TODO: Need previous frame's time for this to be correct.
-	pRdrContext->UpdateResource(m_toneMapInputConstants, &tonemapSettings, sizeof(ToneMapInputParams));
+	m_toneMapInputConstants.UpdateResource(*pRdrContext, &tonemapSettings, sizeof(ToneMapInputParams));
 
 	//////////////////////////////////////////////////////////////////////////
 	RdrRenderTargetView renderTarget = RdrResourceSystem::GetRenderTargetView(RdrGlobalRenderTargetHandles::kPrimary);
@@ -660,7 +660,7 @@ void RdrPostProcess::DoSsao(RdrContext* pRdrContext, RdrDrawState* pDrawState, c
 	pRdrContext->BeginEvent(L"SSAO");
 
 	m_ssaoParams.sampleRadius = rEffects.ssao.sampleRadius;
-	pRdrContext->UpdateResource(m_ssaoConstants, &m_ssaoParams, sizeof(m_ssaoParams));
+	m_ssaoConstants.UpdateResource(*pRdrContext, &m_ssaoParams, sizeof(m_ssaoParams));
 
 	// Generate SSAO buffer
 	{

@@ -159,13 +159,13 @@ void Renderer::ProcessReadbackRequests()
 		{
 			const RdrResource* pSrc = RdrResourceSystem::GetResource(pRequest->hSrcResource);
 			const RdrResource* pDst = RdrResourceSystem::GetResource(pRequest->hDstResource);
-			m_pContext->CopyResourceRegion(*pSrc, pRequest->srcRegion, *pDst, IVec3::kZero);
+			pSrc->CopyResourceRegion(*m_pContext, pRequest->srcRegion, *pDst, IVec3::kZero);
 		}
 		else if (pRequest->frameCount == 3)
 		{
 			// After 2 frames, we can safely read from the resource without stalling.
 			const RdrResource* pDst = RdrResourceSystem::GetResource(pRequest->hDstResource);
-			m_pContext->ReadResource(*pDst, pRequest->pData, pRequest->dataSize);
+			pDst->ReadResource(*m_pContext, pRequest->pData, pRequest->dataSize);
 			pRequest->bComplete = true;
 
 			// Remove from pending list

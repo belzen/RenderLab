@@ -253,6 +253,9 @@
     <ClCompile Include="render\RdrContext.cpp">
       <Filter>render</Filter>
     </ClCompile>
+    <ClCompile Include="render\RdrResource.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />

@@ -412,7 +412,7 @@ void RdrLighting::QueueClusteredLightCulling(RdrAction* pAction, const Camera& r
 			, CREATE_BACKPOINTER(this));
 	}
 
-	RdrComputeOp* pCullOp = RdrFrameMem::AllocComputeOp();
+	RdrComputeOp* pCullOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 	pCullOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::ClusteredLightCull);
 	pCullOp->threads[0] = clusterCountX;
 	pCullOp->threads[1] = clusterCountY;
@@ -493,7 +493,7 @@ void RdrLighting::QueueTiledLightCulling(RdrAction* pAction, const Camera& rCame
 	RdrConstantBufferHandle hDepthMinMaxConstants = rResCommandList.CreateTempConstantBuffer(pConstants, constantsSize, CREATE_BACKPOINTER(this));
 
 	// Fill draw op
-	RdrComputeOp* pDepthOp = RdrFrameMem::AllocComputeOp();
+	RdrComputeOp* pDepthOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 	pDepthOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::TiledDepthMinMax);
 	pDepthOp->threads[0] = tileCountX;
 	pDepthOp->threads[1] = tileCountY;
@@ -539,7 +539,7 @@ void RdrLighting::QueueTiledLightCulling(RdrAction* pAction, const Camera& rCame
 	RdrConstantBufferHandle hCullConstants = rResCommandList.CreateTempConstantBuffer(pParams, constantsSize, CREATE_BACKPOINTER(this));
 
 	// Fill draw op
-	RdrComputeOp* pCullOp = RdrFrameMem::AllocComputeOp();
+	RdrComputeOp* pCullOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 	pCullOp->threads[0] = tileCountX;
 	pCullOp->threads[1] = tileCountY;
 	pCullOp->threads[2] = 1;
@@ -599,7 +599,7 @@ void RdrLighting::QueueVolumetricFog(RdrAction* pAction, const AssetLib::Volumet
 
 	//////////////////////////////////////////////////////////////////////////
 	// Participating media density and per-froxel lighting.
-	RdrComputeOp* pLightOp = RdrFrameMem::AllocComputeOp();
+	RdrComputeOp* pLightOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 	pLightOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::VolumetricFog_Light);
 
 	pLightOp->ahWritableResources.assign(0, m_hFogDensityLightLut);
@@ -626,7 +626,7 @@ void RdrLighting::QueueVolumetricFog(RdrAction* pAction, const AssetLib::Volumet
 
 	//////////////////////////////////////////////////////////////////////////
 	// Scattering accumulation
-	RdrComputeOp* pAccumOp = RdrFrameMem::AllocComputeOp();
+	RdrComputeOp* pAccumOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 	pAccumOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::VolumetricFog_Accum);
 	pAccumOp->ahConstantBuffers.assign(0, rGlobalConstants.hPsPerAction);
 	pAccumOp->ahConstantBuffers.assign(1, m_hFogConstants);

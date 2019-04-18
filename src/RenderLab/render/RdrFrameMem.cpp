@@ -58,7 +58,9 @@ RdrDrawOp* RdrFrameMem::AllocDrawOps(uint16 count, const RdrDebugBackpointer& sr
 	return pOps;
 }
 
-RdrComputeOp* RdrFrameMem::AllocComputeOp()
+RdrComputeOp* RdrFrameMem::AllocComputeOp(const RdrDebugBackpointer& src)
 {
-	return s_frameMem[s_frame].computeOps.Alloc();
+	RdrComputeOp* pOp = s_frameMem[s_frame].computeOps.Alloc();
+	pOp->debug = src;
+	return pOp;
 }
