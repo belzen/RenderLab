@@ -141,11 +141,12 @@ void RdrResource::MarkUsedThisFrame() const
 	const_cast<RdrResource*>(this)->m_nLastUsedFrameCode = g_pRenderer->GetContext()->GetFrameNum();
 }
 
-bool RdrResource::CreateTexture(RdrContext& context, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, const void* pSrcData)
+bool RdrResource::CreateTexture(RdrContext& context, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	ID3D12Device* pDevice = context.GetDevice();
 	DescriptorHeap& srvHeap = context.GetSrvHeap();
 
+	m_debugCreator = debug;
 	m_eResourceState = D3D12_RESOURCE_STATE_COMMON;
 	m_textureInfo = rTexInfo;
 	m_accessFlags = accessFlags;
@@ -266,13 +267,6 @@ bool RdrResource::CreateTexture(RdrContext& context, const RdrTextureInfo& rTexI
 		assert(hr == S_OK);
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-
-	if (pSrcData)
-	{
-		UpdateResource(context, pSrcData, 0);
-	}
-
 	return true;
 }
 
@@ -337,7 +331,7 @@ ID3D12Resource* RdrResource::CreateBufferCommon(RdrContext& context, const int s
 	return pResource;
 }
 
-bool RdrResource::CreateStructuredBuffer(RdrContext& context, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, const void* pSrcData)
+bool RdrResource::CreateStructuredBuffer(RdrContext& context, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	RdrBufferInfo info;
 	info.eType = RdrBufferType::Structured;
@@ -345,10 +339,10 @@ bool RdrResource::CreateStructuredBuffer(RdrContext& context, int numElements, i
 	info.eFormat = RdrResourceFormat::UNKNOWN;
 	info.numElements = numElements;
 
-	return CreateBuffer(context, info, accessFlags, pSrcData);
+	return CreateBuffer(context, info, accessFlags, debug);
 }
 
-bool RdrResource::CreateBuffer(RdrContext& context, const RdrBufferInfo& rBufferInfo, RdrResourceAccessFlags accessFlags, const void* pSrcData)
+bool RdrResource::CreateBuffer(RdrContext& context, const RdrBufferInfo& rBufferInfo, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	ID3D12Device* pDevice = context.GetDevice();
 	DescriptorHeap& srvHeap = context.GetSrvHeap();
@@ -377,6 +371,7 @@ bool RdrResource::CreateBuffer(RdrContext& context, const RdrBufferInfo& rBuffer
 		break;
 	}
 
+	m_debugCreator = debug;
 	m_bufferInfo = rBufferInfo;
 	m_accessFlags = accessFlags;
 	m_bIsTexture = false;
@@ -408,21 +403,17 @@ bool RdrResource::CreateBuffer(RdrContext& context, const RdrBufferInfo& rBuffer
 		pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &desc, m_uav.hView);
 	}
 
-	if (pSrcData)
-	{
-		UpdateResource(context, pSrcData, nDataSize);
-	}
-
 	return true;
 }
 
-bool RdrResource::CreateConstantBuffer(RdrContext& context, const void* pData, uint size, RdrResourceAccessFlags accessFlags)
+bool RdrResource::CreateConstantBuffer(RdrContext& context, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	ID3D12Device* pDevice = context.GetDevice();
 	DescriptorHeap& srvHeap = context.GetSrvHeap();
 
 	size = (size + 255) & ~255;	// CB size is required to be 256-byte aligned.
 
+	m_debugCreator = debug;
 	m_eResourceState = IsFlagSet(accessFlags, RdrResourceAccessFlags::CpuWrite) ? D3D12_RESOURCE_STATE_GENERIC_READ : D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 	m_pResource = CreateBufferCommon(context, size, accessFlags, m_eResourceState);
 	if (!m_pResource)
@@ -441,16 +432,16 @@ bool RdrResource::CreateConstantBuffer(RdrContext& context, const void* pData, u
 	m_bIsTexture = false;
 	m_size = size;
 
-	if (pData)
-	{
-		UpdateResource(context, pData, size);
-	}
-
 	return true;
 }
 
-void RdrResource::UpdateResource(RdrContext& context, const void* pSrcData, const uint dataSize)
+void RdrResource::UpdateResource(RdrContext& context, const void* pSrcData, uint dataSize)
 {
+	assert(Renderer::IsRenderThread());
+
+	if (dataSize == 0)
+		dataSize = m_size;
+
 	if (IsFlagSet(m_accessFlags, RdrResourceAccessFlags::CpuWrite))
 	{
 		void* pDstData;
@@ -526,6 +517,8 @@ void RdrResource::UpdateResource(RdrContext& context, const void* pSrcData, cons
 
 void RdrResource::CopyResourceRegion(RdrContext& context, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset) const
 {
+	assert(Renderer::IsRenderThread());
+
 	if (IsTexture())
 	{
 		D3D12_BOX box;
@@ -564,11 +557,15 @@ void RdrResource::ReadResource(RdrContext& context, void* pDstData, uint dstData
 
 void RdrResource::ResolveResource(RdrContext& context, const RdrResource& rDst) const
 {
+	assert(Renderer::IsRenderThread());
+
 	context.GetCommandList()->ResolveSubresource(rDst.GetResource(), 0, m_pResource, 0, getD3DFormat(m_textureInfo.format));
 }
 
 void RdrResource::TransitionState(RdrContext& context, D3D12_RESOURCE_STATES eState)
 {
+	assert(Renderer::IsRenderThread());
+
 	if (m_eResourceState == eState)
 		return;
 

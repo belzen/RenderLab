@@ -20,24 +20,6 @@ class LightList;
 class RdrContext;
 class RdrDrawState;
 
-#if 0 //donotcheckin - unnecessary if keeping dx12 includes here
-interface ID3D12Device;
-interface ID3D12CommandQueue;
-interface ID3D12GraphicsCommandList;
-interface ID3D12Resource;
-interface ID3D12CommandAllocator;
-interface ID3D12DescriptorHeap;
-interface ID3D12Fence;
-interface ID3D12Debug;
-interface ID3D12InfoQueue;
-interface IDXGISwapChain4;
-interface ID3D12QueryHeap;
-struct CD3DX12_CPU_DESCRIPTOR_HANDLE;
-enum D3D12_QUERY_HEAP_TYPE;
-enum D3D12_DESCRIPTOR_HEAP_TYPE;
-enum D3D12_RESOURCE_STATES;
-#endif
-
 #define SAMPLER_TYPES_COUNT (int)RdrComparisonFunc::Count * (int)RdrTexCoordMode::Count * 2
 #define RASTER_STATES_COUNT 2 * 2 * 2 * 2
 

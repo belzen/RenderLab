@@ -19,6 +19,7 @@
 #include "AssetLib/SceneAsset.h"
 
 Renderer* g_pRenderer = nullptr;
+DWORD Renderer::s_nRenderThreadId = 0;
 
 namespace
 {

@@ -38,6 +38,9 @@ enum class RdrRenderStage
 class Renderer
 {
 public:
+	static void SetRenderThread(DWORD nThreadId) { s_nRenderThreadId = nThreadId; }
+	static bool IsRenderThread() { return GetCurrentThreadId() == s_nRenderThreadId; }
+
 	bool Init(HWND hWnd, int width, int height, const InputManager* pInputManager);
 	void Cleanup();
 
@@ -77,6 +80,8 @@ private:
 	void ProcessReadbackRequests();
 
 private:
+	static DWORD s_nRenderThreadId;
+
 	///
 	RdrContext* m_pContext;
 

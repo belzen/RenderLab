@@ -288,6 +288,8 @@ int MainWindow::Run()
 
 void MainWindow::RenderThreadMain(MainWindow* pWindow)
 {
+	Renderer::SetRenderThread(GetCurrentThreadId());
+
 	while (pWindow->m_running)
 	{
 		pWindow->m_pRenderWindow->DrawFrame();

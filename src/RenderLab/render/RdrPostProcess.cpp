@@ -45,7 +45,7 @@ namespace
 			info.depth = 1;
 			info.mipLevels = 1;
 			info.sampleCount = 1;
-			rLumCopyRes.CreateTexture(*pRdrContext, info, RdrResourceAccessFlags::CpuRO_GpuRW, nullptr);
+			rLumCopyRes.CreateTexture(*pRdrContext, info, RdrResourceAccessFlags::CpuRO_GpuRW, CREATE_NULL_BACKPOINTER);
 		}
 		pColorBuffer->CopyResourceRegion(*pRdrContext, srcRect, rLumCopyRes, IVec3::kZero);
 
@@ -70,7 +70,7 @@ namespace
 		RdrBox srcRect(0, 0, 0, sizeof(ToneMapOutputParams), 1, 1);
 		if (!rTonemapCopyRes.IsValid())
 		{
-			rTonemapCopyRes.CreateStructuredBuffer(*pRdrContext, 1, srcRect.width, RdrResourceAccessFlags::CpuRO_GpuRW, nullptr);
+			rTonemapCopyRes.CreateStructuredBuffer(*pRdrContext, 1, srcRect.width, RdrResourceAccessFlags::CpuRO_GpuRW, CREATE_NULL_BACKPOINTER);
 		}
 		pTonemapOutputBuffer->CopyResourceRegion(*pRdrContext, srcRect, rTonemapCopyRes, IVec3::kZero);
 
@@ -140,13 +140,13 @@ void RdrPostProcess::Init(RdrContext* pRdrContext, const InputManager* pInputMan
 	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_tonemap.hlsl", histogramDefines, 1);
 	m_toneMapHistogramPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, pPrimaryRtvFormats, nNumPrimaryRtvFormats, RdrBlendMode::kOpaque);
 
-	m_toneMapInputConstants.CreateConstantBuffer(*pRdrContext, nullptr, sizeof(ToneMapInputParams), RdrResourceAccessFlags::CpuRW_GpuRO);
+	m_toneMapInputConstants.CreateConstantBuffer(*pRdrContext, sizeof(ToneMapInputParams), RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 
 	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_copy.hlsl", nullptr, 0);
 	m_copyPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, pSceneRtvFormats, nNumSceneRtvFormats, RdrBlendMode::kOpaque);
 
 	const RdrResourceFormat rtvFormat = RdrResourceFormat::R8_UNORM;
-	m_ssaoConstants.CreateConstantBuffer(*pRdrContext, nullptr, sizeof(SsaoParams), RdrResourceAccessFlags::CpuRW_GpuRO);
+	m_ssaoConstants.CreateConstantBuffer(*pRdrContext, sizeof(SsaoParams), RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 	pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_ssao_gen.hlsl", nullptr, 0);
 	m_ssaoGenPipelineState = createFullscreenPipelineState(pRdrContext, pPixelShader, &rtvFormat, 1, RdrBlendMode::kOpaque);
 

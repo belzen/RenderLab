@@ -3,6 +3,7 @@
 #include "RdrDeviceTypes.h"
 #include "MathLib\Vec4.h"
 #include "FreeList.h"
+#include "RdrDebugBackpointer.h"
 
 interface ID3D12Resource;
 class RdrContext;
@@ -60,10 +61,10 @@ public:
 
 	/////////////////////////////////////////////////////////////
 	// Resources
-	bool CreateTexture(RdrContext& context, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, const void* pSrcData);
+	bool CreateTexture(RdrContext& context, const RdrTextureInfo& rTexInfo, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
 
-	bool CreateBuffer(RdrContext& context, const RdrBufferInfo& rBufferInfo, RdrResourceAccessFlags accessFlags, const void* pSrcData);
-	bool CreateStructuredBuffer(RdrContext& context, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, const void* pSrcData);
+	bool CreateBuffer(RdrContext& context, const RdrBufferInfo& rBufferInfo, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
+	bool CreateStructuredBuffer(RdrContext& context, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
 
 	void CopyResourceRegion(RdrContext& context, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset) const;
 	void ReadResource(RdrContext& context, void* pDstData, uint dstDataSize) const;
@@ -78,8 +79,8 @@ public:
 
 	/////////////////////////////////////////////////////////////
 	// Constant Buffers
-	bool CreateConstantBuffer(RdrContext& context, const void* pData, uint size, RdrResourceAccessFlags accessFlags);
-	void UpdateResource(RdrContext& context, const void* pData, const uint dataSize);
+	bool CreateConstantBuffer(RdrContext& context, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
+	void UpdateResource(RdrContext& context, const void* pData, uint dataSize);
 
 	void TransitionState(RdrContext& context, D3D12_RESOURCE_STATES eState);
 
@@ -123,6 +124,8 @@ private:
 	};
 
 	bool m_bIsTexture; // Whether this resource is a texture or a buffer.
+
+	RdrDebugBackpointer m_debugCreator;
 };
 
 //////////////////////////////////////////////////////////////////////////

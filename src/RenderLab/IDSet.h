@@ -9,7 +9,7 @@ public:
 
 	}
 
-	uint allocId()
+	inline uint allocId()
 	{
 		if (m_numFree > 0)
 			return m_freeIds[--m_numFree];
@@ -20,12 +20,12 @@ public:
 		return m_nextId++;
 	}
 
-	void releaseId(uint id)
+	inline void releaseId(uint id)
 	{
 		m_freeIds[m_numFree++] = id;
 	}
 
-	uint getMaxIds() const
+	inline uint getMaxIds() const
 	{
 		return T_nMaxIds;
 	}
@@ -49,13 +49,13 @@ public:
 		SAFE_DELETE(m_pFreeIds);
 	}
 
-	void init(uint maxIds)
+	inline void init(uint maxIds)
 	{
 		m_maxIds = maxIds;
 		m_pFreeIds = new uint[m_maxIds];
 	}
 
-	uint allocId()
+	inline uint allocId()
 	{
 		if (m_numFree > 0)
 			return m_pFreeIds[--m_numFree];
@@ -66,14 +66,36 @@ public:
 		return m_nextId++;
 	}
 
-	void releaseId(uint id)
+	inline uint allocIdSafe()
+	{
+		AutoScopedLock lock(m_mutex);
+		return allocId();
+	}
+
+	inline void releaseId(uint id)
 	{
 		m_pFreeIds[m_numFree++] = id;
 	}
 
-	uint getMaxIds() const
+	inline void releaseIdSafe(uint id)
+	{
+		AutoScopedLock lock(m_mutex);
+		releaseId(id);
+	}
+
+	inline uint getMaxIds() const
 	{
 		return m_maxIds;
+	}
+
+	inline void AcquireLock()
+	{
+		m_mutex.Lock();
+	}
+
+	inline void ReleaseLock()
+	{
+		m_mutex.Unlock();
 	}
 
 private:
@@ -81,4 +103,5 @@ private:
 	uint* m_pFreeIds;
 	uint m_numFree;
 	uint m_maxIds;
+	ThreadMutex m_mutex;
 };

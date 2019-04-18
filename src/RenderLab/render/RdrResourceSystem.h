@@ -88,7 +88,7 @@ public:
 
 	RdrResourceHandle CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
 	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
-	RdrResourceHandle UpdateBuffer(const RdrResourceHandle hResource, const void* pSrcData, int numElements, const RdrDebugBackpointer& debug);
+	void UpdateBuffer(const RdrResourceHandle hResource, const void* pSrcData, int numElements, const RdrDebugBackpointer& debug);
 
 	RdrShaderResourceViewHandle CreateShaderResourceView(RdrResourceHandle hResource, uint firstElement, const RdrDebugBackpointer& debug);
 	void ReleaseShaderResourceView(RdrShaderResourceViewHandle hView, const RdrDebugBackpointer& debug);
@@ -118,35 +118,13 @@ private:
 
 private:
 	// Command definitions
-	struct CmdCreateTexture
+	struct CmdUpdateResource
 	{
 		RdrResourceHandle hResource;
-		RdrTextureInfo texInfo;
-		RdrResourceAccessFlags accessFlags;
-
-		char* pFileData; // Pointer to start of texture data when loaded from a file.
-		char* pData; // Pointer to start of raw data.
+		const void* pData;
 		uint dataSize;
 
-		RdrDebugBackpointer debug;
-	};
-
-	struct CmdCreateBuffer
-	{
-		RdrResourceHandle hResource;
-		const void* pData;
-		RdrBufferInfo info;
-		RdrResourceAccessFlags accessFlags;
-
-		RdrDebugBackpointer debug;
-	};
-
-	struct CmdUpdateBuffer
-	{
-		RdrResourceHandle hResource;
-		const void* pData;
-		uint numElements;
-
+		const void* pFileData = nullptr;
 		RdrDebugBackpointer debug;
 	};
 
@@ -156,20 +134,11 @@ private:
 		RdrDebugBackpointer debug;
 	};
 
-	struct CmdCreateConstantBuffer
-	{
-		RdrConstantBufferHandle hBuffer;
-		RdrResourceAccessFlags accessFlags;
-		const void* pData;
-		uint size;
-
-		RdrDebugBackpointer debug;
-	};
-
 	struct CmdUpdateConstantBuffer
 	{
 		RdrConstantBufferHandle hBuffer;
 		const void* pData;
+		uint dataSize;
 
 		RdrDebugBackpointer debug;
 	};
@@ -180,44 +149,15 @@ private:
 		RdrDebugBackpointer debug;
 	};
 
-	struct CmdCreateRenderTarget
-	{
-		RdrRenderTargetViewHandle hView;
-		RdrResourceHandle hResource;
-		int arrayStartIndex;
-		int arraySize;
-
-		RdrDebugBackpointer debug;
-	};
-
 	struct CmdReleaseRenderTarget
 	{
 		RdrRenderTargetViewHandle hView;
 		RdrDebugBackpointer debug;
 	};
 
-	struct CmdCreateDepthStencil
-	{
-		RdrDepthStencilViewHandle hView;
-		RdrResourceHandle hResource;
-		int arrayStartIndex;
-		int arraySize;
-
-		RdrDebugBackpointer debug;
-	};
-
 	struct CmdReleaseDepthStencil
 	{
 		RdrDepthStencilViewHandle hView;
-		RdrDebugBackpointer debug;
-	};
-
-	struct CmdCreateShaderResourceView
-	{
-		RdrShaderResourceViewHandle hView;
-		RdrResourceHandle hResource;
-		int firstElement;
-
 		RdrDebugBackpointer debug;
 	};
 
@@ -244,19 +184,13 @@ private:
 	};
 
 private:
-	FixedVector<CmdCreateTexture, 1024>				m_textureCreates;
-	FixedVector<CmdCreateBuffer, 1024>				m_bufferCreates;
-	FixedVector<CmdUpdateBuffer, 1024>				m_bufferUpdates;
+	FixedVector<CmdUpdateResource, 1024>			m_resourceUpdates;
 	FixedVector<CmdReleaseResource, 1024>			m_resourceReleases;
-	FixedVector<CmdCreateRenderTarget, 1024>		m_renderTargetCreates;
 	FixedVector<CmdReleaseRenderTarget, 1024>		m_renderTargetReleases;
-	FixedVector<CmdCreateDepthStencil, 1024>		m_depthStencilCreates;
 	FixedVector<CmdReleaseDepthStencil, 1024>		m_depthStencilReleases;
-	FixedVector<CmdCreateShaderResourceView, 1024>  m_shaderResourceViewCreates;
 	FixedVector<CmdReleaseShaderResourceView, 1024> m_shaderResourceViewReleases;
 	FixedVector<CmdUpdateGeo, 1024>					m_geoUpdates;
 	FixedVector<CmdReleaseGeo, 1024>				m_geoReleases;
-	FixedVector<CmdCreateConstantBuffer, 2048>		m_constantBufferCreates;
 	FixedVector<CmdUpdateConstantBuffer, 2048>		m_constantBufferUpdates;
 	FixedVector<CmdReleaseConstantBuffer, 2048>		m_constantBufferReleases;
 };

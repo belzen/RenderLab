@@ -225,7 +225,7 @@ void DescriptorHeap::Cleanup()
 
 uint DescriptorHeap::AllocateDescriptorId()
 {
-	return m_idSet.allocId();
+	return m_idSet.allocIdSafe();
 }
 
 D3D12DescriptorHandle DescriptorHeap::AllocateDescriptor()
@@ -236,13 +236,13 @@ D3D12DescriptorHandle DescriptorHeap::AllocateDescriptor()
 
 void DescriptorHeap::FreeDescriptorById(uint nId)
 {
-	return m_idSet.releaseId(nId);
+	return m_idSet.releaseIdSafe(nId);
 }
 
 void DescriptorHeap::FreeDescriptor(D3D12DescriptorHandle hDesc)
 {
 	uint64 nId = (hDesc.ptr - m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr) / m_descriptorSize;
-	m_idSet.releaseId((uint)nId);
+	m_idSet.releaseIdSafe((uint)nId);
 }
 
 void DescriptorHeap::GetDescriptorHandle(uint nId, CD3DX12_CPU_DESCRIPTOR_HANDLE* pOutDesc)

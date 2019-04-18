@@ -263,7 +263,7 @@ void RdrAction::InitSharedData(RdrContext* pContext, const InputManager* pInputM
 		std::align(16, dataSize, pAlignedData, temp);
 
 		s_actionSharedData.instanceIds[i].ids = (uint*)pAlignedData;
-		s_actionSharedData.instanceIds[i].buffer.CreateConstantBuffer(*pContext, nullptr, kMaxInstancesPerDraw * sizeof(uint), RdrResourceAccessFlags::CpuRW_GpuRO);
+		s_actionSharedData.instanceIds[i].buffer.CreateConstantBuffer(*pContext, kMaxInstancesPerDraw * sizeof(uint), RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_NULL_BACKPOINTER);
 	}
 }
 
