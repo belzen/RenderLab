@@ -81,7 +81,7 @@ public:
 
 	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
 		RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax, const RdrDebugBackpointer& debug);
-	RdrGeoHandle UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVertData, const RdrDebugBackpointer& debug);
+	void UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVertData, const RdrDebugBackpointer& debug);
 	void ReleaseGeo(const RdrGeoHandle hGeo, const RdrDebugBackpointer& debug);
 
 	RdrResourceHandle CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
@@ -115,6 +115,8 @@ public:
 private:
 	RdrResourceHandle CreateTextureCommon(RdrTextureType texType, uint width, uint height, uint depth,
 		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceAccessFlags accessFlags, char* pTextureData, const RdrDebugBackpointer& debug);
+
+	void QueueUpdateResource(RdrResourceHandle hResource, const void* pData, uint dataSize, const RdrDebugBackpointer& debug);
 
 private:
 	// Command definitions
@@ -167,16 +169,6 @@ private:
 		RdrDebugBackpointer debug;
 	};
 
-	struct CmdUpdateGeo
-	{
-		RdrGeoHandle hGeo;
-		const void* pVertData;
-		const uint16* pIndexData;
-		RdrGeoInfo info;
-
-		RdrDebugBackpointer debug;
-	};
-
 	struct CmdReleaseGeo
 	{
 		RdrGeoHandle hGeo;
@@ -189,7 +181,6 @@ private:
 	FixedVector<CmdReleaseRenderTarget, 1024>		m_renderTargetReleases;
 	FixedVector<CmdReleaseDepthStencil, 1024>		m_depthStencilReleases;
 	FixedVector<CmdReleaseShaderResourceView, 1024> m_shaderResourceViewReleases;
-	FixedVector<CmdUpdateGeo, 1024>					m_geoUpdates;
 	FixedVector<CmdReleaseGeo, 1024>				m_geoReleases;
 	FixedVector<CmdUpdateConstantBuffer, 2048>		m_constantBufferUpdates;
 	FixedVector<CmdReleaseConstantBuffer, 2048>		m_constantBufferReleases;

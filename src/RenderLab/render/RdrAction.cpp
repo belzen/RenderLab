@@ -777,7 +777,7 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 		}
 	}
 
-	m_pDrawState->pVertexBuffers[0] = &pGeo->vertexBuffer;
+	m_pDrawState->pVertexBuffers[0] = pGeo->pVertexBuffer;
 	m_pDrawState->vertexStrides[0] = pGeo->geoInfo.vertStride;
 	m_pDrawState->vertexOffsets[0] = 0;
 	m_pDrawState->vertexBufferCount = 1;
@@ -797,9 +797,9 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 		instanceCount = pDrawOp->instanceCount;
 	}
 
-	if (pGeo->indexBuffer.IsValid())
+	if (pGeo->pIndexBuffer && pGeo->pIndexBuffer->IsValid())
 	{
-		m_pDrawState->pIndexBuffer = &pGeo->indexBuffer;
+		m_pDrawState->pIndexBuffer = pGeo->pIndexBuffer;
 		m_pDrawState->indexCount = pGeo->geoInfo.numIndices;
 		m_pProfiler->AddCounter(RdrProfileCounter::Triangles, instanceCount * m_pDrawState->indexCount / 3);
 	}

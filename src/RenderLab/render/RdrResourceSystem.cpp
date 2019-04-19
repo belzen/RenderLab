@@ -242,15 +242,20 @@ RdrResourceHandle RdrResourceCommandList::CreateTextureCommon(RdrTextureType tex
 	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pResource);
 	if (pTextureData)
 	{
-		CmdUpdateResource& cmd = m_resourceUpdates.pushSafe();
-		cmd.pFileData = nullptr;
-		cmd.hResource = hResource;
-		cmd.pData = pTextureData;
-		cmd.debug = debug;
-		cmd.dataSize = 0;
+		QueueUpdateResource(hResource, pTextureData, 0, debug);
 	}
 
 	return hResource;
+}
+
+void RdrResourceCommandList::QueueUpdateResource(RdrResourceHandle hResource, const void* pData, uint dataSize, const RdrDebugBackpointer& debug)
+{
+	CmdUpdateResource& cmd = m_resourceUpdates.pushSafe();
+	cmd.debug = debug;
+	cmd.hResource = hResource;
+	cmd.pData = pData;
+	cmd.dataSize = dataSize;
+	cmd.pFileData = nullptr;
 }
 
 RdrResourceHandle RdrResourceCommandList::CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData, const RdrDebugBackpointer& debug)
@@ -296,11 +301,7 @@ RdrResourceHandle RdrResourceCommandList::CreateVertexBuffer(const void* pSrcDat
 	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pResource);
 	if (pSrcData)
 	{
-		CmdUpdateResource& cmd = m_resourceUpdates.pushSafe();
-		cmd.debug = debug;
-		cmd.hResource = hResource;
-		cmd.pData = pSrcData;
-		cmd.dataSize = 0;
+		QueueUpdateResource(hResource, pSrcData, 0, debug);
 	}
 
 	return hResource;
@@ -320,11 +321,7 @@ RdrResourceHandle RdrResourceCommandList::CreateDataBuffer(const void* pSrcData,
 	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pResource);
 	if (pSrcData)
 	{
-		CmdUpdateResource& cmd = m_resourceUpdates.pushSafe();
-		cmd.debug = debug;
-		cmd.hResource = hResource;
-		cmd.pData = pSrcData;
-		cmd.dataSize = 0;
+		QueueUpdateResource(hResource, pSrcData, 0, debug);
 	}
 
 	return hResource;
@@ -344,11 +341,7 @@ RdrResourceHandle RdrResourceCommandList::CreateStructuredBuffer(const void* pSr
 	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pResource);
 	if (pSrcData)
 	{
-		CmdUpdateResource& cmd = m_resourceUpdates.pushSafe();
-		cmd.debug = debug;
-		cmd.hResource = hResource;
-		cmd.pData = pSrcData;
-		cmd.dataSize = 0;
+		QueueUpdateResource(hResource, pSrcData, 0, debug);
 	}
 
 	return hResource;
@@ -572,39 +565,89 @@ void RdrResourceCommandList::ReleaseGeo(const RdrGeoHandle hGeo, const RdrDebugB
 RdrGeoHandle RdrResourceCommandList::CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
 	RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax, const RdrDebugBackpointer& debug)
 {
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
 	RdrGeometry* pGeo = s_resourceSystem.geos.allocSafe();
+	RdrGeoHandle hGeo = s_resourceSystem.geos.getId(pGeo);
 
-	CmdUpdateGeo& cmd = m_geoUpdates.pushSafe();
-	cmd.hGeo = s_resourceSystem.geos.getId(pGeo);
-	cmd.pVertData = pVertData;
-	cmd.pIndexData = pIndexData;
-	cmd.info.eTopology = eTopology;
-	cmd.info.vertStride = vertStride;
-	cmd.info.numVerts = numVerts;
-	cmd.info.numIndices = numIndices;
-	cmd.info.boundsMin = boundsMin;
-	cmd.info.boundsMax = boundsMax;
-	cmd.debug = debug;
+	pGeo->geoInfo.eTopology = eTopology;
+	pGeo->geoInfo.vertStride = vertStride;
+	pGeo->geoInfo.numVerts = numVerts;
+	pGeo->geoInfo.numIndices = numIndices;
+	pGeo->geoInfo.boundsMin = boundsMin;
+	pGeo->geoInfo.boundsMax = boundsMax;
 
-	return cmd.hGeo;
+	if (pVertData)
+	{
+		RdrBufferInfo vertexBufferInfo;
+		vertexBufferInfo.eType = RdrBufferType::Vertex;
+		vertexBufferInfo.eFormat = RdrResourceFormat::UNKNOWN;
+		vertexBufferInfo.elementSize = vertStride;
+		vertexBufferInfo.numElements = numVerts;
+
+		pGeo->pVertexBuffer = s_resourceSystem.resources.allocSafe();
+		pGeo->pVertexBuffer->CreateBuffer(*pRdrContext, vertexBufferInfo, RdrResourceAccessFlags::None, debug);
+
+		RdrResourceHandle hResource = s_resourceSystem.resources.getId(pGeo->pVertexBuffer);
+		QueueUpdateResource(hResource, pVertData, 0, debug);
+	}
+
+	if (pIndexData)
+	{
+		RdrBufferInfo indexBufferInfo;
+		indexBufferInfo.eType = RdrBufferType::Index;
+		indexBufferInfo.eFormat = RdrResourceFormat::R16_UINT;
+		indexBufferInfo.elementSize = 0;
+		indexBufferInfo.numElements = numIndices;
+
+		pGeo->pIndexBuffer = s_resourceSystem.resources.allocSafe();
+		pGeo->pIndexBuffer->CreateBuffer(*pRdrContext, indexBufferInfo, RdrResourceAccessFlags::None, debug);
+
+		RdrResourceHandle hResource = s_resourceSystem.resources.getId(pGeo->pIndexBuffer);
+		QueueUpdateResource(hResource, pIndexData, 0, debug);
+	}
+
+	return hGeo;
 }
 
-RdrGeoHandle RdrResourceCommandList::UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVertData, const RdrDebugBackpointer& debug)
+void RdrResourceCommandList::UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVertData, const RdrDebugBackpointer& debug)
 {
 	// donotcheckin - all calls to this need to be frame-buffered
 	assert(false);
 
-	CmdUpdateGeo& cmd = m_geoUpdates.pushSafe();
-	cmd.hGeo = hGeo;
-	cmd.pVertData = pVertData;
-	cmd.debug = debug;
-	return cmd.hGeo;
+	RdrGeometry* pGeo = s_resourceSystem.geos.get(hGeo);
+
+	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pGeo->pVertexBuffer);
+	QueueUpdateResource(hResource, pVertData, 0, debug);
 }
 
 void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 {
 	uint numCmds;
 	uint64 nLastCompletedFrame = pRdrContext->GetLastCompletedFrame();
+
+	// Free geos
+	s_resourceSystem.geos.AcquireLock();
+	numCmds = (uint)m_geoReleases.size();
+	for (uint i = 0; i < numCmds; ++i)
+	{
+		CmdReleaseGeo& cmd = m_geoReleases[i];
+		RdrGeometry* pGeo = s_resourceSystem.geos.get(cmd.hGeo);
+
+		CmdReleaseResource& cmdVertex = m_resourceReleases.pushSafe();
+		cmdVertex.hResource = s_resourceSystem.resources.getId(pGeo->pVertexBuffer);
+		cmdVertex.debug = cmd.debug;
+
+		if (pGeo->pIndexBuffer)
+		{
+			CmdReleaseResource& cmdIndex = m_resourceReleases.pushSafe();
+			cmdIndex.hResource = s_resourceSystem.resources.getId(pGeo->pIndexBuffer);
+			cmdIndex.debug = cmd.debug;
+		}
+			
+		s_resourceSystem.geos.releaseId(cmd.hGeo);
+	}
+	m_geoReleases.clear();
+	s_resourceSystem.geos.ReleaseLock();
 
 	// Free resources
 	s_resourceSystem.resources.AcquireLock();
@@ -711,28 +754,6 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 		}
 	}
 	s_resourceSystem.constantBuffers.ReleaseLock();
-
-	// Free geos
-	s_resourceSystem.geos.AcquireLock();
-	numCmds = (uint)m_geoReleases.size();
-	for (uint i = 0; i < numCmds; ++i)
-	{
-		CmdReleaseGeo& cmd = m_geoReleases[i];
-		RdrGeometry* pGeo = s_resourceSystem.geos.get(cmd.hGeo);
-
-		if (pGeo->vertexBuffer.GetLastUsedFrame() <= nLastCompletedFrame &&
-			pGeo->indexBuffer.GetLastUsedFrame() <= nLastCompletedFrame)
-		{
-			pGeo->vertexBuffer.ReleaseResource(*pRdrContext);
-			pGeo->indexBuffer.ReleaseResource(*pRdrContext);
-
-			s_resourceSystem.geos.releaseId(cmd.hGeo);
-			m_geoReleases.eraseFast(i);
-			--i;
-			--numCmds;
-		}
-	}
-	s_resourceSystem.geos.ReleaseLock();
 }
 
 void RdrResourceCommandList::ProcessPreFrameCommands(RdrContext* pRdrContext)
@@ -758,47 +779,6 @@ void RdrResourceCommandList::ProcessPreFrameCommands(RdrContext* pRdrContext)
 		pBuffer->UpdateResource(*pRdrContext, cmd.pData, cmd.dataSize);
 	}
 
-	// Create/Update geos
-	s_resourceSystem.geos.AcquireLock();
-	numCmds = (uint)m_geoUpdates.size();
-	for (uint i = 0; i < numCmds; ++i)
-	{
-		CmdUpdateGeo& cmd = m_geoUpdates[i];
-		RdrGeometry* pGeo = s_resourceSystem.geos.get(cmd.hGeo);
-
-		pGeo->geoInfo = cmd.info;
-
-		if (cmd.pVertData)
-		{
-			RdrBufferInfo vertexBufferInfo;
-			vertexBufferInfo.eType = RdrBufferType::Vertex;
-			vertexBufferInfo.eFormat = RdrResourceFormat::UNKNOWN;
-			vertexBufferInfo.elementSize = cmd.info.vertStride;
-			vertexBufferInfo.numElements = cmd.info.numVerts;
-
-			//if (!pGeo->vertexBuffer.IsValid())
-				//pRdrContext->ReleaseResource(pGeo->vertexBuffer);
-			pGeo->vertexBuffer.CreateBuffer(*pRdrContext, vertexBufferInfo, RdrResourceAccessFlags::None, cmd.debug);
-			pGeo->vertexBuffer.UpdateResource(*pRdrContext, cmd.pVertData, 0);
-		}
-		
-		if (cmd.pIndexData)
-		{
-			RdrBufferInfo indexBufferInfo;
-			indexBufferInfo.eType = RdrBufferType::Index;
-			indexBufferInfo.eFormat = RdrResourceFormat::R16_UINT;
-			indexBufferInfo.elementSize = 0;
-			indexBufferInfo.numElements = cmd.info.numIndices;
-
-			//if (!pGeo->indexBuffer.IsValid())
-				//pRdrContext->ReleaseResource(pGeo->indexBuffer);
-			pGeo->indexBuffer.CreateBuffer(*pRdrContext, indexBufferInfo, RdrResourceAccessFlags::None, cmd.debug);
-			pGeo->indexBuffer.UpdateResource(*pRdrContext, cmd.pIndexData, 0);
-		}
-	}
-	s_resourceSystem.geos.ReleaseLock();
-
-	m_geoUpdates.clear();
 	m_resourceUpdates.clear();
 	m_constantBufferUpdates.clear();
 }

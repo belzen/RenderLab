@@ -26,8 +26,8 @@ struct RdrGeoInfo
 
 struct RdrGeometry
 {
-	RdrResource vertexBuffer;
-	RdrResource indexBuffer;
+	RdrResource* pVertexBuffer;
+	RdrResource* pIndexBuffer;
 	RdrGeoInfo geoInfo;
 };
 
