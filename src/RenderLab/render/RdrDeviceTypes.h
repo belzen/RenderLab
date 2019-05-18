@@ -7,7 +7,30 @@
 #include "d3dx12.h"
 using namespace Microsoft::WRL;
 
-typedef CD3DX12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorHandle;
+struct D3D12DescriptorHandles
+{
+	bool IsValid() const { return hCpuDesc.ptr != 0; }
+	void Reset() { hCpuDesc.ptr = 0; hGpuDesc.ptr = 0; }
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDesc;
+	CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuDesc;
+
+	bool bInUse				= false;
+	bool bCopyable			= false;
+	uint8 nTableSize		= 0;
+	uint8 nTableListIndex	= 0;
+};
+
+inline bool operator == (const D3D12DescriptorHandles& lhs, const D3D12DescriptorHandles& rhs)
+{
+	return lhs.hCpuDesc == rhs.hCpuDesc;
+}
+
+inline bool operator != (const D3D12DescriptorHandles& lhs, const D3D12DescriptorHandles& rhs)
+{
+	return lhs.hCpuDesc != rhs.hCpuDesc;
+}
+
 struct RdrResource;
 
 enum class RdrShaderSemantic
@@ -228,13 +251,13 @@ struct RdrPipelineState
 
 struct RdrDepthStencilView
 {
-	D3D12DescriptorHandle hView;
+	D3D12DescriptorHandles hView;
 	RdrResource* pResource;
 };
 
 struct RdrRenderTargetView
 {
-	D3D12DescriptorHandle hView;
+	D3D12DescriptorHandles hView;
 	RdrResource* pResource;
 };
 

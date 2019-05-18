@@ -50,7 +50,7 @@ namespace
 			5, 4, 0, 5, 0, 1  // Back
 		};
 
-		return g_pRenderer->GetResourceCommandList().CreateGeo(aVertices, sizeof(DecalVertex), ARRAY_SIZE(aVertices),
+		return RdrResourceSystem::CreateGeo(aVertices, sizeof(DecalVertex), ARRAY_SIZE(aVertices),
 			aIndices, ARRAY_SIZE(aIndices), RdrTopology::TriangleList, boundsMin, boundsMax, CREATE_NULL_BACKPOINTER);
 	}
 }
@@ -79,8 +79,7 @@ Decal* Decal::Create(IComponentAllocator* pAllocator, const CachedString& textur
 	rasterState.bEnableScissor = false;
 
 	// Setup material
-	pDecal->m_material.name = "Decal";
-	pDecal->m_material.bHasAlpha = true;
+	pDecal->m_material.Init("Decal", RdrMaterialFlags::HasAlpha);
 	pDecal->m_material.CreatePipelineState(RdrShaderMode::Normal,
 		kVertexShader, pPixelShader,
 		s_decalVertexDesc, ARRAY_SIZE(s_decalVertexDesc), 
@@ -88,9 +87,12 @@ Decal* Decal::Create(IComponentAllocator* pAllocator, const CachedString& textur
 		RdrBlendMode::kAlpha,
 		rasterState,
 		RdrDepthStencilState(false, false, RdrComparisonFunc::Always));
+
 	pDecal->SetTexture(textureName);
-	pDecal->m_material.ahTextures.assign(1, RdrGlobalResourceHandles::kDepthBuffer);
-	pDecal->m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
+	//donotcheckin pDecal->m_material.SetTextures(1, 1, &RdrGlobalResourceHandles::kDepthBuffer);
+
+	RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+	pDecal->m_material.SetSamplers(0, 1, &sampler);
 
 	return pDecal;
 }
@@ -102,11 +104,8 @@ void Decal::Release()
 		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hVsPerObjectConstantBuffer, CREATE_BACKPOINTER(this));
 		m_hVsPerObjectConstantBuffer = 0;
 	}
-	if (m_hPsMaterialBuffer)
-	{
-		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hPsMaterialBuffer, CREATE_BACKPOINTER(this));
-		m_hPsMaterialBuffer = 0;
-	}
+
+	m_material.Cleanup();
 
 	m_pAllocator->ReleaseComponent(this);
 }
@@ -132,7 +131,7 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 		VsPerObject* pVsPerObject = (VsPerObject*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
-		m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
+		m_hVsPerObjectConstantBuffer = RdrResourceSystem::CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
 			pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 
 		// Decal material
@@ -141,9 +140,7 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 		pPsMaterial->mtxInvWorld = Matrix44Inverse(mtxWorld);
 		pPsMaterial->mtxInvWorld = Matrix44Transpose(pPsMaterial->mtxInvWorld);
 
-		m_hPsMaterialBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hPsMaterialBuffer,
-			pPsMaterial, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
-		m_material.hConstants = m_hPsMaterialBuffer;
+		m_material.FillConstantBuffer(pPsMaterial, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 
 		///
 		m_lastTransformId = m_pEntity->GetTransformId();
@@ -164,8 +161,8 @@ RdrDrawOpSet Decal::BuildDrawOps(RdrAction* pAction)
 void Decal::SetTexture(const CachedString& textureName)
 {
 	m_textureName = textureName;
-	m_hTexture = g_pRenderer->GetResourceCommandList().CreateTextureFromFile(textureName, nullptr, CREATE_BACKPOINTER(this));
-	m_material.ahTextures.assign(0, m_hTexture);
+	m_hTexture = RdrResourceSystem::CreateTextureFromFile(textureName, nullptr, CREATE_BACKPOINTER(this));
+	m_material.SetTextures(0, 1, &m_hTexture);
 }
 
 const CachedString& Decal::GetTexture() const

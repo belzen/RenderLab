@@ -85,7 +85,7 @@ ModelData* ModelData::LoadFromFile(const CachedString& modelName)
 			++vertAccum;
 		}
 
-		pModel->m_subObjects[i].hGeo = g_pRenderer->GetResourceCommandList().CreateGeo(pVerts, sizeof(Vertex), rBinSubobject.vertCount,
+		pModel->m_subObjects[i].hGeo = RdrResourceSystem::CreateGeo(pVerts, sizeof(Vertex), rBinSubobject.vertCount,
 			pIndices, rBinSubobject.indexCount, RdrTopology::TriangleList, rBinSubobject.boundsMin, rBinSubobject.boundsMax, CREATE_BACKPOINTER(pModel));
 
 		pModel->m_subObjects[i].pMaterial = RdrMaterial::Create(rBinSubobject.materialName, s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));

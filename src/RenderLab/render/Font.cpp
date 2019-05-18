@@ -53,7 +53,7 @@ namespace
 		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pConstants[0] = Vec4(color.r, color.g, color.b, color.a);
 		pConstants[1] = Vec4(pos.x, pos.y, pos.z + 1.f, size);
-		pDrawOp->hVsConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pConstants, constantsSize, CREATE_NULL_BACKPOINTER);
+		pDrawOp->hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize, CREATE_NULL_BACKPOINTER);
 
 		pAction->AddDrawOp(pDrawOp, RdrBucketType::UI);
 	}
@@ -79,7 +79,7 @@ void Font::Init()
 	rasterState.bUseSlopeScaledDepthBias = false;
 	rasterState.bEnableScissor = false;
 
-	s_text.material.name = "Font";
+	s_text.material.Init("Font", RdrMaterialFlags::None);
 	s_text.material.CreatePipelineState(RdrShaderMode::Normal,
 		kVertexShader, pPixelShader,
 		s_vertexDesc, ARRAY_SIZE(s_vertexDesc),
@@ -88,10 +88,12 @@ void Font::Init()
 		rasterState,
 		RdrDepthStencilState(false, false, RdrComparisonFunc::Never));
 
-	s_text.material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
+	RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
+	s_text.material.SetSamplers(0, 1, &sampler);
 
 	RdrTextureInfo texInfo;
-	s_text.material.ahTextures.assign(0, g_pRenderer->GetResourceCommandList().CreateTextureFromFile("fonts/verdana", &texInfo, CREATE_NULL_BACKPOINTER));
+	RdrResourceHandle hTexture = RdrResourceSystem::CreateTextureFromFile("fonts/verdana", &texInfo, CREATE_NULL_BACKPOINTER);
+	s_text.material.SetTextures(0, 1, &hTexture);
 	s_text.glyphPixelSize = texInfo.width / 16;
 }
 
@@ -167,7 +169,7 @@ TextObject Font::CreateText(const char* text)
 	TextObject obj;
 	obj.size.x = size.x;
 	obj.size.y = size.y;
-	obj.hTextGeo = g_pRenderer->GetResourceCommandList().CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, RdrTopology::TriangleList, Vec3::kZero, size, CREATE_NULL_BACKPOINTER);
+	obj.hTextGeo = RdrResourceSystem::CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, RdrTopology::TriangleList, Vec3::kZero, size, CREATE_NULL_BACKPOINTER);
 	return obj;
 }
 

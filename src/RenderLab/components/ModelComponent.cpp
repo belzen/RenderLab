@@ -60,7 +60,7 @@ void ModelComponent::SetModelData(const CachedString& modelAssetName, const Asse
 
 		for (uint n = 0; n < numMaterialSwaps; ++n)
 		{
-			if (m_pMaterials[i]->name == aMaterialSwaps[n].from)
+			if (m_pMaterials[i]->GetName() == aMaterialSwaps[n].from)
 			{
 				m_pMaterials[i] = RdrMaterial::Create(aMaterialSwaps[n].to, m_pModelData->GetVertexElements(), m_pModelData->GetNumVertexElements());
 			}
@@ -78,7 +78,7 @@ RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 		VsPerObject* pVsPerObject = (VsPerObject*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
-		m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
+		m_hVsPerObjectConstantBuffer = RdrResourceSystem::CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
 			pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuWrite | RdrResourceAccessFlags::GpuRead, CREATE_BACKPOINTER(this));
 	
 		if (CanInstance())
@@ -109,7 +109,7 @@ RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 		rDrawOp.pMaterial = m_pMaterials[i];
 
 		rDrawOp.hGeo = rSubObject.hGeo;
-		rDrawOp.bHasAlpha = rDrawOp.pMaterial->bHasAlpha;
+		rDrawOp.bHasAlpha = rDrawOp.pMaterial->HasAlpha();
 	}
 
 	return RdrDrawOpSet(aDrawOps, numSubObjects);

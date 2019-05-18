@@ -26,8 +26,6 @@ Terrain::Terrain()
 
 void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 {
-	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
-
 	m_initialized = true;
 	m_srcData = rTerrainAsset;
 
@@ -37,7 +35,7 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	aVertices[2] = Vec2(1.f, 1.f);
 	aVertices[3] = Vec2(1.f, 0.f);
 
-	m_hGeo = rResCommandList.CreateGeo(
+	m_hGeo = RdrResourceSystem::CreateGeo(
 		aVertices, sizeof(aVertices[0]), 4, 
 		nullptr, 0,
 		RdrTopology::Quad, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f),
@@ -59,7 +57,7 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 				0.f);
 		}
 	}
-	m_hInstanceData = rResCommandList.CreateVertexBuffer(aInstanceData
+	m_hInstanceData = RdrResourceSystem::CreateVertexBuffer(aInstanceData
 		, sizeof(aInstanceData[0]), m_gridSize.x * m_gridSize.y
 		, RdrResourceAccessFlags::None
 		, CREATE_BACKPOINTER(this));
@@ -82,9 +80,9 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	rasterState.bEnableScissor = false;
 
 	// Setup material
-	memset(&m_material, 0, sizeof(m_material));
-	m_material.bNeedsLighting = true;
-	m_material.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
+	m_material.Init("Terrain", RdrMaterialFlags::NeedsLighting);
+	m_material.FillConstantBuffer(nullptr, 16, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
+
 	m_material.CreateTessellationPipelineState(RdrShaderMode::Normal,
 		kVertexShader, pPixelShader,
 		pHullShader, pDomainShader,
@@ -93,14 +91,22 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 		RdrBlendMode::kOpaque,
 		rasterState,
 		RdrDepthStencilState(true, true, RdrComparisonFunc::LessEqual));
-	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile("white", nullptr, CREATE_BACKPOINTER(this)));
-	m_material.ahTextures.assign(1, rResCommandList.CreateTextureFromFile("flat_ddn", nullptr, CREATE_BACKPOINTER(this)));
-	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
+
+	RdrResourceHandle ahTextures[2];
+	ahTextures[0] = RdrResourceSystem::CreateTextureFromFile("white", nullptr, CREATE_BACKPOINTER(this));
+	ahTextures[1] = RdrResourceSystem::CreateTextureFromFile("flat_ddn", nullptr, CREATE_BACKPOINTER(this));
+	m_material.SetTextures(0, 2, ahTextures);
+
+	RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
+	m_material.SetSamplers(0, 1, &sampler);
 
 	// Tessellation
 	RdrTextureInfo heightmapTexInfo;
-	m_material.tessellation.ahResources.assign(0, rResCommandList.CreateTextureFromFile(m_srcData.heightmapName, &heightmapTexInfo, CREATE_BACKPOINTER(this)));
-	m_material.tessellation.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
+	RdrResourceHandle hHeightmapTexture = RdrResourceSystem::CreateTextureFromFile(m_srcData.heightmapName, &heightmapTexInfo, CREATE_BACKPOINTER(this));
+	m_material.SetTessellationTextures(0, 1, &hHeightmapTexture);
+
+	RdrSamplerState heightmapSampler(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+	m_material.SetTessellationSamplers(0, 1, &heightmapSampler);
 	m_heightmapSize = UVec2(heightmapTexInfo.width, heightmapTexInfo.height);
 
 	DsTerrain* pDsConstants = (DsTerrain*)RdrFrameMem::AllocAligned(sizeof(DsTerrain), 16);
@@ -109,8 +115,8 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 	pDsConstants->heightmapTexelSize.x = 1.f / m_heightmapSize.x;
 	pDsConstants->heightmapTexelSize.y = 1.f / m_heightmapSize.y;
 	pDsConstants->heightScale = m_srcData.heightScale;
-	m_material.tessellation.hDsConstants = g_pRenderer->GetResourceCommandList().CreateConstantBuffer(
-		pDsConstants, sizeof(DsTerrain), RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
+
+	m_material.FillTessellationConstantBuffer(pDsConstants, sizeof(DsTerrain), RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 }
 
 RdrDrawOpSet Terrain::BuildDrawOps(RdrAction* pAction)

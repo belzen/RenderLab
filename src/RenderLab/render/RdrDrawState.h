@@ -32,29 +32,27 @@ public:
 	uint indexCount;
 
 	// Vertex shader
-	RdrShaderResourceView vsConstantBuffers[4];
-	RdrShaderResourceView vsResources[3];
-	uint vsConstantBufferCount;
-	uint vsResourceCount;
+	D3D12DescriptorHandles hVsGlobalConstantBufferTable;
+	D3D12DescriptorHandles hVsPerObjectConstantBuffer;
+	D3D12DescriptorHandles hVsShaderResourceViewTable;
 
 	// Domain shader
-	RdrShaderResourceView dsConstantBuffers[4];
-	RdrShaderResourceView dsResources[4];
-	RdrSamplerState dsSamplers[4];
-	uint dsConstantBufferCount;
-	uint dsResourceCount;
-	uint dsSamplerCount;
+	D3D12DescriptorHandles hDsGlobalConstantBufferTable;
+	D3D12DescriptorHandles hDsPerObjectConstantBuffer;
+	D3D12DescriptorHandles hDsShaderResourceViewTable;
+	D3D12DescriptorHandles hDsSamplerTable;
 
 	// Pixel shader
-	RdrShaderResourceView psConstantBuffers[4];
-	RdrShaderResourceView psResources[20];
-	RdrSamplerState psSamplers[16];
-	uint psConstantBufferCount;
-	uint psResourceCount;
-	uint psSamplerCount;
+	D3D12DescriptorHandles hPsMaterialConstantBufferTable;
+	D3D12DescriptorHandles hPsMaterialShaderResourceViewTable;
+	D3D12DescriptorHandles hPsMaterialSamplerTable;
+
+	D3D12DescriptorHandles hPsGlobalConstantBufferTable;
+	D3D12DescriptorHandles hPsGlobalShaderResourceViewTable;
+	D3D12DescriptorHandles hPsGlobalSamplerTable;
 
 	// Compute shader
-	RdrShaderResourceView csConstantBuffers[4];
+	RdrConstantBufferView csConstantBuffers[4];
 	RdrShaderResourceView csResources[8];
 	RdrSamplerState csSamplers[4];
 	RdrUnorderedAccessView csUavs[4];

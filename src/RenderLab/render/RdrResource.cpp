@@ -25,7 +25,7 @@ namespace
 		return CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	}
 
-	void createBufferSrv(ID3D12Device* pDevice, DescriptorHeap& srvHeap, ID3D12Resource* pResource, uint numElements, uint structureByteStride, RdrResourceFormat eFormat, int firstElement, D3D12DescriptorHandle* pOutView)
+	void createBufferSrv(ID3D12Device* pDevice, DescriptorHeap& srvHeap, const RdrResource* pResource, uint numElements, uint structureByteStride, RdrResourceFormat eFormat, int firstElement, RdrShaderResourceView* pOutView)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC desc;
 		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -36,13 +36,16 @@ namespace
 		desc.Format = getD3DFormat(eFormat);
 		desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = srvHeap.AllocateDescriptor();
-		pDevice->CreateShaderResourceView(pResource, &desc, descHandle);
+		ID3D12Resource* pDevResource = pResource->GetResource();
 
-		*pOutView = descHandle;
+		pOutView->pResource = pResource;
+		pOutView->hCopyableView = srvHeap.AllocateCopyDescriptor();
+		pOutView->hShaderVisibleView = srvHeap.AllocateDescriptor();
+		pDevice->CreateShaderResourceView(pDevResource, &desc, pOutView->hCopyableView.hCpuDesc);
+		pDevice->CreateShaderResourceView(pDevResource, &desc, pOutView->hShaderVisibleView.hCpuDesc);
 	}
 
-	bool createTextureSrv(ID3D12Device* pDevice, DescriptorHeap& srvHeap, const RdrTextureInfo& rTexInfo, ID3D12Resource* pResource, D3D12DescriptorHandle* pOutView)
+	bool createTextureSrv(ID3D12Device* pDevice, DescriptorHeap& srvHeap, const RdrTextureInfo& rTexInfo, const RdrResource* pResource, RdrShaderResourceView* pOutView)
 	{
 		bool bIsMultisampled = (rTexInfo.sampleCount > 1);
 		bool bIsArray = (rTexInfo.depth > 1);
@@ -109,10 +112,13 @@ namespace
 			}
 		}
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = srvHeap.AllocateDescriptor();
-		pDevice->CreateShaderResourceView(pResource, &viewDesc, descHandle);
+		ID3D12Resource* pDevResource = pResource->GetResource();
 
-		*pOutView = descHandle;
+		pOutView->pResource = pResource;
+		pOutView->hCopyableView = srvHeap.AllocateCopyDescriptor();
+		pOutView->hShaderVisibleView = srvHeap.AllocateDescriptor();
+		pDevice->CreateShaderResourceView(pDevResource, &viewDesc, pOutView->hCopyableView.hCpuDesc);
+		pDevice->CreateShaderResourceView(pDevResource, &viewDesc, pOutView->hShaderVisibleView.hCpuDesc);
 		return true;
 	}
 
@@ -174,7 +180,7 @@ bool RdrResource::CreateTexture(RdrContext& context, const RdrTextureInfo& rTexI
 		break;
 	case RdrTextureType::kCube:
 		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		desc.DepthOrArraySize = m_textureInfo.depth * 6;
+		desc.DepthOrArraySize *= (int)CubemapFace::Count;
 		break;
 	case RdrTextureType::k3D:
 		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
@@ -229,8 +235,7 @@ bool RdrResource::CreateTexture(RdrContext& context, const RdrTextureInfo& rTexI
 
 	if (IsFlagSet(accessFlags, RdrResourceAccessFlags::GpuRead))
 	{
-		createTextureSrv(pDevice, srvHeap, m_textureInfo, m_pResource, &m_srv.hView);
-		m_srv.pResource = this;
+		createTextureSrv(pDevice, srvHeap, m_textureInfo, this, &m_srv);
 	}
 
 	if (IsFlagSet(accessFlags, RdrResourceAccessFlags::GpuWrite))
@@ -260,9 +265,11 @@ bool RdrResource::CreateTexture(RdrContext& context, const RdrTextureInfo& rTexI
 			viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 		}
 
-		m_uav.hView = srvHeap.AllocateDescriptor();
 		m_uav.pResource = this;
-		pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &viewDesc, m_uav.hView);
+		m_uav.hCopyableView = srvHeap.AllocateCopyDescriptor();
+		m_uav.hShaderVisibleView = srvHeap.AllocateDescriptor();
+		pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &viewDesc, m_uav.hCopyableView.hCpuDesc);
+		pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &viewDesc, m_uav.hShaderVisibleView.hCpuDesc);
 
 		assert(hr == S_OK);
 	}
@@ -284,15 +291,35 @@ void RdrResource::ReleaseResource(RdrContext& context)
 		m_pUploadResource->Release();
 		m_pUploadResource = nullptr;
 	}
-	if (m_srv.hView.ptr)
+	if (m_srv.hCopyableView.IsValid())
 	{
-		srvHeap.FreeDescriptor(m_srv.hView);
-		m_srv.hView.ptr = 0;
+		srvHeap.FreeDescriptor(m_srv.hCopyableView);
+		m_srv.hCopyableView.Reset();
 	}
-	if (m_uav.hView.ptr)
+	if (m_srv.hShaderVisibleView.IsValid())
 	{
-		srvHeap.FreeDescriptor(m_uav.hView);
-		m_uav.hView.ptr = 0;
+		srvHeap.FreeDescriptor(m_srv.hShaderVisibleView);
+		m_srv.hShaderVisibleView.Reset();
+	}
+	if (m_uav.hCopyableView.IsValid())
+	{
+		srvHeap.FreeDescriptor(m_uav.hCopyableView);
+		m_uav.hCopyableView.Reset();
+	}
+	if (m_uav.hShaderVisibleView.IsValid())
+	{
+		srvHeap.FreeDescriptor(m_uav.hShaderVisibleView);
+		m_uav.hShaderVisibleView.Reset();
+	}
+	if (m_cbv.hCopyableView.IsValid())
+	{
+		srvHeap.FreeDescriptor(m_cbv.hCopyableView);
+		m_cbv.hCopyableView.Reset();
+	}
+	if (m_cbv.hShaderVisibleView.IsValid())
+	{
+		srvHeap.FreeDescriptor(m_cbv.hShaderVisibleView);
+		m_cbv.hShaderVisibleView.Reset();
 	}
 }
 
@@ -383,8 +410,7 @@ bool RdrResource::CreateBuffer(RdrContext& context, const RdrBufferInfo& rBuffer
 
 	if (IsFlagSet(accessFlags, RdrResourceAccessFlags::GpuRead))
 	{
-		createBufferSrv(pDevice, srvHeap, m_pResource, rBufferInfo.numElements, nElementSize, rBufferInfo.eFormat, 0, &m_srv.hView);
-		m_srv.pResource = this;
+		createBufferSrv(pDevice, srvHeap, this, rBufferInfo.numElements, nElementSize, rBufferInfo.eFormat, 0, &m_srv);
 	}
 
 	if (IsFlagSet(accessFlags, RdrResourceAccessFlags::GpuWrite))
@@ -398,9 +424,11 @@ bool RdrResource::CreateBuffer(RdrContext& context, const RdrBufferInfo& rBuffer
 		desc.Format = getD3DFormat(rBufferInfo.eFormat);
 		desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
 
-		m_uav.hView = srvHeap.AllocateDescriptor();
 		m_uav.pResource = this;
-		pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &desc, m_uav.hView);
+		m_uav.hCopyableView = srvHeap.AllocateCopyDescriptor();
+		m_uav.hShaderVisibleView = srvHeap.AllocateDescriptor();
+		pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &desc, m_uav.hCopyableView.hCpuDesc);
+		pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &desc, m_uav.hShaderVisibleView.hCpuDesc);
 	}
 
 	return true;
@@ -424,9 +452,11 @@ bool RdrResource::CreateConstantBuffer(RdrContext& context, uint size, RdrResour
 	cbvDesc.BufferLocation = m_pResource->GetGPUVirtualAddress();
 	cbvDesc.SizeInBytes = size;
 
-	m_srv.hView = srvHeap.AllocateDescriptor();
-	m_srv.pResource = this;
-	pDevice->CreateConstantBufferView(&cbvDesc, m_srv.hView);
+	m_cbv.pResource = this;
+	m_cbv.hCopyableView = srvHeap.AllocateCopyDescriptor();
+	m_cbv.hShaderVisibleView = srvHeap.AllocateDescriptor();
+	pDevice->CreateConstantBufferView(&cbvDesc, m_cbv.hCopyableView.hCpuDesc);
+	pDevice->CreateConstantBufferView(&cbvDesc, m_cbv.hShaderVisibleView.hCpuDesc);
 
 	m_accessFlags = accessFlags;
 	m_bIsTexture = false;
@@ -586,8 +616,7 @@ RdrShaderResourceView RdrResource::CreateShaderResourceViewTexture(RdrContext& c
 	DescriptorHeap& srvHeap = context.GetSrvHeap();
 
 	RdrShaderResourceView view;
-	createTextureSrv(pDevice, srvHeap, m_textureInfo, m_pResource, &view.hView);
-	view.pResource = this;
+	createTextureSrv(pDevice, srvHeap, m_textureInfo, this, &view);
 	return view;
 }
 
@@ -597,8 +626,7 @@ RdrShaderResourceView RdrResource::CreateShaderResourceViewBuffer(RdrContext& co
 	DescriptorHeap& srvHeap = context.GetSrvHeap();
 
 	RdrShaderResourceView view;
-	createBufferSrv(pDevice, srvHeap, m_pResource, m_bufferInfo.numElements - firstElement, 0, m_bufferInfo.eFormat, firstElement, &view.hView);
-	view.pResource = this;
+	createBufferSrv(pDevice, srvHeap, this, m_bufferInfo.numElements - firstElement, 0, m_bufferInfo.eFormat, firstElement, &view);
 
 	return view;
 }
@@ -606,6 +634,41 @@ RdrShaderResourceView RdrResource::CreateShaderResourceViewBuffer(RdrContext& co
 void RdrResource::ReleaseShaderResourceView(RdrContext& context, RdrShaderResourceView& resourceView)
 {
 	DescriptorHeap& srvHeap = context.GetSrvHeap();
-	srvHeap.FreeDescriptor(resourceView.hView);
-	resourceView.hView.ptr = 0;
+
+	if (resourceView.hCopyableView.IsValid())
+		srvHeap.FreeDescriptor(resourceView.hCopyableView);
+
+	if (resourceView.hShaderVisibleView.IsValid())
+		srvHeap.FreeDescriptor(resourceView.hShaderVisibleView);
+
+	resourceView.Reset();
+}
+
+//////////////////////////////////////////////////////////////////////////
+void RdrDescriptorTable::Create(RdrContext& rdrContext, RdrDescriptorType eDescType, const D3D12DescriptorHandles* phDescriptors, uint count, const RdrDebugBackpointer& debug)
+{
+	m_debugCreator = debug;
+	m_nLastUsedFrameCode = 0;
+	m_eDescType = eDescType;
+
+	DescriptorHeap& descHeap = (m_eDescType == RdrDescriptorType::Sampler) ? rdrContext.GetSamplerHeap() : rdrContext.GetSrvHeap();
+	m_descriptors = descHeap.CreateDescriptorTable(phDescriptors, count);
+}
+
+void RdrDescriptorTable::Release(RdrContext& rdrContext)
+{
+	switch (m_eDescType)
+	{
+	case RdrDescriptorType::Sampler:
+		rdrContext.GetSamplerHeap().FreeDescriptor(m_descriptors);
+		break;
+	case RdrDescriptorType::SRV:
+		rdrContext.GetSrvHeap().FreeDescriptor(m_descriptors);
+		break;
+	}
+}
+
+void RdrDescriptorTable::MarkUsedThisFrame() const
+{
+	const_cast<RdrDescriptorTable*>(this)->m_nLastUsedFrameCode = g_pRenderer->GetContext()->GetFrameNum();
 }

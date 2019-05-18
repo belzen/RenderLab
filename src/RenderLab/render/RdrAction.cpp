@@ -31,19 +31,6 @@ namespace
 
 	} s_actionSharedData;
 
-	// todo - move these to start at slot 0
-	enum class RdrPsResourceSlots
-	{
-		EnvironmentMaps = 11,
-		VolumetricFogLut = 12,
-		SkyTransmittance = 13,
-		ShadowMaps = 14,
-		ShadowCubeMaps = 15,
-		SpotLightList = 16,
-		PointLightList = 17,
-		LightIds = 18,
-	};
-
 	enum class RdrPsSamplerSlots
 	{
 		Clamp = 14,
@@ -145,13 +132,13 @@ namespace
 			rResCommands.ReleaseRenderTarget2d(pSurfaces->normalBuffer, CREATE_BACKPOINTER(pAction));
 
 			// Create resized buffers
-			pSurfaces->colorBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::R16G16B16A16_FLOAT, msaaLevel, CREATE_BACKPOINTER(pAction));
-			pSurfaces->albedoBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::B8G8R8A8_UNORM, msaaLevel, CREATE_BACKPOINTER(pAction));
-			pSurfaces->normalBuffer = rResCommands.InitRenderTarget2d(width, height, RdrResourceFormat::B8G8R8A8_UNORM, msaaLevel, CREATE_BACKPOINTER(pAction));
+			pSurfaces->colorBuffer = RdrResourceSystem::InitRenderTarget2d(width, height, RdrResourceFormat::R16G16B16A16_FLOAT, msaaLevel, CREATE_BACKPOINTER(pAction));
+			pSurfaces->albedoBuffer = RdrResourceSystem::InitRenderTarget2d(width, height, RdrResourceFormat::B8G8R8A8_UNORM, msaaLevel, CREATE_BACKPOINTER(pAction));
+			pSurfaces->normalBuffer = RdrResourceSystem::InitRenderTarget2d(width, height, RdrResourceFormat::B8G8R8A8_UNORM, msaaLevel, CREATE_BACKPOINTER(pAction));
 			// Depth Buffer
-			pSurfaces->hDepthBuffer = rResCommands.CreateTexture2DMS(width, height, kDefaultDepthFormat,
+			pSurfaces->hDepthBuffer = RdrResourceSystem::CreateTexture2DMS(width, height, kDefaultDepthFormat,
 				g_debugState.msaaLevel, RdrResourceAccessFlags::CpuRO_GpuRO_RenderTarget, CREATE_BACKPOINTER(pAction));
-			pSurfaces->hDepthStencilView = rResCommands.CreateDepthStencilView(pSurfaces->hDepthBuffer, CREATE_BACKPOINTER(pAction));
+			pSurfaces->hDepthStencilView = RdrResourceSystem::CreateDepthStencilView(pSurfaces->hDepthBuffer, CREATE_BACKPOINTER(pAction));
 
 			if (isPrimaryAction)
 			{
@@ -182,7 +169,7 @@ namespace
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = rCamera.GetPosition();
 
-		rConstants.hVsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pVsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
+		rConstants.hVsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
 
 		// PS
 		constantsSize = sizeof(PsPerAction);
@@ -205,7 +192,7 @@ namespace
 		pPsPerAction->cameraFovY = rCamera.GetFieldOfViewY();
 		pPsPerAction->aspectRatio = rCamera.GetAspectRatio();
 
-		rConstants.hPsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pPsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
+		rConstants.hPsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
 	}
 
 	void createUiConstants(const RdrAction* pAction, const Rect& rViewport, RdrGlobalConstants& rConstants)
@@ -223,7 +210,7 @@ namespace
 		pVsPerAction->mtxViewProj = Matrix44Transpose(pVsPerAction->mtxViewProj);
 		pVsPerAction->cameraPosition = Vec3::kZero;
 
-		rConstants.hVsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pVsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
+		rConstants.hVsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pVsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
 
 		// PS
 		constantsSize = sizeof(PsPerAction);
@@ -242,7 +229,7 @@ namespace
 		pPsPerAction->viewSize.x = (uint)rViewport.width;
 		pPsPerAction->viewSize.y = (uint)rViewport.height;
 
-		rConstants.hPsPerAction = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pPsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
+		rConstants.hPsPerAction = RdrResourceSystem::CreateTempConstantBuffer(pPsPerAction, constantsSize, CREATE_BACKPOINTER(pAction));
 	}
 }
 
@@ -263,7 +250,8 @@ void RdrAction::InitSharedData(RdrContext* pContext, const InputManager* pInputM
 		std::align(16, dataSize, pAlignedData, temp);
 
 		s_actionSharedData.instanceIds[i].ids = (uint*)pAlignedData;
-		s_actionSharedData.instanceIds[i].buffer.CreateConstantBuffer(*pContext, kMaxInstancesPerDraw * sizeof(uint), RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_NULL_BACKPOINTER);
+		s_actionSharedData.instanceIds[i].buffer.CreateConstantBuffer(*pContext, kMaxInstancesPerDraw * sizeof(uint), 
+			RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_NULL_BACKPOINTER);
 	}
 }
 
@@ -543,16 +531,26 @@ void RdrAction::DrawIdle(RdrContext* pContext)
 
 void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler* pProfiler)
 {
+	// Cache render objects
+	m_pContext = pContext;
+	m_pDrawState = pDrawState;
+	m_pProfiler = pProfiler;
+
 	// Update global resources
 	RdrGlobalResources globalResources;
 	globalResources.renderTargets[(int)RdrGlobalRenderTargetHandles::kPrimary] = pContext->GetPrimaryRenderTarget();
 	globalResources.hResources[(int)RdrGlobalResourceHandles::kDepthBuffer] = m_surfaces.hDepthBuffer;
 	RdrResourceSystem::SetActiveGlobalResources(globalResources);
 
-	// Cache render objects
-	m_pContext = pContext;
-	m_pDrawState = pDrawState;
-	m_pProfiler = pProfiler;
+	// Setup global descriptor tables
+	RdrConstantBufferHandle ahConstantBuffers[3];
+	ahConstantBuffers[0] = m_constants.hPsPerAction;
+	ahConstantBuffers[1] = m_lightResources.hGlobalLightsCb;
+	ahConstantBuffers[2] = m_constants.hPsAtmosphere;
+	const RdrDescriptorTable* pPsGlobalConstantsTable = RdrResourceSystem::CreateTempConstantBufferTable(ahConstantBuffers, ARRAYSIZE(ahConstantBuffers), CREATE_BACKPOINTER(this));
+	m_pDrawState->hPsGlobalConstantBufferTable		= pPsGlobalConstantsTable->GetDescriptors();
+	m_pDrawState->hPsGlobalShaderResourceViewTable	= m_lightResources.pResourcesTable->GetDescriptors();
+	m_pDrawState->hPsGlobalSamplerTable				= m_lightResources.pSamplersTable->GetDescriptors();
 
 	m_pContext->BeginEvent(m_name);
 
@@ -599,7 +597,7 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 
 	DrawPass(RdrPass::Editor);
 	DrawPass(RdrPass::UI);
-
+	
 	if (m_hDebugCopyTexture)
 	{
 		s_actionSharedData.postProcess.CopyToTarget(m_pContext, m_pDrawState, m_hDebugCopyTexture, m_hOutputTarget);
@@ -676,54 +674,36 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	bool instanced = (instanceCount > 1);
 
 	const RdrMaterial* pMaterial = pDrawOp->pMaterial;
-	m_pDrawState->pipelineState = pMaterial->hPipelineStates[(int)rPass.shaderMode];
-	m_pDrawState->shaderStages = pMaterial ? pMaterial->activeShaderStages[(int)rPass.shaderMode] : RdrShaderStageFlags::Vertex;
+	m_pDrawState->pipelineState = pMaterial->GetPipelineState(rPass.shaderMode);
+	m_pDrawState->shaderStages = pMaterial->GetActiveShaderStages(rPass.shaderMode);
 
 	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerAction;
 
-	m_pDrawState->vsConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->GetSRV();
-	m_pDrawState->vsConstantBufferCount = 1;
+	m_pDrawState->hVsPerObjectConstantBuffer = RdrResourceSystem::GetConstantBuffer(pDrawOp->hVsConstants)->GetCBV().hShaderVisibleView;
 
 	if (instanced)
 	{
 		RdrResource& rBuffer = s_actionSharedData.instanceIds[s_actionSharedData.currentInstanceIds].buffer;
 		rBuffer.UpdateResource(*m_pContext, s_actionSharedData.instanceIds[s_actionSharedData.currentInstanceIds].ids, rBuffer.GetSize());
-		m_pDrawState->vsConstantBuffers[1] = rBuffer.GetSRV();
-		m_pDrawState->vsConstantBufferCount = 2;
+		m_pDrawState->hVsGlobalConstantBufferTable = rBuffer.GetCBV().hShaderVisibleView;
 
-		m_pDrawState->vsResources[0] = RdrResourceSystem::GetResource(RdrInstancedObjectDataBuffer::GetResourceHandle())->GetSRV();
-		m_pDrawState->vsResourceCount = 1;
+		m_pDrawState->hVsShaderResourceViewTable = RdrResourceSystem::GetResource(RdrInstancedObjectDataBuffer::GetResourceHandle())->GetSRV().hShaderVisibleView;
 	}
-	else if (pDrawOp->hVsConstants)
+	else
 	{
-		m_pDrawState->vsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pDrawOp->hVsConstants)->GetSRV();
-		m_pDrawState->vsConstantBufferCount = 2;
+		m_pDrawState->hVsGlobalConstantBufferTable = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->GetCBV().hShaderVisibleView;
 	}
 
 	// Tessellation material
 	if (pMaterial->IsShaderStageActive(rPass.shaderMode, RdrShaderStageFlags::Domain))
 	{
-		m_pDrawState->dsResourceCount = pMaterial->tessellation.ahResources.size();
-		for (uint i = 0; i < m_pDrawState->dsResourceCount; ++i)
-		{
-			m_pDrawState->dsResources[i] = RdrResourceSystem::GetResource(pMaterial->tessellation.ahResources.get(i))->GetSRV();
-		}
-
-		m_pDrawState->dsSamplerCount = pMaterial->tessellation.aSamplers.size();
-		for (uint i = 0; i < m_pDrawState->dsSamplerCount; ++i)
-		{
-			m_pDrawState->dsSamplers[i] = pMaterial->tessellation.aSamplers.get(i);
-		}
+		const RdrTessellationMaterialData& tessellation = pMaterial->GetTessellationData();
+		m_pDrawState->hDsPerObjectConstantBuffer = RdrResourceSystem::GetConstantBuffer(tessellation.hDsConstants)->GetCBV().hShaderVisibleView;
+		m_pDrawState->hDsSamplerTable = tessellation.pSamplerDescriptorTable->GetDescriptors();
+		m_pDrawState->hDsShaderResourceViewTable = tessellation.pResourceDescriptorTable->GetDescriptors();
 
 		// Copy per-action constant buffer to domain shader
-		m_pDrawState->dsConstantBuffers[0] = m_pDrawState->vsConstantBuffers[0];
-		m_pDrawState->dsConstantBufferCount = 1;
-
-		if (pMaterial->tessellation.hDsConstants)
-		{
-			m_pDrawState->dsConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pMaterial->tessellation.hDsConstants)->GetSRV();
-			m_pDrawState->dsConstantBufferCount = 2;
-		}
+		m_pDrawState->hDsGlobalConstantBufferTable = m_pDrawState->hVsGlobalConstantBufferTable;
 	}
 
 	// Pixel shader
@@ -731,48 +711,18 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	{
 		if (pMaterial->IsShaderStageActive(rPass.shaderMode, RdrShaderStageFlags::Pixel))
 		{
-			m_pDrawState->psResourceCount = pMaterial->ahTextures.size();
-			for (uint i = 0; i < m_pDrawState->psResourceCount; ++i)
+			// donotcheckin vs/ds/ps share constant buffer table - all have access - faster than separate tables?
+			m_pDrawState->hPsMaterialShaderResourceViewTable = pMaterial->GetResourceDescriptorTable()->GetDescriptors();
+			m_pDrawState->hPsMaterialSamplerTable = pMaterial->GetSamplerDescriptorTable()->GetDescriptors();
+
+			const RdrConstantBufferHandle& hConstants = pMaterial->GetConstantBufferHandle();
+			if (hConstants != 0)
 			{
-				m_pDrawState->psResources[i] = RdrResourceSystem::GetResource(pMaterial->ahTextures.get(i))->GetSRV();
+				m_pDrawState->hPsMaterialConstantBufferTable = RdrResourceSystem::GetConstantBuffer(hConstants)->GetCBV().hShaderVisibleView;
 			}
-
-			m_pDrawState->psSamplerCount = pMaterial->aSamplers.size();
-			for (uint i = 0; i < m_pDrawState->psSamplerCount; ++i)
+			else
 			{
-				m_pDrawState->psSamplers[i] = pMaterial->aSamplers.get(i);
-			}
-
-			m_pDrawState->psConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsPerAction)->GetSRV();
-			m_pDrawState->psConstantBufferCount = 1;
-
-			if (pMaterial->hConstants)
-			{
-				m_pDrawState->psConstantBuffers[1] = RdrResourceSystem::GetConstantBuffer(pMaterial->hConstants)->GetSRV();
-				m_pDrawState->psConstantBufferCount = 2;
-			}
-
-			if (pMaterial->bNeedsLighting && !bDepthOnly)
-			{
-				m_pDrawState->psConstantBuffers[2] = RdrResourceSystem::GetConstantBuffer(m_lightResources.hGlobalLightsCb)->GetSRV();
-				m_pDrawState->psConstantBuffers[3] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsAtmosphere)->GetSRV();
-				m_pDrawState->psConstantBufferCount = 4;
-
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::SpotLightList] = RdrResourceSystem::GetResource(m_lightResources.hSpotLightListRes)->GetSRV();
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::PointLightList] = RdrResourceSystem::GetResource(m_lightResources.hPointLightListRes)->GetSRV();
-
-				RdrSharedLightResources& sharedLightRes = m_lightResources.sharedResources;
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::EnvironmentMaps] = RdrResourceSystem::GetResource(sharedLightRes.hEnvironmentMapTexArray)->GetSRV();
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::VolumetricFogLut] = RdrResourceSystem::GetResource(sharedLightRes.hVolumetricFogLut)->GetSRV();
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::SkyTransmittance] = RdrResourceSystem::GetResource(sharedLightRes.hSkyTransmittanceLut)->GetSRV();
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::LightIds] = RdrResourceSystem::GetResource(sharedLightRes.hLightIndicesRes)->GetSRV();
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::ShadowMaps] = RdrResourceSystem::GetResource(sharedLightRes.hShadowMapTexArray)->GetSRV();
-				m_pDrawState->psResources[(int)RdrPsResourceSlots::ShadowCubeMaps] = RdrResourceSystem::GetResource(sharedLightRes.hShadowCubeMapTexArray)->GetSRV();
-				m_pDrawState->psResourceCount = max((uint)RdrPsResourceSlots::LightIds + 1, m_pDrawState->psResourceCount);
-
-				m_pDrawState->psSamplers[(int)RdrPsSamplerSlots::Clamp] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
-				m_pDrawState->psSamplers[(int)RdrPsSamplerSlots::ShadowMap] = RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false);
-				m_pDrawState->psSamplerCount = max((uint)RdrPsSamplerSlots::ShadowMap + 1, m_pDrawState->psSamplerCount);
+				m_pDrawState->hPsMaterialConstantBufferTable = m_pContext->GetNullConstantBufferView().hShaderVisibleView;
 			}
 		}
 	}
@@ -823,7 +773,7 @@ void RdrAction::DispatchCompute(const RdrComputeOp* pComputeOp)
 	m_pDrawState->csConstantBufferCount = pComputeOp->ahConstantBuffers.size();
 	for (uint i = 0; i < m_pDrawState->csConstantBufferCount; ++i)
 	{
-		m_pDrawState->csConstantBuffers[i] = RdrResourceSystem::GetConstantBuffer(pComputeOp->ahConstantBuffers.get(i))->GetSRV();
+		m_pDrawState->csConstantBuffers[i] = RdrResourceSystem::GetConstantBuffer(pComputeOp->ahConstantBuffers.get(i))->GetCBV();
 	}
 
 	uint count = pComputeOp->ahResources.size();
@@ -833,7 +783,7 @@ void RdrAction::DispatchCompute(const RdrComputeOp* pComputeOp)
 		if (pComputeOp->ahResources.get(i))
 			m_pDrawState->csResources[i] = RdrResourceSystem::GetResource(pComputeOp->ahResources.get(i))->GetSRV();
 		else
-			m_pDrawState->csResources[i].hView.ptr = 0;
+			m_pDrawState->csResources[i].Reset();
 	}
 
 
@@ -851,7 +801,7 @@ void RdrAction::DispatchCompute(const RdrComputeOp* pComputeOp)
 		if (pComputeOp->ahWritableResources.get(i))
 			m_pDrawState->csUavs[i] = RdrResourceSystem::GetResource(pComputeOp->ahWritableResources.get(i))->GetUAV();
 		else
-			m_pDrawState->csUavs[i].hView.ptr = 0;
+			m_pDrawState->csUavs[i].Reset();
 	}
 
 	m_pContext->DispatchCompute(*m_pDrawState, pComputeOp->threads[0], pComputeOp->threads[1], pComputeOp->threads[2]);

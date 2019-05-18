@@ -44,14 +44,59 @@ struct RdrBufferInfo
 
 struct RdrShaderResourceView
 {
-	D3D12DescriptorHandle hView;
-	RdrResource* pResource;
+	void Reset() { hCopyableView.Reset(); hShaderVisibleView.Reset(); pResource = nullptr; }
+
+	D3D12DescriptorHandles hCopyableView;
+	D3D12DescriptorHandles hShaderVisibleView;
+	const RdrResource* pResource;
 };
 
 struct RdrUnorderedAccessView
 {
-	D3D12DescriptorHandle hView;
-	RdrResource* pResource;
+	void Reset() { hCopyableView.Reset(); hShaderVisibleView.Reset(); pResource = nullptr;
+	}
+
+	D3D12DescriptorHandles hCopyableView;
+	D3D12DescriptorHandles hShaderVisibleView;
+	const RdrResource* pResource;
+};
+
+struct RdrConstantBufferView
+{
+	void Reset() { hCopyableView.Reset(); hShaderVisibleView.Reset(); pResource = nullptr; }
+
+	D3D12DescriptorHandles hCopyableView;
+	D3D12DescriptorHandles hShaderVisibleView;
+	const RdrResource* pResource;
+};
+
+enum class RdrDescriptorType
+{
+	SRV,
+	Sampler
+};
+
+struct RdrDescriptorTable
+{
+public:
+	void CreateFromExisting(RdrDescriptorType eDescType, const D3D12DescriptorHandles& hDescriptor, const RdrDebugBackpointer& debug);
+	void Create(RdrContext& rdrContext, RdrDescriptorType eDescType, const D3D12DescriptorHandles* phDescriptors, uint count, const RdrDebugBackpointer& debug);
+
+	void Release(RdrContext& rdrContext);
+
+	const D3D12DescriptorHandles& GetDescriptors() const { MarkUsedThisFrame(); return m_descriptors; }
+
+	void MarkUsedThisFrame() const;
+	uint64 GetLastUsedFrame() const { return m_nLastUsedFrameCode; }
+
+private:
+	D3D12DescriptorHandles m_descriptors;
+
+	RdrDebugBackpointer m_debugCreator;
+	uint64 m_nLastUsedFrameCode;
+
+	RdrDescriptorType m_eDescType;
+	bool m_bOwnsDescriptors;
 };
 
 struct RdrResource
@@ -92,6 +137,7 @@ public:
 	ID3D12Resource* GetResource() const { MarkUsedThisFrame();  return m_pResource; }
 	const RdrShaderResourceView& GetSRV() const { MarkUsedThisFrame(); return m_srv; }
 	const RdrUnorderedAccessView GetUAV() const { MarkUsedThisFrame(); return m_uav; }
+	const RdrConstantBufferView& GetCBV() const { MarkUsedThisFrame(); return m_cbv; }
 
 	uint GetSize() const { return m_size; }
 	RdrResourceAccessFlags GetAccessFlags() const { return m_accessFlags; }
@@ -110,6 +156,7 @@ private:
 
 	RdrShaderResourceView m_srv;
 	RdrUnorderedAccessView m_uav;
+	RdrConstantBufferView m_cbv;
 	D3D12_RESOURCE_STATES m_eResourceState;
 	RdrResourceAccessFlags m_accessFlags;
 	uint m_size;
@@ -132,7 +179,8 @@ private:
 
 inline bool operator == (const RdrShaderResourceView& rLeft, const RdrShaderResourceView& rRight)
 {
-	return rLeft.hView == rRight.hView;
+	return rLeft.hCopyableView.hCpuDesc == rRight.hCopyableView.hCpuDesc
+		&& rLeft.hShaderVisibleView.hCpuDesc == rRight.hShaderVisibleView.hCpuDesc;
 }
 
 inline bool operator != (const RdrShaderResourceView& rLeft, const RdrShaderResourceView& rRight)
@@ -156,3 +204,6 @@ typedef RdrDepthStencilViewList::Handle RdrDepthStencilViewHandle;
 
 typedef FreeList<RdrShaderResourceView, 1024> RdrShaderResourceViewList;
 typedef RdrShaderResourceViewList::Handle RdrShaderResourceViewHandle;
+
+typedef FreeList<RdrDescriptorTable, 1024> RdrDescriptorTableList;
+typedef RdrDescriptorTableList::Handle RdrDescriptorTableHandle;

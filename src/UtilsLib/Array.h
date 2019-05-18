@@ -44,6 +44,11 @@ public:
 		return T_kCapacity;
 	}
 
+	const T_object* data() const
+	{
+		return m_objects;
+	}
+
 private:
 	T_object m_objects[T_kCapacity];
 	uint m_size;

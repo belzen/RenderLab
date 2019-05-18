@@ -61,6 +61,10 @@ struct RdrActionLightResources
 
 	// Not owned by action.  Filled in each frame by RdrLighting::QueueDraw()
 	RdrSharedLightResources sharedResources;
+
+	const RdrDescriptorTable* pConstantsTable;
+	const RdrDescriptorTable* pResourcesTable;
+	const RdrDescriptorTable* pSamplersTable;
 };
 
 struct RdrLightList

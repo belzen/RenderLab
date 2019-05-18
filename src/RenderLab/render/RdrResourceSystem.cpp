@@ -39,6 +39,8 @@ namespace
 		RdrRenderTargetViewList		renderTargetViews;
 		RdrDepthStencilViewList		depthStencilViews;
 		RdrShaderResourceViewList	shaderResourceViews;
+
+		RdrDescriptorTableList descriptorTables;
 	} s_resourceSystem;
 
 	RdrResourceFormat getFormatFromDXGI(DXGI_FORMAT format)
@@ -72,6 +74,30 @@ namespace
 			return RdrResourceFormat::Count;
 		}
 	}
+
+	RdrResourceHandle CreateTextureCommon(RdrTextureType texType, uint width, uint height, uint depth,
+		uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceAccessFlags accessFlags, char* pTextureData, const RdrDebugBackpointer& debug)
+	{
+		RdrResource* pResource = s_resourceSystem.resources.allocSafe();
+
+		RdrTextureInfo texInfo;
+		texInfo.texType = texType;
+		texInfo.format = eFormat;
+		texInfo.width = width;
+		texInfo.height = height;
+		texInfo.depth = depth;
+		texInfo.mipLevels = mipLevels;
+		texInfo.sampleCount = sampleCount;
+		pResource->CreateTexture(*g_pRenderer->GetContext(), texInfo, accessFlags, debug);
+
+		RdrResourceHandle hResource = s_resourceSystem.resources.getId(pResource);
+		if (pTextureData)
+		{
+			g_pRenderer->GetResourceCommandList().UpdateResource(hResource, pTextureData, 0, debug);
+		}
+
+		return hResource;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -94,10 +120,10 @@ void RdrResourceSystem::Init(Renderer& rRenderer)
 	// Create default resources.
 	static uchar blackTexData[4] = { 0, 0, 0, 255 };
 	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex2d] =
-		rRenderer.GetResourceCommandList().CreateTexture2D(1, 1, RdrResourceFormat::B8G8R8A8_UNORM,
+		RdrResourceSystem::CreateTexture2D(1, 1, RdrResourceFormat::B8G8R8A8_UNORM,
 			RdrResourceAccessFlags::CpuRO_GpuRO, (char*)blackTexData, CREATE_NULL_BACKPOINTER);
 	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex3d] =
-		rRenderer.GetResourceCommandList().CreateTexture3D(1, 1, 1, RdrResourceFormat::B8G8R8A8_UNORM, 
+		RdrResourceSystem::CreateTexture3D(1, 1, 1, RdrResourceFormat::B8G8R8A8_UNORM,
 			RdrResourceAccessFlags::CpuRO_GpuRO, (char*)blackTexData, CREATE_NULL_BACKPOINTER);
 }
 
@@ -155,7 +181,7 @@ const RdrGeometry* RdrResourceSystem::GetGeo(const RdrGeoHandle hGeo)
 //////////////////////////////////////////////////////////////////////////
 /// RdrResourceCommandList
 //////////////////////////////////////////////////////////////////////////
-RdrResourceHandle RdrResourceCommandList::CreateTextureFromFile(const CachedString& texName, RdrTextureInfo* pOutInfo, const RdrDebugBackpointer& debug)
+RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const CachedString& texName, RdrTextureInfo* pOutInfo, const RdrDebugBackpointer& debug)
 {
 	// Find texture in cache
 	RdrResourceHandleMap::iterator iter = s_resourceSystem.textureCache.find(texName.getHash());
@@ -199,23 +225,16 @@ RdrResourceHandle RdrResourceCommandList::CreateTextureFromFile(const CachedStri
 	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pResource);
 	s_resourceSystem.textureCache.insert(std::make_pair(texName.getHash(), hResource));
 
+	// Determine offset to skip over header data
+	uint nDataStartOffset = sizeof(DWORD) + sizeof(DirectX::DDS_HEADER);
+	DirectX::DDS_HEADER* pHeader = (DirectX::DDS_HEADER*)(pTexture->ddsData + sizeof(DWORD));
+	if (pHeader->ddspf.dwFourCC == DirectX::DDSPF_DX10.dwFourCC)
 	{
-		CmdUpdateResource& cmd = m_resourceUpdates.pushSafe();
-		cmd.pFileData = pTexture->ddsData;
-		cmd.dataSize = pTexture->ddsDataSize;
-		cmd.hResource = hResource;
-
-		DirectX::DDS_HEADER* pHeader = (DirectX::DDS_HEADER*)(pTexture->ddsData + sizeof(DWORD));
-		cmd.pData = pHeader + 1;
-
-		if (pHeader->ddspf.dwFourCC == DirectX::DDSPF_DX10.dwFourCC)
-		{
-			cmd.pData = ((char*)cmd.pData) + sizeof(DirectX::DDS_HEADER_DXT10);
-		}
-
-		cmd.debug = debug;
+		nDataStartOffset += sizeof(DirectX::DDS_HEADER_DXT10);
 	}
 
+	// Queue update of texture data.
+	g_pRenderer->GetResourceCommandList().UpdateResourceFromFile(hResource, pTexture->ddsData, nDataStartOffset, pTexture->ddsDataSize - nDataStartOffset, debug);
 
 	if (pOutInfo)
 	{
@@ -224,31 +243,7 @@ RdrResourceHandle RdrResourceCommandList::CreateTextureFromFile(const CachedStri
 	return hResource;
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTextureCommon(RdrTextureType texType, uint width, uint height, uint depth,
-	uint mipLevels, RdrResourceFormat eFormat, uint sampleCount, RdrResourceAccessFlags accessFlags, char* pTextureData, const RdrDebugBackpointer& debug)
-{
-	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
-
-	RdrTextureInfo texInfo;
-	texInfo.texType = texType;
-	texInfo.format = eFormat;
-	texInfo.width = width;
-	texInfo.height = height;
-	texInfo.depth = depth;
-	texInfo.mipLevels = mipLevels;
-	texInfo.sampleCount = sampleCount;
-	pResource->CreateTexture(*g_pRenderer->GetContext(), texInfo, accessFlags, debug);
-
-	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pResource);
-	if (pTextureData)
-	{
-		QueueUpdateResource(hResource, pTextureData, 0, debug);
-	}
-
-	return hResource;
-}
-
-void RdrResourceCommandList::QueueUpdateResource(RdrResourceHandle hResource, const void* pData, uint dataSize, const RdrDebugBackpointer& debug)
+void RdrResourceCommandList::UpdateResource(RdrResourceHandle hResource, const void* pData, uint dataSize, const RdrDebugBackpointer& debug)
 {
 	CmdUpdateResource& cmd = m_resourceUpdates.pushSafe();
 	cmd.debug = debug;
@@ -258,37 +253,47 @@ void RdrResourceCommandList::QueueUpdateResource(RdrResourceHandle hResource, co
 	cmd.pFileData = nullptr;
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData, const RdrDebugBackpointer& debug)
+void RdrResourceCommandList::UpdateResourceFromFile(RdrResourceHandle hResource, const void* pFileData, uint nDataStartOffset, uint dataSize, const RdrDebugBackpointer& debug)
+{
+	CmdUpdateResource& cmd = m_resourceUpdates.pushSafe();
+	cmd.pFileData = pFileData;
+	cmd.dataSize = dataSize;
+	cmd.hResource = hResource;
+	cmd.pData = ((char*)cmd.pFileData) + nDataStartOffset;
+	cmd.debug = debug;
+}
+
+RdrResourceHandle RdrResourceSystem::CreateTexture2D(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData, const RdrDebugBackpointer& debug)
 {
 	return CreateTextureCommon(RdrTextureType::k2D, width, height, 1, 1, eFormat, 1, accessFlags, pTexData, debug);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture2DMS(uint width, uint height, RdrResourceFormat eFormat, uint sampleCount, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+RdrResourceHandle RdrResourceSystem::CreateTexture2DMS(uint width, uint height, RdrResourceFormat eFormat, uint sampleCount, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	return CreateTextureCommon(RdrTextureType::k2D, width, height, 1, 1, eFormat, sampleCount, accessFlags, nullptr, debug);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+RdrResourceHandle RdrResourceSystem::CreateTexture2DArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	return CreateTextureCommon(RdrTextureType::k2D, width, height, arraySize, 1, eFormat, 1, accessFlags, nullptr, debug);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+RdrResourceHandle RdrResourceSystem::CreateTextureCube(uint width, uint height, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	return CreateTextureCommon(RdrTextureType::kCube, width, height, 1, 1, eFormat, 1, accessFlags, nullptr, debug);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+RdrResourceHandle RdrResourceSystem::CreateTextureCubeArray(uint width, uint height, uint arraySize, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	return CreateTextureCommon(RdrTextureType::kCube, width, height, arraySize, 1, eFormat, 1, accessFlags, nullptr, debug);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData, const RdrDebugBackpointer& debug)
+RdrResourceHandle RdrResourceSystem::CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData, const RdrDebugBackpointer& debug)
 {
 	return CreateTextureCommon(RdrTextureType::k3D, width, height, depth, 1, eFormat, 1, accessFlags, pTexData, debug);
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+RdrResourceHandle RdrResourceSystem::CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
@@ -301,13 +306,13 @@ RdrResourceHandle RdrResourceCommandList::CreateVertexBuffer(const void* pSrcDat
 	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pResource);
 	if (pSrcData)
 	{
-		QueueUpdateResource(hResource, pSrcData, 0, debug);
+		g_pRenderer->GetResourceCommandList().UpdateResource(hResource, pSrcData, 0, debug);
 	}
 
 	return hResource;
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+RdrResourceHandle RdrResourceSystem::CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
@@ -321,13 +326,13 @@ RdrResourceHandle RdrResourceCommandList::CreateDataBuffer(const void* pSrcData,
 	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pResource);
 	if (pSrcData)
 	{
-		QueueUpdateResource(hResource, pSrcData, 0, debug);
+		g_pRenderer->GetResourceCommandList().UpdateResource(hResource, pSrcData, 0, debug);
 	}
 
 	return hResource;
 }
 
-RdrResourceHandle RdrResourceCommandList::CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+RdrResourceHandle RdrResourceSystem::CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
 
@@ -341,7 +346,7 @@ RdrResourceHandle RdrResourceCommandList::CreateStructuredBuffer(const void* pSr
 	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pResource);
 	if (pSrcData)
 	{
-		QueueUpdateResource(hResource, pSrcData, 0, debug);
+		g_pRenderer->GetResourceCommandList().UpdateResource(hResource, pSrcData, 0, debug);
 	}
 
 	return hResource;
@@ -365,7 +370,7 @@ void RdrResourceCommandList::UpdateBuffer(const RdrResourceHandle hResource, con
 		: rdrGetTexturePitch(1, pResource->GetBufferInfo().eFormat) * numElements;
 }
 
-RdrShaderResourceViewHandle RdrResourceCommandList::CreateShaderResourceView(RdrResourceHandle hResource, uint firstElement, const RdrDebugBackpointer& debug)
+RdrShaderResourceViewHandle RdrResourceSystem::CreateShaderResourceView(RdrResourceHandle hResource, uint firstElement, const RdrDebugBackpointer& debug)
 {
 	assert(hResource);
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
@@ -391,7 +396,7 @@ void RdrResourceCommandList::ReleaseShaderResourceView(RdrShaderResourceViewHand
 	cmd.debug = debug;
 }
 
-RdrConstantBufferHandle RdrResourceCommandList::CreateConstantBuffer(const void* pData, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+RdrConstantBufferHandle RdrResourceSystem::CreateConstantBuffer(const void* pData, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	assert((size % sizeof(Vec4)) == 0);
 
@@ -416,21 +421,26 @@ RdrConstantBufferHandle RdrResourceCommandList::CreateConstantBuffer(const void*
 	RdrConstantBufferHandle hBuffer = s_resourceSystem.constantBuffers.getId(pBuffer);
 	if (pData)
 	{
-		CmdUpdateConstantBuffer& cmd = m_constantBufferUpdates.pushSafe();
-		cmd.debug = debug;
-		cmd.hBuffer = hBuffer;
-		cmd.pData = pData;
-		cmd.dataSize = size;
+		g_pRenderer->GetResourceCommandList().UpdateConstantBuffer(hBuffer, pData, size, debug);
 	}
 
 	return hBuffer;
 }
 
-RdrConstantBufferHandle RdrResourceCommandList::CreateUpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+void RdrResourceCommandList::UpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint dataSize, const RdrDebugBackpointer& debug)
+{
+	CmdUpdateConstantBuffer& cmd = m_constantBufferUpdates.pushSafe();
+	cmd.debug = debug;
+	cmd.hBuffer = hBuffer;
+	cmd.pData = pData;
+	cmd.dataSize = dataSize;
+}
+
+RdrConstantBufferHandle RdrResourceSystem::CreateUpdateConstantBuffer(RdrConstantBufferHandle hBuffer, const void* pData, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	if (hBuffer)
 	{
-		ReleaseConstantBuffer(hBuffer, debug);
+		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(hBuffer, debug);
 		return CreateConstantBuffer(pData, size, accessFlags, debug);
 	}
 	else
@@ -439,11 +449,11 @@ RdrConstantBufferHandle RdrResourceCommandList::CreateUpdateConstantBuffer(RdrCo
 	}
 }
 
-RdrConstantBufferHandle RdrResourceCommandList::CreateTempConstantBuffer(const void* pData, uint size, const RdrDebugBackpointer& debug)
+RdrConstantBufferHandle RdrResourceSystem::CreateTempConstantBuffer(const void* pData, uint size, const RdrDebugBackpointer& debug)
 {
 	RdrConstantBufferHandle hBuffer = CreateConstantBuffer(pData, size, RdrResourceAccessFlags::CpuRW_GpuRO, debug);
 	// Queue post-frame destroy of the temporary buffer.
-	ReleaseConstantBuffer(hBuffer, debug);
+	g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(hBuffer, debug);
 
 	return hBuffer;
 }
@@ -462,7 +472,7 @@ void RdrResourceCommandList::ReleaseResource(RdrResourceHandle hRes, const RdrDe
 	cmd.debug = debug;
 }
 
-RdrRenderTargetViewHandle RdrResourceCommandList::CreateRenderTargetView(RdrResourceHandle hResource, const RdrDebugBackpointer& debug)
+RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceHandle hResource, const RdrDebugBackpointer& debug)
 {
 	assert(hResource);
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
@@ -474,7 +484,7 @@ RdrRenderTargetViewHandle RdrResourceCommandList::CreateRenderTargetView(RdrReso
 	return s_resourceSystem.renderTargetViews.getId(pView);
 }
 
-RdrRenderTargetViewHandle RdrResourceCommandList::CreateRenderTargetView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug)
+RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug)
 {
 	assert(hResource);
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
@@ -500,7 +510,7 @@ void RdrResourceCommandList::ReleaseDepthStencilView(const RdrRenderTargetViewHa
 	cmd.debug = debug;
 }
 
-RdrDepthStencilViewHandle RdrResourceCommandList::CreateDepthStencilView(RdrResourceHandle hResource, const RdrDebugBackpointer& debug)
+RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceHandle hResource, const RdrDebugBackpointer& debug)
 {
 	assert(hResource);
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
@@ -512,7 +522,7 @@ RdrDepthStencilViewHandle RdrResourceCommandList::CreateDepthStencilView(RdrReso
 	return s_resourceSystem.depthStencilViews.getId(pView);
 }
 
-RdrDepthStencilViewHandle RdrResourceCommandList::CreateDepthStencilView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug)
+RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug)
 {
 	assert(hResource);
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
@@ -524,7 +534,7 @@ RdrDepthStencilViewHandle RdrResourceCommandList::CreateDepthStencilView(RdrReso
 	return s_resourceSystem.depthStencilViews.getId(pView);
 }
 
-RdrRenderTarget RdrResourceCommandList::InitRenderTarget2d(uint width, uint height, RdrResourceFormat eFormat, int multisampleLevel, const RdrDebugBackpointer& debug)
+RdrRenderTarget RdrResourceSystem::InitRenderTarget2d(uint width, uint height, RdrResourceFormat eFormat, int multisampleLevel, const RdrDebugBackpointer& debug)
 {
 	RdrRenderTarget renderTarget;
 
@@ -562,7 +572,7 @@ void RdrResourceCommandList::ReleaseGeo(const RdrGeoHandle hGeo, const RdrDebugB
 	cmd.debug = debug;
 }
 
-RdrGeoHandle RdrResourceCommandList::CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
+RdrGeoHandle RdrResourceSystem::CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
 	RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax, const RdrDebugBackpointer& debug)
 {
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
@@ -588,7 +598,7 @@ RdrGeoHandle RdrResourceCommandList::CreateGeo(const void* pVertData, int vertSt
 		pGeo->pVertexBuffer->CreateBuffer(*pRdrContext, vertexBufferInfo, RdrResourceAccessFlags::None, debug);
 
 		RdrResourceHandle hResource = s_resourceSystem.resources.getId(pGeo->pVertexBuffer);
-		QueueUpdateResource(hResource, pVertData, 0, debug);
+		g_pRenderer->GetResourceCommandList().UpdateResource(hResource, pVertData, 0, debug);
 	}
 
 	if (pIndexData)
@@ -603,7 +613,7 @@ RdrGeoHandle RdrResourceCommandList::CreateGeo(const void* pVertData, int vertSt
 		pGeo->pIndexBuffer->CreateBuffer(*pRdrContext, indexBufferInfo, RdrResourceAccessFlags::None, debug);
 
 		RdrResourceHandle hResource = s_resourceSystem.resources.getId(pGeo->pIndexBuffer);
-		QueueUpdateResource(hResource, pIndexData, 0, debug);
+		g_pRenderer->GetResourceCommandList().UpdateResource(hResource, pIndexData, 0, debug);
 	}
 
 	return hGeo;
@@ -617,7 +627,173 @@ void RdrResourceCommandList::UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVert
 	RdrGeometry* pGeo = s_resourceSystem.geos.get(hGeo);
 
 	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pGeo->pVertexBuffer);
-	QueueUpdateResource(hResource, pVertData, 0, debug);
+	UpdateResource(hResource, pVertData, 0, debug);
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
+{
+	static constexpr uint kMaxDescriptorTableSize = 16;
+	assert(count < kMaxDescriptorTableSize);
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+
+	D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
+	{
+		if (ahResources[i])
+		{
+			const RdrResource* pResource = s_resourceSystem.resources.get(ahResources[i]);
+			ahDescriptors[i] = pResource ? pResource->GetSRV().hCopyableView : pRdrContext->GetNullShaderResourceView().hCopyableView;
+		}
+		else
+		{
+			ahDescriptors[i] = pRdrContext->GetNullShaderResourceView().hCopyableView;
+		}
+	}
+
+	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
+	pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
+{
+	static constexpr uint kMaxDescriptorTableSize = 16;
+	assert(count < kMaxDescriptorTableSize);
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+
+	D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
+	{
+		ahDescriptors[i] = apResources[i] ? apResources[i]->GetSRV().hCopyableView : pRdrContext->GetNullShaderResourceView().hCopyableView;
+	}
+
+	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
+	pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateTempShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
+{
+	const RdrDescriptorTable* pTable = CreateShaderResourceViewTable(apResources, count, debug);
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateUpdateShaderResourceViewTable(const RdrDescriptorTable* pTable, const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
+{
+	if (!pTable)
+		return CreateShaderResourceViewTable(ahResources, count, debug);
+
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return CreateShaderResourceViewTable(ahResources, count, debug);
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
+{
+	static constexpr uint kMaxDescriptorTableSize = 16;
+	assert(count < kMaxDescriptorTableSize);
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+
+	D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
+	{
+		ahDescriptors[i] = pRdrContext->GetSampler(aSamplers[i]).hCopyable;
+	}
+
+	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
+	pTable->Create(*pRdrContext, RdrDescriptorType::Sampler, ahDescriptors, count, debug);
+
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateTempSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
+{
+	const RdrDescriptorTable* pTable = CreateSamplerTable(aSamplers, count, debug);
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateUpdateSamplerTable(const RdrDescriptorTable* pTable, const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
+{
+	if (!pTable)
+		return CreateSamplerTable(aSamplers, count, debug);
+
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return CreateSamplerTable(aSamplers, count, debug);
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
+{
+	static constexpr uint kMaxDescriptorTableSize = 16;
+	assert(count < kMaxDescriptorTableSize);
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+
+	D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
+	{
+		const RdrResource* pResource = s_resourceSystem.constantBuffers.get(ahBuffers[i]);
+		ahDescriptors[i] = pResource ? pResource->GetCBV().hCopyableView : pRdrContext->GetNullConstantBufferView().hCopyableView;
+	}
+
+	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
+	pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateTempConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
+{
+	const RdrDescriptorTable* pTable = CreateConstantBufferTable(ahBuffers, count, debug);
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug)
+{
+	static constexpr uint kMaxDescriptorTableSize = 16;
+	assert(count < kMaxDescriptorTableSize);
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+
+	D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
+	{
+		ahDescriptors[i] = apBuffers[i] ? apBuffers[i]->GetCBV().hCopyableView : pRdrContext->GetNullConstantBufferView().hCopyableView;
+	}
+
+	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
+	pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateTempConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug)
+{
+	const RdrDescriptorTable* pTable = CreateConstantBufferTable(apBuffers, count, debug);
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateUpdateConstantBufferTable(const RdrDescriptorTable* pTable, const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
+{
+	if (!pTable)
+		return CreateConstantBufferTable(ahBuffers, count, debug);
+
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return CreateConstantBufferTable(ahBuffers, count, debug);
+}
+
+void RdrResourceCommandList::ReleaseDescriptorTable(const RdrDescriptorTable* pTable, const RdrDebugBackpointer& debug)
+{
+	CmdReleaseDescriptorTable& cmd = m_descTableReleases.pushSafe();
+	cmd.pTable = pTable;
+	cmd.debug = debug;
 }
 
 void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
@@ -625,6 +801,7 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 	uint numCmds;
 	uint64 nLastCompletedFrame = pRdrContext->GetLastCompletedFrame();
 
+	//////////////////////////////////////////////////////////////////////////
 	// Free geos
 	s_resourceSystem.geos.AcquireLock();
 	numCmds = (uint)m_geoReleases.size();
@@ -649,6 +826,27 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 	m_geoReleases.clear();
 	s_resourceSystem.geos.ReleaseLock();
 
+	//////////////////////////////////////////////////////////////////////////
+	// Free descriptor tables
+	s_resourceSystem.descriptorTables.AcquireLock();
+	{
+		numCmds = (uint)m_descTableReleases.size();
+		for (uint i = 0; i < numCmds; ++i)
+		{
+			CmdReleaseDescriptorTable& cmd = m_descTableReleases[i];
+			if (cmd.pTable->GetLastUsedFrame() <= nLastCompletedFrame)
+			{
+				const_cast<RdrDescriptorTable*>(cmd.pTable)->Release(*pRdrContext);
+				s_resourceSystem.descriptorTables.release(cmd.pTable);
+				m_descTableReleases.eraseFast(i);
+				--i;
+				--numCmds;
+			}
+		}
+	}
+	s_resourceSystem.descriptorTables.ReleaseLock();
+
+	//////////////////////////////////////////////////////////////////////////
 	// Free resources
 	s_resourceSystem.resources.AcquireLock();
 	{
@@ -718,6 +916,8 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 		}
 	}
 #endif
+
+	//////////////////////////////////////////////////////////////////////////
 	// Free constant buffers
 	s_resourceSystem.constantBuffers.AcquireLock();
 	{

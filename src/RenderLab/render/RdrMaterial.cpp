@@ -26,25 +26,7 @@ namespace
 			return;
 		}
 
-		// Create default pixel shader
-		const char* defines[32] = { 0 };
-		uint numDefines = 0;
-		if (pMaterial->bAlphaCutout)
-		{
-			defines[numDefines++] = "ALPHA_CUTOUT";
-		}
-
-		if (pMaterial->color.a < 1.f)
-		{
-			pOutMaterial->bHasAlpha = true;
-			defines[numDefines++] = "HAS_ALPHA";
-		}
-
-		for (int i = 0; i < pMaterial->shaderDefsCount; ++i)
-		{
-			defines[numDefines++] = pMaterial->pShaderDefs[i];
-		}
-
+		// Setup vertex shader
 		RdrVertexShader vertexShader = {};
 		if (_stricmp(pMaterial->vertexShader, "model") == 0)
 		{
@@ -55,9 +37,32 @@ namespace
 			vertexShader.eType = RdrVertexShaderType::Sky;
 		}
 
+		// Apply flags
+		RdrMaterialFlags materialFlags = RdrMaterialFlags::None;
+
+		const char* defines[32] = { 0 };
+		uint numDefines = 0;
 		if (pMaterial->bAlphaCutout)
 		{
 			vertexShader.flags |= RdrShaderFlags::AlphaCutout;
+			materialFlags |= RdrMaterialFlags::AlphaCutout;
+			defines[numDefines++] = "ALPHA_CUTOUT";
+		}
+
+		if (pMaterial->bNeedsLighting)
+		{
+			materialFlags |= RdrMaterialFlags::NeedsLighting;
+		}
+
+		if (pMaterial->color.a < 1.f)
+		{
+			materialFlags |= RdrMaterialFlags::HasAlpha;
+			defines[numDefines++] = "HAS_ALPHA";
+		}
+
+		for (int i = 0; i < pMaterial->shaderDefsCount; ++i)
+		{
+			defines[numDefines++] = pMaterial->pShaderDefs[i];
 		}
 
 		// Normal PSO
@@ -65,7 +70,7 @@ namespace
 
 		RdrDepthStencilState depthState = RdrDepthStencilState(true, false, RdrComparisonFunc::Equal);
 		RdrBlendMode eBlendMode = RdrBlendMode::kOpaque;
-		if (pOutMaterial->bHasAlpha)
+		if (IsFlagSet(materialFlags, RdrMaterialFlags::HasAlpha))
 		{
 			depthState = RdrDepthStencilState(true, false, RdrComparisonFunc::Less);
 			eBlendMode = RdrBlendMode::kAlpha;
@@ -139,7 +144,7 @@ namespace
 			rasterState,
 			RdrDepthStencilState(true, false, RdrComparisonFunc::Less));
 
-		if (!pOutMaterial->bHasAlpha)
+		if (!pOutMaterial->HasAlpha())
 		{
 			//////////////////////////////////////////////////////////////////////////
 			//////////////////////////////////////////////////////////////////////////
@@ -199,27 +204,116 @@ namespace
 
 		//////////////////////////////////////////////////////////////////////////
 		// 
-		pOutMaterial->bNeedsLighting = pMaterial->bNeedsLighting;
-		pOutMaterial->bAlphaCutout = pMaterial->bAlphaCutout;
+		pOutMaterial->Init(materialName, materialFlags);
 			
 		RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
+		RdrResourceHandle ahTextures[RdrMaterial::kMaxTextures];
+		RdrSamplerState aSamplers[RdrMaterial::kMaxTextures];
 		for (int n = 0; n < pMaterial->texCount; ++n)
 		{
-			pOutMaterial->ahTextures.assign(n, rResCommandList.CreateTextureFromFile(pMaterial->pTextureNames[n], nullptr, CREATE_BACKPOINTER(pOutMaterial)));
-			pOutMaterial->aSamplers.assign(n, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
+			ahTextures[n] = RdrResourceSystem::CreateTextureFromFile(pMaterial->pTextureNames[n], nullptr, CREATE_BACKPOINTER(pOutMaterial));
+			aSamplers[n] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
 		}
 
-		// DONOTCHECKIN2 - Copy textures and sampler descriptors to descriptor table
-
+		pOutMaterial->SetTextures(0, pMaterial->texCount, ahTextures);
+		pOutMaterial->SetSamplers(0, pMaterial->texCount, aSamplers);
 
 		uint constantsSize = sizeof(MaterialParams);
 		MaterialParams* pConstants = (MaterialParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		pConstants->metalness = pMaterial->metalness;
 		pConstants->roughness = pMaterial->roughness;
 		pConstants->color = pMaterial->color.asFloat4();
-		pOutMaterial->hConstants = rResCommandList.CreateConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRO_GpuRO, CREATE_BACKPOINTER(pOutMaterial));
 
-		pOutMaterial->name = materialName;
+		pOutMaterial->FillConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRO_GpuRO, CREATE_BACKPOINTER(pOutMaterial));
+	}
+}
+
+RdrMaterial::RdrMaterial()
+	: m_name()
+	, m_flags(RdrMaterialFlags::None)
+	, m_hConstants(0)
+	, m_pResourceDescriptorTable(nullptr)
+	, m_pSamplerDescriptorTable(nullptr)
+{
+}
+
+RdrMaterial::~RdrMaterial()
+{
+	Cleanup();
+}
+
+void RdrMaterial::Init(const CachedString& name, RdrMaterialFlags flags)
+{
+	m_name = name;
+	m_flags = flags;
+}
+
+void RdrMaterial::Cleanup()
+{
+	if (m_hConstants)
+	{
+		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hConstants, CREATE_BACKPOINTER(this));
+		m_hConstants = 0;
+	}
+
+	for (RdrPipelineState& pipelineState : m_hPipelineStates)
+	{
+		//donotcheckin destroy
+	}
+
+	uint nNumTextures = m_ahTextures.size();
+	for (uint i = 0; i < nNumTextures; ++i)
+	{
+		RdrResourceHandle hTexture = m_ahTextures.get(i);
+		if (hTexture)
+		{
+			g_pRenderer->GetResourceCommandList().ReleaseResource(hTexture, CREATE_BACKPOINTER(this));
+			m_ahTextures.assign(i, 0);
+		}
+	}
+
+	if (m_pResourceDescriptorTable)
+	{
+		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_pResourceDescriptorTable, CREATE_BACKPOINTER(this));
+		m_pResourceDescriptorTable = nullptr;
+	}
+
+	if (m_pSamplerDescriptorTable)
+	{
+		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_pSamplerDescriptorTable, CREATE_BACKPOINTER(this));
+		m_pSamplerDescriptorTable = nullptr;
+	}
+
+
+	//////////////////////////////////////////////////////////////////////////
+	// Tessellation
+	if (m_tessellation.hDsConstants)
+	{
+		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_tessellation.hDsConstants, CREATE_BACKPOINTER(this));
+		m_tessellation.hDsConstants = 0;
+	}
+
+	uint nNumResources = m_tessellation.ahResources.size();
+	for (uint i = 0; i < nNumResources; ++i)
+	{
+		RdrResourceHandle hResource = m_tessellation.ahResources.get(i);
+		if (hResource)
+		{
+			g_pRenderer->GetResourceCommandList().ReleaseResource(hResource, CREATE_BACKPOINTER(this));
+			m_tessellation.ahResources.assign(i, 0);
+		}
+	}
+
+	if (m_tessellation.pResourceDescriptorTable)
+	{
+		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_tessellation.pResourceDescriptorTable, CREATE_BACKPOINTER(this));
+		m_tessellation.pResourceDescriptorTable = nullptr;
+	}
+
+	if (m_tessellation.pSamplerDescriptorTable)
+	{
+		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_tessellation.pSamplerDescriptorTable, CREATE_BACKPOINTER(this));
+		m_tessellation.pSamplerDescriptorTable = nullptr;
 	}
 }
 
@@ -234,7 +328,7 @@ void RdrMaterial::CreatePipelineState(
 {
 	const RdrShader* pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
 
-	hPipelineStates[(int)eMode] = g_pRenderer->GetContext()->CreateGraphicsPipelineState(
+	m_hPipelineStates[(int)eMode] = g_pRenderer->GetContext()->CreateGraphicsPipelineState(
 		pVertexShader, pPixelShader,
 		nullptr, nullptr,
 		pInputLayoutElements, nNumInputElements,
@@ -243,10 +337,10 @@ void RdrMaterial::CreatePipelineState(
 		rasterState,
 		depthStencilState);
 
-	activeShaderStages[(int)eMode] = RdrShaderStageFlags::Vertex;
+	m_activeShaderStages[(int)eMode] = RdrShaderStageFlags::Vertex;
 	if (pPixelShader)
 	{
-		activeShaderStages[(int)eMode] |= RdrShaderStageFlags::Pixel;
+		m_activeShaderStages[(int)eMode] |= RdrShaderStageFlags::Pixel;
 	}
 }
 
@@ -262,7 +356,7 @@ void RdrMaterial::CreateTessellationPipelineState(
 {
 	const RdrShader* pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
 
-	hPipelineStates[(int)eMode] = g_pRenderer->GetContext()->CreateGraphicsPipelineState(
+	m_hPipelineStates[(int)eMode] = g_pRenderer->GetContext()->CreateGraphicsPipelineState(
 		pVertexShader, pPixelShader,
 		pHullShader, pDomainShader,
 		pInputLayoutElements, nNumInputElements,
@@ -271,11 +365,77 @@ void RdrMaterial::CreateTessellationPipelineState(
 		rasterState,
 		depthStencilState);
 
-	activeShaderStages[(int)eMode] = RdrShaderStageFlags::Vertex | RdrShaderStageFlags::Hull | RdrShaderStageFlags::Domain;
+	m_activeShaderStages[(int)eMode] = RdrShaderStageFlags::Vertex | RdrShaderStageFlags::Hull | RdrShaderStageFlags::Domain;
 	if (pPixelShader)
 	{
-		activeShaderStages[(int)eMode] |= RdrShaderStageFlags::Pixel;
+		m_activeShaderStages[(int)eMode] |= RdrShaderStageFlags::Pixel;
 	}
+}
+
+void RdrMaterial::SetTextures(uint startSlot, uint count, const RdrResourceHandle* ahTextures)
+{
+	for (uint i = 0; i < count; ++i)
+	{
+		m_ahTextures.assign(i + startSlot, ahTextures[i]);
+	}
+
+	if (m_pResourceDescriptorTable)
+	{
+		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_pResourceDescriptorTable, CREATE_BACKPOINTER(this));
+	}
+	m_pResourceDescriptorTable = RdrResourceSystem::CreateShaderResourceViewTable(m_ahTextures.data(), m_ahTextures.size(), CREATE_BACKPOINTER(this));
+}
+
+void RdrMaterial::SetSamplers(uint startSlot, uint count, const RdrSamplerState* aSamplers)
+{
+	for (uint i = 0; i < count; ++i)
+	{
+		m_aSamplers.assign(i + startSlot, aSamplers[i]);
+	}
+
+	if (m_pSamplerDescriptorTable)
+	{
+		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_pSamplerDescriptorTable, CREATE_BACKPOINTER(this));
+	}
+	m_pSamplerDescriptorTable = RdrResourceSystem::CreateSamplerTable(m_aSamplers.data(), m_aSamplers.size(), CREATE_BACKPOINTER(this));
+}
+
+void RdrMaterial::FillConstantBuffer(void* pData, uint nDataSize, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+{
+	m_hConstants = RdrResourceSystem::CreateConstantBuffer(pData, nDataSize, accessFlags, debug);
+}
+
+void RdrMaterial::SetTessellationTextures(uint startSlot, uint count, const RdrResourceHandle* ahTextures)
+{
+	for (uint i = 0; i < count; ++i)
+	{
+		m_tessellation.ahResources.assign(i + startSlot, ahTextures[i]);
+	}
+
+	if (m_tessellation.pResourceDescriptorTable)
+	{
+		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_tessellation.pResourceDescriptorTable, CREATE_BACKPOINTER(this));
+	}
+	m_tessellation.pResourceDescriptorTable = RdrResourceSystem::CreateShaderResourceViewTable(m_tessellation.ahResources.data(), m_tessellation.ahResources.size(), CREATE_BACKPOINTER(this));
+}
+
+void RdrMaterial::SetTessellationSamplers(uint startSlot, uint count, const RdrSamplerState* aSamplers)
+{
+	for (uint i = 0; i < count; ++i)
+	{
+		m_tessellation.aSamplers.assign(i + startSlot, aSamplers[i]);
+	}
+
+	if (m_tessellation.pSamplerDescriptorTable)
+	{
+		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_tessellation.pSamplerDescriptorTable, CREATE_BACKPOINTER(this));
+	}
+	m_tessellation.pSamplerDescriptorTable = RdrResourceSystem::CreateSamplerTable(m_tessellation.aSamplers.data(), m_tessellation.aSamplers.size(), CREATE_BACKPOINTER(this));
+}
+
+void RdrMaterial::FillTessellationConstantBuffer(void* pData, uint nDataSize, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+{
+	m_tessellation.hDsConstants = RdrResourceSystem::CreateConstantBuffer(pData, nDataSize, accessFlags, debug);
 }
 
 void RdrMaterial::ReloadMaterial(const char* materialName)

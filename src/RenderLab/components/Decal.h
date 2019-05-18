@@ -38,7 +38,6 @@ private:
 	RdrResourceHandle m_hTexture;
 
 	RdrConstantBufferHandle m_hVsPerObjectConstantBuffer;
-	RdrConstantBufferHandle m_hPsMaterialBuffer;
 	int m_lastTransformId;
 };
 

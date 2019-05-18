@@ -224,7 +224,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueTextureReadbackRequest(RdrResour
 	pReq->frameCount = 0;
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(pixelCoord.x, pixelCoord.y, 0, 1, 1, 1);
-	pReq->hDstResource = GetResourceCommandList().CreateTexture2D(1, 1, pSrcResource->GetTextureInfo().format, 
+	pReq->hDstResource = RdrResourceSystem::CreateTexture2D(1, 1, pSrcResource->GetTextureInfo().format,
 		RdrResourceAccessFlags::CpuRO_GpuRW, nullptr, CREATE_BACKPOINTER(this));
 	pReq->dataSize = rdrGetTexturePitch(1, pSrcResource->GetTextureInfo().format);
 	pReq->pData = new char[pReq->dataSize]; // todo: custom heap
@@ -242,7 +242,7 @@ RdrResourceReadbackRequestHandle Renderer::IssueStructuredBufferReadbackRequest(
 	pReq->frameCount = 0;
 	pReq->bComplete = false;
 	pReq->srcRegion = RdrBox(startByteOffset, 0, 0, numBytesToRead, 1, 1);
-	pReq->hDstResource = GetResourceCommandList().CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceAccessFlags::CpuRO_GpuRW, CREATE_BACKPOINTER(this));
+	pReq->hDstResource = RdrResourceSystem::CreateStructuredBuffer(nullptr, 1, numBytesToRead, RdrResourceAccessFlags::CpuRO_GpuRW, CREATE_BACKPOINTER(this));
 	pReq->dataSize = numBytesToRead;
 	pReq->pData = new char[numBytesToRead]; // todo: custom heap
 

@@ -5,7 +5,7 @@
 #include "UtilsLib\StringCache.h"
 #include "RdrGeometry.h"
 
-struct RdrMaterial;
+class RdrMaterial;
 
 class ModelData;
 typedef FreeList<ModelData, 1024> ModelDataFreeList;

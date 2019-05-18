@@ -60,34 +60,32 @@ void RdrSky::LazyInit()
 
 	m_pSkyDomeModel = ModelData::LoadFromFile("skydome");
 	
-	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
-
 	// Transmittance LUTs
-	m_hTransmittanceLut = rResCommandList.CreateTexture2D(TRANSMITTANCE_LUT_WIDTH, TRANSMITTANCE_LUT_HEIGHT,
+	m_hTransmittanceLut = RdrResourceSystem::CreateTexture2D(TRANSMITTANCE_LUT_WIDTH, TRANSMITTANCE_LUT_HEIGHT,
 		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 
 	// Scattering LUTs
-	m_hScatteringRayleighDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
+	m_hScatteringRayleighDeltaLut = RdrResourceSystem::CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
 		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
-	m_hScatteringMieDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
+	m_hScatteringMieDeltaLut = RdrResourceSystem::CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
 		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
-	m_hScatteringCombinedDeltaLut = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
+	m_hScatteringCombinedDeltaLut = RdrResourceSystem::CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
 		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
-	m_hScatteringSumLuts[0] = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
+	m_hScatteringSumLuts[0] = RdrResourceSystem::CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
 		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
-	m_hScatteringSumLuts[1] = rResCommandList.CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
+	m_hScatteringSumLuts[1] = RdrResourceSystem::CreateTexture3D(SCATTERING_LUT_WIDTH, SCATTERING_LUT_HEIGHT, SCATTERING_LUT_DEPTH,
 		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 
 	// Irradiance LUTs
-	m_hIrradianceDeltaLut = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
+	m_hIrradianceDeltaLut = RdrResourceSystem::CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
 		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
-	m_hIrradianceSumLuts[0] = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
+	m_hIrradianceSumLuts[0] = RdrResourceSystem::CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
 		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
-	m_hIrradianceSumLuts[1] = rResCommandList.CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
+	m_hIrradianceSumLuts[1] = RdrResourceSystem::CreateTexture2D(IRRADIANCE_LUT_WIDTH, IRRADIANCE_LUT_HEIGHT,
 		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 
 	// Radiance LUTs
-	m_hRadianceDeltaLut = rResCommandList.CreateTexture3D(RADIANCE_LUT_WIDTH, RADIANCE_LUT_HEIGHT, RADIANCE_LUT_DEPTH,
+	m_hRadianceDeltaLut = RdrResourceSystem::CreateTexture3D(RADIANCE_LUT_WIDTH, RADIANCE_LUT_HEIGHT, RADIANCE_LUT_DEPTH,
 		RdrResourceFormat::R16G16B16A16_FLOAT, RdrResourceAccessFlags::GpuRW, nullptr, CREATE_BACKPOINTER(this));
 
 	// Create the material
@@ -104,7 +102,7 @@ void RdrSky::LazyInit()
 	rasterState.bUseSlopeScaledDepthBias = false;
 	rasterState.bEnableScissor = false;
 
-	m_material.bNeedsLighting = true;
+	m_material.Init("Sky", RdrMaterialFlags::NeedsLighting);
 	m_material.CreatePipelineState(RdrShaderMode::Normal,
 		kVertexShader, pPixelShader,
 		s_skyVertexDesc, ARRAY_SIZE(s_skyVertexDesc), 
@@ -113,14 +111,18 @@ void RdrSky::LazyInit()
 		rasterState,
 		RdrDepthStencilState(true, false, RdrComparisonFunc::Equal));
 
-	m_material.ahTextures.assign(0, m_hScatteringSumLuts[kNumScatteringOrders % 2]);
-	m_material.ahTextures.assign(1, m_hTransmittanceLut);
-	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
+	RdrResourceHandle ahResourceHandles[2];
+	ahResourceHandles[0] = m_hScatteringSumLuts[kNumScatteringOrders % 2];
+	ahResourceHandles[1] = m_hTransmittanceLut;
+	m_material.SetTextures(0, 2, ahResourceHandles);
+
+	RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+	m_material.SetSamplers(0, 1, &sampler);
 }
 
 void RdrSky::AssignExternalResources(RdrResourceHandle hVolumetricFogLut)
 {
-	m_material.ahTextures.assign(2, hVolumetricFogLut); // todo: this isn't thread-safe
+	m_material.SetTextures(2, 1, &hVolumetricFogLut); // todo: this isn't thread-safe
 }
 
 void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySettings, const RdrLightList* pLightList, RdrConstantBufferHandle* phOutAtmosphereCb)
@@ -135,7 +137,8 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		uint constantsSize = sizeof(Vec4) * 4;
 		Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 		*((Matrix44*)pConstants) = Matrix44Transpose(mtxWorld);
-		m_hVsPerObjectConstantBuffer = g_pRenderer->GetResourceCommandList().CreateConstantBuffer(pConstants, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
+		m_hVsPerObjectConstantBuffer = RdrResourceSystem::CreateConstantBuffer(pConstants, constantsSize,
+			RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 	}
 
 	uint numSubObjects = m_pSkyDomeModel->GetNumSubObjects();
@@ -183,7 +186,7 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			pParams->sunColor = float3(0.f, 0.f, 0.f);
 		}
 
-		hAtmosphereConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pParams, constantsSize, CREATE_BACKPOINTER(this));
+		hAtmosphereConstants = RdrResourceSystem::CreateTempConstantBuffer(pParams, constantsSize, CREATE_BACKPOINTER(this));
 	}
 
 	m_pendingComputeOps = 0;

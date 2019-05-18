@@ -72,7 +72,7 @@ void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 					Camera cam;
 					cam.SetAsCubemapFace(rTask.position, (CubemapFace)rTask.state, 0.01f, 1000.f);
 
-					RdrRenderTargetViewHandle hRenderTarget = rResCommandList.CreateRenderTargetView(rTask.hTargetResource, (rTask.targetArrayIndex * (uint)CubemapFace::Count) + rTask.state, 1, CREATE_NULL_BACKPOINTER);
+					RdrRenderTargetViewHandle hRenderTarget = RdrResourceSystem::CreateRenderTargetView(rTask.hTargetResource, (rTask.targetArrayIndex * (uint)CubemapFace::Count) + rTask.state, 1, CREATE_NULL_BACKPOINTER);
 					RdrAction* pAction = RdrAction::CreateOffscreen(L"Spec Probe Capture", cam, false, rTask.viewport, hRenderTarget);
 					Scene::QueueDraw(pAction);
 					rRenderer.QueueAction(pAction);
@@ -100,7 +100,7 @@ void RdrOffscreenTasks::IssuePendingActions(Renderer& rRenderer)
 					Camera cam;
 					cam.SetAsCubemapFace(rTask.position, (CubemapFace)rTask.state, 0.01f, 1000.f);
 
-					RdrRenderTargetViewHandle hRenderTarget = rResCommandList.CreateRenderTargetView(rTask.hTargetResource, (rTask.targetArrayIndex * (uint)CubemapFace::Count) + rTask.state, 1, CREATE_NULL_BACKPOINTER);
+					RdrRenderTargetViewHandle hRenderTarget = RdrResourceSystem::CreateRenderTargetView(rTask.hTargetResource, (rTask.targetArrayIndex * (uint)CubemapFace::Count) + rTask.state, 1, CREATE_NULL_BACKPOINTER);
 					RdrAction* pAction = RdrAction::CreateOffscreen(L"Diffuse Probe Capture", cam, false, rTask.viewport, hRenderTarget);
 					Scene::QueueDraw(pAction);
 					rRenderer.QueueAction(pAction);

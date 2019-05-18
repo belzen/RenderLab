@@ -29,21 +29,31 @@ static constexpr int kNumBackBuffers = 2;
 class DescriptorHeap
 {
 public:
-	void Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors, bool bShaderVisible);
+	void Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, const uint* anDescriptorTableSizes, uint numDescriptorTableSizes, bool bShaderVisible);
 	void Cleanup();
 
-	uint AllocateDescriptorId();
-	D3D12DescriptorHandle AllocateDescriptor();
-	void FreeDescriptorById(uint nId);
-	void FreeDescriptor(D3D12DescriptorHandle hDesc);
+	D3D12DescriptorHandles AllocateDescriptor();
+	D3D12DescriptorHandles AllocateCopyDescriptor();
+
+	D3D12DescriptorHandles CreateDescriptorTable(const D3D12DescriptorHandles* pSrcDescriptors, uint size);
+	void FreeDescriptor(D3D12DescriptorHandles desc);
 
 	void GetDescriptorHandle(uint nId, CD3DX12_CPU_DESCRIPTOR_HANDLE* pOutDesc);
 	ID3D12DescriptorHeap* GetHeap() const { return m_pDescriptorHeap.Get(); }
 
 private:
+	ID3D12Device* m_pDevice;
+
 	ComPtr<ID3D12DescriptorHeap> m_pDescriptorHeap;
+	ComPtr<ID3D12DescriptorHeap> m_pCopyDescriptorHeap;
+	D3D12_DESCRIPTOR_HEAP_TYPE m_heapType;
 	uint m_descriptorSize;
-	IdSetDynamic m_idSet;
+
+	typedef std::vector<D3D12DescriptorHandles> DescriptorTableList;
+	DescriptorTableList m_tables[5];
+	DescriptorTableList m_copyDescriptors;
+
+	ThreadMutex m_mutex;
 };
 
 class DescriptorRingBuffer
@@ -100,6 +110,12 @@ private:
 	uint m_nMaxQueries;
 };
 
+struct RdrSampler
+{
+	D3D12DescriptorHandles hCopyable;
+	D3D12DescriptorHandles hShaderVisible;
+};
+
 class RdrContext
 {
 public:
@@ -114,7 +130,11 @@ public:
 
 	ID3D12GraphicsCommandList* GetCommandList() { return m_pCommandList.Get(); }
 	ID3D12Device* GetDevice() { return m_pDevice.Get(); }
+
 	DescriptorHeap& GetSrvHeap() { return m_srvHeap; }
+	DescriptorHeap& GetSamplerHeap() { return m_samplerHeap; }
+
+	const RdrSampler& GetSampler(const RdrSamplerState& state);
 
 	/////////////////////////////////////////////////////////////
 	// Depth Stencil Views
@@ -133,6 +153,9 @@ public:
 	void ReleaseRenderTargetView(const RdrRenderTargetView& renderTargetView);
 
 	RdrRenderTargetView GetPrimaryRenderTarget();
+
+	RdrShaderResourceView GetNullShaderResourceView() const { return m_nullShaderResourceView; }
+	RdrConstantBufferView GetNullConstantBufferView() const { return m_nullConstantBufferView; }
 
 	/////////////////////////////////////////////////////////////
 	// Shaders
@@ -183,10 +206,8 @@ public:
 private:
 	static constexpr int kMaxNumSamplers = 64;
 
-	void SetDescriptorHeaps();
+	void SetDescriptorHeaps(bool bCompute);
 	void UpdateRenderTargetViews();
-
-	D3D12DescriptorHandle GetSampler(const RdrSamplerState& state);
 
 	ComPtr<ID3D12Device> m_pDevice;
 	ComPtr<ID3D12CommandQueue> m_pCommandQueue;
@@ -194,7 +215,7 @@ private:
 	ComPtr<ID3D12GraphicsCommandList> m_pCommandList;
 
 	ComPtr<ID3D12Resource> m_pBackBuffers[kNumBackBuffers];
-	D3D12DescriptorHandle m_hBackBufferRtvs[kNumBackBuffers];
+	D3D12DescriptorHandles m_hBackBufferRtvs[kNumBackBuffers];
 
 	ComPtr<ID3D12CommandAllocator> m_pCommandAllocators[kNumBackBuffers];
 
@@ -210,6 +231,8 @@ private:
 
 	RdrDepthStencilView m_nullDepthStencilView;
 	RdrRenderTargetView m_nullRenderTargetView;
+	RdrShaderResourceView m_nullShaderResourceView;
+	RdrConstantBufferView m_nullConstantBufferView;
 
 	DescriptorRingBuffer m_dynamicDescriptorHeap;
 	DescriptorRingBuffer m_dynamicSamplerDescriptorHeap;
@@ -223,7 +246,7 @@ private:
 	ComPtr<ID3D12RootSignature> m_pGraphicsRootSignature;
 	ComPtr<ID3D12RootSignature> m_pComputeRootSignature;
 
-	D3D12DescriptorHandle m_samplers[kMaxNumSamplers];
+	RdrSampler m_samplers[kMaxNumSamplers];
 	
 	RdrDrawState m_drawState;
 	RdrProfiler& m_rProfiler;

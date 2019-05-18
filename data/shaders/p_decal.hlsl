@@ -7,7 +7,7 @@ cbuffer PerAction : register(b0)
 	PsPerAction cbPerAction;
 };
 
-cbuffer MaterialParamsBuffer : register(b1)
+cbuffer MaterialParamsBuffer : register(b3)
 {
 	DecalMaterialParams cbMaterial;
 }

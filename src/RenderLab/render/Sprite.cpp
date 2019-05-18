@@ -39,8 +39,7 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	indices[4] = 3;
 	indices[5] = 2;
 
-	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
-	m_hGeo = rResCommandList.CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f), CREATE_BACKPOINTER(this));
+	m_hGeo = RdrResourceSystem::CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f), CREATE_BACKPOINTER(this));
 
 	const RdrResourceFormat* pRtvFormats;
 	uint nNumRtvFormats;
@@ -55,7 +54,7 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	rasterState.bUseSlopeScaledDepthBias = false;
 	rasterState.bEnableScissor = false;
 
-	m_material.name = "Sprite";
+	m_material.Init("Sprite", RdrMaterialFlags::None);
 	m_material.CreatePipelineState(RdrShaderMode::Normal,
 		kVertexShader, pPixelShader, 
 		s_vertexDesc, ARRAY_SIZE(s_vertexDesc), 
@@ -63,8 +62,12 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 		RdrBlendMode::kAlpha,
 		rasterState,
 		RdrDepthStencilState(false, false, RdrComparisonFunc::Never));
-	m_material.ahTextures.assign(0, rResCommandList.CreateTextureFromFile(textureName, nullptr, CREATE_BACKPOINTER(this)));
-	m_material.aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false));
+
+	RdrResourceHandle hTexture = RdrResourceSystem::CreateTextureFromFile(textureName, nullptr, CREATE_BACKPOINTER(this));
+	m_material.SetTextures(0, 1, &hTexture);
+
+	RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
+	m_material.SetSamplers(0, 1, &sampler);
 }
 
 void Sprite::QueueDraw(RdrAction* pAction, const Vec3& pos, const Vec2& scale, float alpha)
@@ -78,7 +81,7 @@ void Sprite::QueueDraw(RdrAction* pAction, const Vec3& pos, const Vec2& scale, f
 	Vec4* pConstants = (Vec4*)RdrFrameMem::AllocAligned(constantsSize, 16);
 	pConstants[0] = Vec4(pos.x - viewport.width * 0.5f, pos.y + viewport.height * 0.5f, pos.z + 1.f, 0.f);
 	pConstants[1] = Vec4(scale.x, scale.y, alpha, 0.f);
-	pDrawOp->hVsConstants = g_pRenderer->GetResourceCommandList().CreateTempConstantBuffer(pConstants, constantsSize, CREATE_BACKPOINTER(this));
+	pDrawOp->hVsConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize, CREATE_BACKPOINTER(this));
 
 	pAction->AddDrawOp(pDrawOp, RdrBucketType::UI);
 }

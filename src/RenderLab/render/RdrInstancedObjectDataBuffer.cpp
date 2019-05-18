@@ -33,14 +33,12 @@ void RdrInstancedObjectDataBuffer::ReleaseEntry(RdrInstancedObjectDataId id)
 
 void RdrInstancedObjectDataBuffer::UpdateBuffer(Renderer& rRenderer)
 {
-	RdrResourceCommandList& rResCommandList = rRenderer.GetResourceCommandList();
-
 	// TODO: This is not safe.  The buffer data could be changing on the main thread
 	//	while the render thread processes the update.  This should use immediate commands instead.
 	uint lastObject = s_objectBuffer.data.getMaxUsedId();
 	if (!s_objectBuffer.hResource)
 	{
-		s_objectBuffer.hResource = rResCommandList.CreateStructuredBuffer(
+		s_objectBuffer.hResource = RdrResourceSystem::CreateStructuredBuffer(
 			s_objectBuffer.data.data(), 
 			s_objectBuffer.data.kMaxEntries, 
 			sizeof(VsPerObject), 
@@ -49,6 +47,7 @@ void RdrInstancedObjectDataBuffer::UpdateBuffer(Renderer& rRenderer)
 	}
 	else if (lastObject > 0)
 	{
+		RdrResourceCommandList& rResCommandList = rRenderer.GetResourceCommandList();
 		rResCommandList.UpdateBuffer(s_objectBuffer.hResource, s_objectBuffer.data.data(), lastObject, CREATE_NULL_BACKPOINTER);
 	}
 }

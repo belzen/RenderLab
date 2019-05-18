@@ -8,19 +8,19 @@ cbuffer PerAction : register(b0)
 	PsPerAction cbPerAction;
 };
 
-cbuffer MaterialParamsBuffer : register(b1)
-{
-	MaterialParams cbMaterial;
-}
-
-cbuffer GlobalLightsBuffer : register(b2)
+cbuffer GlobalLightsBuffer : register(b1)
 {
 	GlobalLightData cbGlobalLights;
 }
 
-cbuffer AtmosphereParamsBuffer : register(b3)
+cbuffer AtmosphereParamsBuffer : register(b2)
 {
 	AtmosphereParams cbAtmosphere;
+}
+
+cbuffer MaterialParamsBuffer : register(b3)
+{
+	MaterialParams cbMaterial;
 }
 
 
