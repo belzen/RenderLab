@@ -155,6 +155,7 @@ public:
 	RdrRenderTargetView GetPrimaryRenderTarget();
 
 	RdrShaderResourceView GetNullShaderResourceView() const { return m_nullShaderResourceView; }
+	RdrShaderResourceView GetNullUnorderedAccessView() const { return m_nullUnorderedAccessView; }
 	RdrConstantBufferView GetNullConstantBufferView() const { return m_nullConstantBufferView; }
 
 	/////////////////////////////////////////////////////////////
@@ -206,7 +207,6 @@ public:
 private:
 	static constexpr int kMaxNumSamplers = 64;
 
-	void SetDescriptorHeaps(bool bCompute);
 	void UpdateRenderTargetViews();
 
 	ComPtr<ID3D12Device> m_pDevice;
@@ -232,10 +232,8 @@ private:
 	RdrDepthStencilView m_nullDepthStencilView;
 	RdrRenderTargetView m_nullRenderTargetView;
 	RdrShaderResourceView m_nullShaderResourceView;
+	RdrShaderResourceView m_nullUnorderedAccessView;
 	RdrConstantBufferView m_nullConstantBufferView;
-
-	DescriptorRingBuffer m_dynamicDescriptorHeap;
-	DescriptorRingBuffer m_dynamicSamplerDescriptorHeap;
 
 	QueryHeap m_timestampQueryHeap;
 	ComPtr<ID3D12Resource> m_timestampResultBuffer;

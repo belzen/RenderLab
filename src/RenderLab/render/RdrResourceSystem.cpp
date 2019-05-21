@@ -636,23 +636,32 @@ const RdrDescriptorTable* RdrResourceSystem::CreateShaderResourceViewTable(const
 	assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
-
-	D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-	for (uint i = 0; i < count; ++i)
-	{
-		if (ahResources[i])
-		{
-			const RdrResource* pResource = s_resourceSystem.resources.get(ahResources[i]);
-			ahDescriptors[i] = pResource ? pResource->GetSRV().hCopyableView : pRdrContext->GetNullShaderResourceView().hCopyableView;
-		}
-		else
-		{
-			ahDescriptors[i] = pRdrContext->GetNullShaderResourceView().hCopyableView;
-		}
-	}
-
 	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-	pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+
+	if (count == 1)
+	{
+		const RdrResource* pResource = s_resourceSystem.resources.get(ahResources[0]);
+		D3D12DescriptorHandles hDesc = pResource ? pResource->GetSRV().hShaderVisibleView : pRdrContext->GetNullShaderResourceView().hShaderVisibleView;
+		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
+	}
+	else
+	{
+		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+		for (uint i = 0; i < count; ++i)
+		{
+			if (ahResources[i])
+			{
+				const RdrResource* pResource = s_resourceSystem.resources.get(ahResources[i]);
+				ahDescriptors[i] = pResource ? pResource->GetSRV().hCopyableView : pRdrContext->GetNullShaderResourceView().hCopyableView;
+			}
+			else
+			{
+				ahDescriptors[i] = pRdrContext->GetNullShaderResourceView().hCopyableView;
+			}
+		}
+
+		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+	}
 
 	return pTable;
 }
@@ -663,15 +672,23 @@ const RdrDescriptorTable* RdrResourceSystem::CreateShaderResourceViewTable(const
 	assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
-
-	D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-	for (uint i = 0; i < count; ++i)
-	{
-		ahDescriptors[i] = apResources[i] ? apResources[i]->GetSRV().hCopyableView : pRdrContext->GetNullShaderResourceView().hCopyableView;
-	}
-
 	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-	pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+
+	if (count == 1)
+	{
+		D3D12DescriptorHandles hDesc = apResources[0] ? apResources[0]->GetSRV().hShaderVisibleView : pRdrContext->GetNullShaderResourceView().hShaderVisibleView;
+		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
+	}
+	else
+	{
+		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+		for (uint i = 0; i < count; ++i)
+		{
+			ahDescriptors[i] = apResources[i] ? apResources[i]->GetSRV().hCopyableView : pRdrContext->GetNullShaderResourceView().hCopyableView;
+		}
+
+		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+	}
 
 	return pTable;
 }
@@ -683,13 +700,89 @@ const RdrDescriptorTable* RdrResourceSystem::CreateTempShaderResourceViewTable(c
 	return pTable;
 }
 
-const RdrDescriptorTable* RdrResourceSystem::CreateUpdateShaderResourceViewTable(const RdrDescriptorTable* pTable, const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
+const RdrDescriptorTable* RdrResourceSystem::CreateTempShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
 {
-	if (!pTable)
-		return CreateShaderResourceViewTable(ahResources, count, debug);
-
+	const RdrDescriptorTable* pTable = CreateShaderResourceViewTable(ahResources, count, debug);
 	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
-	return CreateShaderResourceViewTable(ahResources, count, debug);
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
+{
+	static constexpr uint kMaxDescriptorTableSize = 16;
+	assert(count < kMaxDescriptorTableSize);
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
+
+	if (count == 1)
+	{
+		const RdrResource* pResource = s_resourceSystem.resources.get(ahResources[0]);
+		D3D12DescriptorHandles hDesc = pResource ? pResource->GetUAV().hShaderVisibleView : pRdrContext->GetNullUnorderedAccessView().hShaderVisibleView;
+		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
+	}
+	else
+	{
+		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+		for (uint i = 0; i < count; ++i)
+		{
+			if (ahResources[i])
+			{
+				const RdrResource* pResource = s_resourceSystem.resources.get(ahResources[i]);
+				ahDescriptors[i] = pResource ? pResource->GetUAV().hCopyableView : pRdrContext->GetNullUnorderedAccessView().hCopyableView;
+			}
+			else
+			{
+				ahDescriptors[i] = pRdrContext->GetNullUnorderedAccessView().hCopyableView;
+			}
+		}
+
+		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+	}
+
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
+{
+	static constexpr uint kMaxDescriptorTableSize = 16;
+	assert(count < kMaxDescriptorTableSize);
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
+
+	if (count == 1)
+	{
+		D3D12DescriptorHandles hDesc = apResources[0] ? apResources[0]->GetUAV().hShaderVisibleView : pRdrContext->GetNullUnorderedAccessView().hShaderVisibleView;
+		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
+	}
+	else
+	{
+		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+		for (uint i = 0; i < count; ++i)
+		{
+			ahDescriptors[i] = apResources[i] ? apResources[i]->GetUAV().hCopyableView : pRdrContext->GetNullUnorderedAccessView().hCopyableView;
+		}
+
+		RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
+		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+	}
+
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateTempUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
+{
+	const RdrDescriptorTable* pTable = CreateUnorderedAccessViewTable(apResources, count, debug);
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return pTable;
+}
+
+const RdrDescriptorTable* RdrResourceSystem::CreateTempUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
+{
+	const RdrDescriptorTable* pTable = CreateUnorderedAccessViewTable(ahResources, count, debug);
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return pTable;
 }
 
 const RdrDescriptorTable* RdrResourceSystem::CreateSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
@@ -699,14 +792,21 @@ const RdrDescriptorTable* RdrResourceSystem::CreateSamplerTable(const RdrSampler
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 
-	D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-	for (uint i = 0; i < count; ++i)
+	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
+	if (count == 1)
 	{
-		ahDescriptors[i] = pRdrContext->GetSampler(aSamplers[i]).hCopyable;
+		pTable->CreateFromExisting(RdrDescriptorType::Sampler, pRdrContext->GetSampler(aSamplers[0]).hShaderVisible, debug);
+	}
+	else
+	{
+		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+		for (uint i = 0; i < count; ++i)
+		{
+			ahDescriptors[i] = pRdrContext->GetSampler(aSamplers[i]).hCopyable;
+		}
+		pTable->Create(*pRdrContext, RdrDescriptorType::Sampler, ahDescriptors, count, debug);
 	}
 
-	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-	pTable->Create(*pRdrContext, RdrDescriptorType::Sampler, ahDescriptors, count, debug);
 
 	return pTable;
 }
@@ -733,16 +833,25 @@ const RdrDescriptorTable* RdrResourceSystem::CreateConstantBufferTable(const Rdr
 	assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
-
-	D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-	for (uint i = 0; i < count; ++i)
-	{
-		const RdrResource* pResource = s_resourceSystem.constantBuffers.get(ahBuffers[i]);
-		ahDescriptors[i] = pResource ? pResource->GetCBV().hCopyableView : pRdrContext->GetNullConstantBufferView().hCopyableView;
-	}
-
 	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-	pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+
+	if (count == 1)
+	{
+		const RdrResource* pResource = s_resourceSystem.constantBuffers.get(ahBuffers[0]);
+		D3D12DescriptorHandles hDesc = pResource ? pResource->GetCBV().hShaderVisibleView : pRdrContext->GetNullConstantBufferView().hShaderVisibleView;
+		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
+	}
+	else
+	{
+		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+		for (uint i = 0; i < count; ++i)
+		{
+			const RdrResource* pResource = s_resourceSystem.constantBuffers.get(ahBuffers[i]);
+			ahDescriptors[i] = pResource ? pResource->GetCBV().hCopyableView : pRdrContext->GetNullConstantBufferView().hCopyableView;
+		}
+
+		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+	}
 
 	return pTable;
 }
@@ -760,15 +869,23 @@ const RdrDescriptorTable* RdrResourceSystem::CreateConstantBufferTable(const Rdr
 	assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
-
-	D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-	for (uint i = 0; i < count; ++i)
-	{
-		ahDescriptors[i] = apBuffers[i] ? apBuffers[i]->GetCBV().hCopyableView : pRdrContext->GetNullConstantBufferView().hCopyableView;
-	}
-
 	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-	pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+
+	if (count == 1)
+	{
+		D3D12DescriptorHandles hDesc = apBuffers[0] ? apBuffers[0]->GetCBV().hShaderVisibleView : pRdrContext->GetNullConstantBufferView().hShaderVisibleView;
+		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
+	}
+	else
+	{
+		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
+		for (uint i = 0; i < count; ++i)
+		{
+			ahDescriptors[i] = apBuffers[i] ? apBuffers[i]->GetCBV().hCopyableView : pRdrContext->GetNullConstantBufferView().hCopyableView;
+		}
+
+		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+	}
 
 	return pTable;
 }

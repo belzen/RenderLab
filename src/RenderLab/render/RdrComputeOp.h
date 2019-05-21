@@ -11,10 +11,10 @@ struct RdrComputeOp
 	RdrPipelineState pipelineState;
 	uint threads[3];
 
-	Array<RdrResourceHandle, 8>       ahResources;
-	Array<RdrSamplerState, 4>         aSamplers;
-	Array<RdrResourceHandle, 4>       ahWritableResources;
-	Array<RdrConstantBufferHandle, 4> ahConstantBuffers;
+	const RdrDescriptorTable* pResourceDescriptorTable;
+	const RdrDescriptorTable* pSamplerDescriptorTable;
+	const RdrDescriptorTable* pUnorderedAccessDescriptorTable;
+	const RdrDescriptorTable* pConstantsDescriptorTable;
 
 	RdrDebugBackpointer debug;
 };

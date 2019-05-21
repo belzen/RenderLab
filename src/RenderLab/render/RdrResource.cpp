@@ -645,6 +645,17 @@ void RdrResource::ReleaseShaderResourceView(RdrContext& context, RdrShaderResour
 }
 
 //////////////////////////////////////////////////////////////////////////
+void RdrDescriptorTable::CreateFromExisting(RdrDescriptorType eDescType, const D3D12DescriptorHandles& hDescriptor, const RdrDebugBackpointer& debug)
+{
+	assert(hDescriptor.bShaderVisible);
+	m_debugCreator = debug;
+	m_nLastUsedFrameCode = 0;
+	m_eDescType = eDescType;
+
+	m_descriptors = hDescriptor;
+	m_bOwnsDescriptors = false;
+}
+
 void RdrDescriptorTable::Create(RdrContext& rdrContext, RdrDescriptorType eDescType, const D3D12DescriptorHandles* phDescriptors, uint count, const RdrDebugBackpointer& debug)
 {
 	m_debugCreator = debug;
@@ -653,18 +664,22 @@ void RdrDescriptorTable::Create(RdrContext& rdrContext, RdrDescriptorType eDescT
 
 	DescriptorHeap& descHeap = (m_eDescType == RdrDescriptorType::Sampler) ? rdrContext.GetSamplerHeap() : rdrContext.GetSrvHeap();
 	m_descriptors = descHeap.CreateDescriptorTable(phDescriptors, count);
+	m_bOwnsDescriptors = true;
 }
 
 void RdrDescriptorTable::Release(RdrContext& rdrContext)
 {
-	switch (m_eDescType)
+	if (m_bOwnsDescriptors)
 	{
-	case RdrDescriptorType::Sampler:
-		rdrContext.GetSamplerHeap().FreeDescriptor(m_descriptors);
-		break;
-	case RdrDescriptorType::SRV:
-		rdrContext.GetSrvHeap().FreeDescriptor(m_descriptors);
-		break;
+		switch (m_eDescType)
+		{
+		case RdrDescriptorType::Sampler:
+			rdrContext.GetSamplerHeap().FreeDescriptor(m_descriptors);
+			break;
+		case RdrDescriptorType::SRV:
+			rdrContext.GetSrvHeap().FreeDescriptor(m_descriptors);
+			break;
+		}
 	}
 }
 

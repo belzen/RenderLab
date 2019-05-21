@@ -52,12 +52,8 @@ public:
 	D3D12DescriptorHandles hPsGlobalSamplerTable;
 
 	// Compute shader
-	RdrConstantBufferView csConstantBuffers[4];
-	RdrShaderResourceView csResources[8];
-	RdrSamplerState csSamplers[4];
-	RdrUnorderedAccessView csUavs[4];
-	uint csConstantBufferCount;
-	uint csResourceCount;
-	uint csSamplerCount;
-	uint csUavCount;
+	D3D12DescriptorHandles hCsConstantBufferTable;
+	D3D12DescriptorHandles hCsShaderResourceViewTable;
+	D3D12DescriptorHandles hCsSamplerTable;
+	D3D12DescriptorHandles hCsUnorderedAccessViewTable;
 };

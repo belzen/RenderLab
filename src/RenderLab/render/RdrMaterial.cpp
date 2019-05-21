@@ -215,8 +215,11 @@ namespace
 			aSamplers[n] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
 		}
 
-		pOutMaterial->SetTextures(0, pMaterial->texCount, ahTextures);
-		pOutMaterial->SetSamplers(0, pMaterial->texCount, aSamplers);
+		if (pMaterial->texCount > 0)
+		{
+			pOutMaterial->SetTextures(0, pMaterial->texCount, ahTextures);
+			pOutMaterial->SetSamplers(0, pMaterial->texCount, aSamplers);
+		}
 
 		uint constantsSize = sizeof(MaterialParams);
 		MaterialParams* pConstants = (MaterialParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
@@ -261,16 +264,7 @@ void RdrMaterial::Cleanup()
 		//donotcheckin destroy
 	}
 
-	uint nNumTextures = m_ahTextures.size();
-	for (uint i = 0; i < nNumTextures; ++i)
-	{
-		RdrResourceHandle hTexture = m_ahTextures.get(i);
-		if (hTexture)
-		{
-			g_pRenderer->GetResourceCommandList().ReleaseResource(hTexture, CREATE_BACKPOINTER(this));
-			m_ahTextures.assign(i, 0);
-		}
-	}
+	// Note: Intentionally not destroying resources as they are managed elsewhere
 
 	if (m_pResourceDescriptorTable)
 	{
@@ -284,7 +278,6 @@ void RdrMaterial::Cleanup()
 		m_pSamplerDescriptorTable = nullptr;
 	}
 
-
 	//////////////////////////////////////////////////////////////////////////
 	// Tessellation
 	if (m_tessellation.hDsConstants)
@@ -293,6 +286,8 @@ void RdrMaterial::Cleanup()
 		m_tessellation.hDsConstants = 0;
 	}
 
+	//donotcheckin resource refcounts
+	/*
 	uint nNumResources = m_tessellation.ahResources.size();
 	for (uint i = 0; i < nNumResources; ++i)
 	{
@@ -303,6 +298,7 @@ void RdrMaterial::Cleanup()
 			m_tessellation.ahResources.assign(i, 0);
 		}
 	}
+	*/
 
 	if (m_tessellation.pResourceDescriptorTable)
 	{

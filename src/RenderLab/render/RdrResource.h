@@ -81,7 +81,6 @@ struct RdrDescriptorTable
 public:
 	void CreateFromExisting(RdrDescriptorType eDescType, const D3D12DescriptorHandles& hDescriptor, const RdrDebugBackpointer& debug);
 	void Create(RdrContext& rdrContext, RdrDescriptorType eDescType, const D3D12DescriptorHandles* phDescriptors, uint count, const RdrDebugBackpointer& debug);
-
 	void Release(RdrContext& rdrContext);
 
 	const D3D12DescriptorHandles& GetDescriptors() const { MarkUsedThisFrame(); return m_descriptors; }

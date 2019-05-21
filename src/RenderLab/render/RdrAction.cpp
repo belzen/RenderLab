@@ -762,47 +762,16 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	// Done
 	m_pContext->Draw(*m_pDrawState, instanceCount);
 	m_pProfiler->IncrementCounter(RdrProfileCounter::DrawCall);
-
-	m_pDrawState->Reset();
 }
 
 void RdrAction::DispatchCompute(const RdrComputeOp* pComputeOp)
 {
 	m_pDrawState->pipelineState = pComputeOp->pipelineState;
 
-	m_pDrawState->csConstantBufferCount = pComputeOp->ahConstantBuffers.size();
-	for (uint i = 0; i < m_pDrawState->csConstantBufferCount; ++i)
-	{
-		m_pDrawState->csConstantBuffers[i] = RdrResourceSystem::GetConstantBuffer(pComputeOp->ahConstantBuffers.get(i))->GetCBV();
-	}
-
-	uint count = pComputeOp->ahResources.size();
-	m_pDrawState->csResourceCount = count;
-	for (uint i = 0; i < count; ++i)
-	{
-		if (pComputeOp->ahResources.get(i))
-			m_pDrawState->csResources[i] = RdrResourceSystem::GetResource(pComputeOp->ahResources.get(i))->GetSRV();
-		else
-			m_pDrawState->csResources[i].Reset();
-	}
-
-
-	count = pComputeOp->aSamplers.size();
-	m_pDrawState->csSamplerCount = count;
-	for (uint i = 0; i < count; ++i)
-	{
-		m_pDrawState->csSamplers[i] = pComputeOp->aSamplers.get(i);
-	}
-
-	count = pComputeOp->ahWritableResources.size();
-	m_pDrawState->csUavCount = count;
-	for (uint i = 0; i < count; ++i)
-	{
-		if (pComputeOp->ahWritableResources.get(i))
-			m_pDrawState->csUavs[i] = RdrResourceSystem::GetResource(pComputeOp->ahWritableResources.get(i))->GetUAV();
-		else
-			m_pDrawState->csUavs[i].Reset();
-	}
+	m_pDrawState->hCsConstantBufferTable = pComputeOp->pConstantsDescriptorTable ? pComputeOp->pConstantsDescriptorTable->GetDescriptors() : m_pContext->GetNullConstantBufferView().hShaderVisibleView;
+	m_pDrawState->hCsSamplerTable = pComputeOp->pSamplerDescriptorTable ? pComputeOp->pSamplerDescriptorTable->GetDescriptors() : m_pContext->GetSampler(RdrSamplerState()).hShaderVisible;
+	m_pDrawState->hCsShaderResourceViewTable = pComputeOp->pResourceDescriptorTable ? pComputeOp->pResourceDescriptorTable->GetDescriptors() : m_pContext->GetNullShaderResourceView().hShaderVisibleView;
+	m_pDrawState->hCsUnorderedAccessViewTable = pComputeOp->pUnorderedAccessDescriptorTable ? pComputeOp->pUnorderedAccessDescriptorTable->GetDescriptors() : m_pContext->GetNullUnorderedAccessView().hShaderVisibleView;
 
 	m_pContext->DispatchCompute(*m_pDrawState, pComputeOp->threads[0], pComputeOp->threads[1], pComputeOp->threads[2]);
 

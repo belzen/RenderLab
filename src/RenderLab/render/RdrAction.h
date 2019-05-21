@@ -118,7 +118,7 @@ public:
 	const RdrActionLightResources& GetLightResources() const;
 	const RdrGlobalConstants& GetGlobalConstants() const;
 
-	RdrDepthStencilViewHandle GetPrimaryDepthBuffer() const;
+	RdrResourceHandle GetPrimaryDepthBuffer() const;
 
 	// Issue action's draw commands to the render device.
 	void Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler* pProfiler);
@@ -229,7 +229,7 @@ inline const RdrGlobalConstants& RdrAction::GetGlobalConstants() const
 	return m_constants;
 }
 
-inline RdrDepthStencilViewHandle RdrAction::GetPrimaryDepthBuffer() const
+inline RdrResourceHandle RdrAction::GetPrimaryDepthBuffer() const
 {
 	return m_surfaces.hDepthBuffer;
 }

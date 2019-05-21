@@ -16,7 +16,7 @@ struct D3D12DescriptorHandles
 	CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuDesc;
 
 	bool bInUse				= false;
-	bool bCopyable			= false;
+	bool bShaderVisible		= false;
 	uint8 nTableSize		= 0;
 	uint8 nTableListIndex	= 0;
 };

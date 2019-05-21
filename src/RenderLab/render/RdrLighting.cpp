@@ -391,7 +391,7 @@ void RdrLighting::QueueDraw(RdrAction* pAction, RdrLightList* pLights, RdrLighti
 	ahResources[5] = outResources.hSpotLightListRes;
 	ahResources[6] = outResources.hPointLightListRes;
 	ahResources[7] = sharedResources.hLightIndicesRes;
-	pOutResources->pResourcesTable = RdrResourceSystem::CreateUpdateShaderResourceViewTable(pOutResources->pResourcesTable, ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
+	pOutResources->pResourcesTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
 
 	RdrSamplerState aSamplerStates[2];
 	aSamplerStates[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
@@ -438,9 +438,11 @@ void RdrLighting::QueueClusteredLightCulling(RdrAction* pAction, const Camera& r
 	pCullOp->threads[0] = clusterCountX;
 	pCullOp->threads[1] = clusterCountY;
 	pCullOp->threads[2] = CLUSTEREDLIGHTING_DEPTH_SLICES;
-	pCullOp->ahWritableResources.assign(0, m_clusteredLightData.hLightIndices);
-	pCullOp->ahResources.assign(0, pOutResources->hSpotLightListRes);
-	pCullOp->ahResources.assign(1, pOutResources->hPointLightListRes);
+
+	pCullOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_clusteredLightData.hLightIndices, 1, CREATE_BACKPOINTER(this));
+	
+	RdrResourceHandle ahResources[] = { pOutResources->hSpotLightListRes, pOutResources->hPointLightListRes };
+	pCullOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
 
 	uint constantsSize = sizeof(ClusteredLightCullingParams);
 	ClusteredLightCullingParams* pParams = (ClusteredLightCullingParams*)RdrFrameMem::AllocAligned(constantsSize, 16);
@@ -462,7 +464,7 @@ void RdrLighting::QueueClusteredLightCulling(RdrAction* pAction, const Camera& r
 	pParams->pointLightCount = numPointLights;
 
 	RdrConstantBufferHandle hCullConstants = RdrResourceSystem::CreateTempConstantBuffer(pParams, constantsSize, CREATE_BACKPOINTER(this));
-	pCullOp->ahConstantBuffers.assign(0, hCullConstants);
+	pCullOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(&hCullConstants, 1, CREATE_BACKPOINTER(this));
 
 	pAction->AddComputeOp(pCullOp, RdrPass::LightCulling);
 }
@@ -514,16 +516,20 @@ void RdrLighting::QueueTiledLightCulling(RdrAction* pAction, const Camera& rCame
 	RdrConstantBufferHandle hDepthMinMaxConstants = RdrResourceSystem::CreateTempConstantBuffer(pConstants, constantsSize, CREATE_BACKPOINTER(this));
 
 	// Fill draw op
-	RdrComputeOp* pDepthOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
-	pDepthOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::TiledDepthMinMax);
-	pDepthOp->threads[0] = tileCountX;
-	pDepthOp->threads[1] = tileCountY;
-	pDepthOp->threads[2] = 1;
-	pDepthOp->ahWritableResources.assign(0, m_tiledLightData.hDepthMinMaxTex);
-	pDepthOp->ahResources.assign(0, pAction->GetPrimaryDepthBuffer());
-	pDepthOp->ahConstantBuffers.assign(0, hDepthMinMaxConstants);
+	{
+		RdrComputeOp* pDepthOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
+		pDepthOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::TiledDepthMinMax);
+		pDepthOp->threads[0] = tileCountX;
+		pDepthOp->threads[1] = tileCountY;
+		pDepthOp->threads[2] = 1;
+		pDepthOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_tiledLightData.hDepthMinMaxTex, 1, CREATE_BACKPOINTER(this));
 
-	pAction->AddComputeOp(pDepthOp, RdrPass::LightCulling);
+		RdrResourceHandle ahResources[] = { pAction->GetPrimaryDepthBuffer() };
+		pDepthOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
+		pDepthOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(&hDepthMinMaxConstants, 1, CREATE_BACKPOINTER(this));
+
+		pAction->AddComputeOp(pDepthOp, RdrPass::LightCulling);
+	}
 
 	//////////////////////////////////////
 	// Light culling
@@ -560,17 +566,19 @@ void RdrLighting::QueueTiledLightCulling(RdrAction* pAction, const Camera& rCame
 	RdrConstantBufferHandle hCullConstants = RdrResourceSystem::CreateTempConstantBuffer(pParams, constantsSize, CREATE_BACKPOINTER(this));
 
 	// Fill draw op
-	RdrComputeOp* pCullOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
-	pCullOp->threads[0] = tileCountX;
-	pCullOp->threads[1] = tileCountY;
-	pCullOp->threads[2] = 1;
-	pCullOp->ahWritableResources.assign(0, m_tiledLightData.hLightIndices);
-	pCullOp->ahResources.assign(0, rLightParams.hSpotLightListRes);
-	pCullOp->ahResources.assign(1, rLightParams.hPointLightListRes);
-	pCullOp->ahResources.assign(2, m_tiledLightData.hDepthMinMaxTex);
-	pCullOp->ahConstantBuffers.assign(0, hCullConstants);
+	{
+		RdrComputeOp* pCullOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
+		pCullOp->threads[0] = tileCountX;
+		pCullOp->threads[1] = tileCountY;
+		pCullOp->threads[2] = 1;
 
-	pAction->AddComputeOp(pCullOp, RdrPass::LightCulling);
+		RdrResourceHandle ahResources[] = { rLightParams.hSpotLightListRes, rLightParams.hPointLightListRes, m_tiledLightData.hDepthMinMaxTex };
+		pCullOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
+		pCullOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_tiledLightData.hLightIndices, 1, CREATE_BACKPOINTER(this));
+		pCullOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(&hCullConstants, 1, CREATE_BACKPOINTER(this));
+
+		pAction->AddComputeOp(pCullOp, RdrPass::LightCulling);
+	}
 }
 
 void RdrLighting::QueueVolumetricFog(RdrAction* pAction, const AssetLib::VolumetricFogSettings& rFogSettings, const RdrResourceHandle hLightIndicesRes)
@@ -593,14 +601,14 @@ void RdrLighting::QueueVolumetricFog(RdrAction* pAction, const AssetLib::Volumet
 			rResCommandList.ReleaseResource(m_hFogFinalLut, CREATE_BACKPOINTER(this));
 
 		m_hFogDensityLightLut = RdrResourceSystem::CreateTexture3D(
-			lutSize.x, lutSize.y, lutSize.z, 
-			RdrResourceFormat::R16G16B16A16_FLOAT, 
+			lutSize.x, lutSize.y, lutSize.z,
+			RdrResourceFormat::R16G16B16A16_FLOAT,
 			RdrResourceAccessFlags::GpuRW,
 			nullptr, CREATE_BACKPOINTER(this));
 
 		m_hFogFinalLut = RdrResourceSystem::CreateTexture3D(
-			lutSize.x, lutSize.y, lutSize.z, 
-			RdrResourceFormat::R16G16B16A16_FLOAT, 
+			lutSize.x, lutSize.y, lutSize.z,
+			RdrResourceFormat::R16G16B16A16_FLOAT,
 			RdrResourceAccessFlags::GpuRW,
 			nullptr, CREATE_BACKPOINTER(this));
 
@@ -620,42 +628,47 @@ void RdrLighting::QueueVolumetricFog(RdrAction* pAction, const AssetLib::Volumet
 
 	//////////////////////////////////////////////////////////////////////////
 	// Participating media density and per-froxel lighting.
-	RdrComputeOp* pLightOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
-	pLightOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::VolumetricFog_Light);
+	{
+		RdrComputeOp* pLightOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
+		pLightOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::VolumetricFog_Light);
 
-	pLightOp->ahWritableResources.assign(0, m_hFogDensityLightLut);
+		pLightOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_hFogDensityLightLut, 1, CREATE_BACKPOINTER(this));
 
-	pLightOp->ahConstantBuffers.assign(0, rGlobalConstants.hPsPerAction);
-	pLightOp->ahConstantBuffers.assign(1, rLightParams.hGlobalLightsCb);
-	pLightOp->ahConstantBuffers.assign(2, rGlobalConstants.hPsAtmosphere);
-	pLightOp->ahConstantBuffers.assign(3, m_hFogConstants);
+		RdrConstantBufferHandle ahConstantBuffers[] = { rGlobalConstants.hPsPerAction, rLightParams.hGlobalLightsCb, rGlobalConstants.hPsAtmosphere, m_hFogConstants };
+		pLightOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(ahConstantBuffers, ARRAYSIZE(ahConstantBuffers), CREATE_BACKPOINTER(this));
 
-	pLightOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
-	pLightOp->aSamplers.assign(1, RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false));
+		RdrSamplerState aSamplers[] = {
+			RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false),
+			RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false) };
+		pLightOp->pSamplerDescriptorTable = RdrResourceSystem::CreateTempSamplerTable(aSamplers, ARRAYSIZE(aSamplers), CREATE_BACKPOINTER(this));
 
-	pLightOp->ahResources.assign(0, rLightParams.sharedResources.hSkyTransmittanceLut);
-	pLightOp->ahResources.assign(1, m_hShadowMapTexArray);
-	pLightOp->ahResources.assign(2, m_hShadowCubeMapTexArray);
-	pLightOp->ahResources.assign(3, rLightParams.hSpotLightListRes);
-	pLightOp->ahResources.assign(4, rLightParams.hPointLightListRes);
-	pLightOp->ahResources.assign(5, hLightIndicesRes);
+		RdrResourceHandle ahResources[] = { rLightParams.sharedResources.hSkyTransmittanceLut, m_hShadowMapTexArray, m_hShadowCubeMapTexArray, rLightParams.hSpotLightListRes, rLightParams.hPointLightListRes, hLightIndicesRes };
+		pLightOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
 
-	pLightOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.x, VOLFOG_LUT_THREADS_X);
-	pLightOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.y, VOLFOG_LUT_THREADS_Y);
-	pLightOp->threads[2] = m_fogLutSize.z;
-	pAction->AddComputeOp(pLightOp, RdrPass::VolumetricFog);
+		pLightOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.x, VOLFOG_LUT_THREADS_X);
+		pLightOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.y, VOLFOG_LUT_THREADS_Y);
+		pLightOp->threads[2] = m_fogLutSize.z;
+		pAction->AddComputeOp(pLightOp, RdrPass::VolumetricFog);
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Scattering accumulation
-	RdrComputeOp* pAccumOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
-	pAccumOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::VolumetricFog_Accum);
-	pAccumOp->ahConstantBuffers.assign(0, rGlobalConstants.hPsPerAction);
-	pAccumOp->ahConstantBuffers.assign(1, m_hFogConstants);
-	pAccumOp->ahResources.assign(0, m_hFogDensityLightLut);
-	pAccumOp->ahWritableResources.assign(0, m_hFogFinalLut);
+	{
+		RdrComputeOp* pAccumOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
+		pAccumOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::VolumetricFog_Accum);
 
-	pAccumOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.x, VOLFOG_LUT_THREADS_X);
-	pAccumOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.y, VOLFOG_LUT_THREADS_Y);
-	pAccumOp->threads[2] = 1;
-	pAction->AddComputeOp(pAccumOp, RdrPass::VolumetricFog);
+		RdrConstantBufferHandle ahConstantBuffers[] = { rGlobalConstants.hPsPerAction, m_hFogConstants };
+		pAccumOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(ahConstantBuffers, ARRAYSIZE(ahConstantBuffers), CREATE_BACKPOINTER(this));
+
+		RdrResourceHandle ahResources[] = { m_hFogDensityLightLut };
+		pAccumOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
+
+		RdrResourceHandle ahWritableResources[] = { m_hFogFinalLut };
+		pAccumOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(ahWritableResources, ARRAYSIZE(ahWritableResources), CREATE_BACKPOINTER(this));
+
+		pAccumOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.x, VOLFOG_LUT_THREADS_X);
+		pAccumOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.y, VOLFOG_LUT_THREADS_Y);
+		pAccumOp->threads[2] = 1;
+		pAction->AddComputeOp(pAccumOp, RdrPass::VolumetricFog);
+	}
 }

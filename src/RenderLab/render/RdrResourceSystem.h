@@ -61,13 +61,21 @@ namespace RdrResourceSystem
 	const RdrResource* GetResource(const RdrResourceHandle hRes);
 	const RdrResource* GetConstantBuffer(const RdrConstantBufferHandle hBuffer);
 
+	// SRVs
 	const RdrDescriptorTable* CreateShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
 	const RdrDescriptorTable* CreateShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
 	const RdrDescriptorTable* CreateTempShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
-	const RdrDescriptorTable* CreateUpdateShaderResourceViewTable(const RdrDescriptorTable* pTable, const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
+	const RdrDescriptorTable* CreateTempShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
+	// UAVs
+	const RdrDescriptorTable* CreateUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
+	const RdrDescriptorTable* CreateUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
+	const RdrDescriptorTable* CreateTempUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
+	const RdrDescriptorTable* CreateTempUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
+	// Samplers
 	const RdrDescriptorTable* CreateSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug);
 	const RdrDescriptorTable* CreateTempSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug);
 	const RdrDescriptorTable* CreateUpdateSamplerTable(const RdrDescriptorTable* pTable, const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug);
+	// Constant buffers
 	const RdrDescriptorTable* CreateConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug);
 	const RdrDescriptorTable* CreateConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug);
 	const RdrDescriptorTable* CreateTempConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug);

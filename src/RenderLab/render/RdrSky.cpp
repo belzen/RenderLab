@@ -196,8 +196,8 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		{
 			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereTransmittanceLut);
-			pOp->ahWritableResources.assign(0, m_hTransmittanceLut);
-			pOp->ahConstantBuffers.assign(0, hAtmosphereConstants);
+			pOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_hTransmittanceLut, 1, CREATE_BACKPOINTER(this));
+			pOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(&hAtmosphereConstants, 1, CREATE_BACKPOINTER(this));
 			pOp->threads[0] = RdrComputeOp::getThreadGroupCount(TRANSMITTANCE_LUT_WIDTH, ATM_LUT_THREADS_X);
 			pOp->threads[1] = RdrComputeOp::getThreadGroupCount(TRANSMITTANCE_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 			pOp->threads[2] = 1;
@@ -210,12 +210,15 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		{
 			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereScatterLut_Single);
-			pOp->ahResources.assign(0, m_hTransmittanceLut);
-			pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
-			pOp->ahWritableResources.assign(0, m_hScatteringRayleighDeltaLut);
-			pOp->ahWritableResources.assign(1, m_hScatteringMieDeltaLut);
-			pOp->ahWritableResources.assign(2, m_hScatteringSumLuts[0]);
-			pOp->ahConstantBuffers.assign(0, hAtmosphereConstants);
+			pOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(&m_hTransmittanceLut, 1, CREATE_BACKPOINTER(this));
+			
+			RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+			pOp->pSamplerDescriptorTable = RdrResourceSystem::CreateTempSamplerTable(&sampler, 1, CREATE_BACKPOINTER(this));
+
+			RdrResourceHandle hWritableResources[3] = { m_hScatteringRayleighDeltaLut, m_hScatteringMieDeltaLut, m_hScatteringSumLuts[0] };
+			pOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(hWritableResources, ARRAYSIZE(hWritableResources), CREATE_BACKPOINTER(this));
+
+			pOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(&hAtmosphereConstants, 1, CREATE_BACKPOINTER(this));
 			pOp->threads[0] = RdrComputeOp::getThreadGroupCount(SCATTERING_LUT_WIDTH, ATM_LUT_THREADS_X);
 			pOp->threads[1] = RdrComputeOp::getThreadGroupCount(SCATTERING_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 			pOp->threads[2] = SCATTERING_LUT_DEPTH;
@@ -227,10 +230,13 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		{
 			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereIrradianceLut_Initial);
-			pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
-			pOp->ahResources.assign(0, m_hTransmittanceLut);
-			pOp->ahWritableResources.assign(0, m_hIrradianceDeltaLut);
-			pOp->ahConstantBuffers.assign(0, hAtmosphereConstants);
+
+			RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+			pOp->pSamplerDescriptorTable = RdrResourceSystem::CreateTempSamplerTable(&sampler, 1, CREATE_BACKPOINTER(this));
+			pOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(&m_hTransmittanceLut, 1, CREATE_BACKPOINTER(this));
+			pOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_hIrradianceDeltaLut, 1, CREATE_BACKPOINTER(this));
+			pOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(&hAtmosphereConstants, 1, CREATE_BACKPOINTER(this));
+
 			pOp->threads[0] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_WIDTH, ATM_LUT_THREADS_X);
 			pOp->threads[1] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 			pOp->threads[2] = 1;
@@ -242,8 +248,8 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 		{
 			RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 			pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::Clear2d);
-			pOp->ahWritableResources.assign(0, m_hIrradianceSumLuts[0]);
-			pOp->ahConstantBuffers.assign(0, hAtmosphereConstants);
+			pOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_hIrradianceSumLuts[0], 1, CREATE_BACKPOINTER(this));
+			pOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(&hAtmosphereConstants, 1, CREATE_BACKPOINTER(this));
 			pOp->threads[0] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_WIDTH, ATM_LUT_THREADS_Y);
 			pOp->threads[1] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 			pOp->threads[2] = 1;
@@ -258,22 +264,28 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			// Delta J (radiance)
 			{
 				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
-				pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
-				pOp->ahResources.assign(0, m_hTransmittanceLut);
-				pOp->ahResources.assign(1, m_hIrradianceDeltaLut);
+
+				RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+				pOp->pSamplerDescriptorTable = RdrResourceSystem::CreateTempSamplerTable(&sampler, 1, CREATE_BACKPOINTER(this));
+
 				if (i == 0)
 				{
 					pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereRadianceLut);
-					pOp->ahResources.assign(2, m_hScatteringRayleighDeltaLut);
-					pOp->ahResources.assign(3, m_hScatteringMieDeltaLut);
+
+					RdrResourceHandle ahResources[] = { m_hTransmittanceLut, m_hIrradianceDeltaLut, m_hScatteringRayleighDeltaLut, m_hScatteringMieDeltaLut };
+					pOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
 				}
 				else
 				{
 					pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereRadianceLut_CombinedScatter);
-					pOp->ahResources.assign(2, m_hScatteringCombinedDeltaLut);
+
+					RdrResourceHandle ahResources[] = { m_hTransmittanceLut, m_hIrradianceDeltaLut, m_hScatteringCombinedDeltaLut };
+					pOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
 				}
-				pOp->ahWritableResources.assign(0, m_hRadianceDeltaLut);
-				pOp->ahConstantBuffers.assign(0, hAtmosphereConstants);
+
+				pOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_hRadianceDeltaLut, 1, CREATE_BACKPOINTER(this));
+				pOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(&hAtmosphereConstants, 1, CREATE_BACKPOINTER(this));
+
 				pOp->threads[0] = RdrComputeOp::getThreadGroupCount(RADIANCE_LUT_WIDTH, ATM_LUT_THREADS_X);
 				pOp->threads[1] = RdrComputeOp::getThreadGroupCount(RADIANCE_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 				pOp->threads[2] = RADIANCE_LUT_DEPTH;
@@ -284,20 +296,27 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			// Delta E (irradiance)
 			{
 				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
-				pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
+
+				RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+				pOp->pSamplerDescriptorTable = RdrResourceSystem::CreateTempSamplerTable(&sampler, 1, CREATE_BACKPOINTER(this));
+
+				//DONOTCHECKIN - re-use all these tables that are the same (or never change)
 				if (i == 0)
 				{
 					pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereIrradianceLut_N);
-					pOp->ahResources.assign(0, m_hScatteringRayleighDeltaLut);
-					pOp->ahResources.assign(1, m_hScatteringMieDeltaLut);
+
+					RdrResourceHandle ahResources[] = { m_hScatteringRayleighDeltaLut, m_hScatteringMieDeltaLut };
+					pOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
 				}
 				else
 				{
 					pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereIrradianceLut_N_CombinedScatter);
-					pOp->ahResources.assign(0, m_hScatteringCombinedDeltaLut);
+					pOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(&m_hScatteringCombinedDeltaLut, 1, CREATE_BACKPOINTER(this));
 				}
-				pOp->ahWritableResources.assign(0, m_hIrradianceDeltaLut);
-				pOp->ahConstantBuffers.assign(0, hAtmosphereConstants);
+
+				pOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_hIrradianceDeltaLut, 1, CREATE_BACKPOINTER(this));
+				pOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(&hAtmosphereConstants, 1, CREATE_BACKPOINTER(this));
+
 				pOp->threads[0] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_WIDTH, ATM_LUT_THREADS_X);
 				pOp->threads[1] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 				pOp->threads[2] = 1;
@@ -309,11 +328,15 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			{
 				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 				pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereScatterLut_N);
-				pOp->aSamplers.assign(0, RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false));
-				pOp->ahResources.assign(0, m_hTransmittanceLut);
-				pOp->ahResources.assign(1, m_hRadianceDeltaLut);
-				pOp->ahWritableResources.assign(0, m_hScatteringCombinedDeltaLut);
-				pOp->ahConstantBuffers.assign(0, hAtmosphereConstants);
+
+				RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
+				pOp->pSamplerDescriptorTable = RdrResourceSystem::CreateTempSamplerTable(&sampler, 1, CREATE_BACKPOINTER(this));
+
+				RdrResourceHandle ahResources[] = { m_hTransmittanceLut, m_hRadianceDeltaLut };
+				pOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
+				pOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_hScatteringCombinedDeltaLut, 1, CREATE_BACKPOINTER(this));
+				pOp->pConstantsDescriptorTable = RdrResourceSystem::CreateTempConstantBufferTable(&hAtmosphereConstants, 1, CREATE_BACKPOINTER(this));
+
 				pOp->threads[0] = RdrComputeOp::getThreadGroupCount(SCATTERING_LUT_WIDTH, ATM_LUT_THREADS_X);
 				pOp->threads[1] = RdrComputeOp::getThreadGroupCount(SCATTERING_LUT_HEIGHT, ATM_LUT_THREADS_Y);
 				pOp->threads[2] = SCATTERING_LUT_DEPTH;
@@ -325,9 +348,12 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			{
 				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 				pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::Add2d);
-				pOp->ahResources.assign(0, m_hIrradianceDeltaLut);
-				pOp->ahResources.assign(1, m_hIrradianceSumLuts[!currIrradianceIndex]);
-				pOp->ahWritableResources.assign(0, m_hIrradianceSumLuts[currIrradianceIndex]);
+
+				RdrResourceHandle ahResources[] = { m_hIrradianceDeltaLut, m_hIrradianceSumLuts[!currIrradianceIndex] };
+				pOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
+
+				pOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_hIrradianceSumLuts[currIrradianceIndex], 1, CREATE_BACKPOINTER(this));
+
 				pOp->threads[0] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_WIDTH, ADD_THREADS_X);
 				pOp->threads[1] = RdrComputeOp::getThreadGroupCount(IRRADIANCE_LUT_HEIGHT, ADD_THREADS_Y);
 				pOp->threads[2] = 1;
@@ -339,9 +365,12 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 			{
 				RdrComputeOp* pOp = RdrFrameMem::AllocComputeOp(CREATE_BACKPOINTER(this));
 				pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::Add3d);
-				pOp->ahResources.assign(0, m_hScatteringCombinedDeltaLut);
-				pOp->ahResources.assign(1, m_hScatteringSumLuts[!currScatterIndex]);
-				pOp->ahWritableResources.assign(0, m_hScatteringSumLuts[currScatterIndex]);
+
+				RdrResourceHandle ahResources[] = { m_hScatteringCombinedDeltaLut, m_hScatteringSumLuts[!currScatterIndex] };
+				pOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
+
+				pOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(&m_hScatteringSumLuts[currScatterIndex], 1, CREATE_BACKPOINTER(this));
+
 				pOp->threads[0] = RdrComputeOp::getThreadGroupCount(SCATTERING_LUT_WIDTH, ADD_THREADS_X);
 				pOp->threads[1] = RdrComputeOp::getThreadGroupCount(SCATTERING_LUT_HEIGHT, ADD_THREADS_Y);
 				pOp->threads[2] = SCATTERING_LUT_DEPTH;
