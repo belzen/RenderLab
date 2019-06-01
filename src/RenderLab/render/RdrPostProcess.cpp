@@ -85,7 +85,7 @@ namespace
 
 	void setupFullscreenDrawState(RdrContext* pRdrContext, RdrDrawState* pDrawState)
 	{
-		pDrawState->hVsGlobalConstantBufferTable = pRdrContext->GetNullConstantBufferView().hShaderVisibleView;
+		pDrawState->pVsGlobalConstantBufferTable = pRdrContext->GetNullConstantBufferView().pDesc;
 		pDrawState->pVertexBuffers[0] = nullptr;
 		pDrawState->vertexStrides[0] = 0;
 		pDrawState->vertexOffsets[0] = 0;
@@ -335,9 +335,9 @@ void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawStat
 	const RdrResource* pTonemapOutput = RdrResourceSystem::GetResource(m_hToneMapOutputConstants);
 
 	pDrawState->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::LuminanceMeasure_First);
-	pDrawState->hCsShaderResourceViewTable = pLumInput->GetSRV().hShaderVisibleView;
-	pDrawState->hCsUnorderedAccessViewTable = pLumOutput->GetUAV().hShaderVisibleView;
-	pDrawState->hCsConstantBufferTable = m_toneMapInputConstants.GetCBV().hShaderVisibleView;
+	pDrawState->pCsShaderResourceViewTable = pLumInput->GetSRV().pDesc;
+	pDrawState->pCsUnorderedAccessViewTable = pLumOutput->GetUAV().pDesc;
+	pDrawState->pCsConstantBufferTable = m_toneMapInputConstants.GetCBV().pDesc;
 	pRdrContext->DispatchCompute(*pDrawState, w, h, 1);
 
 	uint i = 1;
@@ -347,8 +347,8 @@ void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawStat
 		pLumInput = pLumOutput;
 		pLumOutput = RdrResourceSystem::GetResource(m_hLumOutputs[i]);
 
-		pDrawState->hCsShaderResourceViewTable = pLumInput->GetSRV().hShaderVisibleView;
-		pDrawState->hCsUnorderedAccessViewTable = pLumOutput->GetUAV().hShaderVisibleView;
+		pDrawState->pCsShaderResourceViewTable = pLumInput->GetSRV().pDesc;
+		pDrawState->pCsUnorderedAccessViewTable = pLumOutput->GetUAV().pDesc;
 
 		w = RdrComputeOp::getThreadGroupCount(w, 16);
 		h = RdrComputeOp::getThreadGroupCount(h, 16);
@@ -358,8 +358,8 @@ void RdrPostProcess::DoLuminanceMeasurement(RdrContext* pRdrContext, RdrDrawStat
 	}
 
 	pDrawState->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::LuminanceMeasure_Final);
-	pDrawState->hCsShaderResourceViewTable = pLumOutput->GetSRV().hShaderVisibleView;
-	pDrawState->hCsUnorderedAccessViewTable = pTonemapOutput->GetUAV().hShaderVisibleView;
+	pDrawState->pCsShaderResourceViewTable = pLumOutput->GetSRV().pDesc;
+	pDrawState->pCsUnorderedAccessViewTable = pTonemapOutput->GetUAV().pDesc;
 	pRdrContext->DispatchCompute(*pDrawState, 1, 1, 1);
 
 	pDrawState->Reset();
@@ -387,21 +387,21 @@ void RdrPostProcess::DoLuminanceHistogram(RdrContext* pRdrContext, RdrDrawState*
 	const RdrResource* pToneMapParams = RdrResourceSystem::GetConstantBuffer(m_hToneMapHistogramSettings);
 
 	pDrawState->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::LuminanceHistogram_Tile);
-	pDrawState->hCsShaderResourceViewTable = pColorBuffer->GetSRV().hShaderVisibleView;
-	pDrawState->hCsUnorderedAccessViewTable = pTileHistograms->GetUAV().hShaderVisibleView;
-	pDrawState->hCsConstantBufferTable = pToneMapParams->GetCBV().hShaderVisibleView;
+	pDrawState->pCsShaderResourceViewTable = pColorBuffer->GetSRV().pDesc;
+	pDrawState->pCsUnorderedAccessViewTable = pTileHistograms->GetUAV().pDesc;
+	pDrawState->pCsConstantBufferTable = pToneMapParams->GetCBV().pDesc;
 	pRdrContext->DispatchCompute(*pDrawState, w, h, 1);
 
 	pDrawState->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::LuminanceHistogram_Merge);
-	pDrawState->hCsShaderResourceViewTable = pTileHistograms->GetSRV().hShaderVisibleView;
-	pDrawState->hCsUnorderedAccessViewTable = pMergedHistogram->GetUAV().hShaderVisibleView;
-	pDrawState->hCsConstantBufferTable = pToneMapParams->GetCBV().hShaderVisibleView;
+	pDrawState->pCsShaderResourceViewTable = pTileHistograms->GetSRV().pDesc;
+	pDrawState->pCsUnorderedAccessViewTable = pMergedHistogram->GetUAV().pDesc;
+	pDrawState->pCsConstantBufferTable = pToneMapParams->GetCBV().pDesc;
 	pRdrContext->DispatchCompute(*pDrawState, (uint)ceilf(2700.f / 1024.f), 1, 1); //todo thread counts
 
 	pDrawState->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::LuminanceHistogram_ResponseCurve);
-	pDrawState->hCsShaderResourceViewTable = pMergedHistogram->GetSRV().hShaderVisibleView;
-	pDrawState->hCsUnorderedAccessViewTable = pResponseCurve->GetUAV().hShaderVisibleView;
-	pDrawState->hCsConstantBufferTable = pToneMapParams->GetCBV().hShaderVisibleView;
+	pDrawState->pCsShaderResourceViewTable = pMergedHistogram->GetSRV().pDesc;
+	pDrawState->pCsUnorderedAccessViewTable = pResponseCurve->GetUAV().pDesc;
+	pDrawState->pCsConstantBufferTable = pToneMapParams->GetCBV().pDesc;
 	pRdrContext->DispatchCompute(*pDrawState, 1, 1, 1);
 
 	pDrawState->Reset();
@@ -424,10 +424,9 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState* pDrawState, 
 	pDrawState->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::BloomShrink);
 
 	const RdrResource* apResources[] = { pLumInput, pTonemapBuffer };
-	const RdrDescriptorTable* pResourcesTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
-	pDrawState->hCsShaderResourceViewTable = pResourcesTable->GetDescriptors();
-	pDrawState->hCsUnorderedAccessViewTable = pHighPassShrinkOutput->GetUAV().hShaderVisibleView;
-	pDrawState->hCsConstantBufferTable = m_toneMapInputConstants.GetCBV().hShaderVisibleView;
+	pDrawState->pCsShaderResourceViewTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
+	pDrawState->pCsUnorderedAccessViewTable = pHighPassShrinkOutput->GetUAV().pDesc;
+	pDrawState->pCsConstantBufferTable = m_toneMapInputConstants.GetCBV().pDesc;
 	pRdrContext->DispatchCompute(*pDrawState, w, h, 1);
 
 	for (int i = 1; i < ARRAY_SIZE(m_bloomBuffers); ++i)
@@ -439,8 +438,8 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState* pDrawState, 
 		h = RdrComputeOp::getThreadGroupCount(pTexOutput->GetTextureInfo().height, SHRINK_THREADS_Y);
 
 		pDrawState->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::Shrink);
-		pDrawState->hCsShaderResourceViewTable = pTexInput->GetSRV().hShaderVisibleView;
-		pDrawState->hCsUnorderedAccessViewTable = pTexOutput->GetUAV().hShaderVisibleView;
+		pDrawState->pCsShaderResourceViewTable = pTexInput->GetSRV().pDesc;
+		pDrawState->pCsUnorderedAccessViewTable = pTexOutput->GetUAV().pDesc;
 		pRdrContext->DispatchCompute(*pDrawState, w, h, 1);
 
 		// Wait for UAV writes to complete
@@ -466,8 +465,8 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState* pDrawState, 
 
 			pDrawState->Reset();
 			pDrawState->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::BlurVertical);
-			pDrawState->hCsShaderResourceViewTable = pInput1->GetSRV().hShaderVisibleView;
-			pDrawState->hCsUnorderedAccessViewTable = pOutput->GetUAV().hShaderVisibleView;
+			pDrawState->pCsShaderResourceViewTable = pInput1->GetSRV().pDesc;
+			pDrawState->pCsUnorderedAccessViewTable = pOutput->GetUAV().pDesc;
 			pRdrContext->DispatchCompute(*pDrawState, w, h, 1);
 			pDrawState->Reset();
 
@@ -483,8 +482,8 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState* pDrawState, 
 			h = RdrComputeOp::getThreadGroupCount(pOutput->GetTextureInfo().height, BLUR_THREAD_COUNT);
 
 			pDrawState->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::BlurHorizontal);
-			pDrawState->hCsShaderResourceViewTable = pInput1->GetSRV().hShaderVisibleView;
-			pDrawState->hCsUnorderedAccessViewTable = pOutput->GetUAV().hShaderVisibleView;
+			pDrawState->pCsShaderResourceViewTable = pInput1->GetSRV().pDesc;
+			pDrawState->pCsUnorderedAccessViewTable = pOutput->GetUAV().pDesc;
 			pRdrContext->DispatchCompute(*pDrawState, w, h, 1);
 			pDrawState->Reset();
 
@@ -505,15 +504,14 @@ void RdrPostProcess::DoBloom(RdrContext* pRdrContext, RdrDrawState* pDrawState, 
 			pDrawState->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::Blend2d);
 
 			const RdrResource* apResources[] = { pInput1, pInput2 };
-			const RdrDescriptorTable* pResourcesTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
-			pDrawState->hCsShaderResourceViewTable = pResourcesTable->GetDescriptors();
+			pDrawState->pCsShaderResourceViewTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
 
 			const RdrSamplerState aSamplers[] = { RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false) };
-			const RdrDescriptorTable* pSamplerTable = RdrResourceSystem::CreateTempSamplerTable(aSamplers, ARRAYSIZE(aSamplers), CREATE_BACKPOINTER(this));
-			pDrawState->hCsSamplerTable = pSamplerTable->GetDescriptors();
+			pDrawState->pCsSamplerTable = RdrResourceSystem::CreateTempSamplerTable(aSamplers, ARRAYSIZE(aSamplers), CREATE_BACKPOINTER(this));
 
-			pDrawState->hCsUnorderedAccessViewTable = pOutput->GetUAV().hShaderVisibleView;
-			pDrawState->hCsConstantBufferTable = RdrResourceSystem::GetConstantBuffer(m_bloomBuffers[i - 1].hBlendConstants)->GetCBV().hShaderVisibleView;
+			pDrawState->pCsUnorderedAccessViewTable = pOutput->GetUAV().pDesc;
+			pDrawState->pCsConstantBufferTable = RdrResourceSystem::GetConstantBuffer(m_bloomBuffers[i - 1].hBlendConstants)->GetCBV().pDesc;
+
 			pRdrContext->DispatchCompute(*pDrawState, w, h, 1);
 			pDrawState->Reset();
 
@@ -540,11 +538,10 @@ void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState* pDrawState
 		apResources[1] = pBloomBuffer;
 		apResources[2] = RdrResourceSystem::GetResource(m_hToneMapOutputConstants);
 		apResources[3] = RdrResourceSystem::GetResource(m_hToneMapHistogramResponseCurve);
-		const RdrDescriptorTable* pResourceTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
+		pDrawState->pPsMaterialShaderResourceViewTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
 
-		pDrawState->hPsMaterialShaderResourceViewTable = pResourceTable->GetDescriptors();
-		pDrawState->hPsMaterialSamplerTable = pRdrContext->GetSampler(RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false)).hShaderVisible;
-		pDrawState->hPsMaterialConstantBufferTable = RdrResourceSystem::GetConstantBuffer(m_hToneMapHistogramSettings)->GetCBV().hShaderVisibleView;
+		pDrawState->pPsMaterialSamplerTable = pRdrContext->GetSampler(RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false)).pDesc;
+		pDrawState->pPsMaterialConstantBufferTable = RdrResourceSystem::GetConstantBuffer(m_hToneMapHistogramSettings)->GetCBV().pDesc;
 	}
 	else
 	{
@@ -554,10 +551,9 @@ void RdrPostProcess::DoTonemap(RdrContext* pRdrContext, RdrDrawState* pDrawState
 		apResources[0] = pColorBuffer;
 		apResources[1] = pBloomBuffer;
 		apResources[2] = RdrResourceSystem::GetResource(m_hToneMapOutputConstants);
-		const RdrDescriptorTable* pResourceTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
+		pDrawState->pPsMaterialShaderResourceViewTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
 
-		pDrawState->hPsMaterialShaderResourceViewTable = pResourceTable->GetDescriptors();
-		pDrawState->hPsMaterialSamplerTable = pRdrContext->GetSampler(RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false)).hShaderVisible;
+		pDrawState->pPsMaterialSamplerTable = pRdrContext->GetSampler(RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false)).pDesc;
 	}
 
 	pRdrContext->Draw(*pDrawState, 1);
@@ -658,20 +654,17 @@ void RdrPostProcess::DoSsao(RdrContext* pRdrContext, RdrDrawState* pDrawState, c
 		apResources[0] = pDepthBuffer;
 		apResources[1] = pNormalBuffer;
 		apResources[2] = pNoiseBuffer;
-		const RdrDescriptorTable* pResourceTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
-		pDrawState->hPsMaterialShaderResourceViewTable = pResourceTable->GetDescriptors();
+		pDrawState->pPsMaterialShaderResourceViewTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
 
 		RdrSamplerState aSamplers[2];
 		aSamplers[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 		aSamplers[1] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Wrap, false);
-		const RdrDescriptorTable* pSamplerTable = RdrResourceSystem::CreateTempSamplerTable(aSamplers, ARRAYSIZE(aSamplers), CREATE_BACKPOINTER(this));
-		pDrawState->hPsMaterialSamplerTable = pSamplerTable->GetDescriptors();
+		pDrawState->pPsMaterialSamplerTable = RdrResourceSystem::CreateTempSamplerTable(aSamplers, ARRAYSIZE(aSamplers), CREATE_BACKPOINTER(this));
 
 		const RdrResource* apConstantBuffers[2];
 		apConstantBuffers[0] = RdrResourceSystem::GetConstantBuffer(rGlobalConstants.hPsPerAction);
 		apConstantBuffers[1] = &m_ssaoConstants;
-		const RdrDescriptorTable* pConstantBufferTable = RdrResourceSystem::CreateTempConstantBufferTable(apConstantBuffers, ARRAYSIZE(apConstantBuffers), CREATE_BACKPOINTER(this));
-		pDrawState->hPsMaterialConstantBufferTable = pConstantBufferTable->GetDescriptors();
+		pDrawState->pPsMaterialConstantBufferTable = RdrResourceSystem::CreateTempConstantBufferTable(apConstantBuffers, ARRAYSIZE(apConstantBuffers), CREATE_BACKPOINTER(this));
 
 		pRdrContext->Draw(*pDrawState, 1);
 	}
@@ -688,9 +681,9 @@ void RdrPostProcess::DoSsao(RdrContext* pRdrContext, RdrDrawState* pDrawState, c
 		pDrawState->pipelineState = m_ssaoBlurPipelineState;
 
 		// Pixel shader
-		pDrawState->hPsMaterialShaderResourceViewTable = pSsaoBuffer->GetSRV().hShaderVisibleView;
-		pDrawState->hPsMaterialSamplerTable = pRdrContext->GetSampler(RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false)).hShaderVisible;
-		pDrawState->hPsMaterialConstantBufferTable = m_ssaoConstants.GetCBV().hShaderVisibleView;
+		pDrawState->pPsMaterialShaderResourceViewTable = pSsaoBuffer->GetSRV().pDesc;
+		pDrawState->pPsMaterialSamplerTable = pRdrContext->GetSampler(RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false)).pDesc;
+		pDrawState->pPsMaterialConstantBufferTable = m_ssaoConstants.GetCBV().pDesc;
 
 		pRdrContext->Draw(*pDrawState, 1);
 	}
@@ -710,11 +703,10 @@ void RdrPostProcess::DoSsao(RdrContext* pRdrContext, RdrDrawState* pDrawState, c
 		const RdrResource* apResources[2];
 		apResources[0] = pSsaoBlurredBuffer;
 		apResources[1] = pAlbedoBuffer;
-		const RdrDescriptorTable* pResourceTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
+		pDrawState->pPsMaterialShaderResourceViewTable = RdrResourceSystem::CreateTempShaderResourceViewTable(apResources, ARRAYSIZE(apResources), CREATE_BACKPOINTER(this));
 
-		pDrawState->hPsMaterialShaderResourceViewTable = pResourceTable->GetDescriptors();
-		pDrawState->hPsMaterialSamplerTable = pRdrContext->GetSampler(RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false)).hShaderVisible;
-		pDrawState->hPsMaterialConstantBufferTable = m_ssaoConstants.GetCBV().hShaderVisibleView;
+		pDrawState->pPsMaterialSamplerTable = pRdrContext->GetSampler(RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false)).pDesc;
+		pDrawState->pPsMaterialConstantBufferTable = m_ssaoConstants.GetCBV().pDesc;
 
 		pRdrContext->Draw(*pDrawState, 1);
 	}
@@ -738,8 +730,8 @@ void RdrPostProcess::CopyToTarget(RdrContext* pRdrContext, RdrDrawState* pDrawSt
 
 	// Pixel shader
 	const RdrResource* pCopyTexture = RdrResourceSystem::GetResource(hTextureInput);
-	pDrawState->hPsMaterialShaderResourceViewTable = pCopyTexture->GetSRV().hShaderVisibleView;
-	pDrawState->hPsMaterialSamplerTable = pRdrContext->GetSampler(RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false)).hShaderVisible;
+	pDrawState->pPsMaterialShaderResourceViewTable = pCopyTexture->GetSRV().pDesc;
+	pDrawState->pPsMaterialSamplerTable = pRdrContext->GetSampler(RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false)).pDesc;
 
 	pRdrContext->Draw(*pDrawState, 1);
 }

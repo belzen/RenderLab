@@ -21,8 +21,8 @@ struct RdrTessellationMaterialData
 	Array<RdrResourceHandle, 2> ahResources;
 	Array<RdrSamplerState, 2> aSamplers;
 
-	const RdrDescriptorTable* pResourceDescriptorTable;
-	const RdrDescriptorTable* pSamplerDescriptorTable;
+	const RdrDescriptors* pResourceDescriptorTable;
+	const RdrDescriptors* pSamplerDescriptorTable;
 };
 
 class RdrMaterial
@@ -81,8 +81,8 @@ public:
 	const RdrPipelineState& GetPipelineState(RdrShaderMode eMode) const { return m_hPipelineStates[(int)eMode]; }
 	RdrShaderStageFlags GetActiveShaderStages(RdrShaderMode eMode) const { return m_activeShaderStages[(int)eMode]; }
 
-	const RdrDescriptorTable* GetResourceDescriptorTable() const { return m_pResourceDescriptorTable; }
-	const RdrDescriptorTable* GetSamplerDescriptorTable() const { return m_pSamplerDescriptorTable; }
+	const RdrDescriptors* GetResourceDescriptorTable() const { return m_pResourceDescriptorTable; }
+	const RdrDescriptors* GetSamplerDescriptorTable() const { return m_pSamplerDescriptorTable; }
 
 	const RdrConstantBufferHandle& GetConstantBufferHandle() const { return m_hConstants; }
 
@@ -97,8 +97,8 @@ private:
 	Array<RdrSamplerState, 4> m_aSamplers;
 	RdrConstantBufferHandle m_hConstants;
 
-	const RdrDescriptorTable* m_pResourceDescriptorTable;
-	const RdrDescriptorTable* m_pSamplerDescriptorTable;
+	const RdrDescriptors* m_pResourceDescriptorTable;
+	const RdrDescriptors* m_pSamplerDescriptorTable;
 
 	RdrTessellationMaterialData m_tessellation;
 };

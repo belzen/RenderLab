@@ -3,6 +3,7 @@
 #include "RdrDrawOp.h"
 #include "RdrDrawState.h"
 #include "RdrProfiler.h"
+#include "Renderer.h"
 
 #include "pix3.h"
 #include <d3dcompiler.h>
@@ -31,7 +32,6 @@ namespace
 		kRootPsMaterialShaderResourceViewTable,
 		kRootPsGlobalShaderResourceViewTable,
 		kRootPsMaterialSamplerTable,
-		kRootPsGlobalSamplerTable,
 		kRootPsGlobalConstantBufferTable,
 		kRootPsMaterialConstantBufferTable,
 		kRootDsShaderResourceViewTable,
@@ -206,7 +206,7 @@ ComPtr<IDXGISwapChain4> CreateSwapChain(HWND hWnd,
 	return dxgiSwapChain4;
 }
 
-void DescriptorHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, const uint* anDescriptorTableSizes, uint numDescriptorTableSizes, bool bShaderVisible)
+void DescriptorHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, const uint* anDescriptorTableSizes, uint numDescriptorTableSizes)
 {
 	m_pDevice = pDevice.Get();
 	m_heapType = type;
@@ -219,7 +219,7 @@ void DescriptorHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_
 	desc.NumDescriptors = nTotalNumDescriptors;
 	desc.Type = type;
 	desc.NodeMask = 0;
-	desc.Flags = (bShaderVisible && (type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER))
+	desc.Flags = (type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
 		? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
 	HRESULT hr = pDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_pDescriptorHeap));
@@ -232,33 +232,41 @@ void DescriptorHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDesc(m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuDesc(m_pDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
+	// Create storage for the descriptors.
+	m_pDescriptors = new RdrDescriptors[nTotalNumDescriptors];
+
+	RdrDescriptors* pCurrDesc = m_pDescriptors;
 	for (uint iTableSize = 0; iTableSize < ARRAYSIZE(m_tables); iTableSize++)
 	{
 		DescriptorTableList& tables = m_tables[iTableSize];
 		uint numTables = anDescriptorTableSizes[iTableSize];
-		tables.resize(numTables);
+		tables.reserve(numTables);
 
 		uint nTableSize = (1 << iTableSize);
 		for (uint iTable = 0; iTable < numTables; ++iTable)
 		{
-			tables[iTable].hCpuDesc = hCpuDesc;
-			tables[iTable].hGpuDesc = hGpuDesc;
-			tables[iTable].bInUse = false;
-			tables[iTable].bShaderVisible = bShaderVisible;
-			tables[iTable].nTableSize = nTableSize;
-			tables[iTable].nTableListIndex = iTableSize;
+			tables.push_back(pCurrDesc);
+
+			pCurrDesc->m_hCpuDesc = hCpuDesc;
+			pCurrDesc->m_hGpuDesc = hGpuDesc;
+			pCurrDesc->m_nRefCount = -1;
+			pCurrDesc->m_nTableSize = nTableSize;
+			pCurrDesc->m_nTableListIndex = iTableSize;
 
 			hCpuDesc.Offset(nTableSize, m_descriptorSize);
 			hGpuDesc.Offset(nTableSize, m_descriptorSize);
+
+			++pCurrDesc;
 		}
 	}
 
 
 	//////////////////////////////////////////////////////////////////////////
-	if (bShaderVisible)
+	// If the heap is shader visible, then create copy descriptors for all the size 1 tables.
+	if (desc.Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
 	{
+		// Create storage for the descriptors.
 		uint numCopyDescriptors = anDescriptorTableSizes[0];
-		m_copyDescriptors.resize(numCopyDescriptors);
 
 		D3D12_DESCRIPTOR_HEAP_DESC copyDesc = {};
 		copyDesc.NumDescriptors = numCopyDescriptors;
@@ -270,20 +278,11 @@ void DescriptorHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_
 		if (!ValidateHResult(hr, __FUNCTION__, "Failed to create copy descriptor heap!"))
 			return;
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDesc(m_pCopyDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuDesc(m_pCopyDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-
-		for (D3D12DescriptorHandles& handles : m_copyDescriptors)
+		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuCopyDesc(m_pCopyDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+		for (RdrDescriptors* pDesc : m_tables[0])
 		{
-			handles.hCpuDesc = hCpuDesc;
-			handles.hGpuDesc = hGpuDesc;
-			handles.bInUse = false;
-			handles.bShaderVisible = false;
-			handles.nTableSize = 1;
-			handles.nTableListIndex = 0;
-
-			hCpuDesc.Offset(1, m_descriptorSize);
-			hGpuDesc.Offset(1, m_descriptorSize);
+			pDesc->m_hCpuCopyDesc = hCpuCopyDesc;
+			hCpuCopyDesc.Offset(1, m_descriptorSize);
 		}
 	}
 }
@@ -293,38 +292,102 @@ void DescriptorHeap::Cleanup()
 	m_pDescriptorHeap->Release();
 }
 
-D3D12DescriptorHandles DescriptorHeap::AllocateDescriptor()
+RdrDescriptors* DescriptorHeap::AllocateDescriptor(const RdrDebugBackpointer& debug)
 {
 	AutoScopedLock lock(m_mutex);
 
-	D3D12DescriptorHandles handles = m_tables[0].back();
+	RdrDescriptors* pDesc = m_tables[0].back();
 	m_tables[0].pop_back();
 
-	handles.bInUse = true;
+	pDesc->m_debugCreator = debug;
+	pDesc->m_nRefCount = 1;
 
-	return handles;
+	return pDesc;
 }
 
-D3D12DescriptorHandles DescriptorHeap::AllocateCopyDescriptor()
+const RdrDescriptors* DescriptorHeap::CreateShaderResourceView(ID3D12Resource* pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug)
 {
-	assert(!m_copyDescriptors.empty());
+	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	AutoScopedLock lock(m_mutex);
+	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
+	pDescriptor->m_eDescType = RdrDescriptorType::SRV;
+	m_pDevice->CreateShaderResourceView(pResource, pDesc, pDescriptor->m_hCpuDesc);
+	m_pDevice->CreateShaderResourceView(pResource, pDesc, pDescriptor->m_hCpuCopyDesc);
 
-	D3D12DescriptorHandles handles = m_copyDescriptors.back();
-	m_copyDescriptors.pop_back();
-
-	handles.bInUse = true;
-	return handles;
+	return pDescriptor;
 }
 
-D3D12DescriptorHandles DescriptorHeap::CreateDescriptorTable(const D3D12DescriptorHandles* pSrcDescriptors, uint size)
+const RdrDescriptors* DescriptorHeap::CreateUnorderedAccesView(ID3D12Resource* pResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug)
+{
+	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
+	pDescriptor->m_eDescType = RdrDescriptorType::UAV;
+	m_pDevice->CreateUnorderedAccessView(pResource, nullptr, pDesc, pDescriptor->m_hCpuDesc);
+	m_pDevice->CreateUnorderedAccessView(pResource, nullptr, pDesc, pDescriptor->m_hCpuCopyDesc);
+
+	return pDescriptor;
+}
+
+const RdrDescriptors* DescriptorHeap::CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug)
+{
+	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
+	pDescriptor->m_eDescType = RdrDescriptorType::CBV;
+	m_pDevice->CreateConstantBufferView(pDesc, pDescriptor->m_hCpuDesc);
+	m_pDevice->CreateConstantBufferView(pDesc, pDescriptor->m_hCpuCopyDesc);
+
+	return pDescriptor;
+}
+
+const RdrDescriptors* DescriptorHeap::CreateRenderTargetView(ID3D12Resource* pResource, const D3D12_RENDER_TARGET_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug)
+{
+	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
+	pDescriptor->m_eDescType = RdrDescriptorType::RTV;
+	m_pDevice->CreateRenderTargetView(pResource, pDesc, pDescriptor->m_hCpuDesc);
+
+	return pDescriptor;
+}
+
+const RdrDescriptors* DescriptorHeap::CreateDepthStencilView(ID3D12Resource* pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug)
+{
+	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+
+	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
+	pDescriptor->m_eDescType = RdrDescriptorType::DSV;
+	m_pDevice->CreateDepthStencilView(pResource, pDesc, pDescriptor->m_hCpuDesc);
+
+	return pDescriptor;
+}
+
+const RdrDescriptors* DescriptorHeap::CreateSampler(const D3D12_SAMPLER_DESC& samplerDesc, const RdrDebugBackpointer& debug)
+{
+	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
+	pDescriptor->m_eDescType = RdrDescriptorType::Sampler;
+	m_pDevice->CreateSampler(&samplerDesc, pDescriptor->m_hCpuDesc);
+	m_pDevice->CreateSampler(&samplerDesc, pDescriptor->m_hCpuCopyDesc);
+
+	return pDescriptor;
+}
+
+const RdrDescriptors* DescriptorHeap::CreateDescriptorTable(const RdrDescriptors** apSrcDescriptors, uint size, const RdrDebugBackpointer& debug)
 {
 	AutoScopedLock lock(m_mutex);
 
 	if (size == 0)
 	{
-		return D3D12DescriptorHandles();
+		assert(false);
+		return nullptr;
+	}
+	else if (size == 1)
+	{
+		const_cast<RdrDescriptors*>(apSrcDescriptors[0])->m_nRefCount++;
+		return apSrcDescriptors[0];
 	}
 
 	uint nTable = 0;
@@ -336,45 +399,43 @@ D3D12DescriptorHandles DescriptorHeap::CreateDescriptorTable(const D3D12Descript
 	if (nTable > ARRAYSIZE(m_tables) || m_tables[nTable].empty())
 	{
 		assert(false);
-		return D3D12DescriptorHandles();
+		return nullptr;
 	}
 
-	D3D12DescriptorHandles handles = m_tables[nTable].back();
+	RdrDescriptors* pDesc = m_tables[nTable].back();
 	m_tables[nTable].pop_back();
 
-	assert(!handles.bInUse);
-	assert(handles.nTableListIndex == nTable);
-	handles.bInUse = true;
+	assert(pDesc->m_nRefCount == -1);
+	assert(pDesc->m_nTableListIndex == nTable);
+	pDesc->m_nRefCount = 1;
+	pDesc->m_debugCreator = debug;
+	pDesc->m_eDescType = apSrcDescriptors[0]->m_eDescType;
 
 	// Copy descriptors
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescDst = handles.hCpuDesc;
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescDst = pDesc->m_hCpuDesc;
 	for (uint i = 0; i < size; ++i)
 	{
-		CD3DX12_CPU_DESCRIPTOR_HANDLE hDescSrc = pSrcDescriptors[i].hCpuDesc;
-		assert(!pSrcDescriptors[i].bShaderVisible);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE hDescSrc = apSrcDescriptors[i]->GetCopyableCpuDesc();
 
 		m_pDevice->CopyDescriptorsSimple(1, hDescDst, hDescSrc, m_heapType);
 		hDescDst.Offset(1, m_descriptorSize);
 	}
 	
-	return handles;
+	return pDesc;
 }
 
-void DescriptorHeap::FreeDescriptor(D3D12DescriptorHandles desc)
+void DescriptorHeap::FreeDescriptor(const RdrDescriptors* pDesc)
 {
+	if (!pDesc)
+		return;
+
 	AutoScopedLock lock(m_mutex);
+	
+	RdrDescriptors* pDescNonConst = const_cast<RdrDescriptors*>(pDesc);
+	assert(pDescNonConst->m_nRefCount <= 1); //donotcheckin
+	pDescNonConst->m_nRefCount = -1;
 
-	assert(desc.bInUse);
-	desc.bInUse = false;
-
-	if (desc.bShaderVisible)
-	{
-		m_tables[desc.nTableListIndex].push_back(desc);
-	}
-	else
-	{
-		m_copyDescriptors.push_back(desc);
-	}
+	m_tables[pDescNonConst->m_nTableListIndex].push_back(pDescNonConst);
 }
 
 void DescriptorRingBuffer::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, uint nMaxDescriptors)
@@ -577,12 +638,12 @@ void RdrContext::UpdateRenderTargetViews()
 		if (!ValidateHResult(hr, __FUNCTION__, "Failed to get swap chain buffer!"))
 			return;
 
-		if (!m_hBackBufferRtvs[i].IsValid())
+		if (m_pBackBufferRtvs[i])
 		{
-			m_hBackBufferRtvs[i] = m_rtvHeap.AllocateDescriptor();
+			g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_pBackBufferRtvs[i], CREATE_BACKPOINTER(this));
 		}
-
-		m_pDevice->CreateRenderTargetView(backBuffer.Get(), nullptr, m_hBackBufferRtvs[i].hCpuDesc);
+		
+		m_pBackBufferRtvs[i] = m_rtvHeap.CreateRenderTargetView(backBuffer.Get(), nullptr, CREATE_BACKPOINTER(this));
 		m_pBackBuffers[i] = backBuffer;
 	}
 }
@@ -610,16 +671,16 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 	m_currBackBuffer = m_pSwapChain->GetCurrentBackBufferIndex();
 
 	static constexpr uint akMaxNumRenderTargetViews[] = { 64, 0, 0, 0, 0 };
-	m_rtvHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, akMaxNumRenderTargetViews, ARRAYSIZE(akMaxNumRenderTargetViews), false);
+	m_rtvHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, akMaxNumRenderTargetViews, ARRAYSIZE(akMaxNumRenderTargetViews));
 
 	static constexpr uint akMaxNumDepthStencilViews[] = { 64, 0, 0, 0, 0 };
-	m_dsvHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, akMaxNumDepthStencilViews, ARRAYSIZE(akMaxNumDepthStencilViews), false);
+	m_dsvHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, akMaxNumDepthStencilViews, ARRAYSIZE(akMaxNumDepthStencilViews));
 
-	static constexpr uint akMaxNumShaderResourceViews[] = { 8000, 1024, 2048, 2048, 0 };
-	m_srvHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, akMaxNumShaderResourceViews, ARRAYSIZE(akMaxNumShaderResourceViews), true);
+	static constexpr uint akMaxNumShaderResourceViews[] = { 8000, 1024, 1024, 1024, 0 };
+	m_srvHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, akMaxNumShaderResourceViews, ARRAYSIZE(akMaxNumShaderResourceViews));
 
 	static constexpr uint akMaxNumSamplers[] = { 512, 256, 128, 64, 0 };
-	m_samplerHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, akMaxNumSamplers, ARRAYSIZE(akMaxNumSamplers), true);
+	m_samplerHeap.Create(m_pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, akMaxNumSamplers, ARRAYSIZE(akMaxNumSamplers));
 
 	for (int i = 0; i < kNumBackBuffers; ++i)
 	{
@@ -706,7 +767,6 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		ranges[kRootPsMaterialShaderResourceViewTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,		5, 0);	// Pixel resources (MATERIAL)
 		ranges[kRootPsGlobalShaderResourceViewTable].Init(	D3D12_DESCRIPTOR_RANGE_TYPE_SRV,		8, 11);	// Pixel resources (GLOBAL)
 		ranges[kRootPsMaterialSamplerTable].Init(			D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,	3, 0);  // Pixel samplers (MATERIAL)
-		ranges[kRootPsGlobalSamplerTable].Init(				D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,	2, 14); // Pixel samplers (GLOBAL)
 		ranges[kRootPsGlobalConstantBufferTable].Init(		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,		3, 0);	// Pixel constants (GLOBAL)
 		ranges[kRootPsMaterialConstantBufferTable].Init(	D3D12_DESCRIPTOR_RANGE_TYPE_CBV,		1, 3);	// Pixel constants (MATERIAL)
 		ranges[kRootDsShaderResourceViewTable].Init(		D3D12_DESCRIPTOR_RANGE_TYPE_SRV,		4, 0);	// Domain resources
@@ -721,7 +781,6 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		rootParameters[kRootPsMaterialShaderResourceViewTable].InitAsDescriptorTable(	1, &ranges[kRootPsMaterialShaderResourceViewTable], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[kRootPsGlobalShaderResourceViewTable].InitAsDescriptorTable(		1, &ranges[kRootPsGlobalShaderResourceViewTable], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[kRootPsMaterialSamplerTable].InitAsDescriptorTable(				1, &ranges[kRootPsMaterialSamplerTable], D3D12_SHADER_VISIBILITY_PIXEL);
-		rootParameters[kRootPsGlobalSamplerTable].InitAsDescriptorTable(				1, &ranges[kRootPsGlobalSamplerTable], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[kRootPsGlobalConstantBufferTable].InitAsDescriptorTable(			1, &ranges[kRootPsGlobalConstantBufferTable], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[kRootPsMaterialConstantBufferTable].InitAsDescriptorTable(		1, &ranges[kRootPsMaterialConstantBufferTable], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[kRootDsShaderResourceViewTable].InitAsDescriptorTable(			1, &ranges[kRootDsShaderResourceViewTable], D3D12_SHADER_VISIBILITY_DOMAIN);
@@ -734,8 +793,15 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 			| D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 #endif
+
+		CD3DX12_STATIC_SAMPLER_DESC aGlobalSamplers[2];
+		// Clamp sampler
+		aGlobalSamplers[0].Init(14, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0.f, 1, D3D12_COMPARISON_FUNC_NEVER);
+		// Shadow map sampler
+		aGlobalSamplers[1].Init(15, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0.f, 1, D3D12_COMPARISON_FUNC_LESS_EQUAL);
+
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
+		rootSignatureDesc.Init(_countof(rootParameters), rootParameters, _countof(aGlobalSamplers), aGlobalSamplers, rootSignatureFlags);
 
 
 		ComPtr<ID3DBlob> signature;
@@ -791,9 +857,8 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		rtvDesc.Texture2D.MipSlice = 0;
 		rtvDesc.Texture2D.PlaneSlice = 0;
 
-		m_nullRenderTargetView.hView = m_rtvHeap.AllocateDescriptor();
 		m_nullRenderTargetView.pResource = nullptr;
-		m_pDevice->CreateRenderTargetView(nullptr, &rtvDesc, m_nullRenderTargetView.hView.hCpuDesc);
+		m_nullRenderTargetView.pDesc = m_rtvHeap.CreateRenderTargetView(nullptr, &rtvDesc, CREATE_BACKPOINTER(this));
 
 		// DSV
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
@@ -802,9 +867,8 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		dsvDesc.Texture2D.MipSlice = 0;
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 
-		m_nullDepthStencilView.hView = m_dsvHeap.AllocateDescriptor();
 		m_nullDepthStencilView.pResource = nullptr;
-		m_pDevice->CreateDepthStencilView(nullptr, &dsvDesc, m_nullDepthStencilView.hView.hCpuDesc);
+		m_nullDepthStencilView.pDesc = m_dsvHeap.CreateDepthStencilView(nullptr, &dsvDesc, CREATE_BACKPOINTER(this));
 
 		// SRV
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -817,10 +881,7 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
 
 		m_nullShaderResourceView.pResource = nullptr;
-		m_nullShaderResourceView.hCopyableView = m_srvHeap.AllocateCopyDescriptor();
-		m_nullShaderResourceView.hShaderVisibleView = m_srvHeap.AllocateDescriptor();
-		m_pDevice->CreateShaderResourceView(nullptr, &srvDesc, m_nullShaderResourceView.hCopyableView.hCpuDesc);
-		m_pDevice->CreateShaderResourceView(nullptr, &srvDesc, m_nullShaderResourceView.hShaderVisibleView.hCpuDesc);
+		m_nullShaderResourceView.pDesc = m_srvHeap.CreateShaderResourceView(nullptr, &srvDesc, CREATE_BACKPOINTER(this));
 
 		// UAV
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -828,10 +889,7 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
 
 		m_nullUnorderedAccessView.pResource = nullptr;
-		m_nullUnorderedAccessView.hCopyableView = m_srvHeap.AllocateCopyDescriptor();
-		m_nullUnorderedAccessView.hShaderVisibleView = m_srvHeap.AllocateDescriptor();
-		m_pDevice->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_nullUnorderedAccessView.hCopyableView.hCpuDesc);
-		m_pDevice->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_nullUnorderedAccessView.hShaderVisibleView.hCpuDesc);
+		m_nullUnorderedAccessView.pDesc = m_srvHeap.CreateUnorderedAccesView(nullptr, &uavDesc, CREATE_BACKPOINTER(this));
 
 		// CBV
 		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
@@ -839,10 +897,7 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		cbvDesc.SizeInBytes = 0;
 
 		m_nullConstantBufferView.pResource = nullptr;
-		m_nullConstantBufferView.hCopyableView = m_srvHeap.AllocateCopyDescriptor();
-		m_nullConstantBufferView.hShaderVisibleView = m_srvHeap.AllocateDescriptor();
-		m_pDevice->CreateConstantBufferView(&cbvDesc, m_nullConstantBufferView.hCopyableView.hCpuDesc);
-		m_pDevice->CreateConstantBufferView(&cbvDesc, m_nullConstantBufferView.hShaderVisibleView.hCpuDesc);
+		m_nullConstantBufferView.pDesc = m_srvHeap.CreateConstantBufferView(&cbvDesc, CREATE_BACKPOINTER(this));
 	}
 
 	Resize(width, height);
@@ -869,15 +924,15 @@ void RdrContext::Release()
 
 	for (uint i = 0; i < kNumBackBuffers; ++i)
 	{
-		m_rtvHeap.FreeDescriptor(m_hBackBufferRtvs[i]);
+		m_rtvHeap.FreeDescriptor(m_pBackBufferRtvs[i]);
 		m_pBackBuffers[i]->Release();
 		m_pCommandAllocators[i]->Release();
 	}
 
 	m_pFence->Release();
 
-	m_rtvHeap.FreeDescriptor(m_nullRenderTargetView.hView);
-	m_dsvHeap.FreeDescriptor(m_nullDepthStencilView.hView);
+	m_rtvHeap.FreeDescriptor(m_nullRenderTargetView.pDesc);
+	m_dsvHeap.FreeDescriptor(m_nullDepthStencilView.pDesc);
 
 	m_rtvHeap.Cleanup();
 	m_samplerHeap.Cleanup();
@@ -908,7 +963,7 @@ const RdrSampler& RdrContext::GetSampler(const RdrSamplerState& state)
 		+ state.bPointSample;
 
 	RdrSampler& sampler = m_samplers[samplerIndex];
-	if (!sampler.hCopyable.IsValid())
+	if (!sampler.pDesc)
 	{
 		D3D12_SAMPLER_DESC desc;
 		desc.MaxAnisotropy = 1;
@@ -924,16 +979,13 @@ const RdrSampler& RdrContext::GetSampler(const RdrSamplerState& state)
 		desc.Filter = getFilterD3d((RdrComparisonFunc)state.cmpFunc, state.bPointSample);
 		desc.ComparisonFunc = getComparisonFuncD3d((RdrComparisonFunc)state.cmpFunc);
 
-		sampler.hCopyable = m_samplerHeap.AllocateCopyDescriptor();
-		sampler.hShaderVisible = m_samplerHeap.AllocateDescriptor();
-		m_pDevice->CreateSampler(&desc, sampler.hCopyable.hCpuDesc);
-		m_pDevice->CreateSampler(&desc, sampler.hShaderVisible.hCpuDesc);
+		sampler.pDesc = m_samplerHeap.CreateSampler(desc, CREATE_BACKPOINTER(this));
 	}
 
 	return sampler;
 }
 
-RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex)
+RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex, const RdrDebugBackpointer& debug)
 {
 	RdrDepthStencilView view;
 
@@ -972,14 +1024,13 @@ RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex)
 		}
 	}
 
-	view.hView = m_dsvHeap.AllocateDescriptor();
+	view.pDesc = m_dsvHeap.CreateDepthStencilView(rDepthTex.GetResource(), &dsvDesc, debug);
 	view.pResource = &rDepthTex;
-	m_pDevice->CreateDepthStencilView(rDepthTex.GetResource(), &dsvDesc, view.hView.hCpuDesc);
 
 	return view;
 }
 
-RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex, uint arrayStartIndex, uint arraySize)
+RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug)
 {
 	RdrDepthStencilView view;
 
@@ -1001,19 +1052,13 @@ RdrDepthStencilView RdrContext::CreateDepthStencilView(RdrResource& rDepthTex, u
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 	}
 
-	view.hView = m_dsvHeap.AllocateDescriptor();
+	view.pDesc = m_dsvHeap.CreateDepthStencilView(rDepthTex.GetResource(), &dsvDesc, debug);
 	view.pResource = &rDepthTex;
-	m_pDevice->CreateDepthStencilView(rDepthTex.GetResource(), &dsvDesc, view.hView.hCpuDesc);
 
 	return view;
 }
 
-void RdrContext::ReleaseDepthStencilView(const RdrDepthStencilView& depthStencilView)
-{
-	m_dsvHeap.FreeDescriptor(depthStencilView.hView);
-}
-
-RdrRenderTargetView RdrContext::CreateRenderTargetView(RdrResource& rTexRes)
+RdrRenderTargetView RdrContext::CreateRenderTargetView(RdrResource& rTexRes, const RdrDebugBackpointer& debug)
 {
 	RdrRenderTargetView view;
 
@@ -1031,14 +1076,13 @@ RdrRenderTargetView RdrContext::CreateRenderTargetView(RdrResource& rTexRes)
 		desc.Texture2D.PlaneSlice = 0;
 	}
 
-	view.hView = m_rtvHeap.AllocateDescriptor();
-	m_pDevice->CreateRenderTargetView(rTexRes.GetResource(), &desc, view.hView.hCpuDesc);
+	view.pDesc = m_rtvHeap.CreateRenderTargetView(rTexRes.GetResource(), &desc, debug);
 	view.pResource = &rTexRes;
 
 	return view;
 }
 
-RdrRenderTargetView RdrContext::CreateRenderTargetView(RdrResource& rTexArrayRes, uint arrayStartIndex, uint arraySize)
+RdrRenderTargetView RdrContext::CreateRenderTargetView(RdrResource& rTexArrayRes, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug)
 {
 	RdrRenderTargetView view;
 
@@ -1050,16 +1094,10 @@ RdrRenderTargetView RdrContext::CreateRenderTargetView(RdrResource& rTexArrayRes
 	desc.Texture2DArray.ArraySize = arraySize;
 	desc.Texture2DArray.PlaneSlice = 0;
 
-	view.hView = m_rtvHeap.AllocateDescriptor();
-	m_pDevice->CreateRenderTargetView(rTexArrayRes.GetResource(), &desc, view.hView.hCpuDesc);
+	view.pDesc = m_rtvHeap.CreateRenderTargetView(rTexArrayRes.GetResource(), &desc, debug);
 	view.pResource = &rTexArrayRes;
 
 	return view;
-}
-
-void RdrContext::ReleaseRenderTargetView(const RdrRenderTargetView& renderTargetView)
-{
-	m_rtvHeap.FreeDescriptor(renderTargetView.hView);
 }
 
 void RdrContext::UAVBarrier(const RdrResource* pResource)
@@ -1077,14 +1115,14 @@ void RdrContext::SetRenderTargets(uint numTargets, const RdrRenderTargetView* aR
 
 	for (uint i = 0; i < numTargets; ++i)
 	{
-		hRenderTargetViews[i] = aRenderTargets[i].hView.hCpuDesc;
+		hRenderTargetViews[i] = aRenderTargets[i].pDesc->GetCpuDesc();
 		if (aRenderTargets[i].pResource)
 		{
 			aRenderTargets[i].pResource->TransitionState(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		}
 	}
 
-	hDepthStencilView = depthStencilTarget.hView.hCpuDesc;
+	hDepthStencilView = depthStencilTarget.pDesc->GetCpuDesc();
 	if (depthStencilTarget.pResource)
 	{
 		depthStencilTarget.pResource->TransitionState(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE);
@@ -1256,7 +1294,7 @@ void RdrContext::Resize(uint width, uint height)
 void RdrContext::ClearRenderTargetView(const RdrRenderTargetView& renderTarget, const Color& clearColor)
 {
 	renderTarget.pResource->TransitionState(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	m_pCommandList->ClearRenderTargetView(renderTarget.hView.hCpuDesc, clearColor.asFloat4(), 0, nullptr);
+	m_pCommandList->ClearRenderTargetView(renderTarget.pDesc->GetCpuDesc(), clearColor.asFloat4(), 0, nullptr);
 }
 
 void RdrContext::ClearDepthStencilView(const RdrDepthStencilView& depthStencil, const bool bClearDepth, const float depthVal, const bool bClearStencil, const uint8 stencilVal)
@@ -1268,13 +1306,13 @@ void RdrContext::ClearDepthStencilView(const RdrDepthStencilView& depthStencil, 
 		clearFlags |= D3D12_CLEAR_FLAG_STENCIL;
 
 	depthStencil.pResource->TransitionState(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	m_pCommandList->ClearDepthStencilView(depthStencil.hView.hCpuDesc, clearFlags, depthVal, stencilVal, 0, nullptr);
+	m_pCommandList->ClearDepthStencilView(depthStencil.pDesc->GetCpuDesc(), clearFlags, depthVal, stencilVal, 0, nullptr);
 }
 
 RdrRenderTargetView RdrContext::GetPrimaryRenderTarget()
 {
 	RdrRenderTargetView view;
-	view.hView = m_hBackBufferRtvs[m_currBackBuffer];
+	view.pDesc = m_pBackBufferRtvs[m_currBackBuffer];
 	view.pResource = nullptr;
 	return view;
 }
@@ -1319,24 +1357,24 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 	m_rProfiler.IncrementCounter(RdrProfileCounter::VertexBuffer);
 
 	// VS constants
-	if (rDrawState.hVsGlobalConstantBufferTable != m_drawState.hVsGlobalConstantBufferTable)
+	if (rDrawState.pVsGlobalConstantBufferTable != m_drawState.pVsGlobalConstantBufferTable)
 	{
-		m_pCommandList->SetGraphicsRootDescriptorTable(kRootVsGlobalConstantBufferTable, rDrawState.hVsGlobalConstantBufferTable.hGpuDesc);
-		m_drawState.hVsGlobalConstantBufferTable = rDrawState.hVsGlobalConstantBufferTable;
+		m_pCommandList->SetGraphicsRootDescriptorTable(kRootVsGlobalConstantBufferTable, rDrawState.pVsGlobalConstantBufferTable->GetGpuDesc());
+		m_drawState.pVsGlobalConstantBufferTable = rDrawState.pVsGlobalConstantBufferTable;
 		m_rProfiler.IncrementCounter(RdrProfileCounter::VsConstantBuffer);
 	}
-	if (rDrawState.hVsPerObjectConstantBuffer != m_drawState.hVsPerObjectConstantBuffer)
+	if (rDrawState.pVsPerObjectConstantBuffer != m_drawState.pVsPerObjectConstantBuffer)
 	{
-		m_pCommandList->SetGraphicsRootDescriptorTable(kRootVsPerObjectConstantBufferTable, rDrawState.hVsPerObjectConstantBuffer.hGpuDesc);
-		m_drawState.hVsPerObjectConstantBuffer = rDrawState.hVsPerObjectConstantBuffer;
+		m_pCommandList->SetGraphicsRootDescriptorTable(kRootVsPerObjectConstantBufferTable, rDrawState.pVsPerObjectConstantBuffer->GetGpuDesc());
+		m_drawState.pVsPerObjectConstantBuffer = rDrawState.pVsPerObjectConstantBuffer;
 		m_rProfiler.IncrementCounter(RdrProfileCounter::VsConstantBuffer);
 	}
 
 	// VS resources
-	if (rDrawState.hVsShaderResourceViewTable != m_drawState.hVsShaderResourceViewTable)
+	if (rDrawState.pVsShaderResourceViewTable != m_drawState.pVsShaderResourceViewTable)
 	{
-		m_pCommandList->SetGraphicsRootDescriptorTable(kRootVsShaderResourceViewTable, rDrawState.hVsShaderResourceViewTable.hGpuDesc);
-		m_drawState.hVsShaderResourceViewTable = rDrawState.hVsShaderResourceViewTable;
+		m_pCommandList->SetGraphicsRootDescriptorTable(kRootVsShaderResourceViewTable, rDrawState.pVsShaderResourceViewTable->GetGpuDesc());
+		m_drawState.pVsShaderResourceViewTable = rDrawState.pVsShaderResourceViewTable;
 		m_rProfiler.IncrementCounter(RdrProfileCounter::VsResource);
 	}
 
@@ -1344,76 +1382,76 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 	if (rDrawState.IsShaderStageActive(RdrShaderStageFlags::Domain))
 	{
 		// DS constants
-		if (rDrawState.hDsGlobalConstantBufferTable != m_drawState.hDsGlobalConstantBufferTable)
+		if (rDrawState.pDsGlobalConstantBufferTable != m_drawState.pDsGlobalConstantBufferTable)
 		{
-			m_pCommandList->SetGraphicsRootDescriptorTable(kRootDsGlobalConstantBufferTable, rDrawState.hDsGlobalConstantBufferTable.hGpuDesc);
-			m_drawState.hDsGlobalConstantBufferTable = rDrawState.hDsGlobalConstantBufferTable;
+			m_pCommandList->SetGraphicsRootDescriptorTable(kRootDsGlobalConstantBufferTable, rDrawState.pDsGlobalConstantBufferTable->GetGpuDesc());
+			m_drawState.pDsGlobalConstantBufferTable = rDrawState.pDsGlobalConstantBufferTable;
 			m_rProfiler.IncrementCounter(RdrProfileCounter::DsConstantBuffer);
 		}
-		if (rDrawState.hDsPerObjectConstantBuffer != m_drawState.hDsPerObjectConstantBuffer)
+		if (rDrawState.pDsPerObjectConstantBuffer != m_drawState.pDsPerObjectConstantBuffer)
 		{
-			m_pCommandList->SetGraphicsRootDescriptorTable(kRootDsPerObjectConstantBufferTable, rDrawState.hDsPerObjectConstantBuffer.hGpuDesc);
-			m_drawState.hDsPerObjectConstantBuffer = rDrawState.hDsPerObjectConstantBuffer;
+			m_pCommandList->SetGraphicsRootDescriptorTable(kRootDsPerObjectConstantBufferTable, rDrawState.pDsPerObjectConstantBuffer->GetGpuDesc());
+			m_drawState.pDsPerObjectConstantBuffer = rDrawState.pDsPerObjectConstantBuffer;
 			m_rProfiler.IncrementCounter(RdrProfileCounter::DsConstantBuffer);
 		}
 
 		// DS resources
-		if (rDrawState.hDsShaderResourceViewTable != m_drawState.hDsShaderResourceViewTable)
+		if (rDrawState.pDsShaderResourceViewTable != m_drawState.pDsShaderResourceViewTable)
 		{
-			m_pCommandList->SetGraphicsRootDescriptorTable(kRootDsShaderResourceViewTable, rDrawState.hDsShaderResourceViewTable.hGpuDesc);
-			m_drawState.hDsShaderResourceViewTable = rDrawState.hDsShaderResourceViewTable;
+			m_pCommandList->SetGraphicsRootDescriptorTable(kRootDsShaderResourceViewTable, rDrawState.pDsShaderResourceViewTable->GetGpuDesc());
+			m_drawState.pDsShaderResourceViewTable = rDrawState.pDsShaderResourceViewTable;
 			m_rProfiler.IncrementCounter(RdrProfileCounter::DsResource);
 		}
 
 		// DS samplers
-		if (rDrawState.hDsSamplerTable != m_drawState.hDsSamplerTable)
+		if (rDrawState.pDsSamplerTable != m_drawState.pDsSamplerTable)
 		{
-			m_pCommandList->SetGraphicsRootDescriptorTable(kRootDsSamplerTable, rDrawState.hDsSamplerTable.hGpuDesc);
-			m_drawState.hDsSamplerTable = rDrawState.hDsSamplerTable;
+			m_pCommandList->SetGraphicsRootDescriptorTable(kRootDsSamplerTable, rDrawState.pDsSamplerTable->GetGpuDesc());
+			m_drawState.pDsSamplerTable = rDrawState.pDsSamplerTable;
 			m_rProfiler.IncrementCounter(RdrProfileCounter::DsSamplers);
 		}
 	}
 
 	// PS constants
-	if (rDrawState.hPsGlobalConstantBufferTable != m_drawState.hPsGlobalConstantBufferTable)
+	if (rDrawState.pPsGlobalConstantBufferTable != m_drawState.pPsGlobalConstantBufferTable)
 	{
-		m_pCommandList->SetGraphicsRootDescriptorTable(kRootPsGlobalConstantBufferTable, rDrawState.hPsGlobalConstantBufferTable.hGpuDesc);
-		m_drawState.hPsGlobalConstantBufferTable = rDrawState.hPsGlobalConstantBufferTable;
+		m_pCommandList->SetGraphicsRootDescriptorTable(kRootPsGlobalConstantBufferTable, rDrawState.pPsGlobalConstantBufferTable->GetGpuDesc());
+		m_drawState.pPsGlobalConstantBufferTable = rDrawState.pPsGlobalConstantBufferTable;
 		m_rProfiler.IncrementCounter(RdrProfileCounter::PsConstantBuffer);
 	}
-	if (rDrawState.hPsMaterialConstantBufferTable != m_drawState.hPsMaterialConstantBufferTable)
+	if (rDrawState.pPsMaterialConstantBufferTable != m_drawState.pPsMaterialConstantBufferTable)
 	{
-		m_pCommandList->SetGraphicsRootDescriptorTable(kRootPsMaterialConstantBufferTable, rDrawState.hPsMaterialConstantBufferTable.hGpuDesc);
-		m_drawState.hPsMaterialConstantBufferTable = rDrawState.hPsMaterialConstantBufferTable;
+		m_pCommandList->SetGraphicsRootDescriptorTable(kRootPsMaterialConstantBufferTable, rDrawState.pPsMaterialConstantBufferTable->GetGpuDesc());
+		m_drawState.pPsMaterialConstantBufferTable = rDrawState.pPsMaterialConstantBufferTable;
 		m_rProfiler.IncrementCounter(RdrProfileCounter::PsConstantBuffer);
 	}
 
 	// PS resources
-	if (rDrawState.hPsMaterialShaderResourceViewTable != m_drawState.hPsMaterialShaderResourceViewTable)
+	if (rDrawState.pPsMaterialShaderResourceViewTable != m_drawState.pPsMaterialShaderResourceViewTable)
 	{
-		m_pCommandList->SetGraphicsRootDescriptorTable(kRootPsMaterialShaderResourceViewTable, rDrawState.hPsMaterialShaderResourceViewTable.hGpuDesc);
-		m_drawState.hPsMaterialShaderResourceViewTable = rDrawState.hPsMaterialShaderResourceViewTable;
-		m_rProfiler.IncrementCounter(RdrProfileCounter::PsResource);
+		if (rDrawState.pPsMaterialShaderResourceViewTable)
+		{
+			m_pCommandList->SetGraphicsRootDescriptorTable(kRootPsMaterialShaderResourceViewTable, rDrawState.pPsMaterialShaderResourceViewTable->GetGpuDesc());
+			m_drawState.pPsMaterialShaderResourceViewTable = rDrawState.pPsMaterialShaderResourceViewTable;
+			m_rProfiler.IncrementCounter(RdrProfileCounter::PsResource);
+		}
 	}
-	if (rDrawState.hPsGlobalShaderResourceViewTable != m_drawState.hPsGlobalShaderResourceViewTable)
+	if (rDrawState.pPsGlobalShaderResourceViewTable != m_drawState.pPsGlobalShaderResourceViewTable)
 	{
-		m_pCommandList->SetGraphicsRootDescriptorTable(kRootPsGlobalShaderResourceViewTable, rDrawState.hPsGlobalShaderResourceViewTable.hGpuDesc);
-		m_drawState.hPsGlobalShaderResourceViewTable = rDrawState.hPsGlobalShaderResourceViewTable;
+		m_pCommandList->SetGraphicsRootDescriptorTable(kRootPsGlobalShaderResourceViewTable, rDrawState.pPsGlobalShaderResourceViewTable->GetGpuDesc());
+		m_drawState.pPsGlobalShaderResourceViewTable = rDrawState.pPsGlobalShaderResourceViewTable;
 		m_rProfiler.IncrementCounter(RdrProfileCounter::PsResource);
 	}
 
 	// PS samplers
-	if (rDrawState.hPsMaterialSamplerTable != m_drawState.hPsMaterialSamplerTable)
+	if (rDrawState.pPsMaterialSamplerTable != m_drawState.pPsMaterialSamplerTable)
 	{
-		m_pCommandList->SetGraphicsRootDescriptorTable(kRootPsMaterialSamplerTable, rDrawState.hPsMaterialSamplerTable.hGpuDesc);
-		m_drawState.hPsMaterialSamplerTable = rDrawState.hPsMaterialSamplerTable;
-		m_rProfiler.IncrementCounter(RdrProfileCounter::PsSamplers);
-	}
-	if (rDrawState.hPsGlobalSamplerTable != m_drawState.hPsGlobalSamplerTable)
-	{
-		m_pCommandList->SetGraphicsRootDescriptorTable(kRootPsGlobalSamplerTable, rDrawState.hPsGlobalSamplerTable.hGpuDesc);
-		m_drawState.hPsGlobalSamplerTable = rDrawState.hPsGlobalSamplerTable;
-		m_rProfiler.IncrementCounter(RdrProfileCounter::PsSamplers);
+		if (rDrawState.pPsMaterialSamplerTable)
+		{
+			m_pCommandList->SetGraphicsRootDescriptorTable(kRootPsMaterialSamplerTable, rDrawState.pPsMaterialSamplerTable->GetGpuDesc());
+			m_drawState.pPsMaterialSamplerTable = rDrawState.pPsMaterialSamplerTable;
+			m_rProfiler.IncrementCounter(RdrProfileCounter::PsSamplers);
+		}
 	}
 
 	if (rDrawState.eTopology != m_drawState.eTopology)
@@ -1453,34 +1491,34 @@ void RdrContext::DispatchCompute(const RdrDrawState& rDrawState, uint threadGrou
 	m_pCommandList->SetPipelineState(rDrawState.pipelineState.pPipelineState);
 
 	// Constants
-	if (rDrawState.hCsConstantBufferTable != m_drawState.hCsConstantBufferTable)
+	if (rDrawState.pCsConstantBufferTable != m_drawState.pCsConstantBufferTable)
 	{
-		m_pCommandList->SetComputeRootDescriptorTable(kRootCsConstantBufferTable, rDrawState.hCsConstantBufferTable.hGpuDesc);
-		m_drawState.hCsConstantBufferTable = rDrawState.hCsConstantBufferTable;
+		m_pCommandList->SetComputeRootDescriptorTable(kRootCsConstantBufferTable, rDrawState.pCsConstantBufferTable->GetGpuDesc());
+		m_drawState.pCsConstantBufferTable = rDrawState.pCsConstantBufferTable;
 		m_rProfiler.IncrementCounter(RdrProfileCounter::CsConstantBuffer);
 	}
 
 	// Resources
-	if (rDrawState.hCsShaderResourceViewTable != m_drawState.hCsShaderResourceViewTable)
+	if (rDrawState.pCsShaderResourceViewTable != m_drawState.pCsShaderResourceViewTable)
 	{
-		m_pCommandList->SetComputeRootDescriptorTable(kRootCsShaderResourceViewTable, rDrawState.hCsShaderResourceViewTable.hGpuDesc);
-		m_drawState.hCsShaderResourceViewTable = rDrawState.hCsShaderResourceViewTable;
+		m_pCommandList->SetComputeRootDescriptorTable(kRootCsShaderResourceViewTable, rDrawState.pCsShaderResourceViewTable->GetGpuDesc());
+		m_drawState.pCsShaderResourceViewTable = rDrawState.pCsShaderResourceViewTable;
 		m_rProfiler.IncrementCounter(RdrProfileCounter::CsResource);
 	}
 
 	// Samplers
-	if (rDrawState.hCsSamplerTable != m_drawState.hCsSamplerTable)
+	if (rDrawState.pCsSamplerTable != m_drawState.pCsSamplerTable)
 	{
-		m_pCommandList->SetComputeRootDescriptorTable(kRootCsSamplerTable, rDrawState.hCsSamplerTable.hGpuDesc);
-		m_drawState.hCsSamplerTable = rDrawState.hCsSamplerTable;
+		m_pCommandList->SetComputeRootDescriptorTable(kRootCsSamplerTable, rDrawState.pCsSamplerTable->GetGpuDesc());
+		m_drawState.pCsSamplerTable = rDrawState.pCsSamplerTable;
 		m_rProfiler.IncrementCounter(RdrProfileCounter::CsSampler);
 	}
 
 	// UAVs
-	if (rDrawState.hCsUnorderedAccessViewTable != m_drawState.hCsUnorderedAccessViewTable)
+	if (rDrawState.pCsUnorderedAccessViewTable != m_drawState.pCsUnorderedAccessViewTable)
 	{
-		m_pCommandList->SetComputeRootDescriptorTable(kRootCsUnorderedAccessViewTable, rDrawState.hCsUnorderedAccessViewTable.hGpuDesc);
-		m_drawState.hCsUnorderedAccessViewTable = rDrawState.hCsUnorderedAccessViewTable;
+		m_pCommandList->SetComputeRootDescriptorTable(kRootCsUnorderedAccessViewTable, rDrawState.pCsUnorderedAccessViewTable->GetGpuDesc());
+		m_drawState.pCsUnorderedAccessViewTable = rDrawState.pCsUnorderedAccessViewTable;
 		m_rProfiler.IncrementCounter(RdrProfileCounter::CsUnorderedAccess);
 	}
 

@@ -286,20 +286,6 @@ void RdrMaterial::Cleanup()
 		m_tessellation.hDsConstants = 0;
 	}
 
-	//donotcheckin resource refcounts
-	/*
-	uint nNumResources = m_tessellation.ahResources.size();
-	for (uint i = 0; i < nNumResources; ++i)
-	{
-		RdrResourceHandle hResource = m_tessellation.ahResources.get(i);
-		if (hResource)
-		{
-			g_pRenderer->GetResourceCommandList().ReleaseResource(hResource, CREATE_BACKPOINTER(this));
-			m_tessellation.ahResources.assign(i, 0);
-		}
-	}
-	*/
-
 	if (m_tessellation.pResourceDescriptorTable)
 	{
 		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_tessellation.pResourceDescriptorTable, CREATE_BACKPOINTER(this));

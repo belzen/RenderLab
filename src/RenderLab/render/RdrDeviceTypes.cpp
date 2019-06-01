@@ -1,5 +1,6 @@
 #include "Precompiled.h"
 #include "RdrDeviceTypes.h"
+#include "Renderer.h"
 
 namespace
 {
@@ -48,4 +49,9 @@ int rdrGetTextureRows(const int height, const RdrResourceFormat eFormat)
 	int blockPixelsMinusOne = rBlockInfo.blockPixelSize - 1;
 	int rows = ((height + blockPixelsMinusOne) & ~blockPixelsMinusOne) / rBlockInfo.blockPixelSize;
 	return rows;
+}
+
+void RdrDescriptors::MarkUsedThisFrame() const
+{
+	const_cast<RdrDescriptors*>(this)->m_nLastUsedFrameCode = g_pRenderer->GetContext()->GetFrameNum();
 }

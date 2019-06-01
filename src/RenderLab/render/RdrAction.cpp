@@ -547,10 +547,9 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 	ahConstantBuffers[0] = m_constants.hPsPerAction;
 	ahConstantBuffers[1] = m_lightResources.hGlobalLightsCb;
 	ahConstantBuffers[2] = m_constants.hPsAtmosphere;
-	const RdrDescriptorTable* pPsGlobalConstantsTable = RdrResourceSystem::CreateTempConstantBufferTable(ahConstantBuffers, ARRAYSIZE(ahConstantBuffers), CREATE_BACKPOINTER(this));
-	m_pDrawState->hPsGlobalConstantBufferTable		= pPsGlobalConstantsTable->GetDescriptors();
-	m_pDrawState->hPsGlobalShaderResourceViewTable	= m_lightResources.pResourcesTable->GetDescriptors();
-	m_pDrawState->hPsGlobalSamplerTable				= m_lightResources.pSamplersTable->GetDescriptors();
+	m_pDrawState->pPsGlobalConstantBufferTable = RdrResourceSystem::CreateTempConstantBufferTable(ahConstantBuffers, ARRAYSIZE(ahConstantBuffers), CREATE_BACKPOINTER(this));
+
+	m_pDrawState->pPsGlobalShaderResourceViewTable	= m_lightResources.pResourcesTable;
 
 	m_pContext->BeginEvent(m_name);
 
@@ -679,31 +678,31 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 
 	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerAction;
 
-	m_pDrawState->hVsPerObjectConstantBuffer = RdrResourceSystem::GetConstantBuffer(pDrawOp->hVsConstants)->GetCBV().hShaderVisibleView;
+	m_pDrawState->pVsPerObjectConstantBuffer = RdrResourceSystem::GetConstantBuffer(pDrawOp->hVsConstants)->GetCBV().pDesc;
 
 	if (instanced)
 	{
 		RdrResource& rBuffer = s_actionSharedData.instanceIds[s_actionSharedData.currentInstanceIds].buffer;
 		rBuffer.UpdateResource(*m_pContext, s_actionSharedData.instanceIds[s_actionSharedData.currentInstanceIds].ids, rBuffer.GetSize());
-		m_pDrawState->hVsGlobalConstantBufferTable = rBuffer.GetCBV().hShaderVisibleView;
+		m_pDrawState->pVsGlobalConstantBufferTable = rBuffer.GetCBV().pDesc;
 
-		m_pDrawState->hVsShaderResourceViewTable = RdrResourceSystem::GetResource(RdrInstancedObjectDataBuffer::GetResourceHandle())->GetSRV().hShaderVisibleView;
+		m_pDrawState->pVsShaderResourceViewTable = RdrResourceSystem::GetResource(RdrInstancedObjectDataBuffer::GetResourceHandle())->GetSRV().pDesc;
 	}
 	else
 	{
-		m_pDrawState->hVsGlobalConstantBufferTable = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->GetCBV().hShaderVisibleView;
+		m_pDrawState->pVsGlobalConstantBufferTable = RdrResourceSystem::GetConstantBuffer(hPerActionVs)->GetCBV().pDesc;
 	}
 
 	// Tessellation material
 	if (pMaterial->IsShaderStageActive(rPass.shaderMode, RdrShaderStageFlags::Domain))
 	{
 		const RdrTessellationMaterialData& tessellation = pMaterial->GetTessellationData();
-		m_pDrawState->hDsPerObjectConstantBuffer = RdrResourceSystem::GetConstantBuffer(tessellation.hDsConstants)->GetCBV().hShaderVisibleView;
-		m_pDrawState->hDsSamplerTable = tessellation.pSamplerDescriptorTable->GetDescriptors();
-		m_pDrawState->hDsShaderResourceViewTable = tessellation.pResourceDescriptorTable->GetDescriptors();
+		m_pDrawState->pDsPerObjectConstantBuffer = RdrResourceSystem::GetConstantBuffer(tessellation.hDsConstants)->GetCBV().pDesc;
+		m_pDrawState->pDsSamplerTable = tessellation.pSamplerDescriptorTable;
+		m_pDrawState->pDsShaderResourceViewTable = tessellation.pResourceDescriptorTable;
 
 		// Copy per-action constant buffer to domain shader
-		m_pDrawState->hDsGlobalConstantBufferTable = m_pDrawState->hVsGlobalConstantBufferTable;
+		m_pDrawState->pDsGlobalConstantBufferTable = m_pDrawState->pVsGlobalConstantBufferTable;
 	}
 
 	// Pixel shader
@@ -712,17 +711,17 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 		if (pMaterial->IsShaderStageActive(rPass.shaderMode, RdrShaderStageFlags::Pixel))
 		{
 			// donotcheckin vs/ds/ps share constant buffer table - all have access - faster than separate tables?
-			m_pDrawState->hPsMaterialShaderResourceViewTable = pMaterial->GetResourceDescriptorTable()->GetDescriptors();
-			m_pDrawState->hPsMaterialSamplerTable = pMaterial->GetSamplerDescriptorTable()->GetDescriptors();
+			m_pDrawState->pPsMaterialShaderResourceViewTable = pMaterial->GetResourceDescriptorTable();
+			m_pDrawState->pPsMaterialSamplerTable = pMaterial->GetSamplerDescriptorTable();
 
 			const RdrConstantBufferHandle& hConstants = pMaterial->GetConstantBufferHandle();
 			if (hConstants != 0)
 			{
-				m_pDrawState->hPsMaterialConstantBufferTable = RdrResourceSystem::GetConstantBuffer(hConstants)->GetCBV().hShaderVisibleView;
+				m_pDrawState->pPsMaterialConstantBufferTable = RdrResourceSystem::GetConstantBuffer(hConstants)->GetCBV().pDesc;
 			}
 			else
 			{
-				m_pDrawState->hPsMaterialConstantBufferTable = m_pContext->GetNullConstantBufferView().hShaderVisibleView;
+				m_pDrawState->pPsMaterialConstantBufferTable = m_pContext->GetNullConstantBufferView().pDesc;
 			}
 		}
 	}
@@ -768,10 +767,10 @@ void RdrAction::DispatchCompute(const RdrComputeOp* pComputeOp)
 {
 	m_pDrawState->pipelineState = pComputeOp->pipelineState;
 
-	m_pDrawState->hCsConstantBufferTable = pComputeOp->pConstantsDescriptorTable ? pComputeOp->pConstantsDescriptorTable->GetDescriptors() : m_pContext->GetNullConstantBufferView().hShaderVisibleView;
-	m_pDrawState->hCsSamplerTable = pComputeOp->pSamplerDescriptorTable ? pComputeOp->pSamplerDescriptorTable->GetDescriptors() : m_pContext->GetSampler(RdrSamplerState()).hShaderVisible;
-	m_pDrawState->hCsShaderResourceViewTable = pComputeOp->pResourceDescriptorTable ? pComputeOp->pResourceDescriptorTable->GetDescriptors() : m_pContext->GetNullShaderResourceView().hShaderVisibleView;
-	m_pDrawState->hCsUnorderedAccessViewTable = pComputeOp->pUnorderedAccessDescriptorTable ? pComputeOp->pUnorderedAccessDescriptorTable->GetDescriptors() : m_pContext->GetNullUnorderedAccessView().hShaderVisibleView;
+	m_pDrawState->pCsConstantBufferTable = pComputeOp->pConstantsDescriptorTable ? pComputeOp->pConstantsDescriptorTable : m_pContext->GetNullConstantBufferView().pDesc;
+	m_pDrawState->pCsSamplerTable = pComputeOp->pSamplerDescriptorTable ? pComputeOp->pSamplerDescriptorTable : m_pContext->GetSampler(RdrSamplerState()).pDesc;
+	m_pDrawState->pCsShaderResourceViewTable = pComputeOp->pResourceDescriptorTable ? pComputeOp->pResourceDescriptorTable : m_pContext->GetNullShaderResourceView().pDesc;
+	m_pDrawState->pCsUnorderedAccessViewTable = pComputeOp->pUnorderedAccessDescriptorTable ? pComputeOp->pUnorderedAccessDescriptorTable : m_pContext->GetNullUnorderedAccessView().pDesc;
 
 	m_pContext->DispatchCompute(*m_pDrawState, pComputeOp->threads[0], pComputeOp->threads[1], pComputeOp->threads[2]);
 

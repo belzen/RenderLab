@@ -392,15 +392,6 @@ void RdrLighting::QueueDraw(RdrAction* pAction, RdrLightList* pLights, RdrLighti
 	ahResources[6] = outResources.hPointLightListRes;
 	ahResources[7] = sharedResources.hLightIndicesRes;
 	pOutResources->pResourcesTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
-
-	RdrSamplerState aSamplerStates[2];
-	aSamplerStates[0] = RdrSamplerState(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
-	aSamplerStates[1] = RdrSamplerState(RdrComparisonFunc::LessEqual, RdrTexCoordMode::Clamp, false);
-	if (!pOutResources->pSamplersTable)
-	{
-		// Sampler states never change, so we only need to create this is if it isn't already setup.
-		pOutResources->pSamplersTable = RdrResourceSystem::CreateSamplerTable(aSamplerStates, ARRAYSIZE(aSamplerStates), CREATE_BACKPOINTER(this));
-	}
 }
 
 void RdrLighting::QueueClusteredLightCulling(RdrAction* pAction, const Camera& rCamera, int numSpotLights, int numPointLights,

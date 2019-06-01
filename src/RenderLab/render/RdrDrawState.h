@@ -32,28 +32,27 @@ public:
 	uint indexCount;
 
 	// Vertex shader
-	D3D12DescriptorHandles hVsGlobalConstantBufferTable;
-	D3D12DescriptorHandles hVsPerObjectConstantBuffer;
-	D3D12DescriptorHandles hVsShaderResourceViewTable;
+	const RdrDescriptors* pVsGlobalConstantBufferTable;
+	const RdrDescriptors* pVsPerObjectConstantBuffer;
+	const RdrDescriptors* pVsShaderResourceViewTable;
 
 	// Domain shader
-	D3D12DescriptorHandles hDsGlobalConstantBufferTable;
-	D3D12DescriptorHandles hDsPerObjectConstantBuffer;
-	D3D12DescriptorHandles hDsShaderResourceViewTable;
-	D3D12DescriptorHandles hDsSamplerTable;
+	const RdrDescriptors* pDsGlobalConstantBufferTable;
+	const RdrDescriptors* pDsPerObjectConstantBuffer;
+	const RdrDescriptors* pDsShaderResourceViewTable;
+	const RdrDescriptors* pDsSamplerTable;
 
 	// Pixel shader
-	D3D12DescriptorHandles hPsMaterialConstantBufferTable;
-	D3D12DescriptorHandles hPsMaterialShaderResourceViewTable;
-	D3D12DescriptorHandles hPsMaterialSamplerTable;
+	const RdrDescriptors* pPsMaterialConstantBufferTable;
+	const RdrDescriptors* pPsMaterialShaderResourceViewTable;
+	const RdrDescriptors* pPsMaterialSamplerTable;
 
-	D3D12DescriptorHandles hPsGlobalConstantBufferTable;
-	D3D12DescriptorHandles hPsGlobalShaderResourceViewTable;
-	D3D12DescriptorHandles hPsGlobalSamplerTable;
+	const RdrDescriptors* pPsGlobalConstantBufferTable;
+	const RdrDescriptors* pPsGlobalShaderResourceViewTable;
 
 	// Compute shader
-	D3D12DescriptorHandles hCsConstantBufferTable;
-	D3D12DescriptorHandles hCsShaderResourceViewTable;
-	D3D12DescriptorHandles hCsSamplerTable;
-	D3D12DescriptorHandles hCsUnorderedAccessViewTable;
+	const RdrDescriptors* pCsConstantBufferTable;
+	const RdrDescriptors* pCsShaderResourceViewTable;
+	const RdrDescriptors* pCsSamplerTable;
+	const RdrDescriptors* pCsUnorderedAccessViewTable;
 };

@@ -39,8 +39,6 @@ namespace
 		RdrRenderTargetViewList		renderTargetViews;
 		RdrDepthStencilViewList		depthStencilViews;
 		RdrShaderResourceViewList	shaderResourceViews;
-
-		RdrDescriptorTableList descriptorTables;
 	} s_resourceSystem;
 
 	RdrResourceFormat getFormatFromDXGI(DXGI_FORMAT format)
@@ -479,7 +477,7 @@ RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceH
 
 	RdrRenderTargetView* pView = s_resourceSystem.renderTargetViews.allocSafe();
 	RdrResource* pResource = s_resourceSystem.resources.get(hResource);
-	*pView = pRdrContext->CreateRenderTargetView(*pResource);
+	*pView = pRdrContext->CreateRenderTargetView(*pResource, debug);
 
 	return s_resourceSystem.renderTargetViews.getId(pView);
 }
@@ -491,7 +489,7 @@ RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceH
 
 	RdrRenderTargetView* pView = s_resourceSystem.renderTargetViews.allocSafe();
 	RdrResource* pResource = s_resourceSystem.resources.get(hResource);
-	*pView = pRdrContext->CreateRenderTargetView(*pResource, arrayStartIndex, arraySize);
+	*pView = pRdrContext->CreateRenderTargetView(*pResource, arrayStartIndex, arraySize, debug);
 
 	return s_resourceSystem.renderTargetViews.getId(pView);
 }
@@ -517,7 +515,7 @@ RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceH
 
 	RdrDepthStencilView* pView = s_resourceSystem.depthStencilViews.allocSafe();
 	RdrResource* pResource = s_resourceSystem.resources.get(hResource);
-	*pView = pRdrContext->CreateDepthStencilView(*pResource);
+	*pView = pRdrContext->CreateDepthStencilView(*pResource, debug);
 
 	return s_resourceSystem.depthStencilViews.getId(pView);
 }
@@ -529,7 +527,7 @@ RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceH
 
 	RdrDepthStencilView* pView = s_resourceSystem.depthStencilViews.allocSafe();
 	RdrResource* pResource = s_resourceSystem.resources.get(hResource);
-	*pView = pRdrContext->CreateDepthStencilView(*pResource, arrayStartIndex, arraySize);
+	*pView = pRdrContext->CreateDepthStencilView(*pResource, arrayStartIndex, arraySize, debug);
 
 	return s_resourceSystem.depthStencilViews.getId(pView);
 }
@@ -630,287 +628,178 @@ void RdrResourceCommandList::UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVert
 	UpdateResource(hResource, pVertData, 0, debug);
 }
 
-const RdrDescriptorTable* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
-{
-	static constexpr uint kMaxDescriptorTableSize = 16;
-	assert(count < kMaxDescriptorTableSize);
-
-	RdrContext* pRdrContext = g_pRenderer->GetContext();
-	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-
-	if (count == 1)
-	{
-		const RdrResource* pResource = s_resourceSystem.resources.get(ahResources[0]);
-		D3D12DescriptorHandles hDesc = pResource ? pResource->GetSRV().hShaderVisibleView : pRdrContext->GetNullShaderResourceView().hShaderVisibleView;
-		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
-	}
-	else
-	{
-		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-		for (uint i = 0; i < count; ++i)
-		{
-			if (ahResources[i])
-			{
-				const RdrResource* pResource = s_resourceSystem.resources.get(ahResources[i]);
-				ahDescriptors[i] = pResource ? pResource->GetSRV().hCopyableView : pRdrContext->GetNullShaderResourceView().hCopyableView;
-			}
-			else
-			{
-				ahDescriptors[i] = pRdrContext->GetNullShaderResourceView().hCopyableView;
-			}
-		}
-
-		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
-	}
-
-	return pTable;
-}
-
-const RdrDescriptorTable* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
-{
-	static constexpr uint kMaxDescriptorTableSize = 16;
-	assert(count < kMaxDescriptorTableSize);
-
-	RdrContext* pRdrContext = g_pRenderer->GetContext();
-	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-
-	if (count == 1)
-	{
-		D3D12DescriptorHandles hDesc = apResources[0] ? apResources[0]->GetSRV().hShaderVisibleView : pRdrContext->GetNullShaderResourceView().hShaderVisibleView;
-		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
-	}
-	else
-	{
-		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-		for (uint i = 0; i < count; ++i)
-		{
-			ahDescriptors[i] = apResources[i] ? apResources[i]->GetSRV().hCopyableView : pRdrContext->GetNullShaderResourceView().hCopyableView;
-		}
-
-		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
-	}
-
-	return pTable;
-}
-
-const RdrDescriptorTable* RdrResourceSystem::CreateTempShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
-{
-	const RdrDescriptorTable* pTable = CreateShaderResourceViewTable(apResources, count, debug);
-	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
-	return pTable;
-}
-
-const RdrDescriptorTable* RdrResourceSystem::CreateTempShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
-{
-	const RdrDescriptorTable* pTable = CreateShaderResourceViewTable(ahResources, count, debug);
-	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
-	return pTable;
-}
-
-const RdrDescriptorTable* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
-{
-	static constexpr uint kMaxDescriptorTableSize = 16;
-	assert(count < kMaxDescriptorTableSize);
-
-	RdrContext* pRdrContext = g_pRenderer->GetContext();
-	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-
-	if (count == 1)
-	{
-		const RdrResource* pResource = s_resourceSystem.resources.get(ahResources[0]);
-		D3D12DescriptorHandles hDesc = pResource ? pResource->GetUAV().hShaderVisibleView : pRdrContext->GetNullUnorderedAccessView().hShaderVisibleView;
-		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
-	}
-	else
-	{
-		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-		for (uint i = 0; i < count; ++i)
-		{
-			if (ahResources[i])
-			{
-				const RdrResource* pResource = s_resourceSystem.resources.get(ahResources[i]);
-				ahDescriptors[i] = pResource ? pResource->GetUAV().hCopyableView : pRdrContext->GetNullUnorderedAccessView().hCopyableView;
-			}
-			else
-			{
-				ahDescriptors[i] = pRdrContext->GetNullUnorderedAccessView().hCopyableView;
-			}
-		}
-
-		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
-	}
-
-	return pTable;
-}
-
-const RdrDescriptorTable* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
-{
-	static constexpr uint kMaxDescriptorTableSize = 16;
-	assert(count < kMaxDescriptorTableSize);
-
-	RdrContext* pRdrContext = g_pRenderer->GetContext();
-	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-
-	if (count == 1)
-	{
-		D3D12DescriptorHandles hDesc = apResources[0] ? apResources[0]->GetUAV().hShaderVisibleView : pRdrContext->GetNullUnorderedAccessView().hShaderVisibleView;
-		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
-	}
-	else
-	{
-		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-		for (uint i = 0; i < count; ++i)
-		{
-			ahDescriptors[i] = apResources[i] ? apResources[i]->GetUAV().hCopyableView : pRdrContext->GetNullUnorderedAccessView().hCopyableView;
-		}
-
-		RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
-	}
-
-	return pTable;
-}
-
-const RdrDescriptorTable* RdrResourceSystem::CreateTempUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
-{
-	const RdrDescriptorTable* pTable = CreateUnorderedAccessViewTable(apResources, count, debug);
-	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
-	return pTable;
-}
-
-const RdrDescriptorTable* RdrResourceSystem::CreateTempUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
-{
-	const RdrDescriptorTable* pTable = CreateUnorderedAccessViewTable(ahResources, count, debug);
-	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
-	return pTable;
-}
-
-const RdrDescriptorTable* RdrResourceSystem::CreateSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
+const RdrDescriptors* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
 	assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 
-	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-	if (count == 1)
+	const RdrDescriptors* apDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
 	{
-		pTable->CreateFromExisting(RdrDescriptorType::Sampler, pRdrContext->GetSampler(aSamplers[0]).hShaderVisible, debug);
-	}
-	else
-	{
-		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-		for (uint i = 0; i < count; ++i)
-		{
-			ahDescriptors[i] = pRdrContext->GetSampler(aSamplers[i]).hCopyable;
-		}
-		pTable->Create(*pRdrContext, RdrDescriptorType::Sampler, ahDescriptors, count, debug);
+		const RdrResource* pResource = ahResources[i] ? s_resourceSystem.resources.get(ahResources[i]) : nullptr;
+		apDescriptors[i] = pResource ? pResource->GetSRV().pDesc : pRdrContext->GetNullShaderResourceView().pDesc;
 	}
 
-
-	return pTable;
+	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
 }
 
-const RdrDescriptorTable* RdrResourceSystem::CreateTempSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
-{
-	const RdrDescriptorTable* pTable = CreateSamplerTable(aSamplers, count, debug);
-	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
-	return pTable;
-}
-
-const RdrDescriptorTable* RdrResourceSystem::CreateUpdateSamplerTable(const RdrDescriptorTable* pTable, const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
-{
-	if (!pTable)
-		return CreateSamplerTable(aSamplers, count, debug);
-
-	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
-	return CreateSamplerTable(aSamplers, count, debug);
-}
-
-const RdrDescriptorTable* RdrResourceSystem::CreateConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
+const RdrDescriptors* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
 	assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
-	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
 
-	if (count == 1)
+	const RdrDescriptors* apDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
 	{
-		const RdrResource* pResource = s_resourceSystem.constantBuffers.get(ahBuffers[0]);
-		D3D12DescriptorHandles hDesc = pResource ? pResource->GetCBV().hShaderVisibleView : pRdrContext->GetNullConstantBufferView().hShaderVisibleView;
-		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
-	}
-	else
-	{
-		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-		for (uint i = 0; i < count; ++i)
-		{
-			const RdrResource* pResource = s_resourceSystem.constantBuffers.get(ahBuffers[i]);
-			ahDescriptors[i] = pResource ? pResource->GetCBV().hCopyableView : pRdrContext->GetNullConstantBufferView().hCopyableView;
-		}
-
-		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+		apDescriptors[i] = apResources[i] ? apResources[i]->GetSRV().pDesc : pRdrContext->GetNullShaderResourceView().pDesc;
 	}
 
-	return pTable;
+	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
 }
 
-const RdrDescriptorTable* RdrResourceSystem::CreateTempConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
+const RdrDescriptors* RdrResourceSystem::CreateTempShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
 {
-	const RdrDescriptorTable* pTable = CreateConstantBufferTable(ahBuffers, count, debug);
+	const RdrDescriptors* pTable = CreateShaderResourceViewTable(apResources, count, debug);
 	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
 	return pTable;
 }
 
-const RdrDescriptorTable* RdrResourceSystem::CreateConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug)
+const RdrDescriptors* RdrResourceSystem::CreateTempShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
+{
+	const RdrDescriptors* pTable = CreateShaderResourceViewTable(ahResources, count, debug);
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return pTable;
+}
+
+const RdrDescriptors* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
 	assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
-	RdrDescriptorTable* pTable = s_resourceSystem.descriptorTables.allocSafe();
-
-	if (count == 1)
+	
+	const RdrDescriptors* apDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
 	{
-		D3D12DescriptorHandles hDesc = apBuffers[0] ? apBuffers[0]->GetCBV().hShaderVisibleView : pRdrContext->GetNullConstantBufferView().hShaderVisibleView;
-		pTable->CreateFromExisting(RdrDescriptorType::SRV, hDesc, debug);
-	}
-	else
-	{
-		D3D12DescriptorHandles ahDescriptors[kMaxDescriptorTableSize];
-		for (uint i = 0; i < count; ++i)
-		{
-			ahDescriptors[i] = apBuffers[i] ? apBuffers[i]->GetCBV().hCopyableView : pRdrContext->GetNullConstantBufferView().hCopyableView;
-		}
-
-		pTable->Create(*pRdrContext, RdrDescriptorType::SRV, ahDescriptors, count, debug);
+		const RdrResource* pResource = s_resourceSystem.resources.get(ahResources[i]);
+		apDescriptors[i] = pResource ? pResource->GetUAV().pDesc : pRdrContext->GetNullUnorderedAccessView().pDesc;
 	}
 
-	return pTable;
+	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
 }
 
-const RdrDescriptorTable* RdrResourceSystem::CreateTempConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug)
+const RdrDescriptors* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
 {
-	const RdrDescriptorTable* pTable = CreateConstantBufferTable(apBuffers, count, debug);
+	static constexpr uint kMaxDescriptorTableSize = 16;
+	assert(count < kMaxDescriptorTableSize);
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+	
+	const RdrDescriptors* apDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
+	{
+		apDescriptors[i] = apResources[i] ? apResources[i]->GetUAV().pDesc : pRdrContext->GetNullUnorderedAccessView().pDesc;
+	}
+
+	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
+}
+
+const RdrDescriptors* RdrResourceSystem::CreateTempUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
+{
+	const RdrDescriptors* pTable = CreateUnorderedAccessViewTable(apResources, count, debug);
 	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
 	return pTable;
 }
 
-const RdrDescriptorTable* RdrResourceSystem::CreateUpdateConstantBufferTable(const RdrDescriptorTable* pTable, const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
+const RdrDescriptors* RdrResourceSystem::CreateTempUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
 {
-	if (!pTable)
-		return CreateConstantBufferTable(ahBuffers, count, debug);
-
+	const RdrDescriptors* pTable = CreateUnorderedAccessViewTable(ahResources, count, debug);
 	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
-	return CreateConstantBufferTable(ahBuffers, count, debug);
+	return pTable;
 }
 
-void RdrResourceCommandList::ReleaseDescriptorTable(const RdrDescriptorTable* pTable, const RdrDebugBackpointer& debug)
+const RdrDescriptors* RdrResourceSystem::CreateSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
 {
-	CmdReleaseDescriptorTable& cmd = m_descTableReleases.pushSafe();
-	cmd.pTable = pTable;
-	cmd.debug = debug;
+	static constexpr uint kMaxDescriptorTableSize = 16;
+	assert(count < kMaxDescriptorTableSize);
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+
+	const RdrDescriptors* apDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
+	{
+		apDescriptors[i] = pRdrContext->GetSampler(aSamplers[i]).pDesc;
+	}
+
+	return pRdrContext->GetSamplerHeap().CreateDescriptorTable(apDescriptors, count, debug);
+}
+
+const RdrDescriptors* RdrResourceSystem::CreateTempSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
+{
+	const RdrDescriptors* pTable = CreateSamplerTable(aSamplers, count, debug);
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return pTable;
+}
+
+const RdrDescriptors* RdrResourceSystem::CreateConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
+{
+	static constexpr uint kMaxDescriptorTableSize = 16;
+	assert(count < kMaxDescriptorTableSize);
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+	
+	const RdrDescriptors* apDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
+	{
+		const RdrResource* pResource = s_resourceSystem.constantBuffers.get(ahBuffers[i]);
+		apDescriptors[i] = pResource ? pResource->GetCBV().pDesc : pRdrContext->GetNullConstantBufferView().pDesc;
+	}
+
+	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
+}
+
+const RdrDescriptors* RdrResourceSystem::CreateTempConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
+{
+	const RdrDescriptors* pTable = CreateConstantBufferTable(ahBuffers, count, debug);
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return pTable;
+}
+
+const RdrDescriptors* RdrResourceSystem::CreateConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug)
+{
+	static constexpr uint kMaxDescriptorTableSize = 16;
+	assert(count < kMaxDescriptorTableSize);
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+
+	const RdrDescriptors* apDescriptors[kMaxDescriptorTableSize];
+	for (uint i = 0; i < count; ++i)
+	{
+		apDescriptors[i] = apBuffers[i] ? apBuffers[i]->GetCBV().pDesc : pRdrContext->GetNullConstantBufferView().pDesc;
+	}
+
+	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
+}
+
+const RdrDescriptors* RdrResourceSystem::CreateTempConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug)
+{
+	const RdrDescriptors* pTable = CreateConstantBufferTable(apBuffers, count, debug);
+	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
+	return pTable;
+}
+
+void RdrResourceCommandList::ReleaseDescriptorTable(const RdrDescriptors* pTable, const RdrDebugBackpointer& debug)
+{
+	if (const_cast<RdrDescriptors*>(pTable)->DecRefCount())
+	{
+		CmdReleaseDescriptorTable& cmd = m_descTableReleases.pushSafe();
+		cmd.pTable = pTable;
+		cmd.debug = debug;
+	}
 }
 
 void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
@@ -945,7 +834,6 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 
 	//////////////////////////////////////////////////////////////////////////
 	// Free descriptor tables
-	s_resourceSystem.descriptorTables.AcquireLock();
 	{
 		numCmds = (uint)m_descTableReleases.size();
 		for (uint i = 0; i < numCmds; ++i)
@@ -953,15 +841,29 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 			CmdReleaseDescriptorTable& cmd = m_descTableReleases[i];
 			if (cmd.pTable->GetLastUsedFrame() <= nLastCompletedFrame)
 			{
-				const_cast<RdrDescriptorTable*>(cmd.pTable)->Release(*pRdrContext);
-				s_resourceSystem.descriptorTables.release(cmd.pTable);
+				switch (cmd.pTable->GetType())
+				{
+				case RdrDescriptorType::Sampler:
+					pRdrContext->GetSamplerHeap().FreeDescriptor(cmd.pTable);
+					break;
+				case RdrDescriptorType::SRV:
+				case RdrDescriptorType::CBV:
+				case RdrDescriptorType::UAV:
+					pRdrContext->GetSrvHeap().FreeDescriptor(cmd.pTable);
+					break;
+				case RdrDescriptorType::RTV:
+					pRdrContext->GetRtvHeap().FreeDescriptor(cmd.pTable);
+				case RdrDescriptorType::DSV:
+					pRdrContext->GetDsvHeap().FreeDescriptor(cmd.pTable);
+					break;
+				}
+
 				m_descTableReleases.eraseFast(i);
 				--i;
 				--numCmds;
 			}
 		}
 	}
-	s_resourceSystem.descriptorTables.ReleaseLock();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Free resources

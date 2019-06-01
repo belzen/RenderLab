@@ -11,10 +11,10 @@ struct RdrComputeOp
 	RdrPipelineState pipelineState;
 	uint threads[3];
 
-	const RdrDescriptorTable* pResourceDescriptorTable;
-	const RdrDescriptorTable* pSamplerDescriptorTable;
-	const RdrDescriptorTable* pUnorderedAccessDescriptorTable;
-	const RdrDescriptorTable* pConstantsDescriptorTable;
+	const RdrDescriptors* pResourceDescriptorTable;
+	const RdrDescriptors* pSamplerDescriptorTable;
+	const RdrDescriptors* pUnorderedAccessDescriptorTable;
+	const RdrDescriptors* pConstantsDescriptorTable;
 
 	RdrDebugBackpointer debug;
 };

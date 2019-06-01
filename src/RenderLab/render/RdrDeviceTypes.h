@@ -2,36 +2,58 @@
 
 #include "UtilsLib\Util.h"
 #include "UtilsLib\Error.h"
+#include "RdrDebugBackpointer.h"
 
 #include <wrl.h>
 #include "d3dx12.h"
 using namespace Microsoft::WRL;
 
-struct D3D12DescriptorHandles
+struct RdrResource;
+class RdrContext;
+
+enum class RdrDescriptorType
 {
-	bool IsValid() const { return hCpuDesc.ptr != 0; }
-	void Reset() { hCpuDesc.ptr = 0; hGpuDesc.ptr = 0; }
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDesc;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuDesc;
-
-	bool bInUse				= false;
-	bool bShaderVisible		= false;
-	uint8 nTableSize		= 0;
-	uint8 nTableListIndex	= 0;
+	SRV,
+	UAV,
+	CBV,
+	Sampler,
+	RTV,
+	DSV
 };
 
-inline bool operator == (const D3D12DescriptorHandles& lhs, const D3D12DescriptorHandles& rhs)
+class RdrDescriptors
 {
-	return lhs.hCpuDesc == rhs.hCpuDesc;
-}
+public:
+	bool IsValid() const { return m_hCpuDesc.ptr != 0; }
+	void Reset() { m_hCpuDesc.ptr = 0; m_hGpuDesc.ptr = 0; }
 
-inline bool operator != (const D3D12DescriptorHandles& lhs, const D3D12DescriptorHandles& rhs)
-{
-	return lhs.hCpuDesc != rhs.hCpuDesc;
-}
+	void MarkUsedThisFrame() const;
+	uint64 GetLastUsedFrame() const { return m_nLastUsedFrameCode; }
 
-struct RdrResource;
+	const CD3DX12_CPU_DESCRIPTOR_HANDLE& GetCpuDesc() const { return m_hCpuDesc; }
+	const CD3DX12_GPU_DESCRIPTOR_HANDLE& GetGpuDesc() const { MarkUsedThisFrame(); return m_hGpuDesc; }
+
+	const CD3DX12_CPU_DESCRIPTOR_HANDLE& GetCopyableCpuDesc() const { return m_hCpuCopyDesc; }
+
+	RdrDescriptorType GetType() const { return m_eDescType; }
+
+	bool DecRefCount() { return (--m_nRefCount <= 0); }
+
+private:
+	friend class DescriptorHeap;
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE m_hCpuCopyDesc;
+	CD3DX12_CPU_DESCRIPTOR_HANDLE m_hCpuDesc;
+	CD3DX12_GPU_DESCRIPTOR_HANDLE m_hGpuDesc;
+
+	int m_nRefCount			= -1;
+	uint8 m_nTableSize		= 0;
+	uint8 m_nTableListIndex	= 0;
+
+	uint64 m_nLastUsedFrameCode = 0;
+	RdrDebugBackpointer m_debugCreator;
+	RdrDescriptorType m_eDescType;
+};
 
 enum class RdrShaderSemantic
 {
@@ -251,13 +273,13 @@ struct RdrPipelineState
 
 struct RdrDepthStencilView
 {
-	D3D12DescriptorHandles hView;
+	const RdrDescriptors* pDesc;
 	RdrResource* pResource;
 };
 
 struct RdrRenderTargetView
 {
-	D3D12DescriptorHandles hView;
+	const RdrDescriptors* pDesc;
 	RdrResource* pResource;
 };
 

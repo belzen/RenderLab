@@ -29,29 +29,40 @@ static constexpr int kNumBackBuffers = 2;
 class DescriptorHeap
 {
 public:
-	void Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, const uint* anDescriptorTableSizes, uint numDescriptorTableSizes, bool bShaderVisible);
+	void Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, const uint* anDescriptorTableSizes, uint numDescriptorTableSizes);
 	void Cleanup();
 
-	D3D12DescriptorHandles AllocateDescriptor();
-	D3D12DescriptorHandles AllocateCopyDescriptor();
+	const RdrDescriptors* CreateShaderResourceView(ID3D12Resource* pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
+	const RdrDescriptors* CreateUnorderedAccesView(ID3D12Resource* pResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
+	const RdrDescriptors* CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
 
-	D3D12DescriptorHandles CreateDescriptorTable(const D3D12DescriptorHandles* pSrcDescriptors, uint size);
-	void FreeDescriptor(D3D12DescriptorHandles desc);
+	const RdrDescriptors* CreateRenderTargetView(ID3D12Resource* pResource, const D3D12_RENDER_TARGET_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
+	const RdrDescriptors* CreateDepthStencilView(ID3D12Resource* pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
+
+	const RdrDescriptors* CreateSampler(const D3D12_SAMPLER_DESC& samplerDesc, const RdrDebugBackpointer& debug);
+
+	const RdrDescriptors* CreateDescriptorTable(const RdrDescriptors** apSrcDescriptors, uint size, const RdrDebugBackpointer& debug);
+
+	void FreeDescriptor(const RdrDescriptors* pDesc);
 
 	void GetDescriptorHandle(uint nId, CD3DX12_CPU_DESCRIPTOR_HANDLE* pOutDesc);
 	ID3D12DescriptorHeap* GetHeap() const { return m_pDescriptorHeap.Get(); }
 
 private:
+	RdrDescriptors* AllocateDescriptor(const RdrDebugBackpointer& debug);
+
+	typedef std::vector<RdrDescriptors*> DescriptorTableList;
+
 	ID3D12Device* m_pDevice;
 
-	ComPtr<ID3D12DescriptorHeap> m_pDescriptorHeap;
 	ComPtr<ID3D12DescriptorHeap> m_pCopyDescriptorHeap;
+	ComPtr<ID3D12DescriptorHeap> m_pDescriptorHeap;
+	RdrDescriptors* m_pDescriptors;
+	DescriptorTableList m_tables[5];
+
+
 	D3D12_DESCRIPTOR_HEAP_TYPE m_heapType;
 	uint m_descriptorSize;
-
-	typedef std::vector<D3D12DescriptorHandles> DescriptorTableList;
-	DescriptorTableList m_tables[5];
-	DescriptorTableList m_copyDescriptors;
 
 	ThreadMutex m_mutex;
 };
@@ -112,8 +123,7 @@ private:
 
 struct RdrSampler
 {
-	D3D12DescriptorHandles hCopyable;
-	D3D12DescriptorHandles hShaderVisible;
+	const RdrDescriptors* pDesc;
 };
 
 class RdrContext
@@ -133,24 +143,24 @@ public:
 
 	DescriptorHeap& GetSrvHeap() { return m_srvHeap; }
 	DescriptorHeap& GetSamplerHeap() { return m_samplerHeap; }
+	DescriptorHeap& GetRtvHeap() { return m_rtvHeap; }
+	DescriptorHeap& GetDsvHeap() { return m_rtvHeap; }
 
 	const RdrSampler& GetSampler(const RdrSamplerState& state);
 
 	/////////////////////////////////////////////////////////////
 	// Depth Stencil Views
-	RdrDepthStencilView CreateDepthStencilView(RdrResource& rDepthTex);
-	RdrDepthStencilView CreateDepthStencilView(RdrResource& rDepthTexArray, uint arrayStartIndex, uint arraySize);
+	RdrDepthStencilView CreateDepthStencilView(RdrResource& rDepthTex, const RdrDebugBackpointer& debug);
+	RdrDepthStencilView CreateDepthStencilView(RdrResource& rDepthTexArray, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug);
 	RdrDepthStencilView GetNullDepthStencilView() const { return m_nullDepthStencilView; }
 	void ClearDepthStencilView(const RdrDepthStencilView& depthStencil, const bool bClearDepth, const float depthVal, const bool bClearStencil, const uint8 stencilVal);
-	void ReleaseDepthStencilView(const RdrDepthStencilView& depthStencilView);
 
 	/////////////////////////////////////////////////////////////
 	// Render Target Views
-	RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexRes);
-	RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexArrayRes, uint arrayStartIndex, uint arraySize);
+	RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexRes, const RdrDebugBackpointer& debug);
+	RdrRenderTargetView CreateRenderTargetView(RdrResource& rTexArrayRes, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug);
 	RdrRenderTargetView GetNullRenderTargetView() const { return m_nullRenderTargetView; }
 	void ClearRenderTargetView(const RdrRenderTargetView& renderTarget, const Color& clearColor);
-	void ReleaseRenderTargetView(const RdrRenderTargetView& renderTargetView);
 
 	RdrRenderTargetView GetPrimaryRenderTarget();
 
@@ -215,7 +225,7 @@ private:
 	ComPtr<ID3D12GraphicsCommandList> m_pCommandList;
 
 	ComPtr<ID3D12Resource> m_pBackBuffers[kNumBackBuffers];
-	D3D12DescriptorHandles m_hBackBufferRtvs[kNumBackBuffers];
+	const RdrDescriptors* m_pBackBufferRtvs[kNumBackBuffers];
 
 	ComPtr<ID3D12CommandAllocator> m_pCommandAllocators[kNumBackBuffers];
 
