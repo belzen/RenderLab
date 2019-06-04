@@ -27,6 +27,7 @@ namespace
 		{ "v_sky.hlsl", 0 },    // RdrVertexShaderType::Sky
 		{ "v_terrain.hlsl", 0 },// RdrVertexShaderType::Terrain
 		{ "v_ocean.hlsl", 0 },  // RdrVertexShaderType::Ocean
+		{ "v_water.hlsl", 0 },  // RdrVertexShaderType::Water
 		{ "v_screen.hlsl", 0 }, // RdrVertexShaderType::Screen
 	};
 	static_assert(ARRAY_SIZE(kVertexShaderDefs) == (int)RdrVertexShaderType::Count, "Missing vertex shader defs!");

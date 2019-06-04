@@ -9,6 +9,7 @@
 #include "AssetLib/AssetLibrary.h"
 #include "render/Terrain.h"
 #include "render/Ocean.h"
+#include "render/Water.h"
 #include "Game.h"
 
 namespace
@@ -19,6 +20,7 @@ namespace
 		EntityList m_entities;
 		Terrain m_terrain;
 		Ocean m_ocean;
+		Water m_water;
 
 		Vec3 m_cameraSpawnPosition;
 		Rotation m_cameraSpawnRotation;
@@ -190,6 +192,12 @@ void Scene::Load(const char* sceneName)
 		s_scene.m_ocean.Init(rOcean.tileWorldSize, rOcean.tileCounts, rOcean.fourierGridSize, rOcean.waveHeightScalar, rOcean.wind);
 	}
 
+	if (pSceneData->water.enabled)
+	{
+		const AssetLib::Water& rWater = pSceneData->water;
+		s_scene.m_water.Init(rWater.size);
+	}
+
 	// TODO: quad/oct tree for scene
 }
 
@@ -213,6 +221,7 @@ void Scene::Update()
 	}
 
 	s_scene.m_ocean.Update();
+	s_scene.m_water.Update();
 }
 
 void Scene::AddEntity(Entity* pEntity)
@@ -307,6 +316,14 @@ void Scene::QueueDraw(RdrAction* pAction)
 	//////////////////////////////////////////////////////////////////////////
 	// Ocean
 	opSet = s_scene.m_ocean.BuildDrawOps(pAction);
+	for (uint16 i = 0; i < opSet.numDrawOps; ++i)
+	{
+		pAction->AddDrawOp(&opSet.aDrawOps[i], RdrBucketType::Opaque);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Water
+	opSet = s_scene.m_water.BuildDrawOps(pAction);
 	for (uint16 i = 0; i < opSet.numDrawOps; ++i)
 	{
 		pAction->AddDrawOp(&opSet.aDrawOps[i], RdrBucketType::Opaque);

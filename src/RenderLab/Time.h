@@ -15,6 +15,9 @@ public:
 	// Actual frame time.
 	static float UnscaledFrameTime();
 
+	// Global time since game started.
+	static float GlobalTime();
+
 	// Modify the frame time scaling.
 	static void SetTimeScale(float scale);
 
@@ -24,6 +27,7 @@ private:
 
 private:
 	int m_frameCount;
+	float m_globalTime;
 	float m_timer;
 	float m_fps;
 
@@ -47,3 +51,7 @@ inline float Time::UnscaledFrameTime()
 	return s_time.m_unscaledFrameTime;
 }
 
+inline float Time::GlobalTime()
+{
+	return s_time.m_globalTime;
+}

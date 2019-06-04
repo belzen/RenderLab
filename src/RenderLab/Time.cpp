@@ -5,6 +5,7 @@ Time Time::s_time;
 
 Time::Time()
 	: m_frameCount(0)
+	, m_globalTime(0.f)
 	, m_timer(0.f)
 	, m_fps(0.f)
 	, m_frameTime(0.f)
@@ -33,4 +34,5 @@ void Time::Update(float dt)
 
 	s_time.m_unscaledFrameTime = dt;
 	s_time.m_frameTime = dt * s_time.m_timeScale;
+	s_time.m_globalTime += s_time.m_frameTime;
 }

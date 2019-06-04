@@ -4,6 +4,7 @@
 #include "UtilsLib/Color.h"
 #include "UtilsLib/FileLoader.h"
 #include <vector>
+#include "fbxsdk.h"
 
 namespace
 {
@@ -259,4 +260,11 @@ bool ModelImport::ImportObj(const std::string& srcFilename, std::string& dstFile
 	dstFile.write((char*)geo.indices.data(), sizeof(geo.indices[0]) * geo.indices.size());
 
 	return true;
+}
+
+
+bool ModelImport::ImportFbx(const std::string& srcFilename, std::string& dstFilename)
+{
+	//TODO
+	return false;
 }
