@@ -300,7 +300,6 @@ void RdrSky::QueueDraw(RdrAction* pAction, const AssetLib::SkySettings& rSkySett
 				RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 				pOp->pSamplerDescriptorTable = RdrResourceSystem::CreateTempSamplerTable(&sampler, 1, CREATE_BACKPOINTER(this));
 
-				//DONOTCHECKIN - re-use all these tables that are the same (or never change)
 				if (i == 0)
 				{
 					pOp->pipelineState = RdrShaderSystem::GetComputeShaderPipelineState(RdrComputeShader::AtmosphereIrradianceLut_N);

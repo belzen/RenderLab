@@ -78,7 +78,7 @@ public:
 	void FillTessellationConstantBuffer(void* pData, uint nDataSize, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
 
 	const RdrTessellationMaterialData& GetTessellationData() const { return m_tessellation; }
-	const RdrPipelineState& GetPipelineState(RdrShaderMode eMode) const { return m_hPipelineStates[(int)eMode]; }
+	const RdrPipelineState* GetPipelineState(RdrShaderMode eMode) const { return m_hPipelineStates[(int)eMode]; }
 	RdrShaderStageFlags GetActiveShaderStages(RdrShaderMode eMode) const { return m_activeShaderStages[(int)eMode]; }
 
 	const RdrDescriptors* GetResourceDescriptorTable() const { return m_pResourceDescriptorTable; }
@@ -91,7 +91,7 @@ private:
 	RdrMaterialFlags m_flags;
 
 	RdrShaderStageFlags m_activeShaderStages[(int)RdrShaderMode::Count];
-	RdrPipelineState m_hPipelineStates[(int)RdrShaderMode::Count];
+	RdrPipelineState* m_hPipelineStates[(int)RdrShaderMode::Count];
 
 	Array<RdrResourceHandle, kMaxTextures> m_ahTextures;
 	Array<RdrSamplerState, 4> m_aSamplers;

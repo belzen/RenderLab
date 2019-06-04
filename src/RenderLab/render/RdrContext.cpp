@@ -658,8 +658,6 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		}
 	}
 
-	m_slopeScaledDepthBias = 3.f;
-
 	ComPtr<IDXGIAdapter4> dxgiAdapter4 = GetAdapter();
 	
 	m_pDevice = CreateDevice(dxgiAdapter4);
@@ -731,68 +729,39 @@ bool RdrContext::Init(HWND hWnd, uint width, uint height)
 		}
 	}
 
-
 	{
-#if 0 // donotcheckin - the way it should be done (probably moved to per-material type signature)
-		CD3DX12_DESCRIPTOR_RANGE ranges[10];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0); // VS per-action constants
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1); // VS per-object constants
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); // VS instancing buffer
-
-		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0); // PS per-material resources
-		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 3, 0); // PS per-material samplers
-		ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0); // PS per-action constants
-		ranges[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1); // PS per-material constants
-		ranges[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 2); // PS lighting constants
-		ranges[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 2, 14); // PS global samplers
-		ranges[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 8, 11); // PS global resources
-
-		CD3DX12_ROOT_PARAMETER rootParameters[10];
-		for (int i = 0; i < 3; ++i)
-			rootParameters[i].InitAsDescriptorTable(1, &ranges[i], D3D12_SHADER_VISIBILITY_VERTEX);
-		for (int i = 0; i < 7; ++i)
-			rootParameters[i].InitAsDescriptorTable(1, &ranges[i], D3D12_SHADER_VISIBILITY_PIXEL);
-
-		// Allow input layout and deny unnecessary access to certain pipeline stages.
-		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-			| D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS
-			| D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS
-			| D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-#else
 		CD3DX12_DESCRIPTOR_RANGE ranges[kNumRootDescriptorTables];
-		ranges[kRootVsGlobalConstantBufferTable].Init(		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,		1, 0);	// Vertex constants (GLOBAL)
-		ranges[kRootVsPerObjectConstantBufferTable].Init(	D3D12_DESCRIPTOR_RANGE_TYPE_CBV,		1, 1);	// Vertex constants (PER-OBJECT)
-		ranges[kRootVsShaderResourceViewTable].Init(		D3D12_DESCRIPTOR_RANGE_TYPE_SRV,		1, 0);	// Vertex buffers
-		ranges[kRootPsMaterialShaderResourceViewTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,		5, 0);	// Pixel resources (MATERIAL)
-		ranges[kRootPsGlobalShaderResourceViewTable].Init(	D3D12_DESCRIPTOR_RANGE_TYPE_SRV,		8, 11);	// Pixel resources (GLOBAL)
-		ranges[kRootPsMaterialSamplerTable].Init(			D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,	3, 0);  // Pixel samplers (MATERIAL)
-		ranges[kRootPsGlobalConstantBufferTable].Init(		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,		3, 0);	// Pixel constants (GLOBAL)
-		ranges[kRootPsMaterialConstantBufferTable].Init(	D3D12_DESCRIPTOR_RANGE_TYPE_CBV,		1, 3);	// Pixel constants (MATERIAL)
-		ranges[kRootDsShaderResourceViewTable].Init(		D3D12_DESCRIPTOR_RANGE_TYPE_SRV,		4, 0);	// Domain resources
-		ranges[kRootDsSamplerTable].Init(					D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,	4, 0);  // Domain samplers
-		ranges[kRootDsGlobalConstantBufferTable].Init(		D3D12_DESCRIPTOR_RANGE_TYPE_CBV,		1, 0);	// Domain constants (GLOBAL)
-		ranges[kRootDsPerObjectConstantBufferTable].Init(	D3D12_DESCRIPTOR_RANGE_TYPE_CBV,		1, 1);	// Domain constants (PER-OBJECT)
+		ranges[kRootVsGlobalConstantBufferTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);	// Vertex constants (GLOBAL)
+		ranges[kRootVsPerObjectConstantBufferTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);	// Vertex constants (PER-OBJECT)
+		ranges[kRootVsShaderResourceViewTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);	// Vertex buffers
+		ranges[kRootPsMaterialShaderResourceViewTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0);	// Pixel resources (MATERIAL)
+		ranges[kRootPsGlobalShaderResourceViewTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 8, 11);	// Pixel resources (GLOBAL)
+		ranges[kRootPsMaterialSamplerTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 3, 0);  // Pixel samplers (MATERIAL)
+		ranges[kRootPsGlobalConstantBufferTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 3, 0);	// Pixel constants (GLOBAL)
+		ranges[kRootPsMaterialConstantBufferTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 3);	// Pixel constants (MATERIAL)
+		ranges[kRootDsShaderResourceViewTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0);	// Domain resources
+		ranges[kRootDsSamplerTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 4, 0);  // Domain samplers
+		ranges[kRootDsGlobalConstantBufferTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);	// Domain constants (GLOBAL)
+		ranges[kRootDsPerObjectConstantBufferTable].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);	// Domain constants (PER-OBJECT)
 
 		CD3DX12_ROOT_PARAMETER rootParameters[kNumRootDescriptorTables];
-		rootParameters[kRootVsGlobalConstantBufferTable].InitAsDescriptorTable(			1, &ranges[kRootVsGlobalConstantBufferTable], D3D12_SHADER_VISIBILITY_VERTEX);
-		rootParameters[kRootVsPerObjectConstantBufferTable].InitAsDescriptorTable(		1, &ranges[kRootVsPerObjectConstantBufferTable], D3D12_SHADER_VISIBILITY_VERTEX);
-		rootParameters[kRootVsShaderResourceViewTable].InitAsDescriptorTable(			1, &ranges[kRootVsShaderResourceViewTable], D3D12_SHADER_VISIBILITY_VERTEX);
-		rootParameters[kRootPsMaterialShaderResourceViewTable].InitAsDescriptorTable(	1, &ranges[kRootPsMaterialShaderResourceViewTable], D3D12_SHADER_VISIBILITY_PIXEL);
-		rootParameters[kRootPsGlobalShaderResourceViewTable].InitAsDescriptorTable(		1, &ranges[kRootPsGlobalShaderResourceViewTable], D3D12_SHADER_VISIBILITY_PIXEL);
-		rootParameters[kRootPsMaterialSamplerTable].InitAsDescriptorTable(				1, &ranges[kRootPsMaterialSamplerTable], D3D12_SHADER_VISIBILITY_PIXEL);
-		rootParameters[kRootPsGlobalConstantBufferTable].InitAsDescriptorTable(			1, &ranges[kRootPsGlobalConstantBufferTable], D3D12_SHADER_VISIBILITY_PIXEL);
-		rootParameters[kRootPsMaterialConstantBufferTable].InitAsDescriptorTable(		1, &ranges[kRootPsMaterialConstantBufferTable], D3D12_SHADER_VISIBILITY_PIXEL);
-		rootParameters[kRootDsShaderResourceViewTable].InitAsDescriptorTable(			1, &ranges[kRootDsShaderResourceViewTable], D3D12_SHADER_VISIBILITY_DOMAIN);
-		rootParameters[kRootDsSamplerTable].InitAsDescriptorTable(						1, &ranges[kRootDsSamplerTable], D3D12_SHADER_VISIBILITY_DOMAIN);
-		rootParameters[kRootDsGlobalConstantBufferTable].InitAsDescriptorTable(			1, &ranges[kRootDsGlobalConstantBufferTable], D3D12_SHADER_VISIBILITY_DOMAIN);
-		rootParameters[kRootDsPerObjectConstantBufferTable].InitAsDescriptorTable(		1, &ranges[kRootDsPerObjectConstantBufferTable], D3D12_SHADER_VISIBILITY_DOMAIN);
+		rootParameters[kRootVsGlobalConstantBufferTable].InitAsDescriptorTable(1, &ranges[kRootVsGlobalConstantBufferTable], D3D12_SHADER_VISIBILITY_VERTEX);
+		rootParameters[kRootVsPerObjectConstantBufferTable].InitAsDescriptorTable(1, &ranges[kRootVsPerObjectConstantBufferTable], D3D12_SHADER_VISIBILITY_VERTEX);
+		rootParameters[kRootVsShaderResourceViewTable].InitAsDescriptorTable(1, &ranges[kRootVsShaderResourceViewTable], D3D12_SHADER_VISIBILITY_VERTEX);
+		rootParameters[kRootPsMaterialShaderResourceViewTable].InitAsDescriptorTable(1, &ranges[kRootPsMaterialShaderResourceViewTable], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[kRootPsGlobalShaderResourceViewTable].InitAsDescriptorTable(1, &ranges[kRootPsGlobalShaderResourceViewTable], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[kRootPsMaterialSamplerTable].InitAsDescriptorTable(1, &ranges[kRootPsMaterialSamplerTable], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[kRootPsGlobalConstantBufferTable].InitAsDescriptorTable(1, &ranges[kRootPsGlobalConstantBufferTable], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[kRootPsMaterialConstantBufferTable].InitAsDescriptorTable(1, &ranges[kRootPsMaterialConstantBufferTable], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[kRootDsShaderResourceViewTable].InitAsDescriptorTable(1, &ranges[kRootDsShaderResourceViewTable], D3D12_SHADER_VISIBILITY_DOMAIN);
+		rootParameters[kRootDsSamplerTable].InitAsDescriptorTable(1, &ranges[kRootDsSamplerTable], D3D12_SHADER_VISIBILITY_DOMAIN);
+		rootParameters[kRootDsGlobalConstantBufferTable].InitAsDescriptorTable(1, &ranges[kRootDsGlobalConstantBufferTable], D3D12_SHADER_VISIBILITY_DOMAIN);
+		rootParameters[kRootDsPerObjectConstantBufferTable].InitAsDescriptorTable(1, &ranges[kRootDsPerObjectConstantBufferTable], D3D12_SHADER_VISIBILITY_DOMAIN);
 
 		// Allow input layout and deny unnecessary access to certain pipeline stages.
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 			| D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-#endif
 
 		CD3DX12_STATIC_SAMPLER_DESC aGlobalSamplers[2];
 		// Clamp sampler
@@ -1340,7 +1309,7 @@ void RdrContext::SetViewport(const Rect& viewport)
 void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 {
 	m_pCommandList->SetGraphicsRootSignature(m_pGraphicsRootSignature.Get());
-	m_pCommandList->SetPipelineState(rDrawState.pipelineState.pPipelineState);
+	m_pCommandList->SetPipelineState(rDrawState.pPipelineState->GetPipelineState());
 
 	// Vertex buffers
 	D3D12_VERTEX_BUFFER_VIEW views[RdrDrawState::kMaxVertexBuffers];
@@ -1485,10 +1454,10 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 
 void RdrContext::DispatchCompute(const RdrDrawState& rDrawState, uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
 {
-	m_drawState.Reset(); //donotcheckin?
+	m_drawState.Reset();
 
 	m_pCommandList->SetComputeRootSignature(m_pComputeRootSignature.Get());
-	m_pCommandList->SetPipelineState(rDrawState.pipelineState.pPipelineState);
+	m_pCommandList->SetPipelineState(rDrawState.pPipelineState->GetPipelineState());
 
 	// Constants
 	if (rDrawState.pCsConstantBufferTable != m_drawState.pCsConstantBufferTable)
@@ -1584,42 +1553,6 @@ namespace
 
 		return pCompiledData;
 	}
-
-	const char* getD3DSemanticName(RdrShaderSemantic eSemantic)
-	{
-		static const char* s_d3dSemantics[] = {
-			"POSITION", // RdrShaderSemantic::Position
-			"TEXCOORD", // RdrShaderSemantic::Texcoord
-			"COLOR",    // RdrShaderSemantic::Color
-			"NORMAL",   // RdrShaderSemantic::Normal
-			"BINORMAL", // RdrShaderSemantic::Binormal
-			"TANGENT"   // RdrShaderSemantic::Tangent
-		};
-		static_assert(ARRAY_SIZE(s_d3dSemantics) == (int)RdrShaderSemantic::Count, "Missing D3D12 shader semantic!");
-		return s_d3dSemantics[(int)eSemantic];
-	}
-
-	D3D12_INPUT_CLASSIFICATION getD3DVertexInputClass(RdrVertexInputClass eClass)
-	{
-		static const D3D12_INPUT_CLASSIFICATION s_d3dClasses[] = {
-			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,		// RdrVertexInputClass::PerVertex
-			D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA	// RdrVertexInputClass::PerInstance
-		};
-		static_assert(ARRAY_SIZE(s_d3dClasses) == (int)RdrVertexInputClass::Count, "Missing D3D12 vertex input class!");
-		return s_d3dClasses[(int)eClass];
-	}
-
-	DXGI_FORMAT getD3DVertexInputFormat(RdrVertexInputFormat eFormat)
-	{
-		static const DXGI_FORMAT s_d3dFormats[] = {
-			DXGI_FORMAT_R32_FLOAT,			// RdrVertexInputFormat::R_F32
-			DXGI_FORMAT_R32G32_FLOAT,		// RdrVertexInputFormat::RG_F32
-			DXGI_FORMAT_R32G32B32_FLOAT,	// RdrVertexInputFormat::RGB_F32
-			DXGI_FORMAT_R32G32B32A32_FLOAT	// RdrVertexInputFormat::RGBA_F32
-		};
-		static_assert(ARRAY_SIZE(s_d3dFormats) == (int)RdrVertexInputFormat::Count, "Missing D3D12 vertex input format!");
-		return s_d3dFormats[(int)eFormat];
-	}
 }
 
 
@@ -1650,150 +1583,4 @@ bool RdrContext::CompileShader(RdrShaderStage eType, const char* pShaderText, ui
 void RdrContext::ReleaseShader(RdrShader* pShader) const
 {
 	delete[] pShader->pCompiledData;
-}
-
-RdrPipelineState RdrContext::CreateGraphicsPipelineState(
-	const RdrShader* pVertexShader, const RdrShader* pPixelShader,
-	const RdrShader* pHullShader, const RdrShader* pDomainShader,
-	const RdrVertexInputElement* pInputLayoutElements, uint nNumInputElements,
-	const RdrResourceFormat* pRtvFormats, uint nNumRtvFormats,
-	const RdrBlendMode eBlendMode,
-	const RdrRasterState& rasterState,
-	const RdrDepthStencilState& depthStencilState)
-{
-	D3D12_INPUT_ELEMENT_DESC d3dVertexDesc[32];
-	for (uint i = 0; i < nNumInputElements; ++i)
-	{
-		d3dVertexDesc[i].SemanticName = getD3DSemanticName(pInputLayoutElements[i].semantic);
-		d3dVertexDesc[i].SemanticIndex = pInputLayoutElements[i].semanticIndex;
-		d3dVertexDesc[i].AlignedByteOffset = pInputLayoutElements[i].byteOffset;
-		d3dVertexDesc[i].Format = getD3DVertexInputFormat(pInputLayoutElements[i].format);
-		d3dVertexDesc[i].InputSlotClass = getD3DVertexInputClass(pInputLayoutElements[i].inputClass);
-		d3dVertexDesc[i].InputSlot = pInputLayoutElements[i].streamIndex;
-		d3dVertexDesc[i].InstanceDataStepRate = pInputLayoutElements[i].instanceDataStepRate;
-	}
-
-	// Describe and create the graphics pipeline state objects (PSO).
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-	psoDesc.InputLayout = { d3dVertexDesc, nNumInputElements };
-	psoDesc.pRootSignature = m_pGraphicsRootSignature.Get();
-	psoDesc.VS = CD3DX12_SHADER_BYTECODE(pVertexShader->pCompiledData, pVertexShader->compiledSize);
-	psoDesc.PS = pPixelShader ? CD3DX12_SHADER_BYTECODE(pPixelShader->pCompiledData, pPixelShader->compiledSize) : CD3DX12_SHADER_BYTECODE(0, 0);
-	psoDesc.DS = pDomainShader ? CD3DX12_SHADER_BYTECODE(pDomainShader->pCompiledData, pDomainShader->compiledSize) : CD3DX12_SHADER_BYTECODE(0, 0);
-	psoDesc.HS = pHullShader ? CD3DX12_SHADER_BYTECODE(pHullShader->pCompiledData, pHullShader->compiledSize) : CD3DX12_SHADER_BYTECODE(0, 0);
-	psoDesc.DepthStencilState.DepthEnable = depthStencilState.bTestDepth;
-	psoDesc.DepthStencilState.DepthWriteMask = depthStencilState.bWriteDepth ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-	psoDesc.DepthStencilState.DepthFunc = getComparisonFuncD3d(depthStencilState.eDepthFunc);
-	psoDesc.DepthStencilState.StencilEnable = FALSE;
-	psoDesc.DSVFormat = (psoDesc.DepthStencilState.DepthEnable ? getD3DDepthFormat(kDefaultDepthFormat) : DXGI_FORMAT_UNKNOWN);
-	psoDesc.SampleMask = UINT_MAX;
-	psoDesc.SampleDesc.Count = (rasterState.bEnableMSAA ? g_debugState.msaaLevel : 1);
-	psoDesc.SampleDesc.Quality = 0;
-	psoDesc.PrimitiveTopologyType = pDomainShader ? D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH : D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	psoDesc.NumRenderTargets = nNumRtvFormats;
-	for (uint i = 0; i < nNumRtvFormats; ++i)
-	{
-		psoDesc.RTVFormats[i] = getD3DFormat(pRtvFormats[i]);
-	}
-
-	// Rasterizer state
-	{
-		psoDesc.RasterizerState.AntialiasedLineEnable = !rasterState.bEnableMSAA;
-		psoDesc.RasterizerState.MultisampleEnable = rasterState.bEnableMSAA;
-		psoDesc.RasterizerState.CullMode = rasterState.bDoubleSided ? D3D12_CULL_MODE_NONE : D3D12_CULL_MODE_BACK;
-		psoDesc.RasterizerState.SlopeScaledDepthBias = rasterState.bUseSlopeScaledDepthBias ? m_slopeScaledDepthBias : 0.f;
-		psoDesc.RasterizerState.DepthBiasClamp = 0.f;
-		psoDesc.RasterizerState.DepthClipEnable = true;
-		psoDesc.RasterizerState.FrontCounterClockwise = false;
-		psoDesc.RasterizerState.ForcedSampleCount = 0;
-		psoDesc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-		if (rasterState.bWireframe)
-		{
-			psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
-			psoDesc.RasterizerState.DepthBias = -2; // Wireframe gets a slight depth bias so z-fighting doesn't occur.
-		}
-		else
-		{
-			psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-			psoDesc.RasterizerState.DepthBias = 0;
-		}
-	}
-
-
-	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	psoDesc.BlendState.IndependentBlendEnable = false;
-	psoDesc.BlendState.AlphaToCoverageEnable = false;
-	for (uint i = 0; i < ARRAY_SIZE(psoDesc.BlendState.RenderTarget); ++i)
-	{
-		switch (eBlendMode)
-		{
-		case RdrBlendMode::kOpaque:
-			psoDesc.BlendState.RenderTarget[i].BlendEnable = true;
-			psoDesc.BlendState.RenderTarget[i].LogicOpEnable = false;
-			psoDesc.BlendState.RenderTarget[i].SrcBlend = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].DestBlend = D3D12_BLEND_ZERO;
-			psoDesc.BlendState.RenderTarget[i].BlendOp = D3D12_BLEND_OP_ADD;
-			psoDesc.BlendState.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].DestBlendAlpha = D3D12_BLEND_ZERO;
-			psoDesc.BlendState.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP_ADD;
-			psoDesc.BlendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
-			psoDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-			break;
-		case RdrBlendMode::kAlpha:
-			psoDesc.BlendState.RenderTarget[i].BlendEnable = true;
-			psoDesc.BlendState.RenderTarget[i].LogicOpEnable = false;
-			psoDesc.BlendState.RenderTarget[i].SrcBlend = D3D12_BLEND_SRC_ALPHA;
-			psoDesc.BlendState.RenderTarget[i].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-			psoDesc.BlendState.RenderTarget[i].BlendOp = D3D12_BLEND_OP_ADD;
-			psoDesc.BlendState.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].DestBlendAlpha = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP_ADD;
-			psoDesc.BlendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
-			psoDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-			break;
-		case RdrBlendMode::kAdditive:
-			psoDesc.BlendState.RenderTarget[i].BlendEnable = true;
-			psoDesc.BlendState.RenderTarget[i].LogicOpEnable = false;
-			psoDesc.BlendState.RenderTarget[i].SrcBlend = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].DestBlend = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].BlendOp = D3D12_BLEND_OP_ADD;
-			psoDesc.BlendState.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].DestBlendAlpha = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP_ADD;
-			psoDesc.BlendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
-			psoDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-			break;
-		case RdrBlendMode::kSubtractive:
-			psoDesc.BlendState.RenderTarget[i].BlendEnable = true;
-			psoDesc.BlendState.RenderTarget[i].LogicOpEnable = false;
-			psoDesc.BlendState.RenderTarget[i].SrcBlend = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].DestBlend = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;
-			psoDesc.BlendState.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].DestBlendAlpha = D3D12_BLEND_ONE;
-			psoDesc.BlendState.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP_REV_SUBTRACT;
-			psoDesc.BlendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
-			psoDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-			break;
-		}
-	}
-
-
-	RdrPipelineState pipelineState;
-	m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState.pPipelineState));
-	return pipelineState;
-}
-
-RdrPipelineState RdrContext::CreateComputePipelineState(const RdrShader& computeShader)
-{
-	// Describe and create the compute pipeline state objects (PSO).
-	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
-	psoDesc.CS = CD3DX12_SHADER_BYTECODE(computeShader.pCompiledData, computeShader.compiledSize);
-	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	psoDesc.NodeMask = 0;
-	psoDesc.pRootSignature = m_pComputeRootSignature.Get();
-
-	RdrPipelineState pipelineState;
-	m_pDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState.pPipelineState));
-	return pipelineState;
 }

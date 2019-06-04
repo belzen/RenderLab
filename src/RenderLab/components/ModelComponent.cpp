@@ -79,7 +79,7 @@ RdrDrawOpSet ModelComponent::BuildDrawOps(RdrAction* pAction)
 		pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
 		m_hVsPerObjectConstantBuffer = RdrResourceSystem::CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
-			pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuWrite | RdrResourceAccessFlags::GpuRead, CREATE_BACKPOINTER(this));
+			pVsPerObject, constantsSize, RdrResourceAccessFlags::GpuRead, CREATE_BACKPOINTER(this));
 	
 		if (CanInstance())
 		{

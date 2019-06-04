@@ -253,28 +253,30 @@ void RdrMaterial::Init(const CachedString& name, RdrMaterialFlags flags)
 
 void RdrMaterial::Cleanup()
 {
+	RdrResourceCommandList cmdList = g_pRenderer->GetResourceCommandList();
+
 	if (m_hConstants)
 	{
-		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_hConstants, CREATE_BACKPOINTER(this));
+		cmdList.ReleaseConstantBuffer(m_hConstants, CREATE_BACKPOINTER(this));
 		m_hConstants = 0;
 	}
 
-	for (RdrPipelineState& pipelineState : m_hPipelineStates)
+	for (RdrPipelineState* pPipelineState : m_hPipelineStates)
 	{
-		//donotcheckin destroy
+		cmdList.ReleasePipelineState(pPipelineState, CREATE_BACKPOINTER(this));
 	}
 
 	// Note: Intentionally not destroying resources as they are managed elsewhere
 
 	if (m_pResourceDescriptorTable)
 	{
-		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_pResourceDescriptorTable, CREATE_BACKPOINTER(this));
+		cmdList.ReleaseDescriptorTable(m_pResourceDescriptorTable, CREATE_BACKPOINTER(this));
 		m_pResourceDescriptorTable = nullptr;
 	}
 
 	if (m_pSamplerDescriptorTable)
 	{
-		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_pSamplerDescriptorTable, CREATE_BACKPOINTER(this));
+		cmdList.ReleaseDescriptorTable(m_pSamplerDescriptorTable, CREATE_BACKPOINTER(this));
 		m_pSamplerDescriptorTable = nullptr;
 	}
 
@@ -282,19 +284,19 @@ void RdrMaterial::Cleanup()
 	// Tessellation
 	if (m_tessellation.hDsConstants)
 	{
-		g_pRenderer->GetResourceCommandList().ReleaseConstantBuffer(m_tessellation.hDsConstants, CREATE_BACKPOINTER(this));
+		cmdList.ReleaseConstantBuffer(m_tessellation.hDsConstants, CREATE_BACKPOINTER(this));
 		m_tessellation.hDsConstants = 0;
 	}
 
 	if (m_tessellation.pResourceDescriptorTable)
 	{
-		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_tessellation.pResourceDescriptorTable, CREATE_BACKPOINTER(this));
+		cmdList.ReleaseDescriptorTable(m_tessellation.pResourceDescriptorTable, CREATE_BACKPOINTER(this));
 		m_tessellation.pResourceDescriptorTable = nullptr;
 	}
 
 	if (m_tessellation.pSamplerDescriptorTable)
 	{
-		g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(m_tessellation.pSamplerDescriptorTable, CREATE_BACKPOINTER(this));
+		cmdList.ReleaseDescriptorTable(m_tessellation.pSamplerDescriptorTable, CREATE_BACKPOINTER(this));
 		m_tessellation.pSamplerDescriptorTable = nullptr;
 	}
 }
@@ -310,7 +312,7 @@ void RdrMaterial::CreatePipelineState(
 {
 	const RdrShader* pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
 
-	m_hPipelineStates[(int)eMode] = g_pRenderer->GetContext()->CreateGraphicsPipelineState(
+	m_hPipelineStates[(int)eMode] = RdrPipelineState::CreateGraphicsPipelineState(
 		pVertexShader, pPixelShader,
 		nullptr, nullptr,
 		pInputLayoutElements, nNumInputElements,
@@ -338,7 +340,7 @@ void RdrMaterial::CreateTessellationPipelineState(
 {
 	const RdrShader* pVertexShader = RdrShaderSystem::GetVertexShader(vertexShader);
 
-	m_hPipelineStates[(int)eMode] = g_pRenderer->GetContext()->CreateGraphicsPipelineState(
+	m_hPipelineStates[(int)eMode] = RdrPipelineState::CreateGraphicsPipelineState(
 		pVertexShader, pPixelShader,
 		pHullShader, pDomainShader,
 		pInputLayoutElements, nNumInputElements,

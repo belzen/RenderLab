@@ -673,7 +673,7 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	bool instanced = (instanceCount > 1);
 
 	const RdrMaterial* pMaterial = pDrawOp->pMaterial;
-	m_pDrawState->pipelineState = pMaterial->GetPipelineState(rPass.shaderMode);
+	m_pDrawState->pPipelineState = pMaterial->GetPipelineState(rPass.shaderMode);
 	m_pDrawState->shaderStages = pMaterial->GetActiveShaderStages(rPass.shaderMode);
 
 	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerAction;
@@ -710,7 +710,6 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	{
 		if (pMaterial->IsShaderStageActive(rPass.shaderMode, RdrShaderStageFlags::Pixel))
 		{
-			// donotcheckin vs/ds/ps share constant buffer table - all have access - faster than separate tables?
 			m_pDrawState->pPsMaterialShaderResourceViewTable = pMaterial->GetResourceDescriptorTable();
 			m_pDrawState->pPsMaterialSamplerTable = pMaterial->GetSamplerDescriptorTable();
 
@@ -765,7 +764,7 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 
 void RdrAction::DispatchCompute(const RdrComputeOp* pComputeOp)
 {
-	m_pDrawState->pipelineState = pComputeOp->pipelineState;
+	m_pDrawState->pPipelineState = pComputeOp->pipelineState;
 
 	m_pDrawState->pCsConstantBufferTable = pComputeOp->pConstantsDescriptorTable ? pComputeOp->pConstantsDescriptorTable : m_pContext->GetNullConstantBufferView().pDesc;
 	m_pDrawState->pCsSamplerTable = pComputeOp->pSamplerDescriptorTable ? pComputeOp->pSamplerDescriptorTable : m_pContext->GetSampler(RdrSamplerState()).pDesc;

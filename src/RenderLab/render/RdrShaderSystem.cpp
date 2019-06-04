@@ -114,7 +114,7 @@ namespace
 		RdrShader domainShaders[(int)RdrTessellationShaderType::Count * (int)RdrShaderFlags::NumCombos];
 
 		RdrShader computeShaders[(int)RdrComputeShader::Count];
-		RdrPipelineState computeShaderPipelineStates[(int)RdrComputeShader::Count];
+		const RdrPipelineState* computeShaderPipelineStates[(int)RdrComputeShader::Count];
 
 		RdrShader wireframePixelShader;
 
@@ -161,7 +161,7 @@ namespace
 		}
 	};
 
-	ID3D10Blob* preprocessShader(const char* filename, const char** aDefines, uint numDefines)
+	ID3D10Blob* preprocessShader(const char* filename, const std::vector<const char*>& defines)
 	{
 		HRESULT hr;
 		ID3D10Blob* pPreprocessedData = nullptr;
@@ -177,12 +177,13 @@ namespace
 			return nullptr;
 		}
 
+		uint numDefines = (uint)defines.size();
 		assert(numDefines < kMaxDefines);
 
 		D3D_SHADER_MACRO macroDefines[kMaxDefines] = { 0 };
 		for (uint i = 0; i < numDefines; ++i)
 		{
-			macroDefines[i].Name = aDefines[i];
+			macroDefines[i].Name = defines[i];
 			macroDefines[i].Definition = "1";
 		}
 
@@ -215,31 +216,30 @@ namespace
 
 	void createDefaultShader(RdrContext* pRdrContext, const RdrShaderStage eStage, const RdrShaderDef& rShaderDef, const RdrShaderFlags flags, RdrShader& rOutShader)
 	{
-		void* pCompiledData;
-		uint compiledDataSize;
-
-		const char* aDefines[kMaxDefines];
-		uint numDefines = 0;
-
 		if (!rShaderDef.filename)
 			return;
 
+		std::vector<const char*> defines;
+		uint numDefines = 0;
 		while (rShaderDef.aDefines[numDefines] != 0)
 		{
-			aDefines[numDefines] = rShaderDef.aDefines[numDefines];
+			defines.push_back(rShaderDef.aDefines[numDefines]);
 			++numDefines;
 		}
 
 		if ((flags & RdrShaderFlags::DepthOnly) != RdrShaderFlags::None)
-			aDefines[numDefines++] = "DEPTH_ONLY";
+			defines.push_back("DEPTH_ONLY");
 		if ((flags & RdrShaderFlags::AlphaCutout) != RdrShaderFlags::None)
-			aDefines[numDefines++] = "ALPHA_CUTOUT";
+			defines.push_back("ALPHA_CUTOUT");
 		if ((flags & RdrShaderFlags::IsInstanced) != RdrShaderFlags::None)
-			aDefines[numDefines++] = "IS_INSTANCED";
+			defines.push_back("IS_INSTANCED");
 		
-		ID3D10Blob* pPreprocData = preprocessShader(rShaderDef.filename, aDefines, numDefines);
+		ID3D10Blob* pPreprocData = preprocessShader(rShaderDef.filename, defines);
 		assert(pPreprocData);
-	
+
+		void* pCompiledData;
+		uint compiledDataSize;
+
 		const char* pShaderText = (char*)pPreprocData->GetBufferPointer();
 		bool res = pRdrContext->CompileShader(eStage, pShaderText, (uint)pPreprocData->GetBufferSize(), &pCompiledData, &compiledDataSize);
 		assert(res);
@@ -251,6 +251,7 @@ namespace
 
 		rOutShader.pCompiledData = pCompiledData;
 		rOutShader.compiledSize = compiledDataSize;
+		rOutShader.defines = defines;
 
 		pPreprocData->Release();
 	}
@@ -300,7 +301,7 @@ namespace
 			pRdrContext->ReleaseShader(pShader);
 		}
 
-		ID3D10Blob* pBlob = preprocessShader(pShader->filename, nullptr, 0); // todo: Shader defines are missing
+		ID3D10Blob* pBlob = preprocessShader(pShader->filename, pShader->defines);
 		if (pBlob)
 		{
 			uint textLen = (uint)pBlob->GetBufferSize();
@@ -321,8 +322,6 @@ namespace
 				pShader->compiledSize = rErrorShader.compiledSize;
 			}
 
-			// donotcheckin - re-create all pipeline states that use this shader
-
 			delete pShaderText;
 			pBlob->Release();
 		}
@@ -331,6 +330,14 @@ namespace
 	void cmdSetGlobalShaderDefine(DebugCommandArg* args, int numArgs)
 	{
 		RdrShaderSystem::SetGlobalShaderDefine(args[0].val.str, (args[0].val.inum != 0));
+	}
+
+	void RecreatePipelineStatesForShader(const RdrShader* pShader)
+	{
+		for (const RdrPipelineState* pPipelineState : pShader->refPipelineStates)
+		{
+			const_cast<RdrPipelineState*>(pPipelineState)->ReCreate();
+		}
 	}
 }
 
@@ -383,7 +390,7 @@ void RdrShaderSystem::Init(RdrContext* pRdrContext)
 			kComputeShaderDefs[cs], RdrShaderFlags::None,
 			s_shaderSystem.computeShaders[cs]);
 
-		s_shaderSystem.computeShaderPipelineStates[cs] = pRdrContext->CreateComputePipelineState(s_shaderSystem.computeShaders[cs]);
+		s_shaderSystem.computeShaderPipelineStates[cs] = RdrPipelineState::CreateComputePipelineState(&s_shaderSystem.computeShaders[cs]);
 	}
 
 	// Error shaders
@@ -447,9 +454,11 @@ void RdrShaderSystem::ReloadShader(const char* filename)
 		}
 	}
 
-	if (!found)
+	uint nFilenameLen = (uint)strlen(filename);
+	if (!found && 
+		(_stricmp(&filename[nFilenameLen - 6], ".hlsli") == 0) || (_stricmp(&filename[nFilenameLen - 2], ".h") == 0))
 	{
-		// Couldn't find any specific shader... This is most likely a header file.  Just reload all shaders
+		// Couldn't find any specific shader... but it has a header extension.  Just reload all shaders
 		ReloadAllShaders();
 	}
 }
@@ -532,11 +541,18 @@ const RdrShader* RdrShaderSystem::CreatePixelShaderFromFile(const char* filename
 	if (iter != s_shaderSystem.pixelShaderCache.end())
 		return iter->second;
 
-	ID3D10Blob* pBlob = preprocessShader(filename, aDefines, numDefines);
+	std::vector<const char*> defines;
+	for (uint i = 0; i < numDefines; ++i)
+	{
+		defines.push_back(aDefines[i]);
+	}
+
+	ID3D10Blob* pBlob = preprocessShader(filename, defines);
 	if (pBlob)
 	{
 		RdrShader* pShader = s_shaderSystem.pixelShaders.allocSafe();
 		pShader->filename = _strdup(filename);
+		pShader->defines = defines;
 
 		s_shaderSystem.pixelShaderCache.insert(std::make_pair(nameHash, pShader));
 
@@ -581,7 +597,7 @@ const RdrShader* RdrShaderSystem::GetComputeShader(const RdrComputeShader eShade
 	return &s_shaderSystem.computeShaders[idx];
 }
 
-const RdrPipelineState& RdrShaderSystem::GetComputeShaderPipelineState(const RdrComputeShader eShader)
+const RdrPipelineState* RdrShaderSystem::GetComputeShaderPipelineState(const RdrComputeShader eShader)
 {
 	uint idx = getComputeShaderIndex(eShader);
 	return s_shaderSystem.computeShaderPipelineStates[idx];
@@ -649,10 +665,11 @@ void RdrShaderSystem::ProcessCommands(RdrContext* pRdrContext)
 				{
 					pShader = &s_shaderSystem.computeShaders[getComputeShaderIndex(cmd.computeShader)];
 					processDefaultShaderReload(cmd.eStage, pShader, kComputeShaderDefs[(int)cmd.computeShader], RdrShaderFlags::None, rErrorShader, pRdrContext);
-					// donotcheckin - recreate pipeline state
 				}
 				break;
 			}
+
+			RecreatePipelineStatesForShader(pShader);
 		}
 	}
 

@@ -46,10 +46,10 @@ private:
 
 	RdrResource m_toneMapInputConstants;
 
-	RdrPipelineState m_toneMapPipelineState;
+	const RdrPipelineState* m_toneMapPipelineState;
 	RdrResourceHandle m_hToneMapOutputConstants;
 
-	RdrPipelineState m_toneMapHistogramPipelineState;
+	const RdrPipelineState* m_toneMapHistogramPipelineState;
 	RdrResourceHandle m_hToneMapTileHistograms;
 	RdrResourceHandle m_hToneMapMergedHistogram;
 	RdrResourceHandle m_hToneMapHistogramResponseCurve;
@@ -71,14 +71,14 @@ private:
 	RdrResourceHandle m_hSsaoNoiseTexture;
 	RdrRenderTarget m_ssaoBuffer;
 	RdrRenderTarget m_ssaoBlurredBuffer;
-	RdrPipelineState m_ssaoGenPipelineState;
-	RdrPipelineState m_ssaoBlurPipelineState;
-	RdrPipelineState m_ssaoApplyPipelineState;
+	const RdrPipelineState* m_ssaoGenPipelineState;
+	const RdrPipelineState* m_ssaoBlurPipelineState;
+	const RdrPipelineState* m_ssaoApplyPipelineState;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Debug
 	const InputManager* m_pInputManager;
-	RdrPipelineState m_copyPipelineState;
+	const RdrPipelineState* m_copyPipelineState;
 	PostProcessDebugger m_debugger;
 	RdrPostProcessDbgData m_debugData;
 	RdrResource m_lumDebugRes[3];

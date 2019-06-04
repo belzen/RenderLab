@@ -1,6 +1,9 @@
 #pragma once
 
+#include <set>
+
 struct ID3D10Blob;
+struct RdrPipelineState;
 
 enum class RdrShaderStage
 {
@@ -34,6 +37,9 @@ struct RdrShader
 	uint compiledSize;
 
 	RdrShaderStage eStage;
+
+	std::vector<const char*> defines;
+	std::set<const RdrPipelineState*> refPipelineStates;
 };
 
 enum class RdrShaderFlags : uint

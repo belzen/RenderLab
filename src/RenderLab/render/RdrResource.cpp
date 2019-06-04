@@ -439,6 +439,7 @@ void RdrResource::UpdateResource(RdrContext& context, const void* pSrcData, uint
 
 	if (IsFlagSet(m_accessFlags, RdrResourceAccessFlags::CpuWrite))
 	{
+		// TODO: Verify uses of this aren't overwriting in-use data
 		void* pDstData;
 		CD3DX12_RANGE readRange(0, 0);
 		HRESULT hr = m_pResource->Map(0, &readRange, &pDstData);
@@ -505,7 +506,7 @@ void RdrResource::UpdateResource(RdrContext& context, const void* pSrcData, uint
 
 		D3D12_RESOURCE_STATES eInitialState = m_eResourceState;
 		TransitionState(context, D3D12_RESOURCE_STATE_COPY_DEST);
-		UpdateSubresources<16>(context.GetCommandList(), m_pResource, m_pUploadResource, 0, 0, numSubresources, subresourceData);
+		UpdateSubresources<kMaxSubresources>(context.GetCommandList(), m_pResource, m_pUploadResource, 0, 0, numSubresources, subresourceData);
 		TransitionState(context, eInitialState);
 	}
 }

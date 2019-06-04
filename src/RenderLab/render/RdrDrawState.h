@@ -19,7 +19,7 @@ public:
 		return (shaderStages & eStageFlag) != RdrShaderStageFlags::None;
 	}
 
-	RdrPipelineState pipelineState;
+	const RdrPipelineState* pPipelineState;
 	RdrShaderStageFlags shaderStages;
 	RdrTopology eTopology;
 

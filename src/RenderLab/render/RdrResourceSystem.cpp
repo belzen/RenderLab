@@ -394,6 +394,13 @@ void RdrResourceCommandList::ReleaseShaderResourceView(RdrShaderResourceViewHand
 	cmd.debug = debug;
 }
 
+void RdrResourceCommandList::ReleasePipelineState(RdrPipelineState* pPipelineState, const RdrDebugBackpointer& debug)
+{
+	CmdReleasePipelineState& cmd = m_pipelineStateReleases.pushSafe();
+	cmd.pPipelineState = pPipelineState;
+	cmd.debug = debug;
+}
+
 RdrConstantBufferHandle RdrResourceSystem::CreateConstantBuffer(const void* pData, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	assert((size % sizeof(Vec4)) == 0);
@@ -619,9 +626,6 @@ RdrGeoHandle RdrResourceSystem::CreateGeo(const void* pVertData, int vertStride,
 
 void RdrResourceCommandList::UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVertData, const RdrDebugBackpointer& debug)
 {
-	// donotcheckin - all calls to this need to be frame-buffered
-	assert(false);
-
 	RdrGeometry* pGeo = s_resourceSystem.geos.get(hGeo);
 
 	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pGeo->pVertexBuffer);
@@ -973,6 +977,22 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 		}
 	}
 	s_resourceSystem.constantBuffers.ReleaseLock();
+
+	{
+		numCmds = (uint)m_pipelineStateReleases.size();
+		for (uint i = 0; i < numCmds; ++i)
+		{
+			CmdReleasePipelineState& cmd = m_pipelineStateReleases[i];
+
+			if (cmd.pPipelineState->GetLastUsedFrame() <= nLastCompletedFrame)
+			{
+				cmd.pPipelineState->Release();
+				m_pipelineStateReleases.eraseFast(i);
+				--i;
+				--numCmds;
+			}
+		}
+	}
 }
 
 void RdrResourceCommandList::ProcessPreFrameCommands(RdrContext* pRdrContext)

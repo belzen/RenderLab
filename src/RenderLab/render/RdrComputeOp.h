@@ -8,7 +8,7 @@ struct RdrComputeOp
 {
 	static uint getThreadGroupCount(uint dataSize, uint workSize);
 
-	RdrPipelineState pipelineState;
+	const RdrPipelineState* pipelineState;
 	uint threads[3];
 
 	const RdrDescriptors* pResourceDescriptorTable;

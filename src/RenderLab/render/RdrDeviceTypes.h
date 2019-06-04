@@ -10,6 +10,7 @@ using namespace Microsoft::WRL;
 
 struct RdrResource;
 class RdrContext;
+struct RdrShader;
 
 enum class RdrDescriptorType
 {
@@ -223,6 +224,8 @@ enum class RdrBlendMode
 
 struct RdrDepthStencilState
 {
+	RdrDepthStencilState()
+		: bTestDepth(false), bWriteDepth(false), eDepthFunc(RdrComparisonFunc::Never) {}
 	RdrDepthStencilState(bool bTest, bool bWrite, RdrComparisonFunc eFunc)
 		: bTestDepth(bTest), bWriteDepth(bWrite), eDepthFunc(eFunc) {}
 
@@ -268,8 +271,48 @@ struct RdrRootSignature
 
 struct RdrPipelineState
 {
-	ID3D12PipelineState* pPipelineState;
+public:
+	static RdrPipelineState* CreateGraphicsPipelineState(
+		const RdrShader* pVertexShader, const RdrShader* pPixelShader,
+		const RdrShader* pHullShader, const RdrShader* pDomainShader,
+		const RdrVertexInputElement* pInputLayoutElements, uint nNumInputElements,
+		const RdrResourceFormat* pRtvFormats, uint nNumRtvFormats,
+		const RdrBlendMode eBlendMode,
+		const RdrRasterState& rasterState,
+		const RdrDepthStencilState& depthStencilState);
+
+	static RdrPipelineState* CreateComputePipelineState(const RdrShader* pComputeShader);
+
+//////////////////////////////////////////////////////////////////////////
+public:
+	void ReCreate();
+	void Release();
+
+	void MarkUsedThisFrame() const;
+	uint64 GetLastUsedFrame() const { return m_nLastUsedFrameCode; }
+
+	ID3D12PipelineState* GetPipelineState() const { MarkUsedThisFrame(); return m_pDevPipelineState; }
+
+private:
+	ID3D12PipelineState* m_pDevPipelineState = nullptr;
+	uint64 m_nLastUsedFrameCode = 0;
+
+	// Data used to create the pipeline state.
+	const RdrShader* m_pComputeShader = nullptr;
+	const RdrShader* m_pVertexShader = nullptr;
+	const RdrShader* m_pPixelShader = nullptr;
+	const RdrShader* m_pHullShader = nullptr;
+	const RdrShader* m_pDomainShader = nullptr;
+
+	std::vector<RdrVertexInputElement> m_inputLayoutElements;
+	std::vector<RdrResourceFormat> m_rtvFormats;
+
+	RdrBlendMode m_eBlendMode;
+	RdrRasterState m_rasterState;
+	RdrDepthStencilState m_depthStencilState;
+	bool m_bForGraphics;
 };
+
 
 struct RdrDepthStencilView
 {
@@ -434,6 +477,42 @@ inline DXGI_FORMAT getD3DTypelessFormat(const RdrResourceFormat format)
 	};
 	static_assert(ARRAY_SIZE(s_d3dTypelessFormats) == (int)RdrResourceFormat::Count, "Missing typeless formats!");
 	return s_d3dTypelessFormats[(int)format];
+}
+
+inline const char* getD3DSemanticName(RdrShaderSemantic eSemantic)
+{
+	static const char* s_d3dSemantics[] = {
+		"POSITION", // RdrShaderSemantic::Position
+		"TEXCOORD", // RdrShaderSemantic::Texcoord
+		"COLOR",    // RdrShaderSemantic::Color
+		"NORMAL",   // RdrShaderSemantic::Normal
+		"BINORMAL", // RdrShaderSemantic::Binormal
+		"TANGENT"   // RdrShaderSemantic::Tangent
+	};
+	static_assert(ARRAY_SIZE(s_d3dSemantics) == (int)RdrShaderSemantic::Count, "Missing D3D12 shader semantic!");
+	return s_d3dSemantics[(int)eSemantic];
+}
+
+inline D3D12_INPUT_CLASSIFICATION getD3DVertexInputClass(RdrVertexInputClass eClass)
+{
+	static const D3D12_INPUT_CLASSIFICATION s_d3dClasses[] = {
+		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,		// RdrVertexInputClass::PerVertex
+		D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA	// RdrVertexInputClass::PerInstance
+	};
+	static_assert(ARRAY_SIZE(s_d3dClasses) == (int)RdrVertexInputClass::Count, "Missing D3D12 vertex input class!");
+	return s_d3dClasses[(int)eClass];
+}
+
+inline DXGI_FORMAT getD3DVertexInputFormat(RdrVertexInputFormat eFormat)
+{
+	static const DXGI_FORMAT s_d3dFormats[] = {
+		DXGI_FORMAT_R32_FLOAT,			// RdrVertexInputFormat::R_F32
+		DXGI_FORMAT_R32G32_FLOAT,		// RdrVertexInputFormat::RG_F32
+		DXGI_FORMAT_R32G32B32_FLOAT,	// RdrVertexInputFormat::RGB_F32
+		DXGI_FORMAT_R32G32B32A32_FLOAT	// RdrVertexInputFormat::RGBA_F32
+	};
+	static_assert(ARRAY_SIZE(s_d3dFormats) == (int)RdrVertexInputFormat::Count, "Missing D3D12 vertex input format!");
+	return s_d3dFormats[(int)eFormat];
 }
 
 inline bool ValidateHResult(HRESULT hResult, const char* func, const char* msg, const ComPtr<ID3DBlob>& pError = nullptr)

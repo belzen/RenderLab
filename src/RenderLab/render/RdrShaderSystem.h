@@ -22,7 +22,7 @@ namespace RdrShaderSystem
 	const RdrShader* GetDomainShader(const RdrTessellationShader& shader);
 
 	const RdrShader* GetComputeShader(const RdrComputeShader eShader);
-	const RdrPipelineState& GetComputeShaderPipelineState(const RdrComputeShader eShader);
+	const RdrPipelineState* GetComputeShaderPipelineState(const RdrComputeShader eShader);
 
 	const RdrShader* GetWireframePixelShader();
 

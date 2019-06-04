@@ -89,7 +89,7 @@ Decal* Decal::Create(IComponentAllocator* pAllocator, const CachedString& textur
 		RdrDepthStencilState(false, false, RdrComparisonFunc::Always));
 
 	pDecal->SetTexture(textureName);
-	//donotcheckin pDecal->m_material.SetTextures(1, 1, &RdrGlobalResourceHandles::kDepthBuffer);
+	//donotcheckin put depth buffer in global resources w/ flag that material needs it pDecal->m_material.SetTextures(1, 1, &RdrGlobalResourceHandles::kDepthBuffer);
 
 	RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 	pDecal->m_material.SetSamplers(0, 1, &sampler);

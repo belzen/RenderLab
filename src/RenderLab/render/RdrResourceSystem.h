@@ -126,6 +126,8 @@ public:
 
 	void UpdateBuffer(const RdrResourceHandle hResource, const void* pSrcData, int numElements, const RdrDebugBackpointer& debug);
 
+	void ReleasePipelineState(RdrPipelineState* pPipelineState, const RdrDebugBackpointer& debug);
+
 	void ReleaseShaderResourceView(RdrShaderResourceViewHandle hView, const RdrDebugBackpointer& debug);
 	void ReleaseConstantBuffer(RdrConstantBufferHandle hBuffer, const RdrDebugBackpointer& debug);
 	void ReleaseResource(RdrResourceHandle hRes, const RdrDebugBackpointer& debug);
@@ -202,6 +204,12 @@ private:
 		RdrDebugBackpointer debug;
 	};
 
+	struct CmdReleasePipelineState
+	{
+		RdrPipelineState* pPipelineState;
+		RdrDebugBackpointer debug;
+	};
+
 private:
 	FixedVector<CmdUpdateResource, 1024>			m_resourceUpdates;
 	FixedVector<CmdReleaseResource, 1024>			m_resourceReleases;
@@ -212,4 +220,5 @@ private:
 	FixedVector<CmdReleaseGeo, 1024>				m_geoReleases;
 	FixedVector<CmdUpdateConstantBuffer, 2048>		m_constantBufferUpdates;
 	FixedVector<CmdReleaseConstantBuffer, 2048>		m_constantBufferReleases;
+	FixedVector<CmdReleasePipelineState, 1024>		m_pipelineStateReleases;
 };

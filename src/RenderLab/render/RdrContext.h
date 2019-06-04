@@ -148,6 +148,9 @@ public:
 
 	const RdrSampler& GetSampler(const RdrSamplerState& state);
 
+	const ComPtr<ID3D12RootSignature>& GetGraphicsRootSignature() { return m_pGraphicsRootSignature; }
+	const ComPtr<ID3D12RootSignature>& GetComputeRootSignature() { return m_pComputeRootSignature; }
+
 	/////////////////////////////////////////////////////////////
 	// Depth Stencil Views
 	RdrDepthStencilView CreateDepthStencilView(RdrResource& rDepthTex, const RdrDebugBackpointer& debug);
@@ -172,17 +175,6 @@ public:
 	// Shaders
 	bool CompileShader(RdrShaderStage eType, const char* pShaderText, uint textLen, void** ppOutCompiledData, uint* pOutDataSize) const;
 	void ReleaseShader(RdrShader* pShader) const;
-
-	RdrPipelineState CreateGraphicsPipelineState(
-		const RdrShader* pVertexShader, const RdrShader* pPixelShader, 
-		const RdrShader* pHullShader, const RdrShader* pDomainShader,
-		const RdrVertexInputElement* pInputLayoutElements, uint nNumInputElements,
-		const RdrResourceFormat* pRtvFormats, uint nNumRtvFormats,
-		const RdrBlendMode eBlendMode,
-		const RdrRasterState& rasterState,
-		const RdrDepthStencilState& depthStencilState);
-
-	RdrPipelineState CreateComputePipelineState(const RdrShader& computeShader);
 
 	/////////////////////////////////////////////////////////////
 	// Draw commands
@@ -261,7 +253,4 @@ private:
 
 	uint m_presentFlags;
 	uint m_currBackBuffer;
-
-	// Global depth bias to use for raster states that enable it.
-	float m_slopeScaledDepthBias;
 };
