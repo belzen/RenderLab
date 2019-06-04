@@ -27,7 +27,7 @@ PsOutput main(VsOutputWater input)
 	PsOutput output;
 	output.color.rgb = litColor;
 	output.color.a = 1.f;
-	output.albedo = albedo;
-	output.normal = normal * 0.5f + 0.5f;
+	output.albedo = float4(albedo, 1.f);
+	output.normal = float4(normal * 0.5f + 0.5f, 0.f);
 	return output;
 }

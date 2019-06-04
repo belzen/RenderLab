@@ -5,7 +5,6 @@
 #include "RdrShaders.h"
 #include "RdrGeometry.h"
 #include "RdrMaterial.h"
-#include "RdrTessellationMaterial.h"
 #include "RdrDrawOp.h"
 #include "RdrComputeOp.h"
 
@@ -30,10 +29,9 @@ private:
 	int m_numParticles;
 	int m_maxParticles;
 
-	RdrMaterial m_gridMaterial;
+	RdrMaterial m_material;
 
 	RdrConstantBufferHandle m_hVsPerObjectConstantBuffer;
-	RdrInputLayoutHandle m_hGridInputLayout;
 	RdrGeoHandle m_hGridGeo;
 
 	RdrResourceHandle m_hParticleBuffer;

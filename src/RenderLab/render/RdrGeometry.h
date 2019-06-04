@@ -14,16 +14,6 @@ struct Vertex
 	Vec3 bitangent;
 };
 
-enum class RdrTopology
-{
-	TriangleList,
-	TriangleStrip,
-	Quad,
-	Point,
-
-	Count
-};
-
 struct RdrGeoInfo
 {
 	RdrTopology eTopology;

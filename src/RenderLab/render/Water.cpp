@@ -39,7 +39,7 @@ void Water::Init(int gridSize)
 
 void Water::InitGridResources()
 {
-	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
+	RdrResourceCommandList& rResCommandList = g_pRenderer->GetResourceCommandList();
 
 	// Create the water grid geometry
 	int numVerts = m_gridSize * m_gridSize;
@@ -49,7 +49,7 @@ void Water::InitGridResources()
 	{
 		for (int z = 0; z < m_gridSize; ++z)
 		{
-			aVertices[x + z * m_gridSize].position = Vec2(x, z);
+			aVertices[x + z * m_gridSize].position = Vec2((float)x, (float)z);
 			aVertices[x + z * m_gridSize].texcoord = Vec2(((float)x / m_gridSize) + 0.5f, ((float)z / m_gridSize) + 0.5f);
 		}
 	}
@@ -74,18 +74,33 @@ void Water::InitGridResources()
 		}
 	}
 
-	m_hGridInputLayout = RdrShaderSystem::CreateInputLayout(kGridVertexShader, kGridVertexDesc, ARRAY_SIZE(kGridVertexDesc));
-	m_hGridGeo = rResCommandList.CreateGeo(
+	m_hGridGeo = RdrResourceSystem::CreateGeo(
 		aVertices, sizeof(aVertices[0]), numVerts,
 		aIndices, numTriangles * 3,
-		RdrTopology::TriangleList, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f));
+		RdrTopology::TriangleList, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f), CREATE_BACKPOINTER(this));
 
+	const RdrResourceFormat* pRtvFormats;
+	uint nNumRtvFormats;
+	Renderer::GetStageRenderTargetFormats(RdrRenderStage::kScene_GBuffer, &pRtvFormats, &nNumRtvFormats);
+
+	const RdrShader* pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_water.hlsl", nullptr, 0);
+
+	RdrRasterState rasterState;
+	rasterState.bWireframe = false;
+	rasterState.bDoubleSided = false;
+	rasterState.bEnableMSAA = (g_debugState.msaaLevel > 1);
+	rasterState.bUseSlopeScaledDepthBias = false;
+	rasterState.bEnableScissor = false;
 
 	// Setup pixel material
-	memset(&m_gridMaterial, 0, sizeof(m_gridMaterial));
-	m_gridMaterial.bNeedsLighting = true;
-	m_gridMaterial.hConstants = rResCommandList.CreateConstantBuffer(nullptr, 16, RdrCpuAccessFlags::None, RdrResourceUsage::Default);
-	m_gridMaterial.hPixelShaders[(int)RdrShaderMode::Normal] = RdrShaderSystem::CreatePixelShaderFromFile("p_water.hlsl", nullptr, 0);
+	m_material.Init("Water", RdrMaterialFlags::None);
+	m_material.CreatePipelineState(RdrShaderMode::Normal,
+		kGridVertexShader, pPixelShader,
+		kGridVertexDesc, ARRAY_SIZE(kGridVertexDesc),
+		pRtvFormats, nNumRtvFormats,
+		RdrBlendMode::kAlpha,
+		rasterState,
+		RdrDepthStencilState(false, false, RdrComparisonFunc::Always));
 
 	// Setup per-object constants
 	Matrix44 mtxWorld = Matrix44Translation(Vec3(0.f, 5.f, 0.f));
@@ -93,15 +108,14 @@ void Water::InitGridResources()
 	VsPerObject* pVsPerObject = (VsPerObject*)RdrFrameMem::AllocAligned(constantsSize, 16);
 	pVsPerObject->mtxWorld = Matrix44Transpose(mtxWorld);
 
-	m_hVsPerObjectConstantBuffer = g_pRenderer->GetPreFrameCommandList().CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
-		pVsPerObject, constantsSize, RdrCpuAccessFlags::Write, RdrResourceUsage::Dynamic);
+	m_hVsPerObjectConstantBuffer = RdrResourceSystem::CreateUpdateConstantBuffer(m_hVsPerObjectConstantBuffer,
+		pVsPerObject, constantsSize, RdrResourceAccessFlags::CpuRW_GpuRO, CREATE_BACKPOINTER(this));
 
 }
 
 void Water::InitParticleResources()
 {
-	RdrResourceCommandList& rResCommandList = g_pRenderer->GetPreFrameCommandList();
-	m_hParticleBuffer = rResCommandList.CreateStructuredBuffer(m_aParticles, m_maxParticles, sizeof(WaveParticle), RdrResourceUsage::Dynamic);
+	m_hParticleBuffer = RdrResourceSystem::CreateStructuredBuffer(m_aParticles, m_maxParticles, sizeof(WaveParticle), RdrResourceAccessFlags::CpuRO_GpuRW, CREATE_BACKPOINTER(this));
 }
 
 void Water::Update()
@@ -117,12 +131,10 @@ RdrDrawOpSet Water::BuildDrawOps(RdrAction* pAction)
 		return RdrDrawOpSet();
 
 	// Draw the water grid
-	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp();
+	RdrDrawOp* pDrawOp = RdrFrameMem::AllocDrawOp(CREATE_BACKPOINTER(this));
 	pDrawOp->hVsConstants = m_hVsPerObjectConstantBuffer;
 	pDrawOp->hGeo = m_hGridGeo;
-	pDrawOp->hInputLayout = m_hGridInputLayout;
-	pDrawOp->vertexShader = kGridVertexShader;
-	pDrawOp->pMaterial = &m_gridMaterial;
+	pDrawOp->pMaterial = &m_material;
 
 	return RdrDrawOpSet(pDrawOp, 1);
 }
@@ -130,7 +142,7 @@ RdrDrawOpSet Water::BuildDrawOps(RdrAction* pAction)
 RdrComputeOp Water::BuildComputeOps(RdrAction* pAction)
 {
 	// Update particles
-	pAction->GetResCommandList().UpdateBuffer(m_hParticleBuffer, m_aParticles, m_numParticles);
+	g_pRenderer->GetResourceCommandList().UpdateBuffer(m_hParticleBuffer, m_aParticles, m_numParticles, CREATE_BACKPOINTER(this));
 
 	// Issue particle compute shader
 	return RdrComputeOp();

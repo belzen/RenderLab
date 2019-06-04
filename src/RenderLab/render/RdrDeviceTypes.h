@@ -194,6 +194,7 @@ enum class RdrTopology
 	TriangleList,
 	TriangleStrip,
 	Quad,
+	Point,
 
 	Count
 };
@@ -395,6 +396,7 @@ inline D3D12_PRIMITIVE_TOPOLOGY getD3DTopology(const RdrTopology eTopology)
 		D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,				// RdrTopology::TriangleList
 		D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,				// RdrTopology::TriangleStrip
 		D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST,	// RdrTopology::Quad
+		D3D_PRIMITIVE_TOPOLOGY_POINTLIST,					// RdrTopology::Point
 	};
 	static_assert(ARRAY_SIZE(s_d3dTopology) == (int)RdrTopology::Count, "Missing D3D topologies!");
 	return s_d3dTopology[(int)eTopology];
