@@ -58,6 +58,33 @@ void RdrDescriptors::MarkUsedThisFrame() const
 	const_cast<RdrDescriptors*>(this)->m_nLastUsedFrameCode = g_pRenderer->GetContext()->GetFrameNum();
 }
 
+bool RdrDescriptors::Release()
+{
+	if (--m_nRefCount > 0)
+		return false;
+
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+
+	switch (m_eDescType)
+	{
+	case RdrDescriptorType::Sampler:
+		pRdrContext->GetSamplerHeap().FreeDescriptor(this);
+		break;
+	case RdrDescriptorType::SRV:
+	case RdrDescriptorType::CBV:
+	case RdrDescriptorType::UAV:
+		pRdrContext->GetSrvHeap().FreeDescriptor(this);
+		break;
+	case RdrDescriptorType::RTV:
+		pRdrContext->GetRtvHeap().FreeDescriptor(this);
+		break;
+	case RdrDescriptorType::DSV:
+		pRdrContext->GetDsvHeap().FreeDescriptor(this);
+		break;
+	}
+
+	return true;
+}
 
 //////////////////////////////////////////////////////////////////////////
 // RdrPipelineState

@@ -379,19 +379,6 @@ void RdrLighting::QueueDraw(RdrAction* pAction, RdrLightList* pLights, RdrLighti
 	sharedResources.hShadowCubeMapTexArray = m_hShadowCubeMapTexArray;
 	sharedResources.hShadowMapTexArray = m_hShadowMapTexArray;
 	sharedResources.hLightIndicesRes = hLightIndicesRes;
-
-	const RdrGlobalConstants& rGlobalConstants = pAction->GetGlobalConstants();
-
-	RdrResourceHandle ahResources[8];
-	ahResources[0] = sharedResources.hEnvironmentMapTexArray;
-	ahResources[1] = sharedResources.hVolumetricFogLut;
-	ahResources[2] = sharedResources.hSkyTransmittanceLut;
-	ahResources[3] = sharedResources.hShadowMapTexArray;
-	ahResources[4] = sharedResources.hShadowCubeMapTexArray;
-	ahResources[5] = outResources.hSpotLightListRes;
-	ahResources[6] = outResources.hPointLightListRes;
-	ahResources[7] = sharedResources.hLightIndicesRes;
-	pOutResources->pResourcesTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
 }
 
 void RdrLighting::QueueClusteredLightCulling(RdrAction* pAction, const Camera& rCamera, int numSpotLights, int numPointLights,
@@ -655,7 +642,7 @@ void RdrLighting::QueueVolumetricFog(RdrAction* pAction, const AssetLib::Volumet
 		pAccumOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
 
 		RdrResourceHandle ahWritableResources[] = { m_hFogFinalLut };
-		pAccumOp->pResourceDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(ahWritableResources, ARRAYSIZE(ahWritableResources), CREATE_BACKPOINTER(this));
+		pAccumOp->pUnorderedAccessDescriptorTable = RdrResourceSystem::CreateTempUnorderedAccessViewTable(ahWritableResources, ARRAYSIZE(ahWritableResources), CREATE_BACKPOINTER(this));
 
 		pAccumOp->threads[0] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.x, VOLFOG_LUT_THREADS_X);
 		pAccumOp->threads[1] = RdrComputeOp::getThreadGroupCount(m_fogLutSize.y, VOLFOG_LUT_THREADS_Y);

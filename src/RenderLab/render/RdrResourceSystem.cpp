@@ -110,11 +110,6 @@ void RdrResourceSystem::Init(Renderer& rRenderer)
 		s_resourceSystem.renderTargetViews.allocSafe();
 	}
 
-	for (int i = 0; i < (int)RdrGlobalResourceHandles::kCount; ++i)
-	{
-		s_resourceSystem.resources.allocSafe();
-	}
-
 	// Create default resources.
 	static uchar blackTexData[4] = { 0, 0, 0, 255 };
 	s_resourceSystem.defaultResourceHandles[(int)RdrDefaultResource::kBlackTex2d] =
@@ -131,13 +126,6 @@ void RdrResourceSystem::SetActiveGlobalResources(const RdrGlobalResources& rReso
 	{
 		RdrRenderTargetView* pTarget = s_resourceSystem.renderTargetViews.get(i);
 		*pTarget = rResources.renderTargets[i];
-	}
-
-	for (int i = 1; i <= (int)RdrGlobalResourceHandles::kCount; ++i)
-	{
-		RdrResource* pSrc = s_resourceSystem.resources.get(rResources.hResources[i]);
-		RdrResource* pTarget = s_resourceSystem.resources.get(i);
-		*pTarget = *pSrc;
 	}
 }
 
@@ -632,7 +620,7 @@ void RdrResourceCommandList::UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVert
 	UpdateResource(hResource, pVertData, 0, debug);
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
 	assert(count < kMaxDescriptorTableSize);
@@ -649,7 +637,7 @@ const RdrDescriptors* RdrResourceSystem::CreateShaderResourceViewTable(const Rdr
 	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
 	assert(count < kMaxDescriptorTableSize);
@@ -665,21 +653,21 @@ const RdrDescriptors* RdrResourceSystem::CreateShaderResourceViewTable(const Rdr
 	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateTempShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateTempShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
 {
-	const RdrDescriptors* pTable = CreateShaderResourceViewTable(apResources, count, debug);
+	RdrDescriptors* pTable = CreateShaderResourceViewTable(apResources, count, debug);
 	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
 	return pTable;
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateTempShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateTempShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
 {
-	const RdrDescriptors* pTable = CreateShaderResourceViewTable(ahResources, count, debug);
+	RdrDescriptors* pTable = CreateShaderResourceViewTable(ahResources, count, debug);
 	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
 	return pTable;
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
 	assert(count < kMaxDescriptorTableSize);
@@ -696,7 +684,7 @@ const RdrDescriptors* RdrResourceSystem::CreateUnorderedAccessViewTable(const Rd
 	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
 	assert(count < kMaxDescriptorTableSize);
@@ -712,21 +700,21 @@ const RdrDescriptors* RdrResourceSystem::CreateUnorderedAccessViewTable(const Rd
 	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateTempUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateTempUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
 {
-	const RdrDescriptors* pTable = CreateUnorderedAccessViewTable(apResources, count, debug);
+	RdrDescriptors* pTable = CreateUnorderedAccessViewTable(apResources, count, debug);
 	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
 	return pTable;
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateTempUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateTempUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
 {
-	const RdrDescriptors* pTable = CreateUnorderedAccessViewTable(ahResources, count, debug);
+	RdrDescriptors* pTable = CreateUnorderedAccessViewTable(ahResources, count, debug);
 	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
 	return pTable;
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
 	assert(count < kMaxDescriptorTableSize);
@@ -742,14 +730,14 @@ const RdrDescriptors* RdrResourceSystem::CreateSamplerTable(const RdrSamplerStat
 	return pRdrContext->GetSamplerHeap().CreateDescriptorTable(apDescriptors, count, debug);
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateTempSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateTempSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
 {
-	const RdrDescriptors* pTable = CreateSamplerTable(aSamplers, count, debug);
+	RdrDescriptors* pTable = CreateSamplerTable(aSamplers, count, debug);
 	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
 	return pTable;
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
 	assert(count < kMaxDescriptorTableSize);
@@ -766,14 +754,14 @@ const RdrDescriptors* RdrResourceSystem::CreateConstantBufferTable(const RdrCons
 	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateTempConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateTempConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
 {
-	const RdrDescriptors* pTable = CreateConstantBufferTable(ahBuffers, count, debug);
+	RdrDescriptors* pTable = CreateConstantBufferTable(ahBuffers, count, debug);
 	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
 	return pTable;
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
 	assert(count < kMaxDescriptorTableSize);
@@ -789,27 +777,73 @@ const RdrDescriptors* RdrResourceSystem::CreateConstantBufferTable(const RdrReso
 	return pRdrContext->GetSrvHeap().CreateDescriptorTable(apDescriptors, count, debug);
 }
 
-const RdrDescriptors* RdrResourceSystem::CreateTempConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug)
+RdrDescriptors* RdrResourceSystem::CreateTempConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug)
 {
-	const RdrDescriptors* pTable = CreateConstantBufferTable(apBuffers, count, debug);
+	RdrDescriptors* pTable = CreateConstantBufferTable(apBuffers, count, debug);
 	g_pRenderer->GetResourceCommandList().ReleaseDescriptorTable(pTable, debug);
 	return pTable;
 }
 
-void RdrResourceCommandList::ReleaseDescriptorTable(const RdrDescriptors* pTable, const RdrDebugBackpointer& debug)
+void RdrResourceCommandList::ReleaseDescriptorTable(RdrDescriptors* pTable, const RdrDebugBackpointer& debug)
 {
-	if (const_cast<RdrDescriptors*>(pTable)->DecRefCount())
-	{
-		CmdReleaseDescriptorTable& cmd = m_descTableReleases.pushSafe();
-		cmd.pTable = pTable;
-		cmd.debug = debug;
-	}
+	CmdReleaseDescriptorTable& cmd = m_descTableReleases.pushSafe();
+	cmd.pTable = pTable;
+	cmd.debug = debug;
 }
 
 void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 {
 	uint numCmds;
 	uint64 nLastCompletedFrame = pRdrContext->GetLastCompletedFrame();
+
+	// Free render targets
+	numCmds = (uint)m_renderTargetReleases.size();
+	for (uint i = 0; i < numCmds; ++i)
+	{
+		CmdReleaseRenderTarget& cmd = m_renderTargetReleases[i];
+		RdrRenderTargetView* pView = s_resourceSystem.renderTargetViews.get(cmd.hView);
+
+		if (pView->pDesc->GetRefCount() > 1 || pView->pDesc->GetLastUsedFrame() <= nLastCompletedFrame)
+		{
+			pView->pDesc->Release();
+			s_resourceSystem.renderTargetViews.releaseIdSafe(cmd.hView);
+			m_renderTargetReleases.eraseFast(i);
+			--i;
+			--numCmds;
+		}
+	}
+
+	// Free depth stencils
+	numCmds = (uint)m_depthStencilReleases.size();
+	for (uint i = 0; i < numCmds; ++i)
+	{
+		CmdReleaseDepthStencil& cmd = m_depthStencilReleases[i];
+		RdrDepthStencilView* pView = s_resourceSystem.depthStencilViews.get(cmd.hView);
+		if (pView->pDesc->GetRefCount() > 1 || pView->pDesc->GetLastUsedFrame() <= nLastCompletedFrame)
+		{
+			pView->pDesc->Release();
+			s_resourceSystem.depthStencilViews.releaseIdSafe(cmd.hView);
+			m_depthStencilReleases.eraseFast(i);
+			--i;
+			--numCmds;
+		}
+	}
+
+	// Free shader resource views
+	numCmds = (uint)m_shaderResourceViewReleases.size();
+	for (uint i = 0; i < numCmds; ++i)
+	{
+		CmdReleaseShaderResourceView& cmd = m_shaderResourceViewReleases[i];
+		RdrShaderResourceView* pView = s_resourceSystem.shaderResourceViews.get(cmd.hView);
+		if (pView->pDesc->GetRefCount() > 1 || pView->pDesc->GetLastUsedFrame() <= nLastCompletedFrame)
+		{
+			pView->pDesc->Release();
+			s_resourceSystem.shaderResourceViews.releaseIdSafe(cmd.hView);
+			m_shaderResourceViewReleases.eraseFast(i);
+			--i;
+			--numCmds;
+		}
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Free geos
@@ -843,24 +877,9 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 		for (uint i = 0; i < numCmds; ++i)
 		{
 			CmdReleaseDescriptorTable& cmd = m_descTableReleases[i];
-			if (cmd.pTable->GetLastUsedFrame() <= nLastCompletedFrame)
+			if (cmd.pTable->GetRefCount() > 1 || cmd.pTable->GetLastUsedFrame() <= nLastCompletedFrame)
 			{
-				switch (cmd.pTable->GetType())
-				{
-				case RdrDescriptorType::Sampler:
-					pRdrContext->GetSamplerHeap().FreeDescriptor(cmd.pTable);
-					break;
-				case RdrDescriptorType::SRV:
-				case RdrDescriptorType::CBV:
-				case RdrDescriptorType::UAV:
-					pRdrContext->GetSrvHeap().FreeDescriptor(cmd.pTable);
-					break;
-				case RdrDescriptorType::RTV:
-					pRdrContext->GetRtvHeap().FreeDescriptor(cmd.pTable);
-				case RdrDescriptorType::DSV:
-					pRdrContext->GetDsvHeap().FreeDescriptor(cmd.pTable);
-					break;
-				}
+				const_cast<RdrDescriptors*>(cmd.pTable)->Release();
 
 				m_descTableReleases.eraseFast(i);
 				--i;
@@ -889,56 +908,6 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 		}
 	}
 	s_resourceSystem.resources.ReleaseLock();
-
-#if 0 //donotcheckin - these should be done before the resource
-	// Free render targets
-	numCmds = (uint)m_renderTargetReleases.size();
-	for (uint i = 0; i < numCmds; ++i)
-	{
-		CmdReleaseRenderTarget& cmd = m_renderTargetReleases[i];
-		RdrRenderTargetView* pView = s_resourceSystem.renderTargetViews.get(cmd.hView);
-		if (pView->pResource->nLastUsedFrameCode <= nLastCompletedFrame)
-		{
-			pRdrContext->ReleaseRenderTargetView(*pView);
-			s_resourceSystem.renderTargetViews.releaseIdSafe(cmd.hView);
-			m_renderTargetReleases.eraseFast(i);
-			--i;
-			--numCmds;
-		}
-	}
-
-	// Free depth stencils
-	numCmds = (uint)m_depthStencilReleases.size();
-	for (uint i = 0; i < numCmds; ++i)
-	{
-		CmdReleaseDepthStencil& cmd = m_depthStencilReleases[i];
-		RdrDepthStencilView* pView = s_resourceSystem.depthStencilViews.get(cmd.hView);
-		if (pView->pResource->nLastUsedFrameCode <= nLastCompletedFrame)
-		{
-			pRdrContext->ReleaseDepthStencilView(*pView);
-			s_resourceSystem.depthStencilViews.releaseIdSafe(cmd.hView);
-			m_depthStencilReleases.eraseFast(i);
-			--i;
-			--numCmds;
-		}
-	}
-
-	// Free shader resource views
-	numCmds = (uint)m_shaderResourceViewReleases.size();
-	for (uint i = 0; i < numCmds; ++i)
-	{
-		CmdReleaseShaderResourceView& cmd = m_shaderResourceViewReleases[i];
-		RdrShaderResourceView* pView = s_resourceSystem.shaderResourceViews.get(cmd.hView);
-		if (pView->pResource->nLastUsedFrameCode <= nLastCompletedFrame)
-		{
-			pRdrContext->ReleaseShaderResourceView(*pView);
-			s_resourceSystem.shaderResourceViews.releaseIdSafe(cmd.hView);
-			m_shaderResourceViewReleases.eraseFast(i);
-			--i;
-			--numCmds;
-		}
-	}
-#endif
 
 	//////////////////////////////////////////////////////////////////////////
 	// Free constant buffers

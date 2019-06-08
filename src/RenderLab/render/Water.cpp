@@ -115,7 +115,7 @@ void Water::InitGridResources()
 
 void Water::InitParticleResources()
 {
-	m_hParticleBuffer = RdrResourceSystem::CreateStructuredBuffer(m_aParticles, m_maxParticles, sizeof(WaveParticle), RdrResourceAccessFlags::CpuRO_GpuRW, CREATE_BACKPOINTER(this));
+	m_hParticleBuffer = RdrResourceSystem::CreateStructuredBuffer(m_aParticles, m_maxParticles, sizeof(WaveParticle), RdrResourceAccessFlags::GpuRW, CREATE_BACKPOINTER(this));
 }
 
 void Water::Update()

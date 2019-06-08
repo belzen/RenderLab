@@ -58,7 +58,7 @@ namespace
 
 Decal* Decal::Create(IComponentAllocator* pAllocator, const CachedString& textureName)
 {
-	if (!s_hDecalBoxGeo) //donotcheckin - this is bad - put in some global resource manager
+	if (!s_hDecalBoxGeo) //TODO - this is bad - put it in some global resource manager
 	{
 		s_hDecalBoxGeo = createDecalGeo();
 	}
@@ -79,7 +79,7 @@ Decal* Decal::Create(IComponentAllocator* pAllocator, const CachedString& textur
 	rasterState.bEnableScissor = false;
 
 	// Setup material
-	pDecal->m_material.Init("Decal", RdrMaterialFlags::HasAlpha);
+	pDecal->m_material.Init("Decal", RdrMaterialFlags::HasAlpha | RdrMaterialFlags::NeedsScreenDepth);
 	pDecal->m_material.CreatePipelineState(RdrShaderMode::Normal,
 		kVertexShader, pPixelShader,
 		s_decalVertexDesc, ARRAY_SIZE(s_decalVertexDesc), 
@@ -89,7 +89,6 @@ Decal* Decal::Create(IComponentAllocator* pAllocator, const CachedString& textur
 		RdrDepthStencilState(false, false, RdrComparisonFunc::Always));
 
 	pDecal->SetTexture(textureName);
-	//donotcheckin put depth buffer in global resources w/ flag that material needs it pDecal->m_material.SetTextures(1, 1, &RdrGlobalResourceHandles::kDepthBuffer);
 
 	RdrSamplerState sampler(RdrComparisonFunc::Never, RdrTexCoordMode::Clamp, false);
 	pDecal->m_material.SetSamplers(0, 1, &sampler);

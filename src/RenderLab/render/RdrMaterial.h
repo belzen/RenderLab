@@ -12,6 +12,7 @@ enum class RdrMaterialFlags
 	NeedsLighting	= 0x1,
 	AlphaCutout		= 0x2,
 	HasAlpha		= 0x4,
+	NeedsScreenDepth= 0x8,
 };
 ENUM_FLAGS(RdrMaterialFlags);
 
@@ -21,8 +22,8 @@ struct RdrTessellationMaterialData
 	Array<RdrResourceHandle, 2> ahResources;
 	Array<RdrSamplerState, 2> aSamplers;
 
-	const RdrDescriptors* pResourceDescriptorTable;
-	const RdrDescriptors* pSamplerDescriptorTable;
+	RdrDescriptors* pResourceDescriptorTable;
+	RdrDescriptors* pSamplerDescriptorTable;
 };
 
 class RdrMaterial
@@ -45,6 +46,7 @@ public:
 	const CachedString& GetName() const { return m_name; }
 	bool HasAlpha() const { return IsFlagSet(m_flags, RdrMaterialFlags::HasAlpha); }
 	bool NeedsLighting() const { return IsFlagSet(m_flags, RdrMaterialFlags::NeedsLighting); }
+	bool NeedsScreenDepth() const { return IsFlagSet(m_flags, RdrMaterialFlags::NeedsScreenDepth); }
 
 	bool IsShaderStageActive(RdrShaderMode eMode, RdrShaderStageFlags eStageFlag) const
 	{
@@ -97,8 +99,10 @@ private:
 	Array<RdrSamplerState, 4> m_aSamplers;
 	RdrConstantBufferHandle m_hConstants;
 
-	const RdrDescriptors* m_pResourceDescriptorTable;
-	const RdrDescriptors* m_pSamplerDescriptorTable;
+	RdrDescriptors* m_pResourceDescriptorTable;
+	RdrDescriptors* m_pSamplerDescriptorTable;
 
 	RdrTessellationMaterialData m_tessellation;
+
+	std::vector<RdrVertexInputElement> m_inputLayoutElements;
 };

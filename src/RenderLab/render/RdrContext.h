@@ -32,18 +32,18 @@ public:
 	void Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, const uint* anDescriptorTableSizes, uint numDescriptorTableSizes);
 	void Cleanup();
 
-	const RdrDescriptors* CreateShaderResourceView(ID3D12Resource* pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateUnorderedAccesView(ID3D12Resource* pResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateShaderResourceView(ID3D12Resource* pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateUnorderedAccesView(ID3D12Resource* pResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
 
-	const RdrDescriptors* CreateRenderTargetView(ID3D12Resource* pResource, const D3D12_RENDER_TARGET_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateDepthStencilView(ID3D12Resource* pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateRenderTargetView(ID3D12Resource* pResource, const D3D12_RENDER_TARGET_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateDepthStencilView(ID3D12Resource* pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug);
 
-	const RdrDescriptors* CreateSampler(const D3D12_SAMPLER_DESC& samplerDesc, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateSampler(const D3D12_SAMPLER_DESC& samplerDesc, const RdrDebugBackpointer& debug);
 
-	const RdrDescriptors* CreateDescriptorTable(const RdrDescriptors** apSrcDescriptors, uint size, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateDescriptorTable(const RdrDescriptors** apSrcDescriptors, uint size, const RdrDebugBackpointer& debug);
 
-	void FreeDescriptor(const RdrDescriptors* pDesc);
+	void FreeDescriptor(RdrDescriptors* pDesc);
 
 	void GetDescriptorHandle(uint nId, CD3DX12_CPU_DESCRIPTOR_HANDLE* pOutDesc);
 	ID3D12DescriptorHeap* GetHeap() const { return m_pDescriptorHeap.Get(); }
@@ -217,7 +217,7 @@ private:
 	ComPtr<ID3D12GraphicsCommandList> m_pCommandList;
 
 	ComPtr<ID3D12Resource> m_pBackBuffers[kNumBackBuffers];
-	const RdrDescriptors* m_pBackBufferRtvs[kNumBackBuffers];
+	RdrDescriptors* m_pBackBufferRtvs[kNumBackBuffers];
 
 	ComPtr<ID3D12CommandAllocator> m_pCommandAllocators[kNumBackBuffers];
 

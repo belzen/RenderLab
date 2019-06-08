@@ -11,11 +11,27 @@
 
 namespace
 {
-	typedef std::map<Hashing::SHA1, RdrMaterial*> RdrMaterialMap;
+	typedef std::map<Hashing::SHA1, RdrMaterial*> RdrMaterialLayoutMap;
+	typedef std::map<Hashing::StringHash, RdrMaterialLayoutMap> RdrMaterialNameMap;
 	typedef FreeList<RdrMaterial, 1024> RdrMaterialList;
 
 	RdrMaterialList s_materials;
-	RdrMaterialMap s_materialCache;
+	RdrMaterialNameMap s_materialCache;
+
+	Hashing::StringHash makeMaterialNameHash(const char* materialName)
+	{
+		return Hashing::HashString(materialName);
+	}
+
+	Hashing::SHA1 makeMaterialLayoutHash(const RdrVertexInputElement* pInputLayout, uint nNumInputElements)
+	{
+		Hashing::SHA1HashState* pHashState = Hashing::SHA1::Begin(pInputLayout, nNumInputElements * sizeof(pInputLayout[0]));
+		
+		Hashing::SHA1 materialHash;
+		Hashing::SHA1::Finish(pHashState, materialHash);
+
+		return materialHash;
+	}
 
 	void loadMaterial(const CachedString& materialName, const RdrVertexInputElement* pInputLayout, uint nNumInputElements, RdrMaterial* pOutMaterial)
 	{
@@ -135,7 +151,7 @@ namespace
 
 		Renderer::GetStageRenderTargetFormats(RdrRenderStage::kPrimary, &pRtvFormats, &nNumRtvFormats);
 
-		pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
+		pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile("p_wireframe.hlsl", nullptr, 0);
 		pOutMaterial->CreatePipelineState(RdrShaderMode::Wireframe,
 			vertexShader, pPixelShader,
 			pInputLayout, nNumInputElements,
@@ -188,7 +204,7 @@ namespace
 			Renderer::GetStageRenderTargetFormats(RdrRenderStage::kShadowMap, &pRtvFormats, &nNumRtvFormats);
 
 			rasterState.bWireframe = false;
-			rasterState.bDoubleSided = true; // donotcheckin - double-sided? opposite cull mode?
+			rasterState.bDoubleSided = true; // TODO double-sided? opposite cull mode?
 			rasterState.bEnableMSAA = false;
 			rasterState.bUseSlopeScaledDepthBias = true;
 			rasterState.bEnableScissor = false;
@@ -424,14 +440,16 @@ void RdrMaterial::FillTessellationConstantBuffer(void* pData, uint nDataSize, Rd
 
 void RdrMaterial::ReloadMaterial(const char* materialName)
 {
-#if 0 //donotcheckin
 	Hashing::StringHash nameHash = Hashing::HashString(materialName);
-	RdrMaterialMap::iterator iter = s_materialCache.find(nameHash);
-	if (iter != s_materialCache.end())
+	RdrMaterialNameMap::iterator iterName = s_materialCache.find(nameHash);
+	if (iterName != s_materialCache.end())
 	{
-		loadMaterial(materialName, iter->second);
+		for (auto& iterLayout : iterName->second)
+		{
+			RdrMaterial* pMaterial = iterLayout.second;
+			loadMaterial(materialName, pMaterial->m_inputLayoutElements.data(), (uint)pMaterial->m_inputLayoutElements.size(), pMaterial);
+		}
 	}
-#endif
 }
 
 uint16 RdrMaterial::GetMaterialId(const RdrMaterial* pMaterial)
@@ -441,28 +459,39 @@ uint16 RdrMaterial::GetMaterialId(const RdrMaterial* pMaterial)
 
 RdrMaterial* RdrMaterial::Create(const CachedString& materialName, const RdrVertexInputElement* pInputLayout, uint nNumInputElements)
 {
-	if (!AssetLib::Material::GetAssetDef().HasReloadHandler())
-	{
-		AssetLib::Material::GetAssetDef().SetReloadHandler(RdrMaterial::ReloadMaterial);
-	}
-	
-	Hashing::SHA1HashState* pHashState = Hashing::SHA1::Begin(materialName.getString(), (uint)strlen(materialName.getString()));
-	Hashing::SHA1::Update(pHashState, pInputLayout, nNumInputElements * sizeof(pInputLayout[0]));
-
-	Hashing::SHA1 materialHash;
-	Hashing::SHA1::Finish(pHashState, materialHash);
-
 	// Check if the material's already been loaded
-	RdrMaterialMap::iterator iter = s_materialCache.find(materialHash);
-	if (iter != s_materialCache.end())
-		return iter->second;
+	Hashing::StringHash materialNameHash = makeMaterialNameHash(materialName.getString());
+	Hashing::SHA1 materialLayoutHash = makeMaterialLayoutHash(pInputLayout, nNumInputElements);
+
+	RdrMaterialNameMap::iterator iterName = s_materialCache.find(materialNameHash);
+	if (iterName != s_materialCache.end())
+	{
+		RdrMaterialLayoutMap::iterator iterLayout = iterName->second.find(materialLayoutHash);
+		if (iterLayout != iterName->second.end())
+		{
+			return iterLayout->second;
+		}
+	}
+	else
+	{
+		// Material name wasn't found in the cache, add a new map for it.
+		iterName = s_materialCache.insert(std::make_pair(materialNameHash, RdrMaterialLayoutMap())).first;
+	}
 
 	// Material not cached, create it.
 	RdrMaterial* pMaterial = s_materials.allocSafe();
 
+	pMaterial->m_inputLayoutElements.assign(pInputLayout, pInputLayout + nNumInputElements);
 	loadMaterial(materialName, pInputLayout, nNumInputElements, pMaterial);
 
-	s_materialCache.insert(std::make_pair(materialHash, pMaterial));
+	iterName->second.insert(std::make_pair(materialLayoutHash, pMaterial));
+
+	if (!AssetLib::Material::GetAssetDef().HasReloadHandler())
+	{ 
+		// TODO: Add priorities to handles w/sorting so I don't have to worry about ordering of reload handlers being added.
+		//		This used to be at the top of this function, but that meant the handler for updating the run-time material happened before the source asset had reloaded.
+		AssetLib::Material::GetAssetDef().SetReloadHandler(RdrMaterial::ReloadMaterial);
+	}
 
 	return pMaterial;
 }

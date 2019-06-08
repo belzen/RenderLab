@@ -480,10 +480,22 @@ void RdrAction::QueueSkyAndLighting(const AssetLib::SkySettings& rSkySettings, R
 
 	// Updating lighting.
 	s_actionSharedData.lighting.QueueDraw(this, &m_lights, g_pRenderer->GetLightingMethod(), m_sky.volumetricFog, sceneDepthMin, sceneDepthMax, &m_lightResources);
-	m_lightResources.sharedResources.hEnvironmentMapTexArray = hEnvironmentMapTexArray;
-
+	
 	// Re-assign sky material's volumetric fog LUT.
 	s_actionSharedData.sky.AssignExternalResources(m_lightResources.sharedResources.hVolumetricFogLut);
+
+	//
+	RdrResourceHandle ahResources[8];
+	ahResources[0] = hEnvironmentMapTexArray;
+	ahResources[1] = m_lightResources.sharedResources.hVolumetricFogLut;
+	ahResources[2] = m_lightResources.sharedResources.hSkyTransmittanceLut;
+	ahResources[3] = m_lightResources.sharedResources.hShadowMapTexArray;
+	ahResources[4] = m_lightResources.sharedResources.hShadowCubeMapTexArray;
+	ahResources[5] = m_lightResources.hSpotLightListRes;
+	ahResources[6] = m_lightResources.hPointLightListRes;
+	ahResources[7] = m_lightResources.sharedResources.hLightIndicesRes;
+
+	m_lightResources.pResourcesTable = RdrResourceSystem::CreateTempShaderResourceViewTable(ahResources, ARRAYSIZE(ahResources), CREATE_BACKPOINTER(this));
 }
 
 void RdrAction::SetPostProcessingEffects(const AssetLib::PostProcessEffects& postProcFx)
@@ -539,7 +551,6 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 	// Update global resources
 	RdrGlobalResources globalResources;
 	globalResources.renderTargets[(int)RdrGlobalRenderTargetHandles::kPrimary] = pContext->GetPrimaryRenderTarget();
-	globalResources.hResources[(int)RdrGlobalResourceHandles::kDepthBuffer] = m_surfaces.hDepthBuffer;
 	RdrResourceSystem::SetActiveGlobalResources(globalResources);
 
 	// Setup global descriptor tables
@@ -549,7 +560,8 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 	ahConstantBuffers[2] = m_constants.hPsAtmosphere;
 	m_pDrawState->pPsGlobalConstantBufferTable = RdrResourceSystem::CreateTempConstantBufferTable(ahConstantBuffers, ARRAYSIZE(ahConstantBuffers), CREATE_BACKPOINTER(this));
 
-	m_pDrawState->pPsGlobalShaderResourceViewTable	= m_lightResources.pResourcesTable;
+	m_pDrawState->pPsGlobalShaderResourceViewTable = m_lightResources.pResourcesTable;
+	m_pDrawState->pPsScreenShaderResourceViewTable = nullptr;
 
 	m_pContext->BeginEvent(m_name);
 
@@ -589,10 +601,7 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 	}
 
 	// Wireframe
-	if (g_debugState.wireframe)
-	{
-		DrawPass(RdrPass::Wireframe);
-	}
+	DrawPass(RdrPass::Wireframe);
 
 	DrawPass(RdrPass::Editor);
 	DrawPass(RdrPass::UI);
@@ -673,8 +682,11 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	bool instanced = (instanceCount > 1);
 
 	const RdrMaterial* pMaterial = pDrawOp->pMaterial;
-	m_pDrawState->pPipelineState = pMaterial->GetPipelineState(rPass.shaderMode);
 	m_pDrawState->shaderStages = pMaterial->GetActiveShaderStages(rPass.shaderMode);
+	m_pDrawState->pPipelineState = pMaterial->GetPipelineState(rPass.shaderMode);
+
+	if (!m_pDrawState->pPipelineState)
+		return;
 
 	RdrConstantBufferHandle hPerActionVs = rGlobalConstants.hVsPerAction;
 
@@ -721,6 +733,15 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 			else
 			{
 				m_pDrawState->pPsMaterialConstantBufferTable = m_pContext->GetNullConstantBufferView().pDesc;
+			}
+
+			if (pMaterial->NeedsScreenDepth())
+			{
+				m_pDrawState->pPsScreenShaderResourceViewTable = RdrResourceSystem::GetResource(m_surfaces.hDepthBuffer)->GetSRV().pDesc;
+			}
+			else
+			{
+				m_pDrawState->pPsScreenShaderResourceViewTable = nullptr;
 			}
 		}
 	}

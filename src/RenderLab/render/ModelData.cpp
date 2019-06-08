@@ -17,7 +17,7 @@ namespace
 	typedef std::map<Hashing::StringHash, ModelData*> ModelDataMap;
 	ModelDataMap s_modelCache;
 
-	//donotcheckin - Get layout desc from ModelData instead of hardcoding here
+	//TODO - Get layout desc from ModelData instead of hardcoding here
 	static const RdrVertexInputElement s_modelVertexDesc[] = {
 		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
 		{ RdrShaderSemantic::Normal, 0, RdrVertexInputFormat::RGB_F32, 0, 12, RdrVertexInputClass::PerVertex, 0 },

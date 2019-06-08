@@ -284,13 +284,16 @@ void RdrResource::ReleaseResource(RdrContext& context)
 		m_pUploadResource = nullptr;
 	}
 
-	srvHeap.FreeDescriptor(m_srv.pDesc);
+	if (m_srv.pDesc) 
+		m_srv.pDesc->Release();
 	m_srv.Reset();
 
-	srvHeap.FreeDescriptor(m_uav.pDesc);
+	if (m_uav.pDesc) 
+		m_uav.pDesc->Release();
 	m_uav.Reset();
 
-	srvHeap.FreeDescriptor(m_cbv.pDesc);
+	if (m_cbv.pDesc) 
+		m_cbv.pDesc->Release();
 	m_cbv.Reset();
 }
 

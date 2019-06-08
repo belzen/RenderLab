@@ -44,7 +44,6 @@ struct RdrSharedLightResources
 
 	RdrResourceHandle hSkyTransmittanceLut;
 	RdrResourceHandle hVolumetricFogLut;
-	RdrResourceHandle hEnvironmentMapTexArray;
 	RdrResourceHandle hShadowMapTexArray;
 	RdrResourceHandle hShadowCubeMapTexArray;
 };

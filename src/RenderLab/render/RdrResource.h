@@ -44,9 +44,10 @@ struct RdrBufferInfo
 
 struct RdrShaderResourceView
 {
-	void Reset() { pDesc = nullptr; pResource = nullptr; }
+	void Reset() 
+	{ pDesc = nullptr; pResource = nullptr; }
 
-	const RdrDescriptors* pDesc;
+	RdrDescriptors* pDesc;
 	const RdrResource* pResource;
 };
 
@@ -54,7 +55,7 @@ struct RdrUnorderedAccessView
 {
 	void Reset() { pDesc = nullptr; pResource = nullptr; }
 
-	const RdrDescriptors* pDesc;
+	RdrDescriptors* pDesc;
 	const RdrResource* pResource;
 };
 
@@ -62,7 +63,7 @@ struct RdrConstantBufferView
 {
 	void Reset() { pDesc = nullptr; pResource = nullptr; }
 
-	const RdrDescriptors* pDesc;
+	RdrDescriptors* pDesc;
 	const RdrResource* pResource;
 };
 

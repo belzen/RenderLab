@@ -30,6 +30,7 @@ public:
 
 	void MarkUsedThisFrame() const;
 	uint64 GetLastUsedFrame() const { return m_nLastUsedFrameCode; }
+	int GetRefCount() const { return m_nRefCount; }
 
 	const CD3DX12_CPU_DESCRIPTOR_HANDLE& GetCpuDesc() const { return m_hCpuDesc; }
 	const CD3DX12_GPU_DESCRIPTOR_HANDLE& GetGpuDesc() const { MarkUsedThisFrame(); return m_hGpuDesc; }
@@ -38,7 +39,7 @@ public:
 
 	RdrDescriptorType GetType() const { return m_eDescType; }
 
-	bool DecRefCount() { return (--m_nRefCount <= 0); }
+	bool Release();
 
 private:
 	friend class DescriptorHeap;
@@ -47,7 +48,7 @@ private:
 	CD3DX12_CPU_DESCRIPTOR_HANDLE m_hCpuDesc;
 	CD3DX12_GPU_DESCRIPTOR_HANDLE m_hGpuDesc;
 
-	int m_nRefCount			= -1;
+	int m_nRefCount			= 0;
 	uint8 m_nTableSize		= 0;
 	uint8 m_nTableListIndex	= 0;
 
@@ -317,13 +318,13 @@ private:
 
 struct RdrDepthStencilView
 {
-	const RdrDescriptors* pDesc;
+	RdrDescriptors* pDesc;
 	RdrResource* pResource;
 };
 
 struct RdrRenderTargetView
 {
-	const RdrDescriptors* pDesc;
+	RdrDescriptors* pDesc;
 	RdrResource* pResource;
 };
 

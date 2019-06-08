@@ -49,6 +49,7 @@ public:
 
 	const RdrDescriptors* pPsGlobalConstantBufferTable;
 	const RdrDescriptors* pPsGlobalShaderResourceViewTable;
+	const RdrDescriptors* pPsScreenShaderResourceViewTable;
 
 	// Compute shader
 	const RdrDescriptors* pCsConstantBufferTable;

@@ -30,16 +30,9 @@ struct RdrGlobalRenderTargetHandles
 	static const int kCount = 1;
 };
 
-struct RdrGlobalResourceHandles
-{
-	static const RdrResourceHandle kDepthBuffer = 1;
-	static const int kCount = 1;
-};
-
 struct RdrGlobalResources
 {
 	RdrRenderTargetView renderTargets[(int)RdrGlobalRenderTargetHandles::kCount + 1];
-	RdrResourceHandle hResources[(int)RdrGlobalResourceHandles::kCount + 1];
 };
 
 namespace RdrResourceSystem
@@ -62,23 +55,23 @@ namespace RdrResourceSystem
 	const RdrResource* GetConstantBuffer(const RdrConstantBufferHandle hBuffer);
 
 	// SRVs
-	const RdrDescriptors* CreateShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateTempShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateTempShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateTempShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateTempShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
 	// UAVs
-	const RdrDescriptors* CreateUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateTempUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateTempUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateTempUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateTempUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug);
 	// Samplers
-	const RdrDescriptors* CreateSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateTempSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateTempSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug);
 	// Constant buffers
-	const RdrDescriptors* CreateConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateTempConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug);
-	const RdrDescriptors* CreateTempConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateTempConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug);
+	RdrDescriptors* CreateTempConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug);
 
 	RdrResourceHandle CreateTextureFromFile(const CachedString& texName, RdrTextureInfo* pOutInfo, const RdrDebugBackpointer& debug);
 
@@ -131,7 +124,7 @@ public:
 	void ReleaseShaderResourceView(RdrShaderResourceViewHandle hView, const RdrDebugBackpointer& debug);
 	void ReleaseConstantBuffer(RdrConstantBufferHandle hBuffer, const RdrDebugBackpointer& debug);
 	void ReleaseResource(RdrResourceHandle hRes, const RdrDebugBackpointer& debug);
-	void ReleaseDescriptorTable(const RdrDescriptors* pTable, const RdrDebugBackpointer& debug);
+	void ReleaseDescriptorTable(RdrDescriptors* pTable, const RdrDebugBackpointer& debug);
 	void ReleaseDepthStencilView(const RdrRenderTargetViewHandle hView, const RdrDebugBackpointer& debug);
 	void ReleaseRenderTargetView(const RdrRenderTargetViewHandle hView, const RdrDebugBackpointer& debug);
 
@@ -161,7 +154,7 @@ private:
 
 	struct CmdReleaseDescriptorTable
 	{
-		const RdrDescriptors* pTable;
+		RdrDescriptors* pTable;
 		RdrDebugBackpointer debug;
 	};
 
