@@ -1,6 +1,9 @@
+#include "light_types.h"
 
 SamplerState           g_samClamp         : register(s14);
 SamplerComparisonState g_samShadowMaps    : register(s15);
+
+Texture2D<float>  g_texScreenDepth		   : register(t10);
 
 TextureCubeArray  g_texEnvironmentMaps     : register(t11);
 Texture3D<float4> g_texVolumetricFogLut    : register(t12);

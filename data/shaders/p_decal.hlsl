@@ -1,3 +1,4 @@
+#include "global_resources.hlsli"
 #include "p_constants.h"
 #include "p_util.hlsli"
 #include "v_output.hlsli"
@@ -13,8 +14,6 @@ cbuffer MaterialParamsBuffer : register(b3)
 }
 
 Texture2D<float4> g_texColor : register(t0);
-Texture2D<float> g_texDepth : register(t1);
-SamplerState g_samClamp : register(s0);
 
 // TODO: https://bartwronski.com/2015/03/12/fixing-screen-space-deferred-decals/
 
@@ -23,7 +22,7 @@ float4 main(VsOutputDecal input) : SV_TARGET
 	float2 uvDepth = (input.position_cs.xy / input.position_cs.w) * 0.5f + 0.5f;
 	uvDepth.y = 1.f - uvDepth.y; // Flip Y coordinate.  NDC and texcoords are inverted.
 
-	float depth = g_texDepth.SampleLevel(g_samClamp, uvDepth, 0.f);
+	float depth = g_texScreenDepth.SampleLevel(g_samClamp, uvDepth, 0.f);
 	float linearDepth = reconstructViewDepth(depth, cbPerAction.cameraNearDist, cbPerAction.cameraFarDist);
 
 	float3 viewRay = normalize(input.position_vs).xyz;
