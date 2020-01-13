@@ -84,11 +84,14 @@ namespace RdrResourceSystem
 
 	RdrResourceHandle CreateTexture3D(uint width, uint height, uint depth, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, char* pTexData, const RdrDebugBackpointer& debug);
 
-	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
+	RdrGeoHandle CreateGeo(const void* pVertData, int vertStride, int numVerts, const void* pIndexData, int numIndices, RdrIndexBufferFormat eIndexFormat,
+		RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax, const RdrDebugBackpointer& debug);
+	RdrGeoHandle CreateGeo(RdrResourceHandle hVertexBuffer, uint nVertexStride, uint nVertexStartByteOffset, uint nVertexCount, 
+		RdrResourceHandle hIndexBuffer, uint nIndexStart, uint nIndexCount, RdrIndexBufferFormat eIndexFormat,
 		RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax, const RdrDebugBackpointer& debug);
 
-
 	RdrResourceHandle CreateVertexBuffer(const void* pSrcData, int stride, int numVerts, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
+	RdrResourceHandle CreateIndexBuffer(const void* pSrcData, uint nSizeInBytes, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
 
 	RdrResourceHandle CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
 	RdrResourceHandle CreateStructuredBuffer(const void* pSrcData, int numElements, int elementSize, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug);
@@ -204,14 +207,14 @@ private:
 	};
 
 private:
-	FixedVector<CmdUpdateResource, 1024>			m_resourceUpdates;
-	FixedVector<CmdReleaseResource, 1024>			m_resourceReleases;
-	FixedVector<CmdReleaseDescriptorTable, 1024>	m_descTableReleases;
-	FixedVector<CmdReleaseRenderTarget, 1024>		m_renderTargetReleases;
-	FixedVector<CmdReleaseDepthStencil, 1024>		m_depthStencilReleases;
-	FixedVector<CmdReleaseShaderResourceView, 1024> m_shaderResourceViewReleases;
-	FixedVector<CmdReleaseGeo, 1024>				m_geoReleases;
-	FixedVector<CmdUpdateConstantBuffer, 2048>		m_constantBufferUpdates;
-	FixedVector<CmdReleaseConstantBuffer, 2048>		m_constantBufferReleases;
-	FixedVector<CmdReleasePipelineState, 1024>		m_pipelineStateReleases;
+	FixedVector<CmdUpdateResource,			  8192>	m_resourceUpdates;
+	FixedVector<CmdReleaseResource,			  2048>	m_resourceReleases;
+	FixedVector<CmdReleaseDescriptorTable,	  2048>	m_descTableReleases;
+	FixedVector<CmdReleaseRenderTarget,		  1024>	m_renderTargetReleases;
+	FixedVector<CmdReleaseDepthStencil,		  1024>	m_depthStencilReleases;
+	FixedVector<CmdReleaseShaderResourceView, 2048>	m_shaderResourceViewReleases;
+	FixedVector<CmdReleaseGeo,				  2048>	m_geoReleases;
+	FixedVector<CmdUpdateConstantBuffer,	  2048>	m_constantBufferUpdates;
+	FixedVector<CmdReleaseConstantBuffer,	  2048>	m_constantBufferReleases;
+	FixedVector<CmdReleasePipelineState,	  2048>	m_pipelineStateReleases;
 };

@@ -37,7 +37,7 @@ void Terrain::Init(const AssetLib::Terrain& rTerrainAsset)
 
 	m_hGeo = RdrResourceSystem::CreateGeo(
 		aVertices, sizeof(aVertices[0]), 4, 
-		nullptr, 0,
+		nullptr, 0, RdrIndexBufferFormat::R16_UINT,
 		RdrTopology::Quad, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f),
 		CREATE_BACKPOINTER(this));
 

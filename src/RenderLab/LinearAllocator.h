@@ -19,7 +19,7 @@ public:
 
 	inline void* Alloc(uint size, uint alignment = 4)
 	{
-		assert(m_availSize - size - alignment > 0);
+		Assert(m_availSize > size + alignment);
 
 		std::align(alignment, size, m_pPos, m_availSize);
 

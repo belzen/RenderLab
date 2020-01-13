@@ -183,7 +183,7 @@ private:
 
 inline void RdrAction::AddDrawOp(const RdrDrawOp* pDrawOp, RdrBucketType eBucket)
 {
-	assert(eBucket < RdrBucketType::Count);
+	Assert(eBucket < RdrBucketType::Count);
 
 	RdrDrawBucketEntry entry(pDrawOp);
 	m_drawOpBuckets[(int)eBucket].push_back(entry);

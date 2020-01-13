@@ -3,7 +3,6 @@
 #include "UtilsLib/FileLoader.h"
 #include "UtilsLib/Error.h"
 #include "UtilsLib/Util.h"
-#include <assert.h>
 
 #include "DirectXTex/include/DirectXTex.h"
 #include "DirectXTex/include/Dds.h"
@@ -62,7 +61,7 @@ bool TextureImport::Import(const std::string& srcFilename, std::string& dstFilen
 	uint imageFileSize;
 	if (!FileLoader::Load(srcFilename.c_str(), &pImageFileData, &imageFileSize))
 	{
-		assert(false);
+		Assert(false);
 		return false;
 	}
 
@@ -74,17 +73,17 @@ bool TextureImport::Import(const std::string& srcFilename, std::string& dstFilen
 	if (_stricmp(ext.c_str(), "tga") == 0)
 	{
 		hr = DirectX::LoadFromTGAMemory(pImageFileData, imageFileSize, &srcMetadata, srcImage);
-		assert(hr == S_OK);
+		Assert(hr == S_OK);
 	}
 	else if (_stricmp(ext.c_str(), "tif") == 0)
 	{
 		hr = DirectX::LoadFromWICMemory(pImageFileData, imageFileSize, 0, &srcMetadata, srcImage);
-		assert(hr == S_OK);
+		Assert(hr == S_OK);
 	}
 	else if (_stricmp(ext.c_str(), "dds") == 0)
 	{
 		hr = DirectX::LoadFromDDSMemory(pImageFileData, imageFileSize, 0, &srcMetadata, srcImage);
-		assert(hr == S_OK);
+		Assert(hr == S_OK);
 	}
 	else
 	{
@@ -106,7 +105,7 @@ bool TextureImport::Import(const std::string& srcFilename, std::string& dstFilen
 		{
 			format = DXGI_FORMAT_BC3_UNORM;
 
-			assert(srcMetadata.format == DXGI_FORMAT_R8G8B8A8_UNORM);
+			Assert(srcMetadata.format == DXGI_FORMAT_R8G8B8A8_UNORM);
 			// Prepare texture for DXT5nm compression
 			// TODO: Info from Dave Eberly: http://www.gamedev.net/topic/539608-mip-mapping-normal-maps/?whichpage=1%25EF%25BF%25BD
 			//		1) Start with 32-bit XYZ normals
@@ -154,14 +153,14 @@ bool TextureImport::Import(const std::string& srcFilename, std::string& dstFilen
 	if (bGenerateMipMaps && srcMetadata.width >= 2 && srcMetadata.height >= 2)
 	{
 		hr = DirectX::GenerateMipMaps(*srcImage.GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT, 0, mipmapImage);
-		assert(hr == S_OK);
+		Assert(hr == S_OK);
 		pCurrImage = &mipmapImage;
 	}
 
 	if (bCompress)
 	{
 		hr = DirectX::Compress(pCurrImage->GetImages(), pCurrImage->GetImageCount(), pCurrImage->GetMetadata(), format, compressFlags, 1.f, compressedImage);
-		assert(hr == S_OK);
+		Assert(hr == S_OK);
 		pCurrImage = &compressedImage;
 	}
 
@@ -169,10 +168,10 @@ bool TextureImport::Import(const std::string& srcFilename, std::string& dstFilen
 	// Write images
 	DirectX::Blob blob;
 	hr = DirectX::SaveToDDSMemory(pCurrImage->GetImages(), pCurrImage->GetImageCount(), pCurrImage->GetMetadata(), 0, blob);
-	assert(hr == S_OK);
+	Assert(hr == S_OK);
 
 	std::ofstream dstFile(dstFilename, std::ios::binary);
-	assert(dstFile.is_open());
+	Assert(dstFile.is_open());
 	dstFile.write((char*)blob.GetBufferPointer(), blob.GetBufferSize());
 	blob.Release();
 

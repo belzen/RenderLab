@@ -3,6 +3,7 @@
 #include "UtilsLib\Util.h"
 #include "UtilsLib\Error.h"
 #include "RdrDebugBackpointer.h"
+#include "AssetLib\ModelAsset.h"
 
 #include <wrl.h>
 #include "d3dx12.h"
@@ -55,47 +56,6 @@ private:
 	uint64 m_nLastUsedFrameCode = 0;
 	RdrDebugBackpointer m_debugCreator;
 	RdrDescriptorType m_eDescType;
-};
-
-enum class RdrShaderSemantic
-{
-	Position,
-	Texcoord,
-	Color,
-	Normal,
-	Binormal,
-	Tangent,
-
-	Count
-};
-
-enum class RdrVertexInputFormat
-{
-	R_F32,
-	RG_F32,
-	RGB_F32,
-	RGBA_F32,
-
-	Count
-};
-
-enum class RdrVertexInputClass
-{
-	PerVertex,
-	PerInstance,
-
-	Count
-};
-
-struct RdrVertexInputElement
-{
-	RdrShaderSemantic semantic;
-	uint semanticIndex;
-	RdrVertexInputFormat format;
-	uint streamIndex;
-	uint byteOffset;
-	RdrVertexInputClass inputClass;
-	uint instanceDataStepRate;
 };
 
 enum class RdrPass
@@ -177,6 +137,7 @@ enum class RdrResourceFormat
 	DXT1_sRGB,
 	DXT5,
 	DXT5_sRGB,
+	BC5_UNORM,
 	B8G8R8A8_UNORM,
 	B8G8R8A8_UNORM_sRGB,
 	R8G8B8A8_UNORM,
@@ -186,6 +147,7 @@ enum class RdrResourceFormat
 	Count
 };
 
+uint rdrGetResourceFormatSize(RdrResourceFormat eFormat);
 int rdrGetTexturePitch(const int width, const RdrResourceFormat eFormat);
 int rdrGetTextureRows(const int height, const RdrResourceFormat eFormat);
 
@@ -419,6 +381,7 @@ inline DXGI_FORMAT getD3DFormat(const RdrResourceFormat format)
 		DXGI_FORMAT_BC1_UNORM_SRGB,			// ResourceFormat::DXT1_sRGB
 		DXGI_FORMAT_BC3_UNORM,				// ResourceFormat::DXT5
 		DXGI_FORMAT_BC3_UNORM_SRGB,			// ResourceFormat::DXT5_sRGB
+		DXGI_FORMAT_BC5_UNORM,				// ResourceFormat::BC5_UNORM
 		DXGI_FORMAT_B8G8R8A8_UNORM,			// ResourceFormat::B8G8R8A8_UNORM
 		DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,	// ResourceFormat::B8G8R8A8_UNORM_sRGB
 		DXGI_FORMAT_R8G8B8A8_UNORM,			// ResourceFormat::R8G8B8A8_UNORM
@@ -427,6 +390,16 @@ inline DXGI_FORMAT getD3DFormat(const RdrResourceFormat format)
 	};
 	static_assert(ARRAY_SIZE(s_d3dFormats) == (int)RdrResourceFormat::Count, "Missing D3D formats!");
 	return s_d3dFormats[(int)format];
+}
+
+inline DXGI_FORMAT getD3DFormat(const RdrIndexBufferFormat eFormat)
+{
+	static const DXGI_FORMAT s_d3dFormats[] = {
+		DXGI_FORMAT_R16_UINT,				// RdrIndexBufferFormat::R16_UINT
+		DXGI_FORMAT_R32_UINT,				// RdrIndexBufferFormat::R32_UINT
+	};
+	static_assert(ARRAY_SIZE(s_d3dFormats) == (int)RdrIndexBufferFormat::Count, "Missing D3D formats!");
+	return s_d3dFormats[(int)eFormat];
 }
 
 inline DXGI_FORMAT getD3DDepthFormat(const RdrResourceFormat format)
@@ -445,6 +418,7 @@ inline DXGI_FORMAT getD3DDepthFormat(const RdrResourceFormat format)
 		DXGI_FORMAT_UNKNOWN,			// ResourceFormat::DXT1_sRGB
 		DXGI_FORMAT_UNKNOWN,			// ResourceFormat::DXT5
 		DXGI_FORMAT_UNKNOWN,			// ResourceFormat::DXT5_sRGB
+		DXGI_FORMAT_UNKNOWN,			// ResourceFormat::BC5_UNORM
 		DXGI_FORMAT_UNKNOWN,			// ResourceFormat::B8G8R8A8_UNORM
 		DXGI_FORMAT_UNKNOWN,			// ResourceFormat::B8G8R8A8_UNORM_sRGB
 		DXGI_FORMAT_UNKNOWN,			// ResourceFormat::R8G8B8A8_UNORM
@@ -452,7 +426,7 @@ inline DXGI_FORMAT getD3DDepthFormat(const RdrResourceFormat format)
 		DXGI_FORMAT_UNKNOWN,	        // ResourceFormat::R16G16B16A16_FLOAT
 	};
 	static_assert(ARRAY_SIZE(s_d3dDepthFormats) == (int)RdrResourceFormat::Count, "Missing D3D depth formats!");
-	assert(s_d3dDepthFormats[(int)format] != DXGI_FORMAT_UNKNOWN);
+	Assert(s_d3dDepthFormats[(int)format] != DXGI_FORMAT_UNKNOWN);
 	return s_d3dDepthFormats[(int)format];
 }
 
@@ -472,6 +446,7 @@ inline DXGI_FORMAT getD3DTypelessFormat(const RdrResourceFormat format)
 		DXGI_FORMAT_BC1_TYPELESS,		   // ResourceFormat::DXT1_sRGB
 		DXGI_FORMAT_BC3_TYPELESS,		   // ResourceFormat::DXT5
 		DXGI_FORMAT_BC3_TYPELESS,		   // ResourceFormat::DXT5_sRGB
+		DXGI_FORMAT_BC5_TYPELESS,		   // ResourceFormat::BC5_UNORM
 		DXGI_FORMAT_B8G8R8A8_TYPELESS,	   // ResourceFormat::B8G8R8A8_UNORM
 		DXGI_FORMAT_B8G8R8A8_TYPELESS,     // ResourceFormat::B8G8R8A8_UNORM_sRGB
 		DXGI_FORMAT_R8G8B8A8_TYPELESS,	   // ResourceFormat::R8G8B8A8_UNORM
@@ -512,7 +487,8 @@ inline DXGI_FORMAT getD3DVertexInputFormat(RdrVertexInputFormat eFormat)
 		DXGI_FORMAT_R32_FLOAT,			// RdrVertexInputFormat::R_F32
 		DXGI_FORMAT_R32G32_FLOAT,		// RdrVertexInputFormat::RG_F32
 		DXGI_FORMAT_R32G32B32_FLOAT,	// RdrVertexInputFormat::RGB_F32
-		DXGI_FORMAT_R32G32B32A32_FLOAT	// RdrVertexInputFormat::RGBA_F32
+		DXGI_FORMAT_R32G32B32A32_FLOAT,	// RdrVertexInputFormat::RGBA_F32
+		DXGI_FORMAT_R8G8B8A8_UINT,		// RdrVertexInputFormat::RGBA_U8
 	};
 	static_assert(ARRAY_SIZE(s_d3dFormats) == (int)RdrVertexInputFormat::Count, "Missing D3D12 vertex input format!");
 	return s_d3dFormats[(int)eFormat];

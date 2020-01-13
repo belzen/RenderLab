@@ -6,7 +6,7 @@ using namespace AssetLib;
 
 AssetDef& Model::GetAssetDef()
 {
-	static AssetLib::AssetDef s_assetDef("geo", "model", 1);
+	static AssetLib::AssetDef s_assetDef("geo", "model", 3);
 	return s_assetDef;
 }
 
@@ -23,25 +23,32 @@ Model* Model::Load(const CachedString& assetName, Model* pModel)
 		return pModel;
 	}
 
-	if (((uint*)pFileData)[0] == BinFileHeader::kUID)
+	BinFileHeader* pHeader = (BinFileHeader*)pFileData;
+	if (pHeader->binUID != BinFileHeader::kUID)
 	{
-		BinFileHeader* pHeader = (BinFileHeader*)pFileData;
-		assert(pHeader->assetUID == GetAssetDef().GetAssetUID());
-		pFileData += sizeof(BinFileHeader);
+		Error("Invalid model bin ID: %s (Got %d, Expected %)", assetName.getString(), pHeader->binUID, BinFileHeader::kUID);
+		return nullptr;
 	}
 
-	pModel = (Model*)pFileData;
-	char* pDataMem = pFileData + sizeof(Model);
+	Assert(pHeader->assetUID == GetAssetDef().GetAssetUID());
 
-	pModel->subobjects.PatchPointer(pDataMem);
-	pModel->positions.PatchPointer(pDataMem);
-	pModel->texcoords.PatchPointer(pDataMem);
-	pModel->normals.PatchPointer(pDataMem);
-	pModel->colors.PatchPointer(pDataMem);
-	pModel->tangents.PatchPointer(pDataMem);
-	pModel->bitangents.PatchPointer(pDataMem);
-	pModel->indices.PatchPointer(pDataMem);
+	if (pHeader->version == GetAssetDef().GetBinVersion())
+	{
+		pModel = (Model*)(pFileData + sizeof(BinFileHeader));
+		char* pDataMem = pFileData + sizeof(BinFileHeader) + sizeof(Model);
 
-	pModel->assetName = assetName.getString();
+		pModel->subobjects.PatchPointer(pDataMem);
+		pModel->inputElements.PatchPointer(pDataMem);
+		pModel->positions.PatchPointer(pDataMem);
+		pModel->vertexBuffer.PatchPointer(pDataMem);
+		pModel->indexBuffer.PatchPointer(pDataMem);
+		pModel->assetName = assetName.getString();
+	}
+	else
+	{
+		Error("Model version mismatch: %s (Got %d, Expected %)", assetName.getString(), pHeader->version, GetAssetDef().GetBinVersion());
+		return pModel;
+	}
+	
 	return pModel;
 }

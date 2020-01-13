@@ -5,7 +5,7 @@
 
 SkyVolume* SkyVolume::Create(IComponentAllocator* pAllocator, const AssetLib::Volume& rVolume)
 {
-	assert(rVolume.volumeType == AssetLib::VolumeType::kSky);
+	Assert(rVolume.volumeType == AssetLib::VolumeType::kSky);
 
 	SkyVolume* pSky = pAllocator->AllocSkyVolume();
 	pSky->m_sky = rVolume.skySettings;

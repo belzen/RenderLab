@@ -45,7 +45,7 @@ void RdrProfiler::BeginFrame()
 void RdrProfiler::EndFrame()
 {
 	EndSection(); // End the main RdrProfileSection::Frame section
-	assert(m_currStackDepth == 0);
+	Assert(m_currStackDepth == 0);
 
 	// The next frame in the list is also the oldest frame which we want to query from.
 	m_currFrame = (m_currFrame + 1) % kFrameDelay;

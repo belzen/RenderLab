@@ -16,26 +16,16 @@ namespace
 
 	typedef std::map<Hashing::StringHash, ModelData*> ModelDataMap;
 	ModelDataMap s_modelCache;
-
-	//TODO - Get layout desc from ModelData instead of hardcoding here
-	static const RdrVertexInputElement s_modelVertexDesc[] = {
-		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Normal, 0, RdrVertexInputFormat::RGB_F32, 0, 12, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Color, 0, RdrVertexInputFormat::RGBA_F32, 0, 24, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Texcoord, 0, RdrVertexInputFormat::RG_F32, 0, 40, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Tangent, 0, RdrVertexInputFormat::RGB_F32, 0, 48, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Binormal, 0, RdrVertexInputFormat::RGB_F32, 0, 60, RdrVertexInputClass::PerVertex, 0 }
-	};
 }
 
-const RdrVertexInputElement* ModelData::GetVertexElements() const
+const RdrVertexInputElement* ModelData::GetVertexElements(uint nSubObject) const
 {
-	return s_modelVertexDesc;
+	return &m_pBinData->inputElements.ptr[m_pBinData->subobjects.ptr[nSubObject].nInputElementStart];
 }
 
-uint ModelData::GetNumVertexElements() const
+uint ModelData::GetNumVertexElements(uint nSubObject) const
 {
-	return ARRAYSIZE(s_modelVertexDesc);
+	return m_pBinData->subobjects.ptr[nSubObject].nInputElementCount;
 }
 
 ModelData* ModelData::LoadFromFile(const CachedString& modelName)
@@ -54,47 +44,25 @@ ModelData* ModelData::LoadFromFile(const CachedString& modelName)
 
 	ModelData* pModel = s_models.allocSafe();
 	pModel->m_pBinData = pBinData;
-	pModel->m_subObjectCount = pBinData->subObjectCount;
+	pModel->m_subObjectCount = pBinData->nSubObjectCount;
 
-	assert(!pModel->m_modelName.getString());
+	Assert(!pModel->m_modelName.getString());
 	pModel->m_modelName = modelName;
 
-	uint vertAccum = 0;
-	uint indicesAccum = 0;
+	pModel->m_hVertexBuffer = RdrResourceSystem::CreateVertexBuffer(pBinData->vertexBuffer.ptr, 1, pBinData->nVertexBufferSize, RdrResourceAccessFlags::None, CREATE_BACKPOINTER(pModel));
+	pModel->m_hIndexBuffer = RdrResourceSystem::CreateIndexBuffer(pBinData->indexBuffer.ptr, pBinData->nIndexBufferSize, RdrResourceAccessFlags::None, CREATE_BACKPOINTER(pModel));
+
 	for (uint i = 0; i < pModel->m_subObjectCount; ++i)
 	{
 		const AssetLib::Model::SubObject& rBinSubobject = pBinData->subobjects.ptr[i];
-		Vertex* pVerts = (Vertex*)RdrFrameMem::Alloc(sizeof(Vertex) * rBinSubobject.vertCount);
-		uint16* pIndices = (uint16*)RdrFrameMem::Alloc(sizeof(uint16) * rBinSubobject.indexCount);
+		pModel->m_subObjects[i].hGeo = RdrResourceSystem::CreateGeo(pModel->m_hVertexBuffer, rBinSubobject.nVertexStride, rBinSubobject.nVertexStartByteOffset, rBinSubobject.nVertexCount,
+			pModel->m_hIndexBuffer, rBinSubobject.nIndexStartByteOffset, rBinSubobject.nIndexCount, rBinSubobject.eIndexFormat, RdrTopology::TriangleList, rBinSubobject.vBoundsMin, rBinSubobject.vBoundsMax, CREATE_BACKPOINTER(pModel));
 
-		for (uint k = 0; k < rBinSubobject.indexCount; ++k)
-		{
-			pIndices[k] = pBinData->indices.ptr[indicesAccum + k] - vertAccum;
-		}
-
-		for (uint k = 0; k < rBinSubobject.vertCount; ++k)
-		{
-			Vertex& rVert = pVerts[k];
-			rVert.position = pBinData->positions.ptr[vertAccum];
-			rVert.texcoord = pBinData->texcoords.ptr[vertAccum];
-			rVert.normal = pBinData->normals.ptr[vertAccum];
-			rVert.color = pBinData->colors.ptr[vertAccum];
-			rVert.tangent = pBinData->tangents.ptr[vertAccum];
-			rVert.bitangent = pBinData->bitangents.ptr[vertAccum];
-
-			++vertAccum;
-		}
-
-		pModel->m_subObjects[i].hGeo = RdrResourceSystem::CreateGeo(pVerts, sizeof(Vertex), rBinSubobject.vertCount,
-			pIndices, rBinSubobject.indexCount, RdrTopology::TriangleList, rBinSubobject.boundsMin, rBinSubobject.boundsMax, CREATE_BACKPOINTER(pModel));
-
-		pModel->m_subObjects[i].pMaterial = RdrMaterial::Create(rBinSubobject.materialName, s_modelVertexDesc, ARRAYSIZE(s_modelVertexDesc));
-
-		indicesAccum += rBinSubobject.indexCount;
+		pModel->m_subObjects[i].pMaterial = RdrMaterial::Create(rBinSubobject.strMaterialName, pModel->GetVertexElements(i), pModel->GetNumVertexElements(i));
 	}
 
-	float maxLen = Vec3Length(pBinData->boundsMax);
-	float minLen = Vec3Length(pBinData->boundsMin);
+	float maxLen = Vec3Length(pBinData->vBoundsMax);
+	float minLen = Vec3Length(pBinData->vBoundsMin);
 	pModel->m_radius = std::max(minLen, maxLen);
 
 	s_modelCache.insert(std::make_pair(modelName.getHash(), pModel));

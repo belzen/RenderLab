@@ -296,7 +296,8 @@ void RdrLighting::QueueDraw(RdrAction* pAction, RdrLightList* pLights, RdrLighti
 			Rect viewport(0.f, 0.f, (float)s_shadowCubeMapSize, (float)s_shadowCubeMapSize);
 			for (uint face = 0; face < 6; ++face)
 			{
-				lightCamera.SetAsCubemapFace(rPointLight.position, (CubemapFace)face, 0.1f, rPointLight.radius * 2.f);
+				static constexpr float kfNearPlane = 0.1f;
+				lightCamera.SetAsCubemapFace(rPointLight.position, (CubemapFace)face, kfNearPlane, max(kfNearPlane, rPointLight.radius * 2.f));
 				pAction->QueueShadowMapPass(lightCamera, m_shadowCubeMapDepthViews[curShadowCubeMapIndex * (int)CubemapFace::Count + face], viewport);
 			}
 

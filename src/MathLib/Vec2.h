@@ -5,6 +5,9 @@ struct Vec2
 	float x, y;
 
 	//////////////////////////////////////////////////////////////////////////
+	static const Vec2 kZero;
+	static const Vec2 kOne;
+
 	Vec2();
 	Vec2(float px, float py);
 

@@ -39,7 +39,7 @@ AssetDef::AssetDef(const char* folder, const char* ext, uint binVersion)
 	strcpy_s(m_folder, folder);
 	m_folderLen = (uint)strlen(m_folder);
 
-	sprintf_s(m_fullPath, "%s/%s", Paths::GetDataDir(), m_folder);
+	sprintf_s(m_fullPath, "%s/%s", Paths::GetSrcDataDir(), m_folder);
 	strcpy_s(m_ext, ext);
 	m_extLen = (uint)strlen(m_ext);
 

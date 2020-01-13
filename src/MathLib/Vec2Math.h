@@ -3,6 +3,12 @@
 #include <algorithm>
 #include "Vec2.h"
 
+inline bool Vec2NearEqual(const Vec2& lhs, const Vec2& rhs)
+{
+	const float kTolerance = 0.00001f;
+	return abs(lhs.x - rhs.x) < kTolerance && abs(lhs.y - rhs.y) < kTolerance;
+}
+
 inline Vec2 Vec2Normalize(const Vec2& dir)
 {
 	float len = sqrtf(dir.x * dir.x + dir.y * dir.y);

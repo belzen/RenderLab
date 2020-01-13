@@ -1,0 +1,4 @@
+Windows Registry Editor Version 5.00 
+ 
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment] 
+"FBXSDKPATH"="D:\\Program Files\\Autodesk\\FBX\\FBX SDK\\2019.0" 

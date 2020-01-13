@@ -12,6 +12,7 @@
 #include "AssetSelector.h"
 #include "PropertyTables.h"
 #include "ViewModels/IViewModel.h"
+#include "UtilsLib/Error.h"
 
 PropertyPanel* PropertyPanel::Create(const Widget& rParent, int x, int y, int width, int height)
 {
@@ -222,7 +223,7 @@ void PropertyPanel::AddViewModel(IViewModel* pViewModel)
 			}
 			else
 			{
-				assert(false);
+				Assert(false);
 			}
 
 			y += kPadding;

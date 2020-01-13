@@ -88,7 +88,7 @@ namespace
 		pDrawState->pVsGlobalConstantBufferTable = pRdrContext->GetNullConstantBufferView().pDesc;
 		pDrawState->pVertexBuffers[0] = nullptr;
 		pDrawState->vertexStrides[0] = 0;
-		pDrawState->vertexOffsets[0] = 0;
+		pDrawState->vertexByteOffsets[0] = 0;
 		pDrawState->vertexBufferCount = 0;
 		pDrawState->vertexCount = 3;
 		pDrawState->eTopology = RdrTopology::TriangleList;

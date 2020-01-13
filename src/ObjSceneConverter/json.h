@@ -128,7 +128,7 @@ license you like.
 //#  define JSON_USE_CPPTL_SMALLMAP 1
 
 // If non-zero, the library uses exceptions to report bad input instead of C
-// assertion macros. The default is to use exceptions.
+// Assertion macros. The default is to use exceptions.
 #ifndef JSON_USE_EXCEPTION
 #define JSON_USE_EXCEPTION 1
 #endif
@@ -2006,7 +2006,7 @@ JSON_API std::ostream& operator<<(std::ostream&, const Value& root);
 
 
 // //////////////////////////////////////////////////////////////////////
-// Beginning of content of file: include/json/assertions.h
+// Beginning of content of file: include/json/Assertions.h
 // //////////////////////////////////////////////////////////////////////
 
 // Copyright 2007-2010 Baptiste Lepilleur
@@ -2032,7 +2032,7 @@ JSON_API std::ostream& operator<<(std::ostream&, const Value& root);
 
 // @todo <= add detail about condition in exception
 # define JSON_ASSERT(condition)                                                \
-  {if (!(condition)) {Json::throwLogicError( "assert json failed" );}}
+  {if (!(condition)) {Json::throwLogicError( "Assert json failed" );}}
 
 # define JSON_FAIL_MESSAGE(message)                                            \
   {                                                                            \
@@ -2043,14 +2043,14 @@ JSON_API std::ostream& operator<<(std::ostream&, const Value& root);
 
 #else // JSON_USE_EXCEPTION
 
-# define JSON_ASSERT(condition) assert(condition)
+# define JSON_ASSERT(condition) Assert(condition)
 
-// The call to assert() will show the failure message in debug builds. In
+// The call to Assert() will show the failure message in debug builds. In
 // release builds we abort, for a core-dump or debugger.
 # define JSON_FAIL_MESSAGE(message)                                            \
   {                                                                            \
     std::ostringstream oss; oss << message;                                    \
-    assert(false && oss.str().c_str());                                        \
+    Assert(false && oss.str().c_str());                                        \
     abort();                                                                   \
   }
 
@@ -2065,7 +2065,7 @@ JSON_API std::ostream& operator<<(std::ostream&, const Value& root);
 #endif // CPPTL_JSON_ASSERTIONS_H_INCLUDED
 
 // //////////////////////////////////////////////////////////////////////
-// End of content of file: include/json/assertions.h
+// End of content of file: include/json/Assertions.h
 // //////////////////////////////////////////////////////////////////////
 
 

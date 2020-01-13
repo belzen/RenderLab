@@ -39,7 +39,7 @@ void Sprite::Init(const Vec2 aTexcoords[4], const char* textureName)
 	indices[4] = 3;
 	indices[5] = 2;
 
-	m_hGeo = RdrResourceSystem::CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f), CREATE_BACKPOINTER(this));
+	m_hGeo = RdrResourceSystem::CreateGeo(verts, sizeof(SpriteVertex), 4, indices, 6, RdrIndexBufferFormat::R16_UINT, RdrTopology::TriangleList, Vec3::kZero, Vec3(1.f, 1.f, 0.0f), CREATE_BACKPOINTER(this));
 
 	const RdrResourceFormat* pRtvFormats;
 	uint nNumRtvFormats;

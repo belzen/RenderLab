@@ -38,7 +38,7 @@ namespace
 		AssetLib::Material* pMaterial = AssetLibrary<AssetLib::Material>::LoadAsset(materialName);
 		if (!pMaterial)
 		{
-			assert(false);
+			Assert(false);
 			return;
 		}
 
@@ -65,6 +65,16 @@ namespace
 			defines[numDefines++] = "ALPHA_CUTOUT";
 		}
 
+		if (pMaterial->bNormalsBC5)
+		{
+			defines[numDefines++] = "NORMALS_BC5";
+		}
+
+		if (pMaterial->bEmissive)
+		{
+			defines[numDefines++] = "EMISSIVE";
+		}
+
 		if (pMaterial->bNeedsLighting)
 		{
 			materialFlags |= RdrMaterialFlags::NeedsLighting;
@@ -82,7 +92,7 @@ namespace
 		}
 
 		// Normal PSO
-		assert(numDefines <= ARRAY_SIZE(defines));
+		Assert(numDefines <= ARRAY_SIZE(defines));
 
 		RdrDepthStencilState depthState = RdrDepthStencilState(true, false, RdrComparisonFunc::Equal);
 		RdrBlendMode eBlendMode = RdrBlendMode::kOpaque;
@@ -172,7 +182,7 @@ namespace
 			if (pMaterial->bAlphaCutout)
 			{
 				defines[numDefines++] = "DEPTH_ONLY";
-				assert(numDefines <= ARRAY_SIZE(defines));
+				Assert(numDefines <= ARRAY_SIZE(defines));
 
 				pPixelShader = RdrShaderSystem::CreatePixelShaderFromFile(pMaterial->pixelShader, defines, numDefines);
 			}

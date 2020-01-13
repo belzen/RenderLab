@@ -14,38 +14,38 @@ public:
 
 	T_object& get(uint idx)
 	{
-		assert(idx < m_size);
+		Assert(idx < m_size);
 		return m_objects[idx];
 	}
 
 	const T_object& get(uint idx) const
 	{
-		assert(idx < m_size);
+		Assert(idx < m_size);
 		return m_objects[idx];
 	}
 
 	T_object& operator[] (uint idx)
 	{
-		assert(idx < m_size);
+		Assert(idx < m_size);
 		return m_objects[idx];
 	}
 
 	const T_object& operator[] (uint idx) const
 	{
-		assert(idx < m_size);
+		Assert(idx < m_size);
 		return m_objects[idx];
 	}
 
 	// Increment the size of the array and return a reference to the new entry.
 	T_object& push()
 	{
-		assert(m_size < T_kCapacity);
+		Assert(m_size < T_kCapacity);
 		return m_objects[m_size++];
 	}
 	
 	T_object& pushSafe()
 	{
-		assert(m_size < T_kCapacity);
+		Assert(m_size < T_kCapacity);
 		uint i = InterlockedIncrement(&m_size) - 1;
 		return m_objects[i];
 	}

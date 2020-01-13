@@ -34,7 +34,7 @@ namespace
 		char* pFileData;
 		uint fileSize;
 		FileLoader::Load(filename, &pFileData, &fileSize);
-		assert(fileSize == sizeof(s_text.glyphWidths));
+		Assert(fileSize == sizeof(s_text.glyphWidths));
 
 		memcpy(s_text.glyphWidths, pFileData, fileSize);
 		delete pFileData;
@@ -63,7 +63,7 @@ void Font::Init()
 {
 	// todo: implement font asset & binning
 	char filename[FILE_MAX_PATH];
-	sprintf_s(filename, "%s/textures/fonts/verdana.dat", Paths::GetDataDir());
+	sprintf_s(filename, "%s/textures/fonts/verdana.dat", Paths::GetSrcDataDir());
 	loadFontData(filename);
 
 	const RdrResourceFormat* pRtvFormats;
@@ -169,7 +169,9 @@ TextObject Font::CreateText(const char* text)
 	TextObject obj;
 	obj.size.x = size.x;
 	obj.size.y = size.y;
-	obj.hTextGeo = RdrResourceSystem::CreateGeo(verts, sizeof(TextVertex), numQuads * 4, indices, numQuads * 6, RdrTopology::TriangleList, Vec3::kZero, size, CREATE_NULL_BACKPOINTER);
+	obj.hTextGeo = RdrResourceSystem::CreateGeo(verts, sizeof(TextVertex)
+		, numQuads * 4, indices, numQuads * 6, RdrIndexBufferFormat::R16_UINT
+		, RdrTopology::TriangleList, Vec3::kZero, size, CREATE_NULL_BACKPOINTER);
 	return obj;
 }
 

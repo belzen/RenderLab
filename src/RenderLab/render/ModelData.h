@@ -8,12 +8,12 @@
 class RdrMaterial;
 
 class ModelData;
-typedef FreeList<ModelData, 1024> ModelDataFreeList;
+typedef FreeList<ModelData, 2048> ModelDataFreeList;
 
 class ModelData
 {
 public:
-	static const uint kMaxSubObjects = 16;
+	static constexpr uint kMaxSubObjects = 16;
 
 	static ModelData* LoadFromFile(const CachedString& modelName);
 
@@ -35,8 +35,8 @@ public:
 
 	const AssetLib::Model* GetSource() const;
 
-	const RdrVertexInputElement* GetVertexElements() const;
-	uint GetNumVertexElements() const;
+	const RdrVertexInputElement* GetVertexElements(uint nSubObject) const;
+	uint GetNumVertexElements(uint nSubObject) const;
 
 private:
 	friend ModelDataFreeList;
@@ -45,6 +45,9 @@ private:
 private:
 	AssetLib::Model* m_pBinData;
 	CachedString m_modelName;
+
+	RdrResourceHandle m_hVertexBuffer;
+	RdrResourceHandle m_hIndexBuffer;
 
 	SubObject m_subObjects[kMaxSubObjects];
 	uint m_subObjectCount;

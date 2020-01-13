@@ -33,7 +33,7 @@ namespace
 
 bool Renderer::Init(HWND hWnd, int width, int height, const InputManager* pInputManager)
 {
-	assert(g_pRenderer == nullptr);
+	Assert(g_pRenderer == nullptr);
 	g_pRenderer = this;
 
 	DebugConsole::RegisterCommand("lightingMethod", cmdSetLightingMethod, DebugCommandArgType::Integer);
@@ -320,7 +320,7 @@ void Renderer::GetStageRenderTargetFormats(RdrRenderStage eStage, const RdrResou
 		*pOutNumFormats = ARRAY_SIZE(kShadowMapRtvFormats);
 		break;
 	default:
-		assert(false);
+		Assert(false);
 		break;
 	}
 }

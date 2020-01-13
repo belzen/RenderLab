@@ -181,7 +181,7 @@ bool RdrResource::CreateTexture(RdrContext& context, const RdrTextureInfo& rTexI
 		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
 		break;
 	default:
-		assert(false);
+		Assert(false);
 		return false;
 	}
 
@@ -263,7 +263,7 @@ bool RdrResource::CreateTexture(RdrContext& context, const RdrTextureInfo& rTexI
 		m_uav.pResource = this;
 		m_uav.pDesc = srvHeap.CreateUnorderedAccesView(m_pResource, &viewDesc, debug);
 
-		assert(hr == S_OK);
+		Assert(hr == S_OK);
 	}
 
 	return true;
@@ -360,7 +360,7 @@ bool RdrResource::CreateBuffer(RdrContext& context, const RdrBufferInfo& rBuffer
 		m_eResourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		nDataSize = rBufferInfo.numElements * rBufferInfo.elementSize;
 		nElementSize = rBufferInfo.elementSize;
-		assert(rBufferInfo.eFormat == RdrResourceFormat::UNKNOWN);
+		Assert(rBufferInfo.eFormat == RdrResourceFormat::UNKNOWN);
 		break;
 	case RdrBufferType::Vertex:
 		m_eResourceState = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
@@ -435,7 +435,7 @@ bool RdrResource::CreateConstantBuffer(RdrContext& context, uint size, RdrResour
 
 void RdrResource::UpdateResource(RdrContext& context, const void* pSrcData, uint dataSize)
 {
-	assert(Renderer::IsRenderThread());
+	Assert(Renderer::IsRenderThread());
 
 	if (dataSize == 0)
 		dataSize = m_size;
@@ -505,7 +505,7 @@ void RdrResource::UpdateResource(RdrContext& context, const void* pSrcData, uint
 			m_pUploadResource = createUploadResource(context.GetDevice(), uploadBufferSize);
 		}
 
-		assert(numSubresources < kMaxSubresources);
+		Assert(numSubresources < kMaxSubresources);
 
 		D3D12_RESOURCE_STATES eInitialState = m_eResourceState;
 		TransitionState(context, D3D12_RESOURCE_STATE_COPY_DEST);
@@ -516,7 +516,7 @@ void RdrResource::UpdateResource(RdrContext& context, const void* pSrcData, uint
 
 void RdrResource::CopyResourceRegion(RdrContext& context, const RdrBox& srcRegion, const RdrResource& rDstResource, const IVec3& dstOffset) const
 {
-	assert(Renderer::IsRenderThread());
+	Assert(Renderer::IsRenderThread());
 
 	if (IsTexture())
 	{
@@ -556,14 +556,14 @@ void RdrResource::ReadResource(RdrContext& context, void* pDstData, uint dstData
 
 void RdrResource::ResolveResource(RdrContext& context, const RdrResource& rDst) const
 {
-	assert(Renderer::IsRenderThread());
+	Assert(Renderer::IsRenderThread());
 
 	context.GetCommandList()->ResolveSubresource(rDst.GetResource(), 0, m_pResource, 0, getD3DFormat(m_textureInfo.format));
 }
 
 void RdrResource::TransitionState(RdrContext& context, D3D12_RESOURCE_STATES eState)
 {
-	assert(Renderer::IsRenderThread());
+	Assert(Renderer::IsRenderThread());
 
 	if (m_eResourceState == eState)
 		return;

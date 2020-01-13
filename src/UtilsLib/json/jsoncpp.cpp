@@ -191,14 +191,14 @@ static inline void fixNumericLocale(char* begin, char* end) {
 // See file LICENSE for detail or copy at http://jsoncpp.sourceforge.net/LICENSE
 
 #if !defined(JSON_IS_AMALGAMATION)
-#include <json/assertions.h>
+#include <json/Assertions.h>
 #include <json/reader.h>
 #include <json/value.h>
 #include "json_tool.h"
 #endif // if !defined(JSON_IS_AMALGAMATION)
 #include <utility>
 #include <cstdio>
-#include <cassert>
+#include <cAssert>
 #include <cstring>
 #include <istream>
 #include <sstream>
@@ -2418,7 +2418,7 @@ ValueIterator& ValueIterator::operator=(const SelfType& other) {
 // See file LICENSE for detail or copy at http://jsoncpp.sourceforge.net/LICENSE
 
 #if !defined(JSON_IS_AMALGAMATION)
-#include <json/assertions.h>
+#include <json/Assertions.h>
 #include <json/value.h>
 #include <json/writer.h>
 #endif // if !defined(JSON_IS_AMALGAMATION)
@@ -2426,7 +2426,7 @@ ValueIterator& ValueIterator::operator=(const SelfType& other) {
 #include <sstream>
 #include <utility>
 #include <cstring>
-#include <cassert>
+#include <cAssert>
 #ifdef JSON_USE_CPPTL
 #include <cpptl/conststring.h>
 #endif
@@ -3981,7 +3981,7 @@ Value& Path::make(Value& root) const {
 #include <sstream>
 #include <utility>
 #include <set>
-#include <cassert>
+#include <cAssert>
 #include <cstring>
 #include <cstdio>
 

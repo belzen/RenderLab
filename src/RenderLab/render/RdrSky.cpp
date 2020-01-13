@@ -26,16 +26,6 @@ namespace
 	static constexpr uint kNumScatteringOrders = 4;
 
 	static constexpr RdrVertexShader kVertexShader = { RdrVertexShaderType::Sky, RdrShaderFlags::None };
-
-	static const RdrVertexInputElement s_skyVertexDesc[] = {
-		{ RdrShaderSemantic::Position, 0, RdrVertexInputFormat::RGB_F32, 0, 0, RdrVertexInputClass::PerVertex, 0 },
-		// todo: Remove all these.  Models need to be more flexible.
-		{ RdrShaderSemantic::Normal, 0, RdrVertexInputFormat::RGB_F32, 0, 12, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Color, 0, RdrVertexInputFormat::RGBA_F32, 0, 24, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Texcoord, 0, RdrVertexInputFormat::RG_F32, 0, 40, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Tangent, 0, RdrVertexInputFormat::RGB_F32, 0, 48, RdrVertexInputClass::PerVertex, 0 },
-		{ RdrShaderSemantic::Binormal, 0, RdrVertexInputFormat::RGB_F32, 0, 60, RdrVertexInputClass::PerVertex, 0 }
-	};
 }
 
 RdrSky::RdrSky()
@@ -105,7 +95,7 @@ void RdrSky::LazyInit()
 	m_material.Init("Sky", RdrMaterialFlags::NeedsLighting);
 	m_material.CreatePipelineState(RdrShaderMode::Normal,
 		kVertexShader, pPixelShader,
-		s_skyVertexDesc, ARRAY_SIZE(s_skyVertexDesc), 
+		m_pSkyDomeModel->GetVertexElements(0), m_pSkyDomeModel->GetNumVertexElements(0), 
 		pRtvFormats, nNumRtvFormats,
 		RdrBlendMode::kOpaque,
 		rasterState,

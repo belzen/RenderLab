@@ -11,9 +11,9 @@ SamplerState sampDiffuse : register(s0);
 Texture2D texNormals : register(t1);
 SamplerState sampNormals : register(s1);
 
-#if ALPHA_CUTOUT
-Texture2D texAlphaMask : register(t2);
-SamplerState sampAlphaMask : register(s2);
+#if EMISSIVE
+Texture2D texEmissive : register(t2); // donotcheckin bind textures to correct slot
+SamplerState sampEmissive : register(s2);
 #endif
 
 // https://en.wikipedia.org/wiki/Dither
@@ -35,18 +35,24 @@ PsOutput main(VsOutputModel input)
 	#if ALPHA_STIPPLED
 		clip(alpha - kDitherMatrix[(uint)input.position.x % 4][(uint)input.position.y % 4]);
 	#endif
+	
+	float4 color = 0;
+	#if ALPHA_CUTOUT || !DEPTH_ONLY
+		color = texDiffuse.Sample(sampDiffuse, input.texcoords);
+	#endif
 
 	#if ALPHA_CUTOUT
-		float4 mask = texAlphaMask.Sample(sampAlphaMask, input.texcoords);
-		clip(mask.x - 0.5f);
+		clip(color.a - 0.5f);
 	#endif
 
 	#if !DEPTH_ONLY
-		float4 color = texDiffuse.Sample(sampDiffuse, input.texcoords);
-
 		float3 normal;
+#if NORMALS_BC5
+		normal.xy = (texNormals.Sample(sampNormals, input.texcoords).rg * 2.f) - 1.f; // Expand normal range
+#else
 		normal.xy = (texNormals.Sample(sampNormals, input.texcoords).ga * 2.f) - 1.f; // Expand normal range
-		normal.z = normalize(sqrt(1 - normal.x * normal.x - normal.y * normal.y));
+#endif
+		normal.z = sqrt(1 - normal.x * normal.x - normal.y * normal.y);
 
 		// Transform normal into world space.
 		normal = (normal.x * normalize(input.tangent)) + (normal.y * normalize(input.bitangent)) + (normal.z * normalize(input.normal));
@@ -65,8 +71,14 @@ PsOutput main(VsOutputModel input)
 			// outputs
 			litColor, albedo);
 
+#if EMISSIVE
+		float4 emissive = texEmissive.Sample(sampEmissive, input.texcoords);
+		litColor += emissive;
+#endif
+
 		output.color.rgb = litColor;
 		output.color.a = alpha;
+
 		#if WRITE_GBUFFERS
 			output.albedo = float4(albedo, 0);
 			output.normal = float4(normal * 0.5f + 0.5f, 0);

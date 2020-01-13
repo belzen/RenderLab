@@ -27,6 +27,7 @@ namespace
 		{4, 2}, // DXT1_sRGB
 		{4, 4}, // DXT5
 		{4, 4}, // DXT5_sRGB
+		{4, 4}, // BC5_UNORM
 		{1, 4}, // B8G8R8A8_UNORM
 		{1, 4}, // B8G8R8A8_UNORM_sRGB
 		{1, 4}, // R8G8B8A8_UNORM
@@ -35,6 +36,11 @@ namespace
 	};
 
 	static_assert(ARRAY_SIZE(s_resourceBlockInfo) == (int)RdrResourceFormat::Count, "Missing resource block info!");
+}
+
+uint rdrGetResourceFormatSize(RdrResourceFormat eFormat)
+{
+	return s_resourceBlockInfo[(int)eFormat].blockByteSize;
 }
 
 int rdrGetTexturePitch(const int width, const RdrResourceFormat eFormat)
@@ -113,7 +119,7 @@ void RdrPipelineState::ReCreate()
 	if (m_bForGraphics)
 	{
 		D3D12_INPUT_ELEMENT_DESC d3dVertexDesc[32];
-		assert(m_inputLayoutElements.size() < _countof(d3dVertexDesc));
+		Assert(m_inputLayoutElements.size() < _countof(d3dVertexDesc));
 
 		for (uint i = 0; i < (uint)m_inputLayoutElements.size(); ++i)
 		{

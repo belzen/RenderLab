@@ -21,7 +21,6 @@ namespace AssetLib
 	{
 		uint offset;
 		DataT* ptr;
-
 		void PatchPointer(char* pParentMem)
 		{
 			ptr = (DataT*)(pParentMem + offset);

@@ -511,7 +511,7 @@ void RdrAction::SortDrawOps(RdrBucketType eBucketType)
 
 void RdrAction::QueueShadowMapPass(const Camera& rCamera, RdrDepthStencilViewHandle hDepthView, Rect& viewport)
 {
-	assert(m_shadowPassCount + 1 < MAX_SHADOW_MAPS_PER_FRAME);
+	Assert(m_shadowPassCount + 1 < MAX_SHADOW_MAPS_PER_FRAME);
 
 	int shadowPassIndex = m_shadowPassCount;
 	RdrShadowPass& rShadowPass = m_shadowPasses[shadowPassIndex];
@@ -748,7 +748,7 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 
 	m_pDrawState->pVertexBuffers[0] = pGeo->pVertexBuffer;
 	m_pDrawState->vertexStrides[0] = pGeo->geoInfo.vertStride;
-	m_pDrawState->vertexOffsets[0] = 0;
+	m_pDrawState->vertexByteOffsets[0] = pGeo->geoInfo.nVertexStartByteOffset;
 	m_pDrawState->vertexBufferCount = 1;
 	m_pDrawState->vertexCount = pGeo->geoInfo.numVerts;
 
@@ -759,10 +759,10 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 		const RdrResource* pInstanceData = RdrResourceSystem::GetResource(pDrawOp->hCustomInstanceBuffer);
 		m_pDrawState->pVertexBuffers[1] = pInstanceData;
 		m_pDrawState->vertexStrides[1] = pInstanceData->GetBufferInfo().elementSize;
-		m_pDrawState->vertexOffsets[1] = 0;
+		m_pDrawState->vertexByteOffsets[1] = 0;
 		m_pDrawState->vertexBufferCount = 2;
 
-		assert(instanceCount == 1);
+		Assert(instanceCount == 1);
 		instanceCount = pDrawOp->instanceCount;
 	}
 
@@ -770,6 +770,8 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 	{
 		m_pDrawState->pIndexBuffer = pGeo->pIndexBuffer;
 		m_pDrawState->indexCount = pGeo->geoInfo.numIndices;
+		m_pDrawState->eIndexBufferFormat = pGeo->geoInfo.eIndexFormat;
+		m_pDrawState->indexByteOffset = pGeo->geoInfo.nIndexStartByteOffset;
 		m_pProfiler->AddCounter(RdrProfileCounter::Triangles, instanceCount * m_pDrawState->indexCount / 3);
 	}
 	else

@@ -4,7 +4,7 @@
 
 PostProcessVolume* PostProcessVolume::Create(IComponentAllocator* pAllocator, const AssetLib::Volume& rVolume)
 {
-	assert(rVolume.volumeType == AssetLib::VolumeType::kPostProcess);
+	Assert(rVolume.volumeType == AssetLib::VolumeType::kPostProcess);
 
 	PostProcessVolume* pPostProcess = pAllocator->AllocPostProcessVolume();
 	pPostProcess->m_effects = rVolume.postProcessEffects;

@@ -26,7 +26,7 @@ HBITMAP IconLibrary::GetIconImage(Icon icon)
 	if (!rIconData.hBitmap)
 	{
 		char imagePath[MAX_PATH];
-		sprintf_s(imagePath, "%s/%s", Paths::GetDataDir(), rIconData.assetName);
+		sprintf_s(imagePath, "%s/%s", Paths::GetSrcDataDir(), rIconData.assetName);
 		rIconData.hBitmap = (HBITMAP)::LoadImageA(NULL, imagePath, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	}
 

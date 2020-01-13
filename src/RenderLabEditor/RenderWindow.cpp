@@ -132,7 +132,7 @@ bool RenderWindow::OnMouseMove(int mx, int my)
 
 bool RenderWindow::OnMouseEnter(int mx, int my)
 {
-	assert(!m_pPlacingObject);
+	Assert(!m_pPlacingObject);
 
 	Widget* pDragWidget = UI::GetDraggedWidget();
 	if (pDragWidget)

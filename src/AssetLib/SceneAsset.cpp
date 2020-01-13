@@ -78,22 +78,6 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 		}
 	}
 
-	// Water
-	{
-		Json::Value jWater = jRoot.get("water", Json::Value::null);
-		AssetLib::Water& rWater = pScene->water;
-
-		if (jWater.isNull())
-		{
-			rWater.enabled = false;
-		}
-		else
-		{
-			rWater.enabled = true;
-			rWater.size = jWater.get("size", 64).asInt();
-		}
-	}
-
 	// Objects
 	{
 		Json::Value jObjects = jRoot.get("objects", Json::Value::null);
@@ -127,7 +111,7 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 				if (jMaterialSwaps.isObject())
 				{
 					int numSwaps = jMaterialSwaps.size();
-					assert(numSwaps < ARRAY_SIZE(rObj.model.materialSwaps));
+					Assert(numSwaps < ARRAY_SIZE(rObj.model.materialSwaps));
 					for (auto iter = jMaterialSwaps.begin(); iter != jMaterialSwaps.end(); ++iter)
 					{
 						rObj.model.materialSwaps[rObj.model.numMaterialSwaps].from = iter.name().c_str();
@@ -216,7 +200,7 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 				}
 				else
 				{
-					assert(false);
+					Assert(false);
 				}
 
 				rLight.color = jsonReadVec3(jLight.get("color", Json::Value::null));
@@ -234,43 +218,81 @@ Scene* Scene::Load(const CachedString& assetName, Scene* pScene)
 
 				if (_stricmp(strVolumeType, "sky") == 0)
 				{
+					const SkySettings defaultSky = Volume::MakeDefaultSky().skySettings;
+
 					rObj.volume.volumeType = VolumeType::kSky;
 					SkySettings& rSky = rObj.volume.skySettings;
 
 					// Volumetric fog
 					Json::Value jFog = jVolume.get("volumetricFog", Json::Value::null);
-					rSky.volumetricFog.enabled = jFog.get("enabled", true).asBool();
+					rSky.volumetricFog.enabled = jFog.get("enabled", defaultSky.volumetricFog.enabled).asBool();
 					rSky.volumetricFog.scatteringCoeff = jsonReadVec3(jFog.get("scatteringCoeff", Json::Value::null));
 					rSky.volumetricFog.absorptionCoeff = jsonReadVec3(jFog.get("absorptionCoeff", Json::Value::null));
-					rSky.volumetricFog.phaseG = jFog.get("phaseG", 0.f).asFloat();
-					rSky.volumetricFog.farDepth = jFog.get("farDepth", 0.f).asFloat();
+					rSky.volumetricFog.phaseG = jFog.get("phaseG", defaultSky.volumetricFog.phaseG).asFloat();
+					rSky.volumetricFog.farDepth = jFog.get("farDepth", defaultSky.volumetricFog.farDepth).asFloat();
 				}
 				else if (_stricmp(strVolumeType, "postProcess") == 0)
 				{
+					const PostProcessEffects defaultPostProc = Volume::MakeDefaultPostProcess().postProcessEffects;
+
 					rObj.volume.volumeType = VolumeType::kPostProcess;
 					PostProcessEffects& rEffects = rObj.volume.postProcessEffects;
 
 					// Bloom
 					Json::Value jBloom = jVolume.get("bloom", Json::Value::null);
-					rEffects.bloom.enabled = jBloom.get("enabled", true).asBool();
-					rEffects.bloom.threshold = jBloom.get("threshold", 1.f).asFloat();
+					rEffects.bloom.enabled = jBloom.get("enabled", defaultPostProc.bloom.enabled).asBool();
+					rEffects.bloom.threshold = jBloom.get("threshold", defaultPostProc.bloom.threshold).asFloat();
 
 					// SSAO
 					Json::Value jSsao = jVolume.get("ssao", Json::Value::null);
-					rEffects.ssao.enabled = jSsao.get("enabled", true).asBool();
-					rEffects.ssao.sampleRadius = jSsao.get("sampleRadius", 1.f).asFloat();
+					rEffects.ssao.enabled = jSsao.get("enabled", defaultPostProc.ssao.enabled).asBool();
+					rEffects.ssao.sampleRadius = jSsao.get("sampleRadius", defaultPostProc.ssao.sampleRadius).asFloat();
 
 					// Eye adaptation
 					Json::Value jEyeAdaptation = jVolume.get("eyeAdaptation", Json::Value::null);
-					rEffects.eyeAdaptation.white = jEyeAdaptation.get("white", 12.5f).asFloat();
-					rEffects.eyeAdaptation.middleGrey = jEyeAdaptation.get("middleGrey", 0.5f).asFloat();
-					rEffects.eyeAdaptation.minExposure = jEyeAdaptation.get("minExposure", -16.f).asFloat();
-					rEffects.eyeAdaptation.maxExposure = jEyeAdaptation.get("maxExposure", 16.f).asFloat();
-					rEffects.eyeAdaptation.adaptationSpeed = jEyeAdaptation.get("adaptationSpeed", 1.f).asFloat();
+					rEffects.eyeAdaptation.white = jEyeAdaptation.get("white", defaultPostProc.eyeAdaptation.white).asFloat();
+					rEffects.eyeAdaptation.middleGrey = jEyeAdaptation.get("middleGrey", defaultPostProc.eyeAdaptation.middleGrey).asFloat();
+					rEffects.eyeAdaptation.minExposure = jEyeAdaptation.get("minExposure", defaultPostProc.eyeAdaptation.minExposure).asFloat();
+					rEffects.eyeAdaptation.maxExposure = jEyeAdaptation.get("maxExposure", defaultPostProc.eyeAdaptation.maxExposure).asFloat();
+					rEffects.eyeAdaptation.adaptationSpeed = jEyeAdaptation.get("adaptationSpeed", defaultPostProc.eyeAdaptation.adaptationSpeed).asFloat();
 				}
 			}
 		}
 	}
 
 	return pScene;
+}
+
+Volume Volume::MakeDefaultSky()
+{
+	AssetLib::Volume volume;
+	volume.volumeType = AssetLib::VolumeType::kSky;
+	volume.skySettings.volumetricFog.enabled = false;
+
+	volume.skySettings.volumetricFog.phaseG = 0.f;
+	volume.skySettings.volumetricFog.farDepth = 0.f;
+	volume.skySettings.volumetricFog.absorptionCoeff = Vec3::kZero;
+	volume.skySettings.volumetricFog.scatteringCoeff = Vec3::kZero;
+
+	return volume;
+}
+
+Volume Volume::MakeDefaultPostProcess()
+{
+	Volume volume;
+
+	volume.volumeType = AssetLib::VolumeType::kPostProcess;
+	volume.postProcessEffects.bloom.enabled = true;
+	volume.postProcessEffects.bloom.threshold = 5.5f;
+
+	volume.postProcessEffects.eyeAdaptation.white = 12.5f;
+	volume.postProcessEffects.eyeAdaptation.middleGrey = 0.6f;
+	volume.postProcessEffects.eyeAdaptation.minExposure = -16.f;
+	volume.postProcessEffects.eyeAdaptation.maxExposure = 16.f;
+	volume.postProcessEffects.eyeAdaptation.adaptationSpeed = 1.f;
+
+	volume.postProcessEffects.ssao.enabled = true;
+	volume.postProcessEffects.ssao.sampleRadius = 1.f;
+
+	return volume;
 }

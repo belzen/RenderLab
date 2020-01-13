@@ -4,6 +4,6 @@
 
 namespace ModelImport
 {
-	bool ImportObj(const std::string& srcFilename, std::string& dstFilename);
-	bool ImportFbx(const std::string& srcFilename, std::string& dstFilename);
+	bool ImportObj(const std::string& srcFilename, const std::string& dstFilename);
+	bool ImportFbx(const std::string& srcFilename, const std::string& dstFilename);
 }

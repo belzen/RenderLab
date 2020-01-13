@@ -64,9 +64,11 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheets\HLSL_Debug.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheets\HLSL_Release.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -123,7 +125,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);RENDERER_DX11;</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeaderFile>Precompiled.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>.\;..\;..\..\3rdparty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\;..\..\3rdparty;../../3rdparty/fbx/include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -171,7 +173,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);RENDERER_DX11;</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\;..\;..\..\3rdparty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\;..\..\3rdparty;../../3rdparty/fbx/include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -208,7 +210,6 @@
     </ClCompile>
     <ClCompile Include="render\RdrResource.cpp" />
     <ClCompile Include="render\RdrSky.cpp" />
-    <ClCompile Include="render\Water.cpp" />
     <ClCompile Include="Time.cpp" />
     <ClCompile Include="GlobalState.cpp" />
     <ClCompile Include="input\CameraInputContext.cpp" />
@@ -268,7 +269,6 @@
     <ClInclude Include="RdrDebugBackpointer.h" />
     <ClInclude Include="render\Ocean.h" />
     <ClInclude Include="render\RdrSky.h" />
-    <ClInclude Include="render\Water.h" />
     <ClInclude Include="shapes\OBB.h" />
     <ClInclude Include="Time.h" />
     <ClInclude Include="FreeList.h" />
@@ -680,6 +680,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/shaders/%(Filename).cso</ObjectFileOutput>
+      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</EnableDebuggingInformation>
     </FxCompile>
     <FxCompile Include="..\..\data\shaders\p_ocean.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>

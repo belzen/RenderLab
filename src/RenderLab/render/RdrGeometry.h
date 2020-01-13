@@ -8,8 +8,9 @@ struct Vertex
 {
 	Vec3 position;
 	Vec3 normal;
-	Color color;
+	Color32 color;
 	Vec2 texcoord;
+	Vec2 texcoord1;
 	Vec3 tangent;
 	Vec3 bitangent;
 };
@@ -18,8 +19,11 @@ struct RdrGeoInfo
 {
 	RdrTopology eTopology;
 	int numVerts;
-	int numIndices;
 	uint vertStride;
+	uint nVertexStartByteOffset;
+	int numIndices;
+	uint nIndexStartByteOffset;
+	RdrIndexBufferFormat eIndexFormat;
 	Vec3 boundsMin;
 	Vec3 boundsMax;
 };
@@ -29,9 +33,10 @@ struct RdrGeometry
 	RdrResource* pVertexBuffer;
 	RdrResource* pIndexBuffer;
 	RdrGeoInfo geoInfo;
+	bool bOwnsBuffers;
 };
 
 //////////////////////////////////////////////////////////////////////////
 
-typedef FreeList<RdrGeometry, 1024> RdrGeoList;
+typedef FreeList<RdrGeometry, 4096> RdrGeoList;
 typedef RdrGeoList::Handle RdrGeoHandle;

@@ -18,7 +18,7 @@ Texture* Texture::Load(const CachedString& assetName, Texture* pTexture)
 
 	if (!GetAssetDef().LoadAsset(assetName.getString(), &pFileData, &fileSize))
 	{
-		Error("Failed to load texture asset: %s", assetName);
+		Error("Failed to load texture asset: %s", assetName.getString());
 		return pTexture;
 	}
 

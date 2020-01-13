@@ -19,7 +19,7 @@ void InputManager::PushContext(IInputContext* pController)
 
 void InputManager::PopContext()
 {
-	assert(m_inputFocusStack.size() > 1);
+	Assert(m_inputFocusStack.size() > 1);
 	m_inputFocusStack.top()->LostFocus();
 	m_inputFocusStack.pop();
 	m_inputFocusStack.top()->GainedFocus();

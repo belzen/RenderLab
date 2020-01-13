@@ -6,7 +6,8 @@
 namespace
 {
 	bool s_initialized = false;
-	char s_dataDir[FILE_MAX_PATH];
+	char s_srcDataDir[FILE_MAX_PATH];
+	char s_binDataDir[FILE_MAX_PATH];
 
 	void Init()
 	{
@@ -16,10 +17,19 @@ namespace
 
 		while (true)
 		{
-			sprintf_s(s_dataDir, "%sdata", path);
-			if (GetFileAttributesA(s_dataDir) != INVALID_FILE_ATTRIBUTES)
+			char subPath[FILE_MAX_PATH];
+			sprintf_s(subPath, "%sdata", path);
+			if (GetFileAttributesA(subPath) != INVALID_FILE_ATTRIBUTES)
 			{
-				break;
+				if (strstr(subPath, "bin\\data") != nullptr)
+				{
+					strcpy_s(s_binDataDir, subPath);
+				}
+				else
+				{
+					strcpy_s(s_srcDataDir, subPath);
+					break;
+				}
 			}
 
 			bool foundParentDir = false;
@@ -43,12 +53,18 @@ namespace
 	}
 }
 
-
-const char* Paths::GetDataDir()
+const char* Paths::GetSrcDataDir()
 {
 	if (!s_initialized)
 		Init();
-	return s_dataDir;
+	return s_srcDataDir;
+}
+
+const char* Paths::GetBinDataDir()
+{
+	if (!s_initialized)
+		Init();
+	return s_binDataDir;
 }
 
 const char* Paths::GetExtension(const char* filename)
@@ -73,6 +89,7 @@ void Paths::GetFilenameNoExtension(const char* path, char* outFilename, int maxN
 	{
 		if (path[startPos] == '/' || path[startPos] == '\\')
 		{
+			startPos += 1; // Skip over the slash
 			break;
 		}
 	}
@@ -113,4 +130,14 @@ void Paths::ForEachFile(const char* searchPattern, bool includeSubDirs, FileCall
 	while (FindNextFileA(hFind, &findData) != 0);
 
 	FindClose(hFind);
+}
+
+void Paths::CreateDirectoryTreeForFile(const std::string& filename)
+{
+	int endPos = -1;
+	while ((endPos = (int)filename.find_first_of("/\\", endPos + 1)) != std::string::npos)
+	{
+		std::string dir = filename.substr(0, endPos);
+		CreateDirectoryA(dir.c_str(), nullptr);
+	}
 }

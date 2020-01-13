@@ -63,12 +63,14 @@ namespace
 			return RdrResourceFormat::DXT5_sRGB;
 		case DXGI_FORMAT_BC3_UNORM:
 			return RdrResourceFormat::DXT5;
+		case DXGI_FORMAT_BC5_UNORM:
+			return RdrResourceFormat::BC5_UNORM;
 		case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
 			return RdrResourceFormat::B8G8R8A8_UNORM_sRGB;
 		case DXGI_FORMAT_B8G8R8A8_UNORM:
 			return RdrResourceFormat::B8G8R8A8_UNORM;
 		default:
-			assert(false);
+			Assert(false);
 			return RdrResourceFormat::Count;
 		}
 	}
@@ -177,7 +179,7 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const CachedString& t
 	AssetLib::Texture* pTexture = AssetLibrary<AssetLib::Texture>::LoadAsset(texName);
 	if (!pTexture)
 	{
-		assert(false);
+		Assert(false);
 		return 0;
 	}
 
@@ -195,6 +197,10 @@ RdrResourceHandle RdrResourceSystem::CreateTextureFromFile(const CachedString& t
 	texInfo.mipLevels = (uint)metadata.mipLevels;
 	texInfo.depth = (uint)metadata.arraySize;
 	texInfo.sampleCount = 1;
+
+	//donotcheckin
+	texInfo.width = std::max(texInfo.width, 4u);
+	texInfo.height = std::max(texInfo.height, 4u);
 
 	if (metadata.IsCubemap())
 	{
@@ -298,6 +304,26 @@ RdrResourceHandle RdrResourceSystem::CreateVertexBuffer(const void* pSrcData, in
 	return hResource;
 }
 
+RdrResourceHandle RdrResourceSystem::CreateIndexBuffer(const void* pSrcData, uint nSizeInBytes, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
+{
+	RdrBufferInfo bufferInfo;
+	bufferInfo.eType = RdrBufferType::Index;
+	bufferInfo.elementSize = 1;
+	bufferInfo.eFormat = RdrResourceFormat::R8_UNORM; //DONOTCHECKin - make this not reliant on a format for size info?
+	bufferInfo.numElements = nSizeInBytes;
+
+	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
+	pResource->CreateBuffer(*g_pRenderer->GetContext(), bufferInfo, accessFlags, debug);
+
+	RdrResourceHandle hResource = s_resourceSystem.resources.getId(pResource);
+	if (pSrcData)
+	{
+		g_pRenderer->GetResourceCommandList().UpdateResource(hResource, pSrcData, 0, debug);
+	}
+
+	return hResource;
+}
+
 RdrResourceHandle RdrResourceSystem::CreateDataBuffer(const void* pSrcData, int numElements, RdrResourceFormat eFormat, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
 	RdrResource* pResource = s_resourceSystem.resources.allocSafe();
@@ -358,7 +384,7 @@ void RdrResourceCommandList::UpdateBuffer(const RdrResourceHandle hResource, con
 
 RdrShaderResourceViewHandle RdrResourceSystem::CreateShaderResourceView(RdrResourceHandle hResource, uint firstElement, const RdrDebugBackpointer& debug)
 {
-	assert(hResource);
+	Assert(hResource);
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 
 	RdrShaderResourceView* pView = s_resourceSystem.shaderResourceViews.allocSafe();
@@ -391,7 +417,7 @@ void RdrResourceCommandList::ReleasePipelineState(RdrPipelineState* pPipelineSta
 
 RdrConstantBufferHandle RdrResourceSystem::CreateConstantBuffer(const void* pData, uint size, RdrResourceAccessFlags accessFlags, const RdrDebugBackpointer& debug)
 {
-	assert((size % sizeof(Vec4)) == 0);
+	Assert((size % sizeof(Vec4)) == 0);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 	RdrResource* pBuffer = s_resourceSystem.constantBuffers.allocSafe();
@@ -467,7 +493,7 @@ void RdrResourceCommandList::ReleaseResource(RdrResourceHandle hRes, const RdrDe
 
 RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceHandle hResource, const RdrDebugBackpointer& debug)
 {
-	assert(hResource);
+	Assert(hResource);
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 
 	RdrRenderTargetView* pView = s_resourceSystem.renderTargetViews.allocSafe();
@@ -479,7 +505,7 @@ RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceH
 
 RdrRenderTargetViewHandle RdrResourceSystem::CreateRenderTargetView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug)
 {
-	assert(hResource);
+	Assert(hResource);
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 
 	RdrRenderTargetView* pView = s_resourceSystem.renderTargetViews.allocSafe();
@@ -505,7 +531,7 @@ void RdrResourceCommandList::ReleaseDepthStencilView(const RdrRenderTargetViewHa
 
 RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceHandle hResource, const RdrDebugBackpointer& debug)
 {
-	assert(hResource);
+	Assert(hResource);
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 
 	RdrDepthStencilView* pView = s_resourceSystem.depthStencilViews.allocSafe();
@@ -517,7 +543,7 @@ RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceH
 
 RdrDepthStencilViewHandle RdrResourceSystem::CreateDepthStencilView(RdrResourceHandle hResource, uint arrayStartIndex, uint arraySize, const RdrDebugBackpointer& debug)
 {
-	assert(hResource);
+	Assert(hResource);
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 
 	RdrDepthStencilView* pView = s_resourceSystem.depthStencilViews.allocSafe();
@@ -565,7 +591,7 @@ void RdrResourceCommandList::ReleaseGeo(const RdrGeoHandle hGeo, const RdrDebugB
 	cmd.debug = debug;
 }
 
-RdrGeoHandle RdrResourceSystem::CreateGeo(const void* pVertData, int vertStride, int numVerts, const uint16* pIndexData, int numIndices,
+RdrGeoHandle RdrResourceSystem::CreateGeo(const void* pVertData, int vertStride, int numVerts, const void* pIndexData, int numIndices, RdrIndexBufferFormat eIndexFormat,
 	RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax, const RdrDebugBackpointer& debug)
 {
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
@@ -574,10 +600,15 @@ RdrGeoHandle RdrResourceSystem::CreateGeo(const void* pVertData, int vertStride,
 
 	pGeo->geoInfo.eTopology = eTopology;
 	pGeo->geoInfo.vertStride = vertStride;
+	pGeo->geoInfo.nVertexStartByteOffset = 0;
 	pGeo->geoInfo.numVerts = numVerts;
 	pGeo->geoInfo.numIndices = numIndices;
+	pGeo->geoInfo.nIndexStartByteOffset = 0;
+	pGeo->geoInfo.eIndexFormat = eIndexFormat;
 	pGeo->geoInfo.boundsMin = boundsMin;
 	pGeo->geoInfo.boundsMax = boundsMax;
+
+	pGeo->bOwnsBuffers = true;
 
 	if (pVertData)
 	{
@@ -598,9 +629,21 @@ RdrGeoHandle RdrResourceSystem::CreateGeo(const void* pVertData, int vertStride,
 	{
 		RdrBufferInfo indexBufferInfo;
 		indexBufferInfo.eType = RdrBufferType::Index;
-		indexBufferInfo.eFormat = RdrResourceFormat::R16_UINT;
-		indexBufferInfo.elementSize = 0;
 		indexBufferInfo.numElements = numIndices;
+
+		switch (eIndexFormat)
+		{
+		case RdrIndexBufferFormat::R16_UINT:
+			indexBufferInfo.eFormat = RdrResourceFormat::R16_UINT;
+			indexBufferInfo.elementSize = sizeof(uint16);
+			break;
+		case RdrIndexBufferFormat::R32_UINT:
+			indexBufferInfo.eFormat = RdrResourceFormat::R32_UINT;
+			indexBufferInfo.elementSize = sizeof(uint);
+			break;
+		default:
+			Assert(false);
+		}
 
 		pGeo->pIndexBuffer = s_resourceSystem.resources.allocSafe();
 		pGeo->pIndexBuffer->CreateBuffer(*pRdrContext, indexBufferInfo, RdrResourceAccessFlags::None, debug);
@@ -608,6 +651,31 @@ RdrGeoHandle RdrResourceSystem::CreateGeo(const void* pVertData, int vertStride,
 		RdrResourceHandle hResource = s_resourceSystem.resources.getId(pGeo->pIndexBuffer);
 		g_pRenderer->GetResourceCommandList().UpdateResource(hResource, pIndexData, 0, debug);
 	}
+
+	return hGeo;
+}
+
+RdrGeoHandle RdrResourceSystem::CreateGeo(RdrResourceHandle hVertexBuffer, uint nVertexStride, uint nVertexStartByteOffset, uint nVertexCount,
+	RdrResourceHandle hIndexBuffer, uint nIndexStartByteOffset, uint nIndexCount, RdrIndexBufferFormat eIndexFormat,
+	RdrTopology eTopology, const Vec3& boundsMin, const Vec3& boundsMax, const RdrDebugBackpointer& debug)
+{
+	RdrContext* pRdrContext = g_pRenderer->GetContext();
+	RdrGeometry* pGeo = s_resourceSystem.geos.allocSafe();
+	RdrGeoHandle hGeo = s_resourceSystem.geos.getId(pGeo);
+
+	pGeo->geoInfo.eTopology = eTopology;
+	pGeo->geoInfo.vertStride = nVertexStride;
+	pGeo->geoInfo.nVertexStartByteOffset = nVertexStartByteOffset;
+	pGeo->geoInfo.numVerts = nVertexCount;
+	pGeo->geoInfo.numIndices = nIndexCount;
+	pGeo->geoInfo.nIndexStartByteOffset = nIndexStartByteOffset;
+	pGeo->geoInfo.eIndexFormat = eIndexFormat;
+	pGeo->geoInfo.boundsMin = boundsMin;
+	pGeo->geoInfo.boundsMax = boundsMax;
+
+	pGeo->pVertexBuffer = s_resourceSystem.resources.get(hVertexBuffer);
+	pGeo->pIndexBuffer = s_resourceSystem.resources.get(hIndexBuffer);
+	pGeo->bOwnsBuffers = false;
 
 	return hGeo;
 }
@@ -623,7 +691,7 @@ void RdrResourceCommandList::UpdateGeoVerts(RdrGeoHandle hGeo, const void* pVert
 RdrDescriptors* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
-	assert(count < kMaxDescriptorTableSize);
+	Assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 
@@ -640,7 +708,7 @@ RdrDescriptors* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResour
 RdrDescriptors* RdrResourceSystem::CreateShaderResourceViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
-	assert(count < kMaxDescriptorTableSize);
+	Assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 
@@ -670,7 +738,7 @@ RdrDescriptors* RdrResourceSystem::CreateTempShaderResourceViewTable(const RdrRe
 RdrDescriptors* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResourceHandle* ahResources, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
-	assert(count < kMaxDescriptorTableSize);
+	Assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 	
@@ -687,7 +755,7 @@ RdrDescriptors* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResou
 RdrDescriptors* RdrResourceSystem::CreateUnorderedAccessViewTable(const RdrResource** apResources, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
-	assert(count < kMaxDescriptorTableSize);
+	Assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 	
@@ -717,7 +785,7 @@ RdrDescriptors* RdrResourceSystem::CreateTempUnorderedAccessViewTable(const RdrR
 RdrDescriptors* RdrResourceSystem::CreateSamplerTable(const RdrSamplerState* aSamplers, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
-	assert(count < kMaxDescriptorTableSize);
+	Assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 
@@ -740,7 +808,7 @@ RdrDescriptors* RdrResourceSystem::CreateTempSamplerTable(const RdrSamplerState*
 RdrDescriptors* RdrResourceSystem::CreateConstantBufferTable(const RdrConstantBufferHandle* ahBuffers, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
-	assert(count < kMaxDescriptorTableSize);
+	Assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 	
@@ -764,7 +832,7 @@ RdrDescriptors* RdrResourceSystem::CreateTempConstantBufferTable(const RdrConsta
 RdrDescriptors* RdrResourceSystem::CreateConstantBufferTable(const RdrResource** apBuffers, uint count, const RdrDebugBackpointer& debug)
 {
 	static constexpr uint kMaxDescriptorTableSize = 16;
-	assert(count < kMaxDescriptorTableSize);
+	Assert(count < kMaxDescriptorTableSize);
 
 	RdrContext* pRdrContext = g_pRenderer->GetContext();
 
@@ -854,15 +922,18 @@ void RdrResourceCommandList::ProcessCleanupCommands(RdrContext* pRdrContext)
 		CmdReleaseGeo& cmd = m_geoReleases[i];
 		RdrGeometry* pGeo = s_resourceSystem.geos.get(cmd.hGeo);
 
-		CmdReleaseResource& cmdVertex = m_resourceReleases.pushSafe();
-		cmdVertex.hResource = s_resourceSystem.resources.getId(pGeo->pVertexBuffer);
-		cmdVertex.debug = cmd.debug;
-
-		if (pGeo->pIndexBuffer)
+		if (pGeo->bOwnsBuffers)
 		{
-			CmdReleaseResource& cmdIndex = m_resourceReleases.pushSafe();
-			cmdIndex.hResource = s_resourceSystem.resources.getId(pGeo->pIndexBuffer);
-			cmdIndex.debug = cmd.debug;
+			CmdReleaseResource& cmdVertex = m_resourceReleases.pushSafe();
+			cmdVertex.hResource = s_resourceSystem.resources.getId(pGeo->pVertexBuffer);
+			cmdVertex.debug = cmd.debug;
+
+			if (pGeo->pIndexBuffer)
+			{
+				CmdReleaseResource& cmdIndex = m_resourceReleases.pushSafe();
+				cmdIndex.hResource = s_resourceSystem.resources.getId(pGeo->pIndexBuffer);
+				cmdIndex.debug = cmd.debug;
+			}
 		}
 			
 		s_resourceSystem.geos.releaseId(cmd.hGeo);

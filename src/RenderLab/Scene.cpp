@@ -9,7 +9,6 @@
 #include "AssetLib/AssetLibrary.h"
 #include "render/Terrain.h"
 #include "render/Ocean.h"
-#include "render/Water.h"
 #include "Game.h"
 
 namespace
@@ -20,7 +19,6 @@ namespace
 		EntityList m_entities;
 		Terrain m_terrain;
 		Ocean m_ocean;
-		Water m_water;
 
 		Vec3 m_cameraSpawnPosition;
 		Rotation m_cameraSpawnRotation;
@@ -54,7 +52,7 @@ namespace
 				return;
 		}
 
-		assert(s_scene.m_apActiveEnvironmentLights[index] == pLight);
+		Assert(s_scene.m_apActiveEnvironmentLights[index] == pLight);
 		Rect viewport(0.f, 0.f, (float)s_scene.m_environmentMapSize, (float)s_scene.m_environmentMapSize);
 		RdrOffscreenTasks::QueueSpecularProbeCapture(pLight->GetEntity()->GetPosition(), viewport,
 			s_scene.m_hEnvironmentMapTexArray, index);
@@ -95,7 +93,7 @@ void Scene::Load(const char* sceneName)
 	AssetLib::Scene* pSceneData = AssetLibrary<AssetLib::Scene>::LoadAsset(s_scene.m_name);
 	if (!pSceneData)
 	{
-		assert(false);
+		Assert(false);
 		return;
 	}
 
@@ -119,6 +117,8 @@ void Scene::Load(const char* sceneName)
 	s_scene.m_cameraSpawnRotation = pSceneData->camRotation;
 
 	// Objects/Entities
+	bool bHasPostProcessVolume = false;
+	bool bHasSkyVolume = false;
 	for (const AssetLib::Object& rObjectData : pSceneData->objects)
 	{
 		Entity* pEntity = Entity::Create(rObjectData.name, rObjectData.position, rObjectData.rotation, rObjectData.scale);
@@ -172,12 +172,27 @@ void Scene::Load(const char* sceneName)
 		{
 		case AssetLib::VolumeType::kPostProcess:
 			pEntity->AttachVolume(PostProcessVolume::Create(&s_scene.m_componentAllocator, rObjectData.volume));
+			bHasPostProcessVolume = true;
 			break;
 		case AssetLib::VolumeType::kSky:
 			pEntity->AttachVolume(SkyVolume::Create(&s_scene.m_componentAllocator, rObjectData.volume));
+			bHasSkyVolume = true;
 			break;
 		}
 
+		s_scene.m_entities.push_back(pEntity);
+	}
+
+	if (!bHasSkyVolume)
+	{
+		Entity* pEntity = Entity::Create("DefaultSky", Vec3::kZero, Rotation::kIdentity, Vec3::kOne);
+		pEntity->AttachVolume(SkyVolume::Create(&s_scene.m_componentAllocator, AssetLib::Volume::MakeDefaultSky()));
+		s_scene.m_entities.push_back(pEntity);
+	}
+	if (!bHasPostProcessVolume)
+	{
+		Entity* pEntity = Entity::Create("DefaultPostProcess", Vec3::kZero, Rotation::kIdentity, Vec3::kOne);
+		pEntity->AttachVolume(PostProcessVolume::Create(&s_scene.m_componentAllocator, AssetLib::Volume::MakeDefaultPostProcess()));
 		s_scene.m_entities.push_back(pEntity);
 	}
 
@@ -190,12 +205,6 @@ void Scene::Load(const char* sceneName)
 	{
 		const AssetLib::Ocean& rOcean = pSceneData->ocean;
 		s_scene.m_ocean.Init(rOcean.tileWorldSize, rOcean.tileCounts, rOcean.fourierGridSize, rOcean.waveHeightScalar, rOcean.wind);
-	}
-
-	if (pSceneData->water.enabled)
-	{
-		const AssetLib::Water& rWater = pSceneData->water;
-		s_scene.m_water.Init(rWater.size);
 	}
 
 	// TODO: quad/oct tree for scene
@@ -221,7 +230,6 @@ void Scene::Update()
 	}
 
 	s_scene.m_ocean.Update();
-	s_scene.m_water.Update();
 }
 
 void Scene::AddEntity(Entity* pEntity)
@@ -316,14 +324,6 @@ void Scene::QueueDraw(RdrAction* pAction)
 	//////////////////////////////////////////////////////////////////////////
 	// Ocean
 	opSet = s_scene.m_ocean.BuildDrawOps(pAction);
-	for (uint16 i = 0; i < opSet.numDrawOps; ++i)
-	{
-		pAction->AddDrawOp(&opSet.aDrawOps[i], RdrBucketType::Opaque);
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// Water
-	opSet = s_scene.m_water.BuildDrawOps(pAction);
 	for (uint16 i = 0; i < opSet.numDrawOps; ++i)
 	{
 		pAction->AddDrawOp(&opSet.aDrawOps[i], RdrBucketType::Opaque);

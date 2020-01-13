@@ -191,14 +191,14 @@ static inline void fixNumericLocale(char* begin, char* end) {
 // See file LICENSE for detail or copy at http://jsoncpp.sourceforge.net/LICENSE
 
 #if !defined(JSON_IS_AMALGAMATION)
-#include <json/assertions.h>
+#include <json/Assertions.h>
 #include <json/reader.h>
 #include <json/value.h>
 #include "json_tool.h"
 #endif // if !defined(JSON_IS_AMALGAMATION)
 #include <utility>
 #include <cstdio>
-#include <cassert>
+#include <cAssert>
 #include <cstring>
 #include <istream>
 #include <sstream>
@@ -574,10 +574,10 @@ static std::string normalizeEOL(Reader::Location begin, Reader::Location end) {
 
 void
 Reader::addComment(Location begin, Location end, CommentPlacement placement) {
-  assert(collectComments_);
+  Assert(collectComments_);
   const std::string& normalized = normalizeEOL(begin, end);
   if (placement == commentAfterOnSameLine) {
-    assert(lastValue_ != 0);
+    Assert(lastValue_ != 0);
     lastValue_->setComment(normalized, placement);
   } else {
     commentsBefore_ += normalized;
@@ -1533,10 +1533,10 @@ bool OurReader::readComment() {
 
 void
 OurReader::addComment(Location begin, Location end, CommentPlacement placement) {
-  assert(collectComments_);
+  Assert(collectComments_);
   const std::string& normalized = normalizeEOL(begin, end);
   if (placement == commentAfterOnSameLine) {
-    assert(lastValue_ != 0);
+    Assert(lastValue_ != 0);
     lastValue_->setComment(normalized, placement);
   } else {
     commentsBefore_ += normalized;
@@ -2418,7 +2418,7 @@ ValueIterator& ValueIterator::operator=(const SelfType& other) {
 // See file LICENSE for detail or copy at http://jsoncpp.sourceforge.net/LICENSE
 
 #if !defined(JSON_IS_AMALGAMATION)
-#include <json/assertions.h>
+#include <json/Assertions.h>
 #include <json/value.h>
 #include <json/writer.h>
 #endif // if !defined(JSON_IS_AMALGAMATION)
@@ -2426,14 +2426,14 @@ ValueIterator& ValueIterator::operator=(const SelfType& other) {
 #include <sstream>
 #include <utility>
 #include <cstring>
-#include <cassert>
+#include <cAssert>
 #ifdef JSON_USE_CPPTL
 #include <cpptl/conststring.h>
 #endif
 #include <cstddef> // size_t
 #include <algorithm> // min()
 
-#define JSON_ASSERT_UNREACHABLE assert(false)
+#define JSON_ASSERT_UNREACHABLE Assert(false)
 
 namespace Json {
 
@@ -3324,7 +3324,7 @@ void Value::resize(ArrayIndex newSize) {
     for (ArrayIndex index = newSize; index < oldSize; ++index) {
       value_.map_->erase(index);
     }
-    assert(size() == newSize);
+    Assert(size() == newSize);
   }
 }
 
@@ -3981,7 +3981,7 @@ Value& Path::make(Value& root) const {
 #include <sstream>
 #include <utility>
 #include <set>
-#include <cassert>
+#include <cAssert>
 #include <cstring>
 #include <cstdio>
 
@@ -4078,7 +4078,7 @@ std::string valueToString(LargestInt value) {
   } else {
     uintToString(LargestUInt(value), current);
   }
-  assert(current >= buffer);
+  Assert(current >= buffer);
   return current;
 }
 
@@ -4086,7 +4086,7 @@ std::string valueToString(LargestUInt value) {
   UIntToStringBuffer buffer;
   char* current = buffer + sizeof(buffer);
   uintToString(value, current);
-  assert(current >= buffer);
+  Assert(current >= buffer);
   return current;
 }
 
@@ -4127,7 +4127,7 @@ std::string valueToString(double value, bool useSpecialFloats, unsigned int prec
     }
     // For those, we do not need to call fixNumLoc, but it is fast.
   }
-  assert(len >= 0);
+  Assert(len >= 0);
   fixNumericLocale(buffer, buffer + len);
   return buffer;
 }
@@ -4200,7 +4200,7 @@ std::string valueToQuotedString(const char* value) {
 
 // https://github.com/upcaste/upcaste/blob/master/src/upcore/src/cstring/strnpbrk.cpp
 static char const* strnpbrk(char const* s, char const* accept, size_t n) {
-  assert((s || !n) && accept);
+  Assert((s || !n) && accept);
 
   char const* const end = s + n;
   for (char const* cur = s; cur < end; ++cur) {
@@ -4462,7 +4462,7 @@ void StyledWriter::writeArrayValue(const Value& value) {
       writeWithIndent("]");
     } else // output on a single line
     {
-      assert(childValues_.size() == size);
+      Assert(childValues_.size() == size);
       document_ += "[ ";
       for (unsigned index = 0; index < size; ++index) {
         if (index > 0)
@@ -4527,7 +4527,7 @@ void StyledWriter::writeWithIndent(const std::string& value) {
 void StyledWriter::indent() { indentString_ += std::string(indentSize_, ' '); }
 
 void StyledWriter::unindent() {
-  assert(int(indentString_.size()) >= indentSize_);
+  Assert(int(indentString_.size()) >= indentSize_);
   indentString_.resize(indentString_.size() - indentSize_);
 }
 
@@ -4681,7 +4681,7 @@ void StyledStreamWriter::writeArrayValue(const Value& value) {
       writeWithIndent("]");
     } else // output on a single line
     {
-      assert(childValues_.size() == size);
+      Assert(childValues_.size() == size);
       *document_ << "[ ";
       for (unsigned index = 0; index < size; ++index) {
         if (index > 0)
@@ -4744,7 +4744,7 @@ void StyledStreamWriter::writeWithIndent(const std::string& value) {
 void StyledStreamWriter::indent() { indentString_ += indentation_; }
 
 void StyledStreamWriter::unindent() {
-  assert(indentString_.size() >= indentation_.size());
+  Assert(indentString_.size() >= indentation_.size());
   indentString_.resize(indentString_.size() - indentation_.size());
 }
 
@@ -4962,7 +4962,7 @@ void BuiltStyledStreamWriter::writeArrayValue(Value const& value) {
       writeWithIndent("]");
     } else // output on a single line
     {
-      assert(childValues_.size() == size);
+      Assert(childValues_.size() == size);
       *sout_ << "[";
       if (!indentation_.empty()) *sout_ << " ";
       for (unsigned index = 0; index < size; ++index) {
@@ -5031,7 +5031,7 @@ void BuiltStyledStreamWriter::writeWithIndent(std::string const& value) {
 void BuiltStyledStreamWriter::indent() { indentString_ += indentation_; }
 
 void BuiltStyledStreamWriter::unindent() {
-  assert(indentString_.size() >= indentation_.size());
+  Assert(indentString_.size() >= indentation_.size());
   indentString_.resize(indentString_.size() - indentation_.size());
 }
 

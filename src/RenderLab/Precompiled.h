@@ -8,7 +8,6 @@ using std::min;
 using std::max;
 
 #include <malloc.h>
-#include <assert.h>
 #include <memory>
 #include <map>
 #include <vector>

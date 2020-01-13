@@ -7,7 +7,7 @@ UserConfig g_userConfig;
 void UserConfig::Load()
 {
 	char path[MAX_PATH];
-	sprintf_s(path, "%s\\%s", Paths::GetDataDir(), "user.config");
+	sprintf_s(path, "%s\\%s", Paths::GetSrcDataDir(), "user.config");
 
 	// Default config
 	g_userConfig.renderDocPath = "";

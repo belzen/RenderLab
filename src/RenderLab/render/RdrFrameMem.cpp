@@ -7,7 +7,7 @@
 namespace
 {
 	static const uint kMaxFrames = 2;
-	const uint kFrameMemSize = 32 * 1024 * 1024;
+	const uint kFrameMemSize = 64 * 1024 * 1024;
 	const uint kFrameDrawOps = 16 * 1024;
 	const uint kFrameComputeOps = 1 * 1024;
 

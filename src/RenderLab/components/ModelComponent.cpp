@@ -62,7 +62,7 @@ void ModelComponent::SetModelData(const CachedString& modelAssetName, const Asse
 		{
 			if (m_pMaterials[i]->GetName() == aMaterialSwaps[n].from)
 			{
-				m_pMaterials[i] = RdrMaterial::Create(aMaterialSwaps[n].to, m_pModelData->GetVertexElements(), m_pModelData->GetNumVertexElements());
+				m_pMaterials[i] = RdrMaterial::Create(aMaterialSwaps[n].to, m_pModelData->GetVertexElements(i), m_pModelData->GetNumVertexElements(i));
 			}
 		}
 	}

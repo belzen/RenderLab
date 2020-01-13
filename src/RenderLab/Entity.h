@@ -60,7 +60,7 @@ private:
 	Entity(const Entity&);
 
 private:
-	char m_name[64];
+	char m_name[128];
 
 	Vec3 m_position;
 	Vec3 m_scale;

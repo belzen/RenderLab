@@ -76,7 +76,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 		std::string filename = FileDialog::Show("Scene (*.scene)\0*.scene\0\0");
 		if (filename.length() > 0)
 		{
-			const char* relativePath = filename.c_str() + strlen(Paths::GetDataDir()) + 1;
+			const char* relativePath = filename.c_str() + strlen(Paths::GetSrcDataDir()) + 1;
 			char sceneName[AssetLib::AssetDef::kMaxNameLen];
 			AssetLib::Scene::GetAssetDef().ExtractAssetName(relativePath, sceneName, AssetLib::AssetDef::kMaxNameLen);
 			((MainWindow*)pUserData)->LoadScene(sceneName);

@@ -27,7 +27,7 @@ bool raySphereIntersect(const Vec3& rayOrigin, const Vec3& rayDir, const Vec3& s
 	return true;
 }
 
-bool rayTriangleIntersect(const Vec3& rayOrigin, const Vec3& rayDir, const Vec3& triPtA, const Vec3& triPtB, const Vec3& triPtC, float* pOutT)
+bool rayTriangleIntersect(const Vec3& rayOrigin, const Vec3& rayDir, const Vec3& triPtA, const Vec3& triPtB, const Vec3& triPtC, bool bDoubleSided, float* pOutT)
 {
 	Vec3 e1 = triPtB - triPtA;
 	Vec3 e2 = triPtC - triPtA;
@@ -49,7 +49,17 @@ bool rayTriangleIntersect(const Vec3& rayOrigin, const Vec3& rayDir, const Vec3&
 
 	*pOutT = f * Vec3Dot(e2, r);
 	if (*pOutT > Maths::kEpsilon)
-		return true;
+	{
+		if (!bDoubleSided)
+		{
+			Vec3 vTriNormal = Vec3Cross(Vec3Normalize(triPtB - triPtA), Vec3Normalize(triPtC - triPtA));
+			return Vec3Dot(rayDir, vTriNormal) < 0;
+		}
+		else
+		{
+			return true;
+		}
+	}
 
 	return false;
 }
@@ -68,21 +78,42 @@ bool rayModelIntersect(const Vec3& rayOrigin, const Vec3& rayDir, const ModelCom
 	bool hit = false;
 
 	const AssetLib::Model* pData = pModel->GetModelData()->GetSource();
-	for (uint i = 0; i < pData->totalIndexCount; i += 3)
+	for (uint iSubObject = 0; iSubObject < pData->nSubObjectCount; ++iSubObject)
 	{
-		Vec3 triA = pData->positions.ptr[pData->indices.ptr[i + 0]];
-		Vec3 triB = pData->positions.ptr[pData->indices.ptr[i + 1]];
-		Vec3 triC = pData->positions.ptr[pData->indices.ptr[i + 2]];
+		const AssetLib::Model::SubObject& subobj = pData->subobjects.ptr[iSubObject];
+		const void* pSubObjIndices = pData->indexBuffer.ptr + subobj.nIndexStartByteOffset;
 
-		triA = Vec3TransformCoord(triA, mtxWorld);
-		triB = Vec3TransformCoord(triB, mtxWorld);
-		triC = Vec3TransformCoord(triC, mtxWorld);
-
-		float t;
-		if (rayTriangleIntersect(rayOrigin, rayDir, triA, triB, triC, &t) && t < closestT)
+		for (uint idx = 0; idx < subobj.nIndexCount; idx += 3)
 		{
-			closestT = t;
-			hit = true;
+			uint nIndices[3];
+			switch (subobj.eIndexFormat)
+			{
+			case RdrIndexBufferFormat::R16_UINT:
+				nIndices[0] = ((uint16*)pSubObjIndices)[idx + 0];
+				nIndices[1] = ((uint16*)pSubObjIndices)[idx + 1];
+				nIndices[2] = ((uint16*)pSubObjIndices)[idx + 2];
+				break;
+			case RdrIndexBufferFormat::R32_UINT:
+				nIndices[0] = ((uint*)pSubObjIndices)[idx + 0];
+				nIndices[1] = ((uint*)pSubObjIndices)[idx + 1];
+				nIndices[2] = ((uint*)pSubObjIndices)[idx + 2];
+				break;
+			}
+
+			Vec3 triA = pData->positions.ptr[nIndices[0]];
+			Vec3 triB = pData->positions.ptr[nIndices[1]];
+			Vec3 triC = pData->positions.ptr[nIndices[2]];
+
+			triA = Vec3TransformCoord(triA, mtxWorld);
+			triB = Vec3TransformCoord(triB, mtxWorld);
+			triC = Vec3TransformCoord(triC, mtxWorld);
+
+			float t;
+			if (rayTriangleIntersect(rayOrigin, rayDir, triA, triB, triC, true, &t) && t < closestT)
+			{
+				closestT = t;
+				hit = true;
+			}
 		}
 	}
 

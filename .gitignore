@@ -33,3 +33,16 @@ user.config
 /bin/PhysX*
 /bin/nvToolsExt64_1.dll
 /bin/glut32.dll
+
+data/textures/Bistro_Research_Interior/
+data/textures/Bistro_Research_Exterior/
+data/textures/SunTemple/
+data/geo/Bistro_Research_Interior/
+data/geo/Bistro_Research_Exterior/
+data/geo/SunTemple/
+data/materials/Bistro_Research_Interior/
+data/materials/Bistro_Research_Exterior/
+data/materials/SunTemple/
+data/scenes/Bistro_Research_Interior.scene
+data/scenes/Bistro_Research_Exterior.scene
+data/scenes/SunTemple.scene

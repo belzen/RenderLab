@@ -21,6 +21,8 @@ namespace AssetLib
 
 		bool bNeedsLighting;
 		bool bAlphaCutout;
+		bool bNormalsBC5;
+		bool bEmissive;
 		bool bForEditor;
 
 		Color color;

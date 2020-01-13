@@ -4,6 +4,12 @@
 #include "Vec3.h"
 #include "Matrix44.h"
 
+inline bool Vec3NearEqual(const Vec3& lhs, const Vec3& rhs)
+{
+	const float kTolerance = 0.00001f;
+	return abs(lhs.x - rhs.x) < kTolerance && abs(lhs.y - rhs.y) < kTolerance && abs(lhs.z - rhs.z) < kTolerance;
+}
+
 inline Vec3 Vec3Normalize(const Vec3& dir)
 {
 	float len = sqrtf(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);

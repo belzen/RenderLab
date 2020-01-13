@@ -71,6 +71,10 @@ namespace AssetLib
 		PostProcessEffects postProcessEffects;
 		SkySettings skySettings;
 		// TODO: Volume size;
+
+		//////////////////////////////////////////////////////////////////////////
+		static Volume MakeDefaultSky();
+		static Volume MakeDefaultPostProcess();
 	};
 
 	struct Light
@@ -136,7 +140,7 @@ namespace AssetLib
 		Volume volume;
 		ObjectDecal decal;
 		ObjectModel model;
-		char name[64];
+		char name[128];
 	};
 
 	struct Terrain
@@ -158,12 +162,6 @@ namespace AssetLib
 		bool enabled;
 	};
 
-	struct Water
-	{
-		int size;
-		bool enabled;
-	};
-
 	struct Scene
 	{
 		static AssetDef& GetAssetDef();
@@ -175,7 +173,6 @@ namespace AssetLib
 		std::vector<Object> objects;
 		Terrain terrain;
 		Ocean ocean;
-		Water water;
 		
 		Vec3 globalEnvironmentLightPosition;
 		uint environmentMapTexSize;

@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 	{
 		RenderDoc::Init();
 	}
-	FileWatcher::Init(Paths::GetDataDir());
+	FileWatcher::Init(Paths::GetSrcDataDir());
 
 	MainWindow* pMainWindow = MainWindow::Create(kClientWidth, kClientHeight, "Render Lab");
 

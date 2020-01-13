@@ -1,7 +1,7 @@
 #include "Timer.h"
 #include <wtypesbase.h>
 #include <WinBase.h>
-#include <assert.h>
+#include "Error.h"
 
 struct TimerObj
 {
@@ -26,7 +26,7 @@ Timer::Handle Timer::Create(void)
 		}
 	}
 
-	assert(false);
+	Assert(false);
 	return -1;
 }
 

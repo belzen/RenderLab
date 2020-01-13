@@ -197,7 +197,7 @@ void Ocean::Init(float tileWorldSize, UVec2 tileCounts, int fourierGridSize, flo
 
 	m_hGeo = RdrResourceSystem::CreateGeo(
 		aVertices, sizeof(aVertices[0]), numVerts,
-		aIndices, numTriangles * 3,
+		aIndices, numTriangles * 3, RdrIndexBufferFormat::R16_UINT,
 		RdrTopology::TriangleList, Vec3(0.f, 0.f, 0.f), Vec3(1.f, 0.f, 1.f), CREATE_BACKPOINTER(this));
 
 	// Setup pixel material

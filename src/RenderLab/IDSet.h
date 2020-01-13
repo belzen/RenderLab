@@ -15,7 +15,7 @@ public:
 			return m_freeIds[--m_numFree];
 
 		if (m_nextId >= T_nMaxIds)
-			assert(false);
+			Assert(false);
 
 		return m_nextId++;
 	}
@@ -61,7 +61,7 @@ public:
 			return m_pFreeIds[--m_numFree];
 
 		if (m_nextId >= m_maxIds)
-			assert(false);
+			Assert(false);
 
 		return m_nextId++;
 	}

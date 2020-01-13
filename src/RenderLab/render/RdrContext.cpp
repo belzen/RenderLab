@@ -47,6 +47,7 @@ namespace
 	static constexpr uint kRootCsShaderResourceViewTable	= 1;
 	static constexpr uint kRootCsSamplerTable				= 2;
 	static constexpr uint kRootCsUnorderedAccessViewTable	= 3;
+
 }
 
 RdrContext::RdrContext(RdrProfiler& rProfiler)
@@ -94,7 +95,7 @@ ComPtr<IDXGIAdapter4> GetAdapter()
 
 	if (!dxgiAdapter4)
 	{
-		assert(false);
+		Assert(false);
 		return nullptr;
 	}
 	return dxgiAdapter4;
@@ -229,7 +230,7 @@ void DescriptorHeap::Create(ComPtr<ID3D12Device> pDevice, D3D12_DESCRIPTOR_HEAP_
 
 	m_descriptorSize = pDevice->GetDescriptorHandleIncrementSize(type);
 
-	assert(numDescriptorTableSizes == ARRAYSIZE(m_tables));
+	Assert(numDescriptorTableSizes == ARRAYSIZE(m_tables));
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDesc(m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuDesc(m_pDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
@@ -308,7 +309,7 @@ RdrDescriptors* DescriptorHeap::AllocateDescriptor(const RdrDebugBackpointer& de
 
 RdrDescriptors* DescriptorHeap::CreateShaderResourceView(ID3D12Resource* pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug)
 {
-	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	Assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
 	pDescriptor->m_eDescType = RdrDescriptorType::SRV;
@@ -320,7 +321,7 @@ RdrDescriptors* DescriptorHeap::CreateShaderResourceView(ID3D12Resource* pResour
 
 RdrDescriptors* DescriptorHeap::CreateUnorderedAccesView(ID3D12Resource* pResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug)
 {
-	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	Assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
 	pDescriptor->m_eDescType = RdrDescriptorType::UAV;
@@ -332,7 +333,7 @@ RdrDescriptors* DescriptorHeap::CreateUnorderedAccesView(ID3D12Resource* pResour
 
 RdrDescriptors* DescriptorHeap::CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug)
 {
-	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	Assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
 	pDescriptor->m_eDescType = RdrDescriptorType::CBV;
@@ -344,7 +345,7 @@ RdrDescriptors* DescriptorHeap::CreateConstantBufferView(const D3D12_CONSTANT_BU
 
 RdrDescriptors* DescriptorHeap::CreateRenderTargetView(ID3D12Resource* pResource, const D3D12_RENDER_TARGET_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug)
 {
-	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	Assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
 	pDescriptor->m_eDescType = RdrDescriptorType::RTV;
@@ -355,7 +356,7 @@ RdrDescriptors* DescriptorHeap::CreateRenderTargetView(ID3D12Resource* pResource
 
 RdrDescriptors* DescriptorHeap::CreateDepthStencilView(ID3D12Resource* pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC* pDesc, const RdrDebugBackpointer& debug)
 {
-	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	Assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
 	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
 	pDescriptor->m_eDescType = RdrDescriptorType::DSV;
@@ -366,7 +367,7 @@ RdrDescriptors* DescriptorHeap::CreateDepthStencilView(ID3D12Resource* pResource
 
 RdrDescriptors* DescriptorHeap::CreateSampler(const D3D12_SAMPLER_DESC& samplerDesc, const RdrDebugBackpointer& debug)
 {
-	assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	Assert(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
 	RdrDescriptors* pDescriptor = AllocateDescriptor(debug);
 	pDescriptor->m_eDescType = RdrDescriptorType::Sampler;
@@ -382,7 +383,7 @@ RdrDescriptors* DescriptorHeap::CreateDescriptorTable(const RdrDescriptors** apS
 
 	if (size == 0)
 	{
-		assert(false);
+		Assert(false);
 		return nullptr;
 	}
 	else if (size == 1)
@@ -399,15 +400,15 @@ RdrDescriptors* DescriptorHeap::CreateDescriptorTable(const RdrDescriptors** apS
 
 	if (nTable > ARRAYSIZE(m_tables) || m_tables[nTable].empty())
 	{
-		assert(false);
+		Assert(false);
 		return nullptr;
 	}
 
 	RdrDescriptors* pDesc = m_tables[nTable].back();
 	m_tables[nTable].pop_back();
 
-	assert(pDesc->m_nRefCount == 0);
-	assert(pDesc->m_nTableListIndex == nTable);
+	Assert(pDesc->m_nRefCount == 0);
+	Assert(pDesc->m_nTableListIndex == nTable);
 	pDesc->m_nRefCount = 1;
 	pDesc->m_debugCreator = debug;
 	pDesc->m_eDescType = apSrcDescriptors[0]->m_eDescType;
@@ -432,7 +433,7 @@ void DescriptorHeap::FreeDescriptor(RdrDescriptors* pDesc)
 
 	AutoScopedLock lock(m_mutex);
 	
-	assert(pDesc->m_nRefCount <= 0);
+	Assert(pDesc->m_nRefCount <= 0);
 	pDesc->m_nRefCount = 0;
 
 	m_tables[pDesc->m_nTableListIndex].push_back(pDesc);
@@ -490,7 +491,7 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorRingBuffer::AllocateDescriptors(uint num
 
 	if (m_nFrameDescriptorCount[m_nFrame] + numToAllocate > m_nFrameAvailableDescriptors)
 	{
-		assert(false);
+		Assert(false);
 	}
 
 	m_nFrameDescriptorCount[m_nFrame] += numToAllocate;
@@ -599,7 +600,7 @@ HANDLE CreateEventHandle()
 	HANDLE fenceEvent;
 
 	fenceEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
-	assert(fenceEvent && "Failed to create fence event.");
+	Assert(fenceEvent && "Failed to create fence event.");
 
 	return fenceEvent;
 }
@@ -884,7 +885,7 @@ void RdrContext::Release()
 		if (SUCCEEDED(m_pDevice->QueryInterface(IID_PPV_ARGS(&pDebugDevice))))
 		{
 			HRESULT hr = pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_SUMMARY);
-			assert(hr == S_OK);
+			Assert(hr == S_OK);
 		}
 	}
 
@@ -1082,7 +1083,7 @@ void RdrContext::SetRenderTargets(uint numTargets, const RdrRenderTargetView* aR
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hRenderTargetViews[8] = {};
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDepthStencilView = {};
 
-	assert(numTargets < ARRAY_SIZE(hRenderTargetViews));
+	Assert(numTargets < ARRAY_SIZE(hRenderTargetViews));
 
 	for (uint i = 0; i < numTargets; ++i)
 	{
@@ -1319,8 +1320,8 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 	{
 		const RdrResource* pBuffer = rDrawState.pVertexBuffers[i];
 		views[i].BufferLocation = pBuffer->GetResource() ? pBuffer->GetResource()->GetGPUVirtualAddress() : 0;
-		views[i].BufferLocation += rDrawState.vertexOffsets[i];
-		views[i].SizeInBytes = pBuffer->GetSize();
+		views[i].BufferLocation += rDrawState.vertexByteOffsets[i];
+		views[i].SizeInBytes = rDrawState.vertexCount * rDrawState.vertexStrides[i];
 		views[i].StrideInBytes = rDrawState.vertexStrides[i];
 	}
 
@@ -1445,15 +1446,18 @@ void RdrContext::Draw(const RdrDrawState& rDrawState, uint instanceCount)
 
 	if (rDrawState.pIndexBuffer && rDrawState.pIndexBuffer->GetResource())
 	{
-		if (rDrawState.pIndexBuffer != m_drawState.pIndexBuffer)
+		if (rDrawState.pIndexBuffer != m_drawState.pIndexBuffer || rDrawState.indexByteOffset != m_drawState.indexByteOffset || rDrawState.eIndexBufferFormat != m_drawState.eIndexBufferFormat)
 		{
 			D3D12_INDEX_BUFFER_VIEW view;
 			view.BufferLocation = rDrawState.pIndexBuffer->GetResource()->GetGPUVirtualAddress();
-			view.Format = DXGI_FORMAT_R16_UINT;
-			view.SizeInBytes = rDrawState.indexCount * sizeof(uint16);
+			view.BufferLocation += rDrawState.indexByteOffset;
+			view.Format = getD3DFormat(rDrawState.eIndexBufferFormat);
+			view.SizeInBytes = rDrawState.indexCount * rdrGetIndexBufferFormatSize(rDrawState.eIndexBufferFormat);
 
 			m_pCommandList->IASetIndexBuffer(&view);
 			m_drawState.pIndexBuffer = rDrawState.pIndexBuffer;
+			m_drawState.indexByteOffset = rDrawState.indexByteOffset;
+			m_drawState.eIndexBufferFormat = rDrawState.eIndexBufferFormat;
 			m_rProfiler.IncrementCounter(RdrProfileCounter::IndexBuffer);
 		}
 

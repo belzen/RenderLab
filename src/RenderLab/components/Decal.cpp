@@ -51,7 +51,7 @@ namespace
 		};
 
 		return RdrResourceSystem::CreateGeo(aVertices, sizeof(DecalVertex), ARRAY_SIZE(aVertices),
-			aIndices, ARRAY_SIZE(aIndices), RdrTopology::TriangleList, boundsMin, boundsMax, CREATE_NULL_BACKPOINTER);
+			aIndices, ARRAY_SIZE(aIndices), RdrIndexBufferFormat::R16_UINT, RdrTopology::TriangleList, boundsMin, boundsMax, CREATE_NULL_BACKPOINTER);
 	}
 }
 

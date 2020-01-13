@@ -265,9 +265,6 @@
     <ClCompile Include="render\RdrResource.cpp">
       <Filter>render</Filter>
     </ClCompile>
-    <ClCompile Include="render\Water.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Types.h" />
@@ -445,9 +442,6 @@
       <Filter>components</Filter>
     </ClInclude>
     <ClInclude Include="render\Ocean.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="render\Water.h">
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="RdrDebugBackpointer.h" />

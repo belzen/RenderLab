@@ -15,6 +15,8 @@ private:
 	static std::string GetModel(void* pSource);
 	static bool SetModel(const std::string& modelName, void* pSource);
 
+	static std::string GetMaterials(void* pSource);
+
 private:
 	ModelComponent* m_pModel;
 };

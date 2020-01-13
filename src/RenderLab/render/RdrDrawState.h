@@ -27,9 +27,11 @@ public:
 	const RdrResource* pVertexBuffers[kMaxVertexBuffers];
 	uint vertexBufferCount;
 	uint vertexStrides[kMaxVertexBuffers];
-	uint vertexOffsets[kMaxVertexBuffers];
+	uint vertexByteOffsets[kMaxVertexBuffers];
 	uint vertexCount;
+	uint indexByteOffset;
 	uint indexCount;
+	RdrIndexBufferFormat eIndexBufferFormat;
 
 	// Vertex shader
 	const RdrDescriptors* pVsGlobalConstantBufferTable;

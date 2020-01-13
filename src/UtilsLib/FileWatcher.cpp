@@ -4,11 +4,11 @@
 #include <fileapi.h>
 #include <regex>
 #include <set>
-#include <assert.h>
 #include "ThreadMutex.h"
 #include "../Types.h"
 #include "Paths.h"
 #include "Timer.h"
+#include "Error.h"
 
 namespace
 {
@@ -104,7 +104,7 @@ namespace
 			true, dwNotificationFlags, &dwBytes, &s_fileWatcher.overlapped, &notificationCompletion);
 
 		// Failure only acceptable if the file watcher is being terminated.
-		assert(bSuccess || s_fileWatcher.bTerminate);
+		Assert(bSuccess || s_fileWatcher.bTerminate);
 	}
 
 	void fileWatcherListenerThread()
@@ -118,7 +118,7 @@ namespace
 			FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
 			NULL);
 
-		assert(s_fileWatcher.hDirectory != INVALID_HANDLE_VALUE);
+		Assert(s_fileWatcher.hDirectory != INVALID_HANDLE_VALUE);
 
 		reissueFileListener();
 

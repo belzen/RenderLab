@@ -3,7 +3,6 @@
 #include "UtilsLib/JsonUtils.h"
 #include "UtilsLib/FileLoader.h"
 #include "UtilsLib/Error.h"
-#include <assert.h>
 
 using namespace AssetLib;
 
@@ -35,7 +34,9 @@ Material* Material::Load(const CachedString& assetName, Material* pMaterial)
 
 	pMaterial->bNeedsLighting = jRoot.get("needsLighting", false).asBool();
 	pMaterial->bAlphaCutout = jRoot.get("alphaCutout", false).asBool();
+	pMaterial->bNormalsBC5 = jRoot.get("normals_bc5", false).asBool();
 	pMaterial->bForEditor = jRoot.get("forEditor", false).asBool();
+	pMaterial->bEmissive = jRoot.get("emissive", false).asBool();
 
 	pMaterial->roughness = jRoot.get("roughness", 1.0f).asFloat();
 	pMaterial->metalness = jRoot.get("metalness", 0.0f).asFloat();

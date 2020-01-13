@@ -27,7 +27,7 @@ namespace
 		{ "v_sky.hlsl", 0 },    // RdrVertexShaderType::Sky
 		{ "v_terrain.hlsl", 0 },// RdrVertexShaderType::Terrain
 		{ "v_ocean.hlsl", 0 },  // RdrVertexShaderType::Ocean
-		{ "v_water.hlsl", 0 },  // RdrVertexShaderType::Water
+		{ "v_ocean.hlsl", 0 },  // RdrVertexShaderType::Water
 		{ "v_screen.hlsl", 0 }, // RdrVertexShaderType::Screen
 	};
 	static_assert(ARRAY_SIZE(kVertexShaderDefs) == (int)RdrVertexShaderType::Count, "Missing vertex shader defs!");
@@ -143,7 +143,7 @@ namespace
 		HRESULT __stdcall Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes)
 		{
 			char filename[FILE_MAX_PATH];
-			sprintf_s(filename, "%s/%s/%s", Paths::GetDataDir(), kShaderFolder, pFileName);
+			sprintf_s(filename, "%s/%s/%s", Paths::GetSrcDataDir(), kShaderFolder, pFileName);
 
 			uint size;
 			char* data;
@@ -169,7 +169,7 @@ namespace
 		ID3D10Blob* pErrors = nullptr;
 
 		char fullFilename[FILE_MAX_PATH];
-		sprintf_s(fullFilename, "%s/%s/%s", Paths::GetDataDir(), kShaderFolder, filename);
+		sprintf_s(fullFilename, "%s/%s/%s", Paths::GetSrcDataDir(), kShaderFolder, filename);
 
 		char* pFileData;
 		uint fileSize;
@@ -179,7 +179,7 @@ namespace
 		}
 
 		uint numDefines = (uint)defines.size();
-		assert(numDefines < kMaxDefines);
+		Assert(numDefines < kMaxDefines);
 
 		D3D_SHADER_MACRO macroDefines[kMaxDefines] = { 0 };
 		for (uint i = 0; i < numDefines; ++i)
@@ -236,14 +236,14 @@ namespace
 			defines.push_back("IS_INSTANCED");
 		
 		ID3D10Blob* pPreprocData = preprocessShader(rShaderDef.filename, defines);
-		assert(pPreprocData);
+		Assert(pPreprocData);
 
 		void* pCompiledData;
 		uint compiledDataSize;
 
 		const char* pShaderText = (char*)pPreprocData->GetBufferPointer();
 		bool res = pRdrContext->CompileShader(eStage, pShaderText, (uint)pPreprocData->GetBufferSize(), &pCompiledData, &compiledDataSize);
-		assert(res);
+		Assert(res);
 
 		rOutShader.filename = rShaderDef.filename;
 		rOutShader.pCompiledData = pCompiledData;
@@ -558,7 +558,7 @@ const RdrShader* RdrShaderSystem::CreatePixelShaderFromFile(const char* filename
 		s_shaderSystem.pixelShaderCache.insert(std::make_pair(nameHash, pShader));
 
 		bool res = g_pRenderer->GetContext()->CompileShader(RdrShaderStage::Pixel, (char*)pBlob->GetBufferPointer(), (uint)pBlob->GetBufferSize(), &pShader->pCompiledData, &pShader->compiledSize);
-		assert(res);
+		Assert(res);
 
 		return pShader;
 	}

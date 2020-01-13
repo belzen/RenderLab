@@ -124,7 +124,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;PhysX3DEBUG_x64.lib;PhysX3ExtensionsDEBUG.lib;PhysX3CommonDEBUG_x64.lib;PhysXVisualDebuggerSDKDEBUG.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\3rdparty\PhysX\PhysXSDK\Lib\vc14win64;..\..\lib\$(Platform)\$(Configuration);..\packages\WinPixEventRuntime.1.0.181027001\bin\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\3rdparty\PhysX\PhysXSDK\Lib\vc14win64;..\..\lib\$(Platform)\$(Configuration);..\packages\WinPixEventRuntime.1.0.181027001\bin\;..\..\3rdparty\FBX\lib\x64\$(Configuration)\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -168,7 +168,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>AssetLib.lib;MathLib.lib;RenderLab.lib;UtilsLib.lib;PhysX3_x64.lib;PhysX3Extensions.lib;PhysX3Common_x64.lib;PhysXVisualDebuggerSDK.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\3rdparty\PhysX\PhysXSDK\Lib\vc14win64;..\..\lib\$(Platform)\$(Configuration);..\packages\WinPixEventRuntime.1.0.181027001\bin\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\3rdparty\DirectXTex\lib\$(Platform)\$(Configuration)\;..\..\3rdparty\PhysX\PhysXSDK\Lib\vc14win64;..\..\lib\$(Platform)\$(Configuration);..\packages\WinPixEventRuntime.1.0.181027001\bin\;..\..\3rdparty\FBX\lib\x64\$(Configuration)\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

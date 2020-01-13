@@ -146,7 +146,7 @@ void AssetBrowser::SetDataFolder(const std::string& dataFolder)
 		m_dataFolder += '\\';
 	}
 
-	std::string searchPattern = Paths::GetDataDir() + ("\\" + m_dataFolder + "\\" + "*");
+	std::string searchPattern = Paths::GetSrcDataDir() + ("\\" + m_dataFolder + "\\" + "*");
 	Paths::ForEachFile(searchPattern.c_str(), false,
 		[](const char* filename, bool isDirectory, void* pUserData)
 		{

@@ -1,5 +1,6 @@
 #pragma once
 #include "UtilsLib/ThreadMutex.h"
+#include "UtilsLib/Error.h"
 
 // Macro to easily add all FreeList types as friends to a class.
 #define FRIEND_FREELIST template<typename T_object, uint16 T_nMaxEntries> friend class FreeList
@@ -29,7 +30,7 @@ public:
 			id = m_nextId++;
 		}
 
-		assert(id < T_nMaxEntries);
+		Assert(id < T_nMaxEntries);
 
 		m_inUse[id] = true;
 		return &m_objects[id];
@@ -66,13 +67,13 @@ public:
 
 	inline T_object* get(Handle id)
 	{
-		assert(m_inUse[id]);
+		Assert(m_inUse[id]);
 		return &m_objects[id];
 	}
 
 	inline const T_object* get(Handle id) const
 	{
-		assert(m_inUse[id]);
+		Assert(m_inUse[id]);
 		return &m_objects[id];
 	}
 

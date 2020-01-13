@@ -12,13 +12,13 @@ public:
 
 	T_object& get(uint idx)
 	{
-		assert(idx < m_size);
+		Assert(idx < m_size);
 		return m_objects[idx];
 	}
 
 	const T_object& get(uint idx) const
 	{
-		assert(idx < m_size);
+		Assert(idx < m_size);
 		return m_objects[idx];
 	}
 

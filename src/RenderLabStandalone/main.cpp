@@ -134,7 +134,7 @@ int main(int argc, char** argv)
 	{
 		RenderDoc::Init();
 	}
-	FileWatcher::Init(Paths::GetDataDir());
+	FileWatcher::Init(Paths::GetSrcDataDir());
 
 	HWND hWnd = createRenderWindow(kClientWidth, kClientHeight);
 	g_renderer.Init(hWnd, kClientWidth, kClientHeight, &g_inputManager);
