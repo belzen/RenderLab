@@ -18,6 +18,10 @@
 #include "components/ModelComponent.h"
 #include "AssetLib/SceneAsset.h"
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_win32.h"
+#include "imgui/imgui_impl_dx12.h"
+
 Renderer* g_pRenderer = nullptr;
 DWORD Renderer::s_nRenderThreadId = 0;
 
@@ -58,6 +62,20 @@ bool Renderer::Init(HWND hWnd, int width, int height, const InputManager* pInput
 
 	Font::Init();
 
+	// Setup ImGui
+	{
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGui::StyleColorsDark();
+
+		RdrDescriptors* pImGuiFontSrv = m_pContext->GetSrvHeap().AllocateDescriptor(CREATE_BACKPOINTER(this));
+
+		ImGui_ImplWin32_Init(hWnd);
+		ImGui_ImplDX12_Init(m_pContext->GetDevice(), kNumBackBuffers,
+			DXGI_FORMAT_R8G8B8A8_UNORM, nullptr,
+			pImGuiFontSrv->GetCpuDesc(), pImGuiFontSrv->GetGpuDesc());
+	}
+
 	return true;
 }
 
@@ -65,6 +83,11 @@ void Renderer::Cleanup()
 {
 	// todo: flip frame to finish resource frees.
 	m_profiler.Cleanup();
+
+	ImGui_ImplDX12_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
 	m_pContext->Release();
 	delete m_pContext;
 }
@@ -184,6 +207,11 @@ void Renderer::DrawFrame()
 
 	m_pContext->BeginFrame();
 
+	// Start the Dear ImGui frame
+	ImGui_ImplDX12_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
 	// Process threaded render commands.
 	RdrShaderSystem::ProcessCommands(m_pContext);
 	rFrameState.resourceCommands.ProcessPreFrameCommands(m_pContext);
@@ -208,6 +236,10 @@ void Renderer::DrawFrame()
 			pAction->DrawIdle(m_pContext);
 		}
 	}
+
+	//g_pd3dCommandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
+	ImGui::Render();
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_pContext->GetCommandList());
 
 	m_profiler.EndFrame();
 	m_pContext->Present();

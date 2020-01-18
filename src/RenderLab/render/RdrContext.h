@@ -48,9 +48,9 @@ public:
 	void GetDescriptorHandle(uint nId, CD3DX12_CPU_DESCRIPTOR_HANDLE* pOutDesc);
 	ID3D12DescriptorHeap* GetHeap() const { return m_pDescriptorHeap.Get(); }
 
-private:
 	RdrDescriptors* AllocateDescriptor(const RdrDebugBackpointer& debug);
 
+private:
 	typedef std::vector<RdrDescriptors*> DescriptorTableList;
 
 	ID3D12Device* m_pDevice;
