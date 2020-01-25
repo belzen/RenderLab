@@ -50,7 +50,7 @@ namespace
 
 }
 
-RdrContext::RdrContext(RdrProfiler& rProfiler)
+RdrContext::RdrContext(RdrGpuProfiler& rProfiler)
 	: m_rProfiler(rProfiler)
 {
 

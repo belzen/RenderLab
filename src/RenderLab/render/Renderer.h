@@ -39,6 +39,7 @@ class Renderer
 {
 public:
 	static void SetRenderThread(DWORD nThreadId) { s_nRenderThreadId = nThreadId; }
+	static DWORD GetRenderThreadId() { return s_nRenderThreadId; }
 	static bool IsRenderThread() { return GetCurrentThreadId() == s_nRenderThreadId; }
 
 	bool Init(HWND hWnd, int width, int height, const InputManager* pInputManager);
@@ -65,7 +66,7 @@ public:
 
 	void SetLightingMethod(RdrLightingMethod eLightingMethod);
 
-	const RdrProfiler& GetProfiler() const;
+	const RdrGpuProfiler& GetProfiler() const;
 
 	RdrLightingMethod GetLightingMethod() const;
 
@@ -79,13 +80,15 @@ private:
 
 	void ProcessReadbackRequests();
 
+	void DrawCpuProfiler();
+
 private:
 	static DWORD s_nRenderThreadId;
 
 	///
 	RdrContext* m_pContext;
 
-	RdrProfiler m_profiler;
+	RdrGpuProfiler m_gpuProfiler;
 
 	RdrDrawState m_drawState;
 
@@ -103,6 +106,8 @@ private:
 	RdrResourceReadbackRequestList m_readbackRequests; // Average out to a max of 32 requests per frame
 	std::vector<RdrResourceReadbackRequestHandle> m_pendingReadbackRequests;
 	ThreadMutex m_readbackMutex;
+
+	bool m_cpuProfilerActive;
 };
 
 inline int Renderer::GetViewportWidth() const 
@@ -130,9 +135,9 @@ inline RdrFrameState& Renderer::GetActiveState()
 	return m_frameStates[!m_queueState]; 
 }
 
-inline const RdrProfiler& Renderer::GetProfiler() const
+inline const RdrGpuProfiler& Renderer::GetProfiler() const
 {
-	return m_profiler;
+	return m_gpuProfiler;
 }
 
 inline RdrLightingMethod Renderer::GetLightingMethod() const

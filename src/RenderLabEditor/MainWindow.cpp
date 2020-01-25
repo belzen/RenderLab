@@ -289,10 +289,13 @@ int MainWindow::Run()
 void MainWindow::RenderThreadMain(MainWindow* pWindow)
 {
 	Renderer::SetRenderThread(GetCurrentThreadId());
+	RdrCpuThreadProfiler& threadProfiler = RdrCpuThreadProfiler::GetThreadProfiler(GetCurrentThreadId());
 
 	while (pWindow->m_running)
 	{
+		threadProfiler.BeginFrame();
 		pWindow->m_pRenderWindow->DrawFrame();
+		threadProfiler.EndFrame();
 
 		::SetEvent(pWindow->m_hRenderFrameDoneEvent);
 		::WaitForSingleObject(pWindow->m_hFrameDoneEvent, INFINITE);

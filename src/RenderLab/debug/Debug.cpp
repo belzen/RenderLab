@@ -96,7 +96,7 @@ void Debug::QueueDraw(RdrAction* pAction)
 		sprintf_s(line, "%.2f, %.2f, %.2f", camPos.x, camPos.y, camPos.z);
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
-		const RdrProfiler& rProfiler = g_pRenderer->GetProfiler();
+		const RdrGpuProfiler& rProfiler = g_pRenderer->GetProfiler();
 		
 		uiPos.y.val += 20.f;
 		sprintf_s(line, "GPU Frame: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Frame));
@@ -151,7 +151,7 @@ void Debug::QueueDraw(RdrAction* pAction)
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  RT: %.4f ms", rProfiler.GetRenderThreadTime() * 1000.f);
+		sprintf_s(line, "  RT: %.4f ms", RdrCpuThreadProfiler::GetThreadProfiler(Renderer::GetRenderThreadId()).GetThreadTime() * 1000.f);
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 	}
 

@@ -54,11 +54,22 @@ enum class RdrProfileCounter
 	Count
 };
 
-class RdrProfiler
+class RdrProfilerCpuSection
+{
+public:
+	RdrProfilerCpuSection(const char* strName);
+
+	uint8 GetId() const { return m_nId; }
+
+private:
+	CachedString m_name;
+	uint8 m_nId;
+};
+
+class RdrGpuProfiler
 {
 public:
 	void Init(RdrContext* pRdrContext);
-	void Cleanup();
 
 	void BeginSection(RdrProfileSection eSection);
 	void EndSection();
@@ -71,8 +82,6 @@ public:
 
 	float GetSectionTime(RdrProfileSection eSection) const;
 	uint GetCounter(RdrProfileCounter eCounter) const;
-
-	float GetRenderThreadTime() const;
 
 private:
 	// Intel HD 530 takes 6 frames for timestamp data to be ready, seems pretty fishy...
@@ -91,24 +100,84 @@ private:
 	TimestampQueries m_activeQueryStack[8];
 	uint m_currStackDepth;
 
-	float m_timings[(int)RdrProfileSection::Count];
+	float m_gpuTimings[(int)RdrProfileSection::Count];
 
 	uint m_counters[(int)RdrProfileCounter::Count];
 	uint m_prevCounters[(int)RdrProfileCounter::Count];
-
-	Timer::Handle m_hRenderThreadTimer;
-	float m_renderThreadTime;
 
 	RdrContext* m_pRdrContext;
 	int m_currFrame;
 };
 
-inline void RdrProfiler::IncrementCounter(RdrProfileCounter eCounter)
+inline void RdrGpuProfiler::IncrementCounter(RdrProfileCounter eCounter)
 {
 	m_counters[(int)eCounter]++;
 }
 
-inline void RdrProfiler::AddCounter(RdrProfileCounter eCounter, int val)
+inline void RdrGpuProfiler::AddCounter(RdrProfileCounter eCounter, int val)
 {
 	m_counters[(int)eCounter] += val;
 }
+
+
+class RdrCpuThreadProfiler
+{
+public:
+	static RdrCpuThreadProfiler& GetThreadProfiler(DWORD threadId);
+	static std::string MakeSectionName(uint64 nId);
+
+	RdrCpuThreadProfiler();
+	~RdrCpuThreadProfiler();
+
+	void BeginSection(const RdrProfilerCpuSection& section);
+	void EndSection(const RdrProfilerCpuSection& section);
+
+	void BeginFrame();
+	void EndFrame();
+
+	float GetThreadTime() const;
+	
+	const std::map<uint64, float>& GetTimings() const;
+
+private:
+	uint64 MakeStackId() const;
+
+	std::map<uint64, float> m_frameTimings[2];
+
+	struct TimingBlock
+	{
+		uint8 nId;
+		float fStartTime;
+	};
+	typedef std::vector<TimingBlock> TimingBlockList;
+	TimingBlockList m_sectionStack;
+
+	uint m_nCurrFrame;
+
+	Timer::Handle m_hThreadTimer;
+	float m_threadTime;
+};
+
+class RdrAutoProfilerCpuSection
+{
+public:
+	RdrAutoProfilerCpuSection(RdrCpuThreadProfiler& profiler, const RdrProfilerCpuSection& section)
+		: m_profiler(profiler)
+		, m_section(section)
+	{
+		m_profiler.BeginSection(m_section);
+	}
+
+	~RdrAutoProfilerCpuSection()
+	{
+		m_profiler.EndSection(m_section);
+	}
+
+private:
+	RdrCpuThreadProfiler& m_profiler;
+	const RdrProfilerCpuSection& m_section;
+};
+
+#define RDR_PROFILER_CPU_SECTION(name) \
+	static RdrProfilerCpuSection s_section(name); \
+	RdrAutoProfilerCpuSection activeProfilerSection(RdrCpuThreadProfiler::GetThreadProfiler(GetCurrentThreadId()), s_section);

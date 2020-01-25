@@ -42,11 +42,11 @@ bool Renderer::Init(HWND hWnd, int width, int height, const InputManager* pInput
 
 	DebugConsole::RegisterCommand("lightingMethod", cmdSetLightingMethod, DebugCommandArgType::Integer);
 
-	m_pContext = new RdrContext(m_profiler);
+	m_pContext = new RdrContext(m_gpuProfiler);
 	if (!m_pContext->Init(hWnd, width, height))
 		return false;
 
-	m_profiler.Init(m_pContext);
+	m_gpuProfiler.Init(m_pContext);
 
 	RdrResourceSystem::Init(*this);
 
@@ -82,8 +82,6 @@ bool Renderer::Init(HWND hWnd, int width, int height, const InputManager* pInput
 void Renderer::Cleanup()
 {
 	// todo: flip frame to finish resource frees.
-	m_profiler.Cleanup();
-
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
@@ -201,8 +199,23 @@ void Renderer::ProcessReadbackRequests()
 	}
 }
 
+void Renderer::DrawCpuProfiler()
+{
+	const std::map<uint64, float>& timings = RdrCpuThreadProfiler::GetThreadProfiler(GetCurrentThreadId()).GetTimings();
+	ImGui::Begin("CPU Profiler", &m_cpuProfilerActive, ImGuiWindowFlags_None);
+
+	for (auto& iter : timings)
+	{
+		ImGui::Text("%s - %.4f", RdrCpuThreadProfiler::MakeSectionName(iter.first).c_str(), iter.second);
+	}
+
+	ImGui::End();
+}
+
+
 void Renderer::DrawFrame()
 {
+	RDR_PROFILER_CPU_SECTION("DrawFrame");
 	RdrFrameState& rFrameState = GetActiveState();
 
 	m_pContext->BeginFrame();
@@ -218,14 +231,15 @@ void Renderer::DrawFrame()
 
 	ProcessReadbackRequests();
 
-	m_profiler.BeginFrame();
+	m_gpuProfiler.BeginFrame();
 
 	// Draw the frame
 	if (!m_pContext->IsIdle()) // If the device is idle (probably minimized), don't bother rendering anything.
 	{
+		RDR_PROFILER_CPU_SECTION("Draw");
 		for (RdrAction* pAction : rFrameState.actions)
 		{
-			pAction->Draw(m_pContext, &m_drawState, &m_profiler);
+			pAction->Draw(m_pContext, &m_drawState, &m_gpuProfiler);
 		}
 	}
 	else
@@ -237,11 +251,12 @@ void Renderer::DrawFrame()
 		}
 	}
 
-	//g_pd3dCommandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
+	DrawCpuProfiler();
+
 	ImGui::Render();
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_pContext->GetCommandList());
 
-	m_profiler.EndFrame();
+	m_gpuProfiler.EndFrame();
 	m_pContext->Present();
 
 	// Process post-frame commands.

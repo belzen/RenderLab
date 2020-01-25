@@ -13,7 +13,7 @@
 #include <dxgi1_6.h>
 using namespace Microsoft::WRL;
 
-class RdrProfiler;
+class RdrGpuProfiler;
 struct Rect;
 struct RdrDrawOp;
 class LightList;
@@ -129,7 +129,7 @@ struct RdrSampler
 class RdrContext
 {
 public:
-	RdrContext(RdrProfiler& rProfiler);
+	RdrContext(RdrGpuProfiler& rProfiler);
 
 	bool Init(HWND hWnd, uint width, uint height);
 	void Resize(uint width, uint height);
@@ -249,7 +249,7 @@ private:
 	RdrSampler m_samplers[kMaxNumSamplers];
 	
 	RdrDrawState m_drawState;
-	RdrProfiler& m_rProfiler;
+	RdrGpuProfiler& m_rProfiler;
 
 	uint m_presentFlags;
 	uint m_currBackBuffer;

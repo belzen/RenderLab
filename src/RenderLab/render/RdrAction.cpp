@@ -541,12 +541,12 @@ void RdrAction::DrawIdle(RdrContext* pContext)
 {
 }
 
-void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler* pProfiler)
+void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrGpuProfiler* pProfiler)
 {
 	// Cache render objects
 	m_pContext = pContext;
 	m_pDrawState = pDrawState;
-	m_pProfiler = pProfiler;
+	m_pGpuProfiler = pProfiler;
 
 	// Update global resources
 	RdrGlobalResources globalResources;
@@ -568,12 +568,12 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 	//////////////////////////////////////////////////////////////////////////
 	// Shadow passes
 
-	m_pProfiler->BeginSection(RdrProfileSection::Shadows);
+	m_pGpuProfiler->BeginSection(RdrProfileSection::Shadows);
 	for (int iShadow = 0; iShadow < m_shadowPassCount; ++iShadow)
 	{
 		DrawShadowPass(iShadow);
 	}
-	m_pProfiler->EndSection();
+	m_pGpuProfiler->EndSection();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Normal draw passes
@@ -595,9 +595,9 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 
 	if (m_bEnablePostProcessing)
 	{
-		m_pProfiler->BeginSection(RdrProfileSection::PostProcessing);
+		m_pGpuProfiler->BeginSection(RdrProfileSection::PostProcessing);
 		s_actionSharedData.postProcess.DoPostProcessing(m_pContext, m_pDrawState, m_surfaces, m_postProcessEffects, m_constants);
-		m_pProfiler->EndSection();
+		m_pGpuProfiler->EndSection();
 	}
 
 	// Wireframe
@@ -616,7 +616,7 @@ void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler
 	// Reset render objects
 	m_pContext = nullptr;
 	m_pDrawState = nullptr;
-	m_pProfiler = nullptr;
+	m_pGpuProfiler = nullptr;
 }
 
 void RdrAction::DrawBucket(const RdrPassData& rPass, const RdrDrawOpBucket& rBucket, const RdrGlobalConstants& rGlobalConstants)
@@ -772,17 +772,17 @@ void RdrAction::DrawGeo(const RdrPassData& rPass, const RdrGlobalConstants& rGlo
 		m_pDrawState->indexCount = pGeo->geoInfo.numIndices;
 		m_pDrawState->eIndexBufferFormat = pGeo->geoInfo.eIndexFormat;
 		m_pDrawState->indexByteOffset = pGeo->geoInfo.nIndexStartByteOffset;
-		m_pProfiler->AddCounter(RdrProfileCounter::Triangles, instanceCount * m_pDrawState->indexCount / 3);
+		m_pGpuProfiler->AddCounter(RdrProfileCounter::Triangles, instanceCount * m_pDrawState->indexCount / 3);
 	}
 	else
 	{
 		m_pDrawState->pIndexBuffer = nullptr;
-		m_pProfiler->AddCounter(RdrProfileCounter::Triangles, instanceCount * m_pDrawState->vertexCount / 3);
+		m_pGpuProfiler->AddCounter(RdrProfileCounter::Triangles, instanceCount * m_pDrawState->vertexCount / 3);
 	}
 
 	// Done
 	m_pContext->Draw(*m_pDrawState, instanceCount);
-	m_pProfiler->IncrementCounter(RdrProfileCounter::DrawCall);
+	m_pGpuProfiler->IncrementCounter(RdrProfileCounter::DrawCall);
 }
 
 void RdrAction::DispatchCompute(const RdrComputeOp* pComputeOp)
@@ -807,7 +807,7 @@ void RdrAction::DrawPass(RdrPass ePass)
 	if (!rPass.bEnabled)
 		return;
 
-	m_pProfiler->BeginSection(s_passProfileSections[(int)ePass]);
+	m_pGpuProfiler->BeginSection(s_passProfileSections[(int)ePass]);
 	m_pContext->BeginEvent(s_passNames[(int)ePass]);
 
 	RdrRenderTargetView renderTargets[MAX_RENDER_TARGETS];
@@ -862,7 +862,7 @@ void RdrAction::DrawPass(RdrPass ePass)
 	DrawBucket(rPass, rBucket, rGlobalConstants);
 
 	m_pContext->EndEvent();
-	m_pProfiler->EndSection();
+	m_pGpuProfiler->EndSection();
 }
 
 void RdrAction::DrawShadowPass(int shadowPassIndex)

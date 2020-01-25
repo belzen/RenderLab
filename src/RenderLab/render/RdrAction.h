@@ -14,7 +14,7 @@
 struct RdrDrawOp;
 struct RdrComputeOp;
 class RdrContext;
-class RdrProfiler;
+class RdrGpuProfiler;
 class RdrDrawState;
 class LightList;
 class InputManager;
@@ -121,7 +121,7 @@ public:
 	RdrResourceHandle GetPrimaryDepthBuffer() const;
 
 	// Issue action's draw commands to the render device.
-	void Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrProfiler* pProfiler);
+	void Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrGpuProfiler* pProfiler);
 
 	// Idle draw.  The window isn't visible and there's no point issuing draw calls.
 	// Only issues non-transient commands which would cause breakages if they were skipped (like resource updates).
@@ -175,7 +175,7 @@ private:
 	// Stored here just to simplify argument passing to child draw functions.
 	RdrContext* m_pContext;
 	RdrDrawState* m_pDrawState;
-	RdrProfiler* m_pProfiler;
+	RdrGpuProfiler* m_pGpuProfiler;
 };
 
 //////////////////////////////////////////////////////////////////////////
