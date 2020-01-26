@@ -11,6 +11,10 @@
 #include "UI.h"
 #include "Raycast.h"
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_win32.h"
+IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 namespace
 {
 	Entity* raycastScene(const Vec3& rayOrigin, const Vec3& rayDir)
@@ -40,7 +44,7 @@ RenderWindow* RenderWindow::Create(int x, int y, int width, int height, SceneVie
 }
 
 RenderWindow::RenderWindow(int x, int y, int width, int height, SceneViewModel* pSceneViewModel, const Widget* pParent)
-	: WindowBase(x, y, width, height, "Renderer", pParent)
+	: WindowBase(x, y, width, height, "Renderer", pParent, RenderWindow::WndProc)
 	, m_pSceneViewModel(pSceneViewModel)
 	, m_pPlacingObject(nullptr)
 {
@@ -49,6 +53,15 @@ RenderWindow::RenderWindow(int x, int y, int width, int height, SceneViewModel* 
 	m_inputManager.PushContext(&m_defaultInputContext);
 	m_manipulator.Init();
 }
+
+LRESULT CALLBACK RenderWindow::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam) != 0)
+		return 0;
+
+	return WindowBase::WndProc(hWnd, message, wParam, lParam);
+}
+
 
 void RenderWindow::Close()
 {

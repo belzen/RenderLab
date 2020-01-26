@@ -543,6 +543,8 @@ void RdrAction::DrawIdle(RdrContext* pContext)
 
 void RdrAction::Draw(RdrContext* pContext, RdrDrawState* pDrawState, RdrGpuProfiler* pProfiler)
 {
+	RDR_PROFILER_CPU_SECTION("DrawAction");
+
 	// Cache render objects
 	m_pContext = pContext;
 	m_pDrawState = pDrawState;

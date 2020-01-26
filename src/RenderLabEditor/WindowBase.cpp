@@ -3,8 +3,8 @@
 #include "Widgets/Menu.h"
 
 
-WindowBase::WindowBase(int x, int y, int width, int height, const char* title, const Widget* pParent)
-	: Widget(x, y, width, height, pParent, 0, WindowBase::WndProc)
+WindowBase::WindowBase(int x, int y, int width, int height, const char* title, const Widget* pParent, WNDPROC pWndProc)
+	: Widget(x, y, width, height, pParent, 0, pWndProc ? pWndProc : WindowBase::WndProc)
 {
 	::SetWindowTextA(GetWindowHandle(), title);
 	::ShowWindow(GetWindowHandle(), 1);

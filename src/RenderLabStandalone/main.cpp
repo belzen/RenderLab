@@ -175,7 +175,7 @@ int main(int argc, char** argv)
 			}
 		}
 
-		Time::Update(Timer::GetElapsedSecondsAndReset(hTimer));
+		Time::Update((float)Timer::GetElapsedSecondsAndReset(hTimer));
 		g_inputManager.GetActiveContext()->Update(g_inputManager);
 
 		Debug::Update();

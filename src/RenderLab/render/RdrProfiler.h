@@ -80,7 +80,7 @@ public:
 	void IncrementCounter(RdrProfileCounter eCounter);
 	void AddCounter(RdrProfileCounter eCounter, int val);
 
-	float GetSectionTime(RdrProfileSection eSection) const;
+	float GetSectionTimeMS(RdrProfileSection eSection) const;
 	uint GetCounter(RdrProfileCounter eCounter) const;
 
 private:
@@ -119,7 +119,20 @@ inline void RdrGpuProfiler::AddCounter(RdrProfileCounter eCounter, int val)
 	m_counters[(int)eCounter] += val;
 }
 
+struct CpuTimingIdComparator {
+	bool operator()(const uint64 lhs, const uint64 rhs) const 
+	{
+		for (uint i = 0; i < 8; ++i)
+		{
+			uint nMask = 0xff << (i * 8);
+			if ((lhs & nMask) != (rhs & nMask))
+				return (lhs & nMask) < (rhs & nMask);
+		}
 
+		return false;
+	}
+};
+typedef std::map<uint64, double, CpuTimingIdComparator> CpuTimingsMap;
 class RdrCpuThreadProfiler
 {
 public:
@@ -135,19 +148,20 @@ public:
 	void BeginFrame();
 	void EndFrame();
 
-	float GetThreadTime() const;
+	double GetThreadTimeMS() const;
 	
-	const std::map<uint64, float>& GetTimings() const;
+	const CpuTimingsMap& GetTimingsMS() const;
 
 private:
 	uint64 MakeStackId() const;
 
-	std::map<uint64, float> m_frameTimings[2];
+	//////////////////////////////////////////////////////////////////////////
+	CpuTimingsMap m_frameTimings[2];
 
 	struct TimingBlock
 	{
 		uint8 nId;
-		float fStartTime;
+		double dStartTime;
 	};
 	typedef std::vector<TimingBlock> TimingBlockList;
 	TimingBlockList m_sectionStack;
@@ -155,7 +169,7 @@ private:
 	uint m_nCurrFrame;
 
 	Timer::Handle m_hThreadTimer;
-	float m_threadTime;
+	double m_threadTime;
 };
 
 class RdrAutoProfilerCpuSection
@@ -178,6 +192,10 @@ private:
 	const RdrProfilerCpuSection& m_section;
 };
 
+#if defined(_DEBUG)
+#define RDR_PROFILER_CPU_SECTION(name)
+#else
 #define RDR_PROFILER_CPU_SECTION(name) \
 	static RdrProfilerCpuSection s_section(name); \
 	RdrAutoProfilerCpuSection activeProfilerSection(RdrCpuThreadProfiler::GetThreadProfiler(GetCurrentThreadId()), s_section);
+#endif

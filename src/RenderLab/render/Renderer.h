@@ -106,8 +106,6 @@ private:
 	RdrResourceReadbackRequestList m_readbackRequests; // Average out to a max of 32 requests per frame
 	std::vector<RdrResourceReadbackRequestHandle> m_pendingReadbackRequests;
 	ThreadMutex m_readbackMutex;
-
-	bool m_cpuProfilerActive;
 };
 
 inline int Renderer::GetViewportWidth() const 

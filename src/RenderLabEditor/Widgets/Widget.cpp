@@ -2,11 +2,6 @@
 #include "Widget.h"
 #include "UI.h"
 
-#include "imgui/imgui.h" //donotcheckin
-#include "imgui/imgui_impl_win32.h"
-IMGUI_IMPL_API LRESULT  ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-
 namespace
 {
 	HFONT s_hDefaultFont = NULL;
@@ -428,9 +423,6 @@ LRESULT CALLBACK Widget::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 	if (pWidget)
 	{
 		bool bHandled = false;
-
-		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam) != 0)
-			return 0;
 
 		switch (msg)
 		{

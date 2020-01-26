@@ -201,13 +201,28 @@ void Renderer::ProcessReadbackRequests()
 
 void Renderer::DrawCpuProfiler()
 {
-	const std::map<uint64, float>& timings = RdrCpuThreadProfiler::GetThreadProfiler(GetCurrentThreadId()).GetTimings();
-	ImGui::Begin("CPU Profiler", &m_cpuProfilerActive, ImGuiWindowFlags_None);
+	if (!g_debugState.showCpuProfiler)
+		return;
 
-	for (auto& iter : timings)
+	const CpuTimingsMap& timings = RdrCpuThreadProfiler::GetThreadProfiler(GetCurrentThreadId()).GetTimingsMS();
+	ImGui::Begin("CPU Profiler", &g_debugState.showCpuProfiler, ImGuiWindowFlags_None);
+
+	ImGui::Text("Render Thread");
+
+	ImGui::BeginChild("RenderThread");
 	{
-		ImGui::Text("%s - %.4f", RdrCpuThreadProfiler::MakeSectionName(iter.first).c_str(), iter.second);
+		ImGui::Columns(2, nullptr, false);
+		ImGui::SetColumnOffset(1, 200.f);
+
+		for (auto& iter : timings)
+		{
+			ImGui::Text("%s", RdrCpuThreadProfiler::MakeSectionName(iter.first).c_str());
+			ImGui::NextColumn();
+			ImGui::Text("%.4f ms", iter.second);
+			ImGui::NextColumn();
+		}
 	}
+	ImGui::EndChild();
 
 	ImGui::End();
 }
@@ -225,18 +240,20 @@ void Renderer::DrawFrame()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	// Process threaded render commands.
-	RdrShaderSystem::ProcessCommands(m_pContext);
-	rFrameState.resourceCommands.ProcessPreFrameCommands(m_pContext);
-
-	ProcessReadbackRequests();
+	{
+		RDR_PROFILER_CPU_SECTION("ProcessCommands");
+		// Process threaded render commands.
+		RdrShaderSystem::ProcessCommands(m_pContext);
+		rFrameState.resourceCommands.ProcessPreFrameCommands(m_pContext);
+	
+		ProcessReadbackRequests();
+	}
 
 	m_gpuProfiler.BeginFrame();
 
 	// Draw the frame
 	if (!m_pContext->IsIdle()) // If the device is idle (probably minimized), don't bother rendering anything.
 	{
-		RDR_PROFILER_CPU_SECTION("Draw");
 		for (RdrAction* pAction : rFrameState.actions)
 		{
 			pAction->Draw(m_pContext, &m_drawState, &m_gpuProfiler);

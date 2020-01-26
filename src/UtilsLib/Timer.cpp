@@ -35,7 +35,7 @@ void Timer::Release(Timer::Handle hTimer)
 	s_timers[hTimer].inUse = false;
 }
 
-float Timer::GetElapsedSeconds(Timer::Handle hTimer)
+double Timer::GetElapsedSeconds(Timer::Handle hTimer)
 {
 	LARGE_INTEGER end;
 	LARGE_INTEGER elapsed;
@@ -43,10 +43,10 @@ float Timer::GetElapsedSeconds(Timer::Handle hTimer)
 	QueryPerformanceCounter(&end);
 	elapsed.QuadPart = end.QuadPart - s_timers[hTimer].start.QuadPart;
 
-	return elapsed.QuadPart / (float)s_timers[hTimer].frequency.QuadPart;
+	return elapsed.QuadPart / (double)s_timers[hTimer].frequency.QuadPart;
 }
 
-float Timer::GetElapsedSecondsAndReset(Timer::Handle hTimer)
+double Timer::GetElapsedSecondsAndReset(Timer::Handle hTimer)
 {
 	LARGE_INTEGER end;
 	LARGE_INTEGER elapsed;
@@ -54,10 +54,20 @@ float Timer::GetElapsedSecondsAndReset(Timer::Handle hTimer)
 	QueryPerformanceCounter(&end);
 	elapsed.QuadPart = end.QuadPart - s_timers[hTimer].start.QuadPart;
 	
-	float fElapsed = elapsed.QuadPart / (float)s_timers[hTimer].frequency.QuadPart;
+	double fElapsed = elapsed.QuadPart / (double)s_timers[hTimer].frequency.QuadPart;
 	s_timers[hTimer].start = end;
 
 	return fElapsed;
+}
+
+double Timer::GetElapsedMilliseconds(Timer::Handle hTimer) 
+{
+	return GetElapsedSeconds(hTimer) * 1000; 
+}
+
+double Timer::GetElapsedMillisecondsAndReset(Timer::Handle hTimer) 
+{ 
+	return GetElapsedSecondsAndReset(hTimer) * 1000; 
 }
 
 void Timer::Reset(Timer::Handle hTimer)

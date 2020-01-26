@@ -92,7 +92,7 @@ void RdrGpuProfiler::EndFrame()
 	memcpy(m_prevCounters, m_counters, sizeof(m_prevCounters));
 }
 
-float RdrGpuProfiler::GetSectionTime(RdrProfileSection eSection) const
+float RdrGpuProfiler::GetSectionTimeMS(RdrProfileSection eSection) const
 {
 	return m_gpuTimings[(int)eSection];
 }
@@ -140,13 +140,13 @@ void RdrCpuThreadProfiler::BeginFrame()
 void RdrCpuThreadProfiler::EndFrame()
 {
 	Assert(m_sectionStack.empty());
-	m_threadTime = Timer::GetElapsedSeconds(m_hThreadTimer);
+	m_threadTime = Timer::GetElapsedMilliseconds(m_hThreadTimer);
 }
 
 void RdrCpuThreadProfiler::BeginSection(const RdrProfilerCpuSection& section)
 {
 	Assert(m_sectionStack.size() <= 8);
-	m_sectionStack.push_back(TimingBlock{ section.GetId(), Timer::GetElapsedSeconds(m_hThreadTimer) });
+	m_sectionStack.push_back(TimingBlock{ section.GetId(), Timer::GetElapsedMilliseconds(m_hThreadTimer) });
 }
 
 void RdrCpuThreadProfiler::EndSection(const RdrProfilerCpuSection& section)
@@ -154,17 +154,17 @@ void RdrCpuThreadProfiler::EndSection(const RdrProfilerCpuSection& section)
 	const TimingBlock& block = m_sectionStack.back();
 	Assert(block.nId == section.GetId());
 
-	float fTime = Timer::GetElapsedSeconds(m_hThreadTimer);
+	double dTime = Timer::GetElapsedMilliseconds(m_hThreadTimer);
 	uint64 nStackId = MakeStackId();
 
 	auto iter = m_frameTimings[m_nCurrFrame].find(nStackId);
 	if (iter == m_frameTimings[m_nCurrFrame].end())
 	{
-		m_frameTimings[m_nCurrFrame][nStackId] = fTime;
+		m_frameTimings[m_nCurrFrame][nStackId] = dTime;
 	}
 	else
 	{
-		iter->second += fTime;
+		iter->second += dTime;
 	}
 
 	m_sectionStack.pop_back();
@@ -180,12 +180,12 @@ uint64 RdrCpuThreadProfiler::MakeStackId() const
 	return nStackId;
 }
 
-float RdrCpuThreadProfiler::GetThreadTime() const
+double RdrCpuThreadProfiler::GetThreadTimeMS() const
 {
 	return m_threadTime;
 }
 
-const std::map<uint64, float>& RdrCpuThreadProfiler::GetTimings() const
+const CpuTimingsMap& RdrCpuThreadProfiler::GetTimingsMS() const
 {
 	return m_frameTimings[(m_nCurrFrame - 1) % ARRAYSIZE(m_frameTimings)];
 }

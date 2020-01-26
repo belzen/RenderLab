@@ -99,47 +99,47 @@ void Debug::QueueDraw(RdrAction* pAction)
 		const RdrGpuProfiler& rProfiler = g_pRenderer->GetProfiler();
 		
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "GPU Frame: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Frame));
+		sprintf_s(line, "GPU Frame: %.3f ms", rProfiler.GetSectionTimeMS(RdrProfileSection::Frame));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  Shadows: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Shadows));
+		sprintf_s(line, "  Shadows: %.3f ms", rProfiler.GetSectionTimeMS(RdrProfileSection::Shadows));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  Z-Prepass: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::ZPrepass));
+		sprintf_s(line, "  Z-Prepass: %.3f ms", rProfiler.GetSectionTimeMS(RdrProfileSection::ZPrepass));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  Light Cull: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::LightCulling));
+		sprintf_s(line, "  Light Cull: %.3f ms", rProfiler.GetSectionTimeMS(RdrProfileSection::LightCulling));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  Volumetric Fog: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::VolumetricFog));
+		sprintf_s(line, "  Volumetric Fog: %.3f ms", rProfiler.GetSectionTimeMS(RdrProfileSection::VolumetricFog));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  Opaque: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Opaque));
+		sprintf_s(line, "  Opaque: %.3f ms", rProfiler.GetSectionTimeMS(RdrProfileSection::Opaque));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  Decal: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Decal));
+		sprintf_s(line, "  Decal: %.3f ms", rProfiler.GetSectionTimeMS(RdrProfileSection::Decal));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  Alpha: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Alpha));
+		sprintf_s(line, "  Alpha: %.3f ms", rProfiler.GetSectionTimeMS(RdrProfileSection::Alpha));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  Sky: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::Sky));
+		sprintf_s(line, "  Sky: %.3f ms", rProfiler.GetSectionTimeMS(RdrProfileSection::Sky));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  Post-Proc: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::PostProcessing));
+		sprintf_s(line, "  Post-Proc: %.3f ms", rProfiler.GetSectionTimeMS(RdrProfileSection::PostProcessing));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  UI: %.3f ms", rProfiler.GetSectionTime(RdrProfileSection::UI));
+		sprintf_s(line, "  UI: %.3f ms", rProfiler.GetSectionTimeMS(RdrProfileSection::UI));
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
@@ -151,7 +151,7 @@ void Debug::QueueDraw(RdrAction* pAction)
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 
 		uiPos.y.val += 20.f;
-		sprintf_s(line, "  RT: %.4f ms", RdrCpuThreadProfiler::GetThreadProfiler(Renderer::GetRenderThreadId()).GetThreadTime() * 1000.f);
+		sprintf_s(line, "  RT: %.4f ms", RdrCpuThreadProfiler::GetThreadProfiler(Renderer::GetRenderThreadId()).GetThreadTimeMS());
 		Font::QueueDraw(pAction, uiPos, 20.f, line, Color::kWhite);
 	}
 

@@ -35,6 +35,8 @@ public:
 	void DrawFrame();
 
 private:
+	static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
 	RenderWindow(int x, int y, int width, int height, SceneViewModel* pSceneViewModel, const Widget* pParent);
 
 	//////////////////////////////////////////////////////////////////////////

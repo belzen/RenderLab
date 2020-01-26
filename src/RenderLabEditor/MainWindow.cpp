@@ -53,7 +53,7 @@ MainWindow* MainWindow::Create(int width, int height, const char* title)
 }
 
 MainWindow::MainWindow(int width, int height, const char* title)
-	: WindowBase(0, 0, width, height, title, nullptr)
+	: WindowBase(0, 0, width, height, title, nullptr, nullptr)
 	, m_pPropertyPanel(nullptr)
 	, m_pSceneTreeView(nullptr)
 	, m_running(false)
@@ -112,6 +112,9 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	//////////////////////////////////////////////////////////////////////////
 	// Debug menu
 	m_debugMenu.Init();
+	m_debugMenu.AddItem("CPU Profiler", [](void* pUserData) {
+		g_debugState.showCpuProfiler = !g_debugState.showCpuProfiler;
+	}, this);
 	m_debugMenu.AddItem("RenderDoc Capture", [](void* pUserData) {
 		RenderDoc::Capture();
 	}, this);
@@ -256,7 +259,7 @@ int MainWindow::Run()
 			}
 		}
 
-		Time::Update(Timer::GetElapsedSecondsAndReset(hTimer));
+		Time::Update((float)Timer::GetElapsedSecondsAndReset(hTimer));
 
 		m_pRenderWindow->Update();
 

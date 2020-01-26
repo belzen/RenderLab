@@ -7,7 +7,11 @@ namespace Timer
 	Handle Create(void);
 	void Release(Handle hTimer);
 
-	float GetElapsedSeconds(Handle hTimer);
-	float GetElapsedSecondsAndReset(Handle hTimer);
+	double GetElapsedSeconds(Handle hTimer);
+	double GetElapsedSecondsAndReset(Handle hTimer);
+
+	double GetElapsedMilliseconds(Handle hTimer);
+	double GetElapsedMillisecondsAndReset(Handle hTimer);
+
 	void Reset(Handle hTimer);
 }

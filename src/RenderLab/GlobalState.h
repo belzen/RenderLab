@@ -13,6 +13,7 @@ struct GlobalState
 {
 	int enableInstancing;
 	bool wireframe;
+	bool showCpuProfiler;
 	int msaaLevel;
 	DebugVisMode visMode;
 

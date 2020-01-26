@@ -14,6 +14,11 @@ namespace
 	{
 		g_debugState.wireframe = (args[0].val.inum != 0);
 	}
+
+	void cmdShowCpuProfiler(DebugCommandArg *args, int numArgs)
+	{
+		g_debugState.showCpuProfiler = (args[0].val.inum != 0);
+	}
 }
 
 void GlobalState::Init()
@@ -21,10 +26,12 @@ void GlobalState::Init()
 	// Register debug commands.
 	DebugConsole::RegisterCommand("instancing", cmdSetInstancingEnabled, DebugCommandArgType::Integer);
 	DebugConsole::RegisterCommand("wireframe", cmdSetWireframeEnabled, DebugCommandArgType::Integer);
+	DebugConsole::RegisterCommand("showCpuProfiler", cmdShowCpuProfiler, DebugCommandArgType::Integer);
 
 	// Init default state
 	g_debugState.enableInstancing = false; // Leaving this disabled as the engine is far more GPU bound than CPU right now.
 	g_debugState.msaaLevel = 1;
 	g_debugState.wireframe = false;
 	g_debugState.visMode = DebugVisMode::kNone;
+	g_debugState.showCpuProfiler = false;
 }
